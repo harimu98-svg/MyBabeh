@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Babeh - Aplikasi Karyawan</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="assets/icons/icon-192x192.png">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <!-- Login Screen (akan disembunyikan setelah login) -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-box">
+            <img src="assets/logo.png" alt="Babeh Barbershop" class="login-logo">
+            <h2>My Babeh</h2>
+            <p class="login-subtitle">Aplikasi Karyawan Babeh Barbershop</p>
+            
+            <div class="login-form">
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="loginEmail" placeholder="Email">
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="loginPassword" placeholder="Password">
+                </div>
+                <button id="loginBtn" class="login-btn">
+                    <i class="fas fa-sign-in-alt"></i> MASUK
+                </button>
+                <p id="loginError" class="error-message"></p>
+            </div>
+            
+            <div class="login-footer">
+                <p>Hubungi admin untuk bantuan login</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Screen (akan ditampilkan setelah login) -->
+    <div id="appScreen" class="app-container" style="display: none;">
+        <!-- Header dengan Logo dan Profile -->
+        <header class="app-header">
+            <div class="header-top">
+                <img src="assets/logo.png" alt="Babeh Barbershop" class="app-logo">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <button id="logoutBtn" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="profile-section">
+                <div class="profile-photo" id="profilePhoto">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="profile-details">
+                    <h1 id="profileName">Nama Karyawan</h1>
+                    <div class="profile-info">
+                        <div class="info-item">
+                            <i class="fas fa-store"></i>
+                            <span id="profileOutlet">Outlet</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-user-tag"></i>
+                            <span id="profileRole">Role</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-briefcase"></i>
+                            <span id="profilePosition">Posisi</span>
+                        </div>
+                    </div>
+                    <div class="profile-secondary">
+                        <p><i class="fas fa-calendar-plus"></i> Bergabung: <span id="joinDate">-</span></p>
+                        <p><i class="fas fa-clock"></i> Masa Kerja: <span id="workPeriod">-</span></p>
+                        <p><i class="fas fa-birthday-cake"></i> Tempat/Tgl Lahir: <span id="birthInfo">-</span></p>
+                        <p><i class="fab fa-whatsapp"></i> WA: <span id="whatsappNumber">-</span></p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Menu Tombol -->
+        <main class="main-content">
+            <div class="menu-section">
+                <h2 class="section-title">
+                    <i class="fas fa-th-large"></i> Menu Utama
+                </h2>
+                <div class="menu-grid" id="menuGrid">
+                    <!-- Menu akan diisi secara dinamis berdasarkan role -->
+                </div>
+            </div>
+
+            <!-- Notifikasi untuk Owner -->
+            <div id="notificationSection" class="notification-section" style="display: none;">
+                <h2 class="section-title">
+                    <i class="fas fa-bell"></i> Notifikasi Aktivitas
+                </h2>
+                <div class="notification-list" id="notificationList">
+                    <!-- Notifikasi akan diisi secara dinamis -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Running Text Pengumuman -->
+        <div class="announcement-bar">
+            <div class="announcement-content">
+                <i class="fas fa-bullhorn"></i>
+                <marquee id="announcementText">
+                    Selamat datang di aplikasi My Babeh - Sistem manajemen karyawan Babeh Barbershop.
+                </marquee>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>My Babeh &copy; 2025 - Babeh Barbershop Employee System</p>
+            <p class="footer-version">v1.0.0</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+</body>
+</html>
