@@ -713,7 +713,10 @@ async function loadTodayKomisi(filterParams) {
 async function loadWeeklyKomisi(filterParams) {
     const endDate = new Date();
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 6);
+    
+   // PERBAIKAN: 7 hari SEBELUM hari ini (tidak termasuk hari ini)
+    startDate.setDate(startDate.getDate() - 7); // ← 7 hari sebelum
+    endDate.setDate(endDate.getDate() - 1);    // ← sampai kemarin
     
     const startStr = startDate.toISOString().split('T')[0];
     const endStr = endDate.toISOString().split('T')[0];
@@ -724,8 +727,8 @@ async function loadWeeklyKomisi(filterParams) {
     let orderQuery = supabase
         .from('transaksi_order')
         .select('*')
-        .gte('order_date', startStr)
-        .lte('order_date', endStr)
+        .gte('order_date', startStr)  // ≥ 7 hari sebelum
+        .lte('order_date', endStr)    // ≤ kemarin
         .order('order_date', { ascending: false });
     
     // PERBAIKAN: Filter HANYA serve_by = nama karyawan (kecuali owner)
@@ -826,17 +829,22 @@ async function loadWeeklyKomisi(filterParams) {
         ordersByDate[date].push(order);
     });
     
-    // Hitung komisi per hari
+   // Hitung komisi per hari untuk 7 hari terakhir (TIDAK TERMASUK HARI INI)
     const dailyResults = [];
     let total7Hari = 0;
     
-    for (let i = 6; i >= 0; i--) {
+    // Loop 7 hari SEBELUM hari ini (terbaru di atas)
+    // Hari ke-1 = kemarin, hari ke-7 = 7 hari yang lalu
+    for (let i = 1; i <= 7; i++) {
         const date = new Date();
-        date.setDate(date.getDate() - i);
+        date.setDate(date.getDate() - i); // ← mulai dari kemarin (i=1)
         const dateStr = date.toISOString().split('T')[0];
         
         const dayOrders = ordersByDate[dateStr] || [];
-        const result = await calculateKomisiFromOrders(ordersWithDetails, filterParams.namaKaryawan || currentKaryawan?.nama_karyawan);
+        
+        console.log(`Date ${dateStr}: ${dayOrders.length} orders`);
+        
+        const result = await calculateKomisiFromOrders(dayOrders, namaKaryawanAktif);
         
         result.date = dateStr;
         result.dateFormatted = date.toLocaleDateString('id-ID');
