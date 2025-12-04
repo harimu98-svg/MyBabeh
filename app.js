@@ -849,8 +849,8 @@ async function loadWeeklyKomisi(filterParams) {
     displayWeeklyKomisi(dailyResults, total7Hari);
 }
 
-// [4.8] Fungsi untuk hitung komisi dari orders - TAMBAH VALIDASI
-function calculateKomisiFromOrders(orders) {
+// [4.8] Fungsi untuk hitung komisi dari orders - PERBAIKAN LOGIKA UOP
+async function calculateKomisiFromOrders(orders, namaKaryawan) {
     let jumlahTransaksi = 0;
     let totalKomisi = 0;
     let totalUOP = 0;
@@ -861,6 +861,8 @@ function calculateKomisiFromOrders(orders) {
     let serveBy = '';
     let kasir = '';
     
+    console.log('Calculating komisi for karyawan:', namaKaryawan);
+    
     if (!orders || orders.length === 0) {
         return {
             jumlahTransaksi: 0,
@@ -869,35 +871,96 @@ function calculateKomisiFromOrders(orders) {
             tips: 0,
             total: 0,
             outlet: '-',
-            serveBy: '-',
+            serveBy: namaKaryawan || '-',
             kasir: '-'
         };
     }
     
+    // 1. HITUNG JUMLAH TRANSAKSI & KOMISI
     orders.forEach((order, index) => {
         jumlahTransaksi++;
         
-        // PERBAIKAN: comission dengan satu 'm'
+        // Komisi dari transaksi_order
         totalKomisi += order.comission || 0;
         
-        // Ambil outlet, serve_by dari order pertama yang ada data
+        // Ambil outlet, serve_by dari order pertama
         if (!outlet && order.outlet) outlet = order.outlet;
         if (!serveBy && order.serve_by) serveBy = order.serve_by;
         if (!kasir && order.kasir) kasir = order.kasir;
-        
-        // Hitung UOP dan Tips
-        if (order.transaksi_detail) {
+    });
+    
+    // 2. CEK APAKAH ADA TRANSAKSI DENGAN ITEM_GROUP = 'UOP'
+    let adaTransaksiDenganUOP = false;
+    
+    orders.forEach((order) => {
+        if (order.transaksi_detail && order.transaksi_detail.length > 0) {
+            // Cek apakah ADA transaksi dengan item_group = 'UOP'
+            const hasUOPItem = order.transaksi_detail.some(
+                detail => detail.item_group === 'UOP'
+            );
+            
+            if (hasUOPItem) {
+                adaTransaksiDenganUOP = true;
+                console.log(`Order ${order.order_no} has UOP item`);
+            }
+            
+            // 3. HITUNG TIPS (tetap dari transaksi_detail)
             order.transaksi_detail.forEach((detail) => {
-                if (detail.item_group === 'UOP') {
-                    totalUOP += detail.amount || 0;
-                } else if (detail.item_group === 'Tips') {
+                if (detail.item_group === 'Tips') {
                     totalTips += detail.amount || 0;
                 }
             });
         }
     });
     
+    console.log(`Ada transaksi dengan UOP: ${adaTransaksiDenganUOP}`);
+    
+    // 4. HITUNG UOP HANYA JIKA ADA TRANSAKSI DENGAN UOP
+    if (adaTransaksiDenganUOP) {
+        try {
+            // AMBIL NILAI UOP DARI TABEL KARYAWAN
+            const { data: karyawanData, error } = await supabase
+                .from('karyawan')
+                .select('uop')
+                .eq('nama_karyawan', namaKaryawan)
+                .single();
+            
+            if (error) {
+                console.error('Error loading UOP from karyawan table:', error);
+                totalUOP = 0; // Jika error, UOP = 0
+            } else if (karyawanData && karyawanData.uop) {
+                // AMBIL NILAI UOP DARI KOLOM 'uop' DI TABEL KARYAWAN
+                totalUOP = karyawanData.uop;
+                console.log(`UOP from karyawan table for ${namaKaryawan}:`, totalUOP);
+            } else {
+                // Jika kolom uop kosong/null
+                totalUOP = 0;
+                console.log(`UOP column empty for ${namaKaryawan}, setting to 0`);
+            }
+        } catch (err) {
+            console.error('Exception loading UOP:', err);
+            totalUOP = 0;
+        }
+    } else {
+        // JIKA TIDAK ADA TRANSAKSI DENGAN ITEM_GROUP='UOP', MAKA UOP = 0
+        totalUOP = 0;
+        console.log(`No transactions with UOP item for ${namaKaryawan}, UOP = 0`);
+    }
+    
+    // 5. HITUNG TOTAL
     totalAmount = totalKomisi + totalUOP + totalTips;
+    
+    console.log('Final calculation results:', {
+        jumlahTransaksi,
+        adaTransaksiDenganUOP,
+        komisi: totalKomisi,
+        uop: totalUOP,
+        tips: totalTips,
+        total: totalAmount,
+        outlet,
+        serveBy,
+        kasir
+    });
     
     return {
         jumlahTransaksi,
