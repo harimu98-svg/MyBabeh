@@ -309,19 +309,34 @@ function showNotifications() {
 
 // Fungsi untuk handle klik menu
 function handleMenuClick(menuId) {
-    const menuTitles = {
-        'komisi': 'Komisi',
-        'slip': 'Slip Penghasilan',
-        'libur': 'Libur & Izin',
-        'absensi': 'Absensi',
-        'kas': 'Kas & Setoran',
-        'top': 'TOP (Tools Ownership Program)',
-        'request': 'Request',
-        'stok': 'Tambah Stok',
-        'sertifikasi': 'Sertifikasi'
-    };
-    
-    alert(`Menu "${menuTitles[menuId]}" akan diimplementasikan nanti.`);
+    switch(menuId) {
+        case 'komisi':
+            showKomisiPage();
+            break;
+        case 'slip':
+        case 'libur':
+        case 'absensi':
+        case 'kas':
+        case 'top':
+        case 'request':
+        case 'stok':
+        case 'sertifikasi':
+            // Menu lain akan diimplementasikan nanti
+            const menuTitles = {
+                'slip': 'Slip Penghasilan',
+                'libur': 'Libur & Izin',
+                'absensi': 'Absensi',
+                'kas': 'Kas & Setoran',
+                'top': 'TOP (Tools Ownership Program)',
+                'request': 'Request',
+                'stok': 'Tambah Stok',
+                'sertifikasi': 'Sertifikasi'
+            };
+            alert(`Menu "${menuTitles[menuId]}" akan diimplementasikan nanti.`);
+            break;
+        default:
+            console.log('Menu tidak dikenali:', menuId);
+    }
 }
 
 // Fungsi untuk format tanggal
@@ -340,6 +355,549 @@ function formatDate(dateString) {
     }
 }
 
+
+
+// Variabel global untuk state
+let currentKaryawan = null;
+let isOwner = false;
+
+// Fungsi untuk tampilkan halaman komisi
+async function showKomisiPage() {
+    // Simpan data karyawan saat ini
+    const { data: { user } } = await supabase.auth.getUser();
+    const namaKaryawan = user?.user_metadata?.nama_karyawan;
+    
+    if (!namaKaryawan) return;
+    
+    // Ambil data karyawan lengkap
+    const { data: karyawanData } = await supabase
+        .from('karyawan')
+        .select('*')
+        .eq('nama_karyawan', namaKaryawan)
+        .single();
+    
+    currentKaryawan = karyawanData;
+    isOwner = karyawanData?.role === 'owner';
+    
+    // Sembunyikan main app, tampilkan halaman komisi
+    document.getElementById('appScreen').style.display = 'none';
+    
+    // Buat container halaman komisi
+    createKomisiPage();
+    
+    // Load data komisi
+    await loadKomisiData();
+}
+
+// Fungsi untuk buat halaman komisi
+function createKomisiPage() {
+    // Hapus halaman komisi sebelumnya jika ada
+    const existingPage = document.getElementById('komisiPage');
+    if (existingPage) {
+        existingPage.remove();
+    }
+    
+    // Buat container halaman komisi
+    const komisiPage = document.createElement('div');
+    komisiPage.id = 'komisiPage';
+    komisiPage.className = 'komisi-page';
+    komisiPage.innerHTML = `
+        <!-- Header -->
+        <header class="komisi-header">
+            <button class="back-btn" id="backToMain">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2><i class="fas fa-money-bill-wave"></i> Komisi</h2>
+            <div class="header-actions">
+                <button class="refresh-btn" id="refreshKomisi">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </header>
+        
+        <!-- Filter untuk Owner -->
+        <div id="ownerFilterSection" class="owner-filter" style="display: none;">
+            <div class="filter-group">
+                <label for="selectKaryawan">Pilih Karyawan:</label>
+                <select id="selectKaryawan" class="karyawan-select">
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="selectOutlet">Outlet:</label>
+                <select id="selectOutlet" class="outlet-select">
+                    <option value="all">Semua Outlet</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="dateRange">Periode:</label>
+                <select id="dateRange" class="date-select">
+                    <option value="today">Hari Ini</option>
+                    <option value="week">7 Hari Terakhir</option>
+                    <option value="month">Bulan Ini</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Komisi Hari Ini -->
+        <section class="today-komisi-section">
+            <h3><i class="fas fa-calendar-day"></i> Komisi Hari Ini</h3>
+            <div class="today-komisi-card">
+                <div class="loading" id="loadingToday">Loading data hari ini...</div>
+                <div id="todayKomisiContent" style="display: none;">
+                    <!-- Data akan diisi oleh JavaScript -->
+                </div>
+            </div>
+        </section>
+        
+        <!-- Komisi 7 Hari Terakhir -->
+        <section class="weekly-komisi-section">
+            <div class="section-header">
+                <h3><i class="fas fa-chart-line"></i> Komisi 7 Hari Terakhir</h3>
+                <div class="total-summary">
+                    <span>Total 7 Hari: <strong id="total7Hari">Rp 0</strong></span>
+                </div>
+            </div>
+            <div class="weekly-komisi-table-container">
+                <div class="loading" id="loadingWeekly">Loading data 7 hari...</div>
+                <table class="weekly-komisi-table" id="weeklyKomisiTable" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Outlet</th>
+                            <th>Serve By</th>
+                            <th>Kasir</th>
+                            <th>Jml Trans</th>
+                            <th>Komisi</th>
+                            <th>UOP</th>
+                            <th>Tips QRIS</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="weeklyKomisiBody">
+                        <!-- Data akan diisi oleh JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        
+        <!-- Footer -->
+        <div class="komisi-footer">
+            <p>Data diperbarui: <span id="lastUpdateTime">-</span></p>
+        </div>
+    `;
+    
+    document.body.appendChild(komisiPage);
+    
+    // Setup event listeners
+    setupKomisiPageEvents();
+}
+
+// Setup event listeners untuk halaman komisi
+function setupKomisiPageEvents() {
+    // Tombol kembali
+    document.getElementById('backToMain').addEventListener('click', () => {
+        document.getElementById('komisiPage').remove();
+        document.getElementById('appScreen').style.display = 'block';
+    });
+    
+    // Tombol refresh
+    document.getElementById('refreshKomisi').addEventListener('click', async () => {
+        await loadKomisiData();
+    });
+    
+    // Filter untuk owner
+    if (isOwner) {
+        const filterSection = document.getElementById('ownerFilterSection');
+        filterSection.style.display = 'block';
+        
+        // Load dropdown karyawan
+        loadKaryawanDropdown();
+        
+        // Load dropdown outlet
+        loadOutletDropdown();
+        
+        // Event listeners untuk filter
+        document.getElementById('selectKaryawan').addEventListener('change', async () => {
+            await loadKomisiData();
+        });
+        
+        document.getElementById('selectOutlet').addEventListener('change', async () => {
+            await loadKomisiData();
+        });
+        
+        document.getElementById('dateRange').addEventListener('change', async (e) => {
+            if (e.target.value === 'custom') {
+                // Tampilkan date picker custom
+                showCustomDatePicker();
+            } else {
+                await loadKomisiData();
+            }
+        });
+    }
+}
+
+// Fungsi untuk load data komisi
+async function loadKomisiData() {
+    try {
+        // Tampilkan loading
+        document.getElementById('loadingToday').style.display = 'block';
+        document.getElementById('todayKomisiContent').style.display = 'none';
+        document.getElementById('loadingWeekly').style.display = 'block';
+        document.getElementById('weeklyKomisiTable').style.display = 'none';
+        
+        // Tentukan parameter filter
+        const filterParams = getFilterParams();
+        
+        // Load data hari ini
+        await loadTodayKomisi(filterParams);
+        
+        // Load data 7 hari
+        await loadWeeklyKomisi(filterParams);
+        
+        // Update waktu terakhir update
+        document.getElementById('lastUpdateTime').textContent = 
+            new Date().toLocaleTimeString('id-ID');
+            
+    } catch (error) {
+        console.error('Error loading komisi data:', error);
+        alert('Gagal memuat data komisi');
+    }
+}
+
+// Fungsi untuk get filter parameters
+function getFilterParams() {
+    const params = {
+        namaKaryawan: currentKaryawan?.nama_karyawan,
+        role: currentKaryawan?.role,
+        isOwner: isOwner
+    };
+    
+    if (isOwner) {
+        const selectedKaryawan = document.getElementById('selectKaryawan').value;
+        const selectedOutlet = document.getElementById('selectOutlet').value;
+        const dateRange = document.getElementById('dateRange').value;
+        
+        if (selectedKaryawan) {
+            params.namaKaryawan = selectedKaryawan;
+        }
+        
+        if (selectedOutlet && selectedOutlet !== 'all') {
+            params.outlet = selectedOutlet;
+        }
+        
+        params.dateRange = dateRange;
+    }
+    
+    return params;
+}
+
+// Fungsi untuk load komisi hari ini
+async function loadTodayKomisi(filterParams) {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    
+    // Query untuk data hari ini
+    let query = supabase
+        .from('transaksi_order')
+        .select(`
+            *,
+            transaksi_detail (*)
+        `)
+        .eq('order_date', todayStr);
+    
+    // Filter berdasarkan serve_by atau kasir
+    if (filterParams.namaKaryawan) {
+        query = query.or(`serve_by.eq.${filterParams.namaKaryawan},kasir.eq.${filterParams.namaKaryawan}`);
+    }
+    
+    // Filter outlet jika ada
+    if (filterParams.outlet) {
+        query = query.eq('outlet', filterParams.outlet);
+    }
+    
+    const { data: orders, error } = await query;
+    
+    if (error) {
+        console.error('Error loading today orders:', error);
+        return;
+    }
+    
+    // Hitung total dan komponen
+    const result = calculateKomisiFromOrders(orders);
+    
+    // Tampilkan di UI
+    displayTodayKomisi(result, today);
+}
+
+// Fungsi untuk load komisi 7 hari terakhir
+async function loadWeeklyKomisi(filterParams) {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 6); // 7 hari termasuk hari ini
+    
+    // Format dates untuk query
+    const startStr = startDate.toISOString().split('T')[0];
+    const endStr = endDate.toISOString().split('T')[0];
+    
+    // Query untuk 7 hari terakhir
+    let query = supabase
+        .from('transaksi_order')
+        .select(`
+            *,
+            transaksi_detail (*)
+        `)
+        .gte('order_date', startStr)
+        .lte('order_date', endStr)
+        .order('order_date', { ascending: false });
+    
+    // Filter berdasarkan serve_by atau kasir
+    if (filterParams.namaKaryawan) {
+        query = query.or(`serve_by.eq.${filterParams.namaKaryawan},kasir.eq.${filterParams.namaKaryawan}`);
+    }
+    
+    // Filter outlet jika ada
+    if (filterParams.outlet) {
+        query = query.eq('outlet', filterParams.outlet);
+    }
+    
+    const { data: orders, error } = await query;
+    
+    if (error) {
+        console.error('Error loading weekly orders:', error);
+        return;
+    }
+    
+    // Group orders by date
+    const ordersByDate = {};
+    orders.forEach(order => {
+        const date = order.order_date;
+        if (!ordersByDate[date]) {
+            ordersByDate[date] = [];
+        }
+        ordersByDate[date].push(order);
+    });
+    
+    // Hitung komisi per hari
+    const dailyResults = [];
+    let total7Hari = 0;
+    
+    // Loop untuk 7 hari terakhir
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        
+        const dayOrders = ordersByDate[dateStr] || [];
+        const result = calculateKomisiFromOrders(dayOrders);
+        
+        result.date = dateStr;
+        result.dateFormatted = date.toLocaleDateString('id-ID');
+        dailyResults.push(result);
+        
+        total7Hari += result.total;
+    }
+    
+    // Tampilkan di UI
+    displayWeeklyKomisi(dailyResults, total7Hari);
+}
+
+// Fungsi untuk hitung komisi dari orders
+function calculateKomisiFromOrders(orders) {
+    let jumlahTransaksi = 0;
+    let totalKomisi = 0;
+    let totalUOP = 0;
+    let totalTips = 0;
+    let totalAmount = 0;
+    
+    let outlet = '';
+    let serveBy = '';
+    let kasir = '';
+    
+    orders.forEach(order => {
+        jumlahTransaksi++;
+        totalKomisi += order.commission || 0;
+        
+        // Ambil outlet, serve_by, kasir dari order pertama
+        if (!outlet) outlet = order.outlet || '';
+        if (!serveBy) serveBy = order.serve_by || '';
+        if (!kasir) kasir = order.kasir || '';
+        
+        // Hitung UOP dan Tips dari transaksi_detail
+        if (order.transaksi_detail) {
+            order.transaksi_detail.forEach(detail => {
+                if (detail.item_group === 'UOP') {
+                    totalUOP += detail.amount || 0;
+                } else if (detail.item_group === 'Tips') {
+                    totalTips += detail.amount || 0;
+                }
+            });
+        }
+    });
+    
+    totalAmount = totalKomisi + totalUOP + totalTips;
+    
+    return {
+        jumlahTransaksi,
+        komisi: totalKomisi,
+        uop: totalUOP,
+        tips: totalTips,
+        total: totalAmount,
+        outlet,
+        serveBy,
+        kasir
+    };
+}
+
+// Fungsi untuk tampilkan komisi hari ini
+function displayTodayKomisi(data, date) {
+    const content = document.getElementById('todayKomisiContent');
+    
+    content.innerHTML = `
+        <div class="today-header">
+            <div class="date-display">
+                <i class="fas fa-calendar-alt"></i>
+                <span>${date.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            </div>
+        </div>
+        
+        <div class="today-grid">
+            <div class="today-item">
+                <div class="today-label">Outlet</div>
+                <div class="today-value">${data.outlet || '-'}</div>
+            </div>
+            <div class="today-item">
+                <div class="today-label">Serve By</div>
+                <div class="today-value">${data.serveBy || '-'}</div>
+            </div>
+            <div class="today-item">
+                <div class="today-label">Kasir</div>
+                <div class="today-value">${data.kasir || '-'}</div>
+            </div>
+            <div class="today-item highlight">
+                <div class="today-label">Jumlah Transaksi</div>
+                <div class="today-value">${data.jumlahTransaksi}</div>
+            </div>
+        </div>
+        
+        <div class="today-totals">
+            <div class="total-item">
+                <div class="total-label">Komisi</div>
+                <div class="total-value">${formatRupiah(data.komisi)}</div>
+            </div>
+            <div class="total-item">
+                <div class="total-label">UOP</div>
+                <div class="total-value">${formatRupiah(data.uop)}</div>
+            </div>
+            <div class="total-item">
+                <div class="total-label">Tips QRIS</div>
+                <div class="total-value">${formatRupiah(data.tips)}</div>
+            </div>
+            <div class="total-item grand-total">
+                <div class="total-label">Total</div>
+                <div class="total-value">${formatRupiah(data.total)}</div>
+            </div>
+        </div>
+    `;
+    
+    // Sembunyikan loading, tampilkan content
+    document.getElementById('loadingToday').style.display = 'none';
+    content.style.display = 'block';
+}
+
+// Fungsi untuk tampilkan komisi 7 hari
+function displayWeeklyKomisi(dailyResults, total7Hari) {
+    const tbody = document.getElementById('weeklyKomisiBody');
+    tbody.innerHTML = '';
+    
+    dailyResults.forEach(result => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${result.dateFormatted}</td>
+            <td>${result.outlet || '-'}</td>
+            <td>${result.serveBy || '-'}</td>
+            <td>${result.kasir || '-'}</td>
+            <td>${result.jumlahTransaksi}</td>
+            <td>${formatRupiah(result.komisi)}</td>
+            <td>${formatRupiah(result.uop)}</td>
+            <td>${formatRupiah(result.tips)}</td>
+            <td class="total-column">${formatRupiah(result.total)}</td>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    // Update total 7 hari
+    document.getElementById('total7Hari').textContent = formatRupiah(total7Hari);
+    
+    // Sembunyikan loading, tampilkan table
+    document.getElementById('loadingWeekly').style.display = 'none';
+    document.getElementById('weeklyKomisiTable').style.display = 'table';
+}
+
+// Fungsi untuk load dropdown karyawan (owner only)
+async function loadKaryawanDropdown() {
+    const select = document.getElementById('selectKaryawan');
+    
+    const { data: karyawanList, error } = await supabase
+        .from('karyawan')
+        .select('nama_karyawan, role')
+        .order('nama_karyaman');
+    
+    if (error) {
+        console.error('Error loading karyawan list:', error);
+        return;
+    }
+    
+    select.innerHTML = `
+        <option value="">Semua Karyawan</option>
+        ${karyawanList.map(k => 
+            `<option value="${k.nama_karyawan}">${k.nama_karyawan} (${k.role})</option>`
+        ).join('')}
+    `;
+    
+    // Select karyawan saat ini jika bukan "Semua Karyawan"
+    if (!isOwner && currentKaryawan) {
+        select.value = currentKaryawan.nama_karyawan;
+    }
+}
+
+// Fungsi untuk load dropdown outlet
+async function loadOutletDropdown() {
+    const select = document.getElementById('selectOutlet');
+    
+    const { data: outlets, error } = await supabase
+        .from('transaksi_order')
+        .select('outlet')
+        .order('outlet');
+    
+    if (error) {
+        console.error('Error loading outlets:', error);
+        return;
+    }
+    
+    // Get unique outlets
+    const uniqueOutlets = [...new Set(outlets.map(o => o.outlet))].filter(Boolean);
+    
+    select.innerHTML = `
+        <option value="all">Semua Outlet</option>
+        ${uniqueOutlets.map(outlet => 
+            `<option value="${outlet}">${outlet}</option>`
+        ).join('')}
+    `;
+}
+
+// Fungsi format Rupiah
+function formatRupiah(amount) {
+    if (amount === 0 || !amount) return 'Rp 0';
+    return 'Rp ' + amount.toLocaleString('id-ID');
+}
+
+// Fungsi untuk custom date picker (placeholder)
+function showCustomDatePicker() {
+    alert('Fitur custom date picker akan diimplementasikan nanti.');
+    document.getElementById('dateRange').value = 'week';
+}
 // PWA Support
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
