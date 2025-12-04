@@ -844,3 +844,226 @@ marquee {
         font-size: 1.1rem;
     }
 }
+
+/* Absensi Page Styles */
+.absensi-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #f8f9ff;
+    z-index: 1000;
+    overflow-y: auto;
+    padding-bottom: 20px;
+}
+
+.absensi-header {
+    background: linear-gradient(135deg, #8A2BE2 0%, #4169E1 100%);
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.absensi-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Today Absensi Section */
+.today-absensi-section {
+    padding: 20px;
+}
+
+.today-absensi-section h3 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.today-absensi-card {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.today-grid-absensi {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.today-grid-absensi:last-child {
+    margin-bottom: 0;
+}
+
+.today-item.highlight {
+    background: linear-gradient(135deg, #e6f7ff, #f0f9ff);
+    border-color: #b3e0ff;
+}
+
+.today-item.highlight-status {
+    background: linear-gradient(135deg, #f0fff4, #f9fff9);
+    border-color: #c6f6d5;
+}
+
+.today-item .clock-in {
+    color: #32CD32;
+    font-weight: bold;
+}
+
+.today-item .clock-out {
+    color: #FF6347;
+    font-weight: bold;
+}
+
+.today-item .jam-kerja {
+    color: #4169E1;
+    font-weight: bold;
+}
+
+.today-item .keterangan.tepat {
+    color: #32CD32;
+    font-weight: bold;
+}
+
+.today-item .keterangan.terlambat {
+    color: #FFA500;
+    font-weight: bold;
+}
+
+.today-item .keterangan.cepat {
+    color: #FF6347;
+    font-weight: bold;
+}
+
+.today-item .keterangan.tidak-absen {
+    color: #888;
+    font-style: italic;
+}
+
+.today-absensi-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+/* Weekly Absensi Table */
+.weekly-absensi-table-container {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    overflow-x: auto;
+}
+
+.weekly-absensi-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 900px;
+}
+
+.weekly-absensi-table th {
+    background: #f8f9ff;
+    padding: 15px 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9rem;
+    border-bottom: 2px solid #eef;
+    white-space: nowrap;
+}
+
+.weekly-absensi-table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.weekly-absensi-table tbody tr:hover {
+    background: #f8f9ff;
+}
+
+.weekly-absensi-table td.keterangan-cell.tepat {
+    color: #32CD32;
+    font-weight: 600;
+}
+
+.weekly-absensi-table td.keterangan-cell.terlambat {
+    color: #FFA500;
+    font-weight: 600;
+}
+
+.weekly-absensi-table td.keterangan-cell.cepat {
+    color: #FF6347;
+    font-weight: 600;
+}
+
+.weekly-absensi-table td.keterangan-cell.tidak-absen {
+    color: #888;
+    font-style: italic;
+}
+
+/* Today Other Absensi */
+.today-other-absensi {
+    margin-top: 20px;
+    padding: 10px 15px;
+    background: #f8f9ff;
+    border-radius: 10px;
+    border: 1px solid #eef;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.today-other-absensi i {
+    color: #8A2BE2;
+    margin-right: 8px;
+}
+
+/* Absensi Footer */
+.absensi-footer {
+    padding: 15px 20px;
+    text-align: center;
+    color: #888;
+    font-size: 0.85rem;
+    border-top: 1px solid #eee;
+    margin-top: 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .today-grid-absensi {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .weekly-absensi-table th,
+    .weekly-absensi-table td {
+        padding: 8px 6px;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .today-grid-absensi {
+        grid-template-columns: 1fr;
+    }
+    
+    .absensi-header h2 {
+        font-size: 1.1rem;
+    }
+}
