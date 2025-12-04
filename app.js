@@ -1,3 +1,6 @@
+// ========== BAGIAN 1: KONFIGURASI & INISIALISASI ==========
+// ========================================================
+
 // Konfigurasi Supabase
 const supabaseUrl = 'https://intzwjmlypmopzauxeqt.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImludHp3am1seXBtb3B6YXV4ZXF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3MTc5MTIsImV4cCI6MjA3MDI5MzkxMn0.VwwVEDdHtYP5gui4epTcNfLXhPkmfFbRVb5y8mrXJiM';
@@ -60,6 +63,9 @@ const sampleNotifications = [
         type: 'top'
     }
 ];
+
+// ========== BAGIAN 2: FUNGSI AUTH & LOGIN ==========
+// =================================================
 
 // Cek status login saat halaman dimuat
 document.addEventListener('DOMContentLoaded', () => {
@@ -151,9 +157,12 @@ function clearForm() {
     document.getElementById('loginError').textContent = '';
 }
 
-// FUNGSI UTAMA: Load data karyawan dari tabel berdasarkan metadata
+// ========== BAGIAN 3: FUNGSI UTAMA APP ==========
+// ==============================================
+
+// Fungsi untuk load data karyawan dari tabel berdasarkan metadata
 async function loadUserData(user) {
-    // 1. Ambil nama_karyawan dari metadata auth user
+    // 1. Ambil nama_karyawan dari auth user metadata
     const namaKaryawan = user.user_metadata?.nama_karyawan;
     
     if (!namaKaryawan) {
@@ -307,38 +316,6 @@ function showNotifications() {
     });
 }
 
-// Fungsi untuk handle klik menu
-function handleMenuClick(menuId) {
-    switch(menuId) {
-        case 'komisi':
-            showKomisiPage();
-            break;
-        case 'slip':
-        case 'libur':
-        case 'absensi':
-        case 'kas':
-        case 'top':
-        case 'request':
-        case 'stok':
-        case 'sertifikasi':
-            // Menu lain akan diimplementasikan nanti
-            const menuTitles = {
-                'slip': 'Slip Penghasilan',
-                'libur': 'Libur & Izin',
-                'absensi': 'Absensi',
-                'kas': 'Kas & Setoran',
-                'top': 'TOP (Tools Ownership Program)',
-                'request': 'Request',
-                'stok': 'Tambah Stok',
-                'sertifikasi': 'Sertifikasi'
-            };
-            alert(`Menu "${menuTitles[menuId]}" akan diimplementasikan nanti.`);
-            break;
-        default:
-            console.log('Menu tidak dikenali:', menuId);
-    }
-}
-
 // Fungsi untuk format tanggal
 function formatDate(dateString) {
     if (!dateString) return '-';
@@ -355,13 +332,14 @@ function formatDate(dateString) {
     }
 }
 
+// ========== BAGIAN 4: FUNGSI MENU KOMPONEN - KOMPISI ==========
+// ============================================================
 
-
-// Variabel global untuk state
+// Variabel global untuk state komisi
 let currentKaryawan = null;
 let isOwner = false;
 
-// Fungsi untuk tampilkan halaman komisi
+// [4.1] Fungsi untuk tampilkan halaman komisi
 async function showKomisiPage() {
     // Simpan data karyawan saat ini
     const { data: { user } } = await supabase.auth.getUser();
@@ -389,7 +367,7 @@ async function showKomisiPage() {
     await loadKomisiData();
 }
 
-// Fungsi untuk buat halaman komisi
+// [4.2] Fungsi untuk buat halaman komisi
 function createKomisiPage() {
     // Hapus halaman komisi sebelumnya jika ada
     const existingPage = document.getElementById('komisiPage');
@@ -494,7 +472,7 @@ function createKomisiPage() {
     setupKomisiPageEvents();
 }
 
-// Setup event listeners untuk halaman komisi
+// [4.3] Setup event listeners untuk halaman komisi
 function setupKomisiPageEvents() {
     // Tombol kembali
     document.getElementById('backToMain').addEventListener('click', () => {
@@ -538,8 +516,7 @@ function setupKomisiPageEvents() {
     }
 }
 
-// Fungsi untuk load data komisi
-// Fungsi untuk load data komisi
+// [4.4] Fungsi untuk load data komisi
 async function loadKomisiData() {
     try {
         console.log('=== START LOADING KOMISI DATA ===');
@@ -602,7 +579,8 @@ async function loadKomisiData() {
         }
     }
 }
-// Fungsi untuk get filter parameters
+
+// [4.5] Fungsi untuk get filter parameters
 function getFilterParams() {
     const params = {
         namaKaryawan: currentKaryawan?.nama_karyawan,
@@ -629,8 +607,90 @@ function getFilterParams() {
     return params;
 }
 
-// Fungsi untuk load komisi hari ini
-// Fungsi untuk load komisi 7 hari terakhir
+// [4.6] Fungsi untuk load komisi hari ini
+async function loadTodayKomisi(filterParams) {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    
+    console.log('Loading orders for date:', todayStr, 'karyawan:', filterParams.namaKaryawan);
+    
+    // Query transaksi_order terlebih dahulu
+    let orderQuery = supabase
+        .from('transaksi_order')
+        .select('*')
+        .eq('order_date', todayStr);
+    
+    // Filter berdasarkan serve_by atau kasir
+    if (filterParams.namaKaryawan) {
+        orderQuery = orderQuery.or(`serve_by.eq.${filterParams.namaKaryawan},kasir.eq.${filterParams.namaKaryawan}`);
+    }
+    
+    // Filter outlet jika ada
+    if (filterParams.outlet) {
+        orderQuery = orderQuery.eq('outlet', filterParams.outlet);
+    }
+    
+    const { data: orders, error: orderError } = await orderQuery;
+    
+    if (orderError) {
+        console.error('Error loading today orders:', orderError);
+        return;
+    }
+    
+    console.log('Orders found:', orders?.length || 0);
+    
+    // Jika tidak ada order hari ini
+    if (!orders || orders.length === 0) {
+        displayTodayKomisi({
+            jumlahTransaksi: 0,
+            komisi: 0,
+            uop: 0,
+            tips: 0,
+            total: 0,
+            outlet: filterParams.outlet || '-',
+            serveBy: filterParams.namaKaryawan || '-',
+            kasir: filterParams.namaKaryawan || '-'
+        }, today);
+        return;
+    }
+    
+    // Ambil semua order_no untuk query transaksi_detail
+    const orderNumbers = orders.map(order => order.order_no).filter(Boolean);
+    
+    console.log('Order numbers to query:', orderNumbers);
+    
+    // Query transaksi_detail berdasarkan order_no
+    let detailQuery = supabase
+        .from('transaksi_detail')
+        .select('*')
+        .in('order_no', orderNumbers);
+    
+    const { data: details, error: detailError } = await detailQuery;
+    
+    if (detailError) {
+        console.error('Error loading transaction details:', detailError);
+        // Tetap lanjutkan dengan hanya data orders
+    }
+    
+    console.log('Transaction details found:', details?.length || 0);
+    
+    // Gabungkan data orders dengan details
+    const ordersWithDetails = orders.map(order => {
+        const orderDetails = details?.filter(detail => detail.order_no === order.order_no) || [];
+        return {
+            ...order,
+            transaksi_detail: orderDetails
+        };
+    });
+    
+    // Hitung total dan komponen
+    const result = calculateKomisiFromOrders(ordersWithDetails);
+    
+    // Tampilkan di UI
+    displayTodayKomisi(result, today);
+}
+
+// [4.7] Fungsi untuk load komisi 7 hari terakhir
 async function loadWeeklyKomisi(filterParams) {
     const endDate = new Date();
     const startDate = new Date();
@@ -771,79 +831,7 @@ async function loadWeeklyKomisi(filterParams) {
     displayWeeklyKomisi(dailyResults, total7Hari);
 }
 
-// Fungsi untuk load komisi 7 hari terakhir
-async function loadWeeklyKomisi(filterParams) {
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 6); // 7 hari termasuk hari ini
-    
-    // Format dates untuk query
-    const startStr = startDate.toISOString().split('T')[0];
-    const endStr = endDate.toISOString().split('T')[0];
-    
-    // Query untuk 7 hari terakhir
-    let query = supabase
-        .from('transaksi_order')
-        .select(`
-            *,
-            transaksi_detail (*)
-        `)
-        .gte('order_date', startStr)
-        .lte('order_date', endStr)
-        .order('order_date', { ascending: false });
-    
-    // Filter berdasarkan serve_by atau kasir
-    if (filterParams.namaKaryawan) {
-        query = query.or(`serve_by.eq.${filterParams.namaKaryawan},kasir.eq.${filterParams.namaKaryawan}`);
-    }
-    
-    // Filter outlet jika ada
-    if (filterParams.outlet) {
-        query = query.eq('outlet', filterParams.outlet);
-    }
-    
-    const { data: orders, error } = await query;
-    
-    if (error) {
-        console.error('Error loading weekly orders:', error);
-        return;
-    }
-    
-    // Group orders by date
-    const ordersByDate = {};
-    orders.forEach(order => {
-        const date = order.order_date;
-        if (!ordersByDate[date]) {
-            ordersByDate[date] = [];
-        }
-        ordersByDate[date].push(order);
-    });
-    
-    // Hitung komisi per hari
-    const dailyResults = [];
-    let total7Hari = 0;
-    
-    // Loop untuk 7 hari terakhir
-    for (let i = 6; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
-        
-        const dayOrders = ordersByDate[dateStr] || [];
-        const result = calculateKomisiFromOrders(dayOrders);
-        
-        result.date = dateStr;
-        result.dateFormatted = date.toLocaleDateString('id-ID');
-        dailyResults.push(result);
-        
-        total7Hari += result.total;
-    }
-    
-    // Tampilkan di UI
-    displayWeeklyKomisi(dailyResults, total7Hari);
-}
-
-// Fungsi untuk hitung komisi dari orders
+// [4.8] Fungsi untuk hitung komisi dari orders
 function calculateKomisiFromOrders(orders) {
     let jumlahTransaksi = 0;
     let totalKomisi = 0;
@@ -909,7 +897,7 @@ function calculateKomisiFromOrders(orders) {
     };
 }
 
-// Fungsi untuk tampilkan komisi hari ini
+// [4.9] Fungsi untuk tampilkan komisi hari ini
 function displayTodayKomisi(data, date) {
     const content = document.getElementById('todayKomisiContent');
     
@@ -965,7 +953,7 @@ function displayTodayKomisi(data, date) {
     content.style.display = 'block';
 }
 
-// Fungsi untuk tampilkan komisi 7 hari
+// [4.10] Fungsi untuk tampilkan komisi 7 hari
 function displayWeeklyKomisi(dailyResults, total7Hari) {
     const tbody = document.getElementById('weeklyKomisiBody');
     tbody.innerHTML = '';
@@ -994,17 +982,21 @@ function displayWeeklyKomisi(dailyResults, total7Hari) {
     document.getElementById('weeklyKomisiTable').style.display = 'table';
 }
 
-// Fungsi untuk load dropdown karyawan (owner only)
+// [4.11] Fungsi untuk load dropdown karyawan (owner only)
 async function loadKaryawanDropdown() {
     const select = document.getElementById('selectKaryawan');
     
     const { data: karyawanList, error } = await supabase
         .from('karyawan')
         .select('nama_karyawan, role')
-        .order('nama_karyaman');
+        .order('nama_karyawan'); // PERBAIKAN: nama_karyawan bukan nama_karyaman
     
     if (error) {
         console.error('Error loading karyawan list:', error);
+        select.innerHTML = `
+            <option value="">Error loading data</option>
+            ${currentKaryawan ? `<option value="${currentKaryawan.nama_karyawan}">${currentKaryawan.nama_karyawan}</option>` : ''}
+        `;
         return;
     }
     
@@ -1021,7 +1013,7 @@ async function loadKaryawanDropdown() {
     }
 }
 
-// Fungsi untuk load dropdown outlet
+// [4.12] Fungsi untuk load dropdown outlet
 async function loadOutletDropdown() {
     const select = document.getElementById('selectOutlet');
     
@@ -1032,6 +1024,7 @@ async function loadOutletDropdown() {
     
     if (error) {
         console.error('Error loading outlets:', error);
+        select.innerHTML = '<option value="all">Semua Outlet</option>';
         return;
     }
     
@@ -1046,17 +1039,56 @@ async function loadOutletDropdown() {
     `;
 }
 
-// Fungsi format Rupiah
+// [4.13] Fungsi format Rupiah
 function formatRupiah(amount) {
     if (amount === 0 || !amount) return 'Rp 0';
     return 'Rp ' + amount.toLocaleString('id-ID');
 }
 
-// Fungsi untuk custom date picker (placeholder)
+// [4.14] Fungsi untuk custom date picker (placeholder)
 function showCustomDatePicker() {
     alert('Fitur custom date picker akan diimplementasikan nanti.');
     document.getElementById('dateRange').value = 'week';
 }
+
+// ========== BAGIAN 5: FUNGSI HANDLE MENU CLICK ==========
+// ======================================================
+
+// Fungsi untuk handle klik menu
+function handleMenuClick(menuId) {
+    switch(menuId) {
+        case 'komisi':
+            showKomisiPage();
+            break;
+        case 'slip':
+        case 'libur':
+        case 'absensi':
+        case 'kas':
+        case 'top':
+        case 'request':
+        case 'stok':
+        case 'sertifikasi':
+            // Menu lain akan diimplementasikan nanti
+            const menuTitles = {
+                'slip': 'Slip Penghasilan',
+                'libur': 'Libur & Izin',
+                'absensi': 'Absensi',
+                'kas': 'Kas & Setoran',
+                'top': 'TOP (Tools Ownership Program)',
+                'request': 'Request',
+                'stok': 'Tambah Stok',
+                'sertifikasi': 'Sertifikasi'
+            };
+            alert(`Menu "${menuTitles[menuId]}" akan diimplementasikan nanti.`);
+            break;
+        default:
+            console.log('Menu tidak dikenali:', menuId);
+    }
+}
+
+// ========== BAGIAN 6: PWA SUPPORT ==========
+// ==========================================
+
 // PWA Support
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -1066,6 +1098,37 @@ if ('serviceWorker' in navigator) {
             })
             .catch(error => {
                 console.log('ServiceWorker registration failed:', error);
+                // Optional: Buat file sw.js sederhana
+                // createBasicServiceWorker();
             });
     });
 }
+
+// Fungsi untuk buat service worker sederhana jika file tidak ada
+function createBasicServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        const swContent = `
+            self.addEventListener('install', event => {
+                console.log('Service Worker installed');
+            });
+            
+            self.addEventListener('fetch', event => {
+                // Basic fetch handler
+                event.respondWith(fetch(event.request));
+            });
+        `;
+        
+        const blob = new Blob([swContent], { type: 'application/javascript' });
+        const swUrl = URL.createObjectURL(blob);
+        
+        navigator.serviceWorker.register(swUrl)
+            .then(registration => {
+                console.log('Basic ServiceWorker registered:', registration);
+            })
+            .catch(error => {
+                console.log('Failed to register basic ServiceWorker:', error);
+            });
+    }
+}
+
+// ========== END OF FILE ==========
