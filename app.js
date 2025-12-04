@@ -580,7 +580,7 @@ async function loadKomisiData() {
     }
 }
 
-// [4.5] Fungsi untuk get filter parameters
+// [4.5] Fungsi untuk get filter parameters - UPDATE LOGIC
 function getFilterParams() {
     const params = {
         namaKaryawan: currentKaryawan?.nama_karyawan,
@@ -589,44 +589,67 @@ function getFilterParams() {
     };
     
     if (isOwner) {
-        const selectedKaryawan = document.getElementById('selectKaryawan').value;
-        const selectedOutlet = document.getElementById('selectOutlet').value;
-        const dateRange = document.getElementById('dateRange').value;
+        const selectKaryawan = document.getElementById('selectKaryawan');
+        const selectOutlet = document.getElementById('selectOutlet');
+        const dateRange = document.getElementById('dateRange');
         
-        if (selectedKaryawan) {
-            params.namaKaryawan = selectedKaryawan;
+        // Untuk owner: gunakan value dari dropdown jika dipilih
+        if (selectKaryawan && selectKaryawan.value) {
+            params.namaKaryawan = selectKaryawan.value;
+            params.filterByKaryawan = true;
+        } else {
+            params.namaKaryawan = null; // Owner lihat semua
+            params.filterByKaryawan = false;
         }
         
-        if (selectedOutlet && selectedOutlet !== 'all') {
-            params.outlet = selectedOutlet;
+        if (selectOutlet && selectOutlet.value !== 'all') {
+            params.outlet = selectOutlet.value;
         }
         
-        params.dateRange = dateRange;
+        if (dateRange) {
+            params.dateRange = dateRange.value;
+        }
+    } else {
+        // Untuk non-owner: selalu filter berdasarkan serve_by = nama sendiri
+        params.filterByKaryawan = true;
+        params.outlet = null; // Non-owner tidak bisa filter outlet
     }
     
+    console.log('Filter params refined:', params);
     return params;
 }
-
-// [4.6] Fungsi untuk load komisi hari ini
+// [4.6] Fungsi untuk load komisi hari ini - PERBAIKAN FILTER
 async function loadTodayKomisi(filterParams) {
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    const todayStr = today.toISOString().split('T')[0];
     
-    console.log('Loading orders for date:', todayStr, 'karyawan:', filterParams.namaKaryawan);
+    console.log('Loading today komisi for:', filterParams.namaKaryawan);
     
-    // Query transaksi_order terlebih dahulu
+    // Query transaksi_order
     let orderQuery = supabase
         .from('transaksi_order')
         .select('*')
         .eq('order_date', todayStr);
     
-    // Filter berdasarkan serve_by atau kasir
-    if (filterParams.namaKaryawan) {
-        orderQuery = orderQuery.or(`serve_by.eq.${filterParams.namaKaryawan},kasir.eq.${filterParams.namaKaryawan}`);
+    // PERBAIKAN: Filter HANYA serve_by = nama karyawan (kecuali owner)
+    if (filterParams.namaKaryawan && !isOwner) {
+        // Untuk non-owner: HANYA tampilkan data sendiri
+        orderQuery = orderQuery.eq('serve_by', filterParams.namaKaryawan);
+        console.log('Non-owner filter: serve_by =', filterParams.namaKaryawan);
+    } else if (filterParams.namaKaryawan && isOwner) {
+        // Untuk owner: Tampilkan semua atau sesuai filter dropdown
+        if (filterParams.namaKaryawan && document.getElementById('selectKaryawan')?.value) {
+            // Jika owner pilih karyawan tertentu di dropdown
+            orderQuery = orderQuery.eq('serve_by', filterParams.namaKaryawan);
+            console.log('Owner filter selected karyawan:', filterParams.namaKaryawan);
+        } else {
+            // Jika owner pilih "Semua Karyawan", tidak pakai filter serve_by
+            console.log('Owner viewing all karyawan');
+        }
     }
     
     // Filter outlet jika ada
-    if (filterParams.outlet) {
+    if (filterParams.outlet && filterParams.outlet !== 'all') {
         orderQuery = orderQuery.eq('outlet', filterParams.outlet);
     }
     
@@ -637,9 +660,9 @@ async function loadTodayKomisi(filterParams) {
         return;
     }
     
-    console.log('Orders found:', orders?.length || 0);
+    console.log('Today orders found:', orders?.length || 0);
     
-    // Jika tidak ada order hari ini
+    // Jika tidak ada order
     if (!orders || orders.length === 0) {
         displayTodayKomisi({
             jumlahTransaksi: 0,
@@ -649,17 +672,15 @@ async function loadTodayKomisi(filterParams) {
             total: 0,
             outlet: filterParams.outlet || '-',
             serveBy: filterParams.namaKaryawan || '-',
-            kasir: filterParams.namaKaryawan || '-'
+            kasir: '-' // Kasir tidak relevan untuk serve_by view
         }, today);
         return;
     }
     
-    // Ambil semua order_no untuk query transaksi_detail
+    // Ambil order_no untuk query detail
     const orderNumbers = orders.map(order => order.order_no).filter(Boolean);
     
-    console.log('Order numbers to query:', orderNumbers);
-    
-    // Query transaksi_detail berdasarkan order_no
+    // Query transaksi_detail
     let detailQuery = supabase
         .from('transaksi_detail')
         .select('*')
@@ -669,12 +690,9 @@ async function loadTodayKomisi(filterParams) {
     
     if (detailError) {
         console.error('Error loading transaction details:', detailError);
-        // Tetap lanjutkan dengan hanya data orders
     }
     
-    console.log('Transaction details found:', details?.length || 0);
-    
-    // Gabungkan data orders dengan details
+    // Gabungkan data
     const ordersWithDetails = orders.map(order => {
         const orderDetails = details?.filter(detail => detail.order_no === order.order_no) || [];
         return {
@@ -683,24 +701,23 @@ async function loadTodayKomisi(filterParams) {
         };
     });
     
-    // Hitung total dan komponen
+    // Hitung komisi
     const result = calculateKomisiFromOrders(ordersWithDetails);
     
-    // Tampilkan di UI
+    // Tampilkan
     displayTodayKomisi(result, today);
 }
 
-// [4.7] Fungsi untuk load komisi 7 hari terakhir
+// [4.7] Fungsi untuk load komisi 7 hari terakhir - PERBAIKAN FILTER
 async function loadWeeklyKomisi(filterParams) {
     const endDate = new Date();
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 6); // 7 hari termasuk hari ini
+    startDate.setDate(startDate.getDate() - 6);
     
-    // Format dates untuk query
     const startStr = startDate.toISOString().split('T')[0];
     const endStr = endDate.toISOString().split('T')[0];
     
-    console.log('Loading weekly orders from', startStr, 'to', endStr);
+    console.log('Loading weekly komisi for:', filterParams.namaKaryawan);
     
     // Query untuk 7 hari terakhir
     let orderQuery = supabase
@@ -710,13 +727,23 @@ async function loadWeeklyKomisi(filterParams) {
         .lte('order_date', endStr)
         .order('order_date', { ascending: false });
     
-    // Filter berdasarkan serve_by atau kasir
-    if (filterParams.namaKaryawan) {
-        orderQuery = orderQuery.or(`serve_by.eq.${filterParams.namaKaryawan},kasir.eq.${filterParams.namaKaryawan}`);
+    // PERBAIKAN: Filter HANYA serve_by = nama karyawan (kecuali owner)
+    if (filterParams.namaKaryawan && !isOwner) {
+        // Untuk non-owner: HANYA tampilkan data sendiri
+        orderQuery = orderQuery.eq('serve_by', filterParams.namaKaryawan);
+        console.log('Non-owner weekly filter: serve_by =', filterParams.namaKaryawan);
+    } else if (filterParams.namaKaryawan && isOwner) {
+        // Untuk owner: Tampilkan semua atau sesuai filter dropdown
+        const selectElement = document.getElementById('selectKaryawan');
+        if (selectElement && selectElement.value) {
+            // Jika owner pilih karyawan tertentu
+            orderQuery = orderQuery.eq('serve_by', filterParams.namaKaryawan);
+            console.log('Owner weekly filter selected karyawan:', filterParams.namaKaryawan);
+        }
     }
     
     // Filter outlet jika ada
-    if (filterParams.outlet) {
+    if (filterParams.outlet && filterParams.outlet !== 'all') {
         orderQuery = orderQuery.eq('outlet', filterParams.outlet);
     }
     
@@ -731,7 +758,6 @@ async function loadWeeklyKomisi(filterParams) {
     
     // Jika tidak ada order
     if (!orders || orders.length === 0) {
-        // Buat data kosong untuk 7 hari
         const dailyResults = [];
         for (let i = 6; i >= 0; i--) {
             const date = new Date();
@@ -746,13 +772,81 @@ async function loadWeeklyKomisi(filterParams) {
                 total: 0,
                 outlet: filterParams.outlet || '-',
                 serveBy: filterParams.namaKaryawan || '-',
-                kasir: filterParams.namaKaryawan || '-'
+                kasir: '-'
             });
         }
         
         displayWeeklyKomisi(dailyResults, 0);
         return;
     }
+    
+    // Ambil order_no untuk query detail
+    const orderNumbers = orders.map(order => order.order_no).filter(Boolean);
+    
+    // Query transaksi_detail
+    let detailQuery = supabase
+        .from('transaksi_detail')
+        .select('*')
+        .in('order_no', orderNumbers);
+    
+    const { data: details, error: detailError } = await detailQuery;
+    
+    if (detailError) {
+        console.error('Error loading weekly transaction details:', detailError);
+    }
+    
+    // Group details by order_no
+    const detailsByOrderNo = {};
+    if (details) {
+        details.forEach(detail => {
+            if (!detailsByOrderNo[detail.order_no]) {
+                detailsByOrderNo[detail.order_no] = [];
+            }
+            detailsByOrderNo[detail.order_no].push(detail);
+        });
+    }
+    
+    // Gabungkan data
+    const ordersWithDetails = orders.map(order => {
+        const orderDetails = detailsByOrderNo[order.order_no] || [];
+        return {
+            ...order,
+            transaksi_detail: orderDetails
+        };
+    });
+    
+    // Group orders by date
+    const ordersByDate = {};
+    ordersWithDetails.forEach(order => {
+        const date = order.order_date;
+        if (!ordersByDate[date]) {
+            ordersByDate[date] = [];
+        }
+        ordersByDate[date].push(order);
+    });
+    
+    // Hitung komisi per hari
+    const dailyResults = [];
+    let total7Hari = 0;
+    
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        
+        const dayOrders = ordersByDate[dateStr] || [];
+        const result = calculateKomisiFromOrders(dayOrders);
+        
+        result.date = dateStr;
+        result.dateFormatted = date.toLocaleDateString('id-ID');
+        dailyResults.push(result);
+        
+        total7Hari += result.total;
+    }
+    
+    // Tampilkan di UI
+    displayWeeklyKomisi(dailyResults, total7Hari);
+}
     
     // Ambil semua order_no untuk query transaksi_detail
     const orderNumbers = orders.map(order => order.order_no).filter(Boolean);
@@ -831,7 +925,7 @@ async function loadWeeklyKomisi(filterParams) {
     displayWeeklyKomisi(dailyResults, total7Hari);
 }
 
-// [4.8] Fungsi untuk hitung komisi dari orders
+// [4.8] Fungsi untuk hitung komisi dari orders - TAMBAH VALIDASI
 function calculateKomisiFromOrders(orders) {
     let jumlahTransaksi = 0;
     let totalKomisi = 0;
@@ -843,47 +937,43 @@ function calculateKomisiFromOrders(orders) {
     let serveBy = '';
     let kasir = '';
     
-    console.log('Calculating from', orders.length, 'orders');
+    if (!orders || orders.length === 0) {
+        return {
+            jumlahTransaksi: 0,
+            komisi: 0,
+            uop: 0,
+            tips: 0,
+            total: 0,
+            outlet: '-',
+            serveBy: '-',
+            kasir: '-'
+        };
+    }
     
     orders.forEach((order, index) => {
         jumlahTransaksi++;
+        
+        // PERBAIKAN: comission dengan satu 'm'
         totalKomisi += order.comission || 0;
         
-        // Ambil outlet, serve_by, kasir dari order pertama
-        if (!outlet) outlet = order.outlet || '';
-        if (!serveBy) serveBy = order.serve_by || '';
-        if (!kasir) kasir = order.kasir || '';
+        // Ambil outlet, serve_by dari order pertama yang ada data
+        if (!outlet && order.outlet) outlet = order.outlet;
+        if (!serveBy && order.serve_by) serveBy = order.serve_by;
+        if (!kasir && order.kasir) kasir = order.kasir;
         
-        // Hitung UOP dan Tips dari transaksi_detail
-        if (order.transaksi_detail && order.transaksi_detail.length > 0) {
-            console.log(`Order ${index + 1} has ${order.transaksi_detail.length} details`);
-            
-            order.transaksi_detail.forEach((detail, detailIndex) => {
-                console.log(`  Detail ${detailIndex + 1}:`, detail.item_group, detail.amount);
-                
+        // Hitung UOP dan Tips
+        if (order.transaksi_detail) {
+            order.transaksi_detail.forEach((detail) => {
                 if (detail.item_group === 'UOP') {
                     totalUOP += detail.amount || 0;
                 } else if (detail.item_group === 'Tips') {
                     totalTips += detail.amount || 0;
                 }
             });
-        } else {
-            console.log(`Order ${index + 1} has no details`);
         }
     });
     
     totalAmount = totalKomisi + totalUOP + totalTips;
-    
-    console.log('Calculation results:', {
-        jumlahTransaksi,
-        komisi: totalKomisi,
-        uop: totalUOP,
-        tips: totalTips,
-        total: totalAmount,
-        outlet,
-        serveBy,
-        kasir
-    });
     
     return {
         jumlahTransaksi,
@@ -891,12 +981,11 @@ function calculateKomisiFromOrders(orders) {
         uop: totalUOP,
         tips: totalTips,
         total: totalAmount,
-        outlet,
-        serveBy,
-        kasir
+        outlet: outlet || '-',
+        serveBy: serveBy || '-',
+        kasir: kasir || '-'
     };
 }
-
 // [4.9] Fungsi untuk tampilkan komisi hari ini
 function displayTodayKomisi(data, date) {
     const content = document.getElementById('todayKomisiContent');
