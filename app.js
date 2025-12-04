@@ -84,11 +84,9 @@ async function checkAuthStatus() {
     const { data: { session } } = await supabase.auth.getSession();
     
     if (session) {
-        // User sudah login
         showAppScreen();
         loadUserData(session.user);
     } else {
-        // User belum login
         showLoginScreen();
     }
 }
@@ -99,7 +97,6 @@ async function handleLogin() {
     const password = document.getElementById('loginPassword').value.trim();
     const errorElement = document.getElementById('loginError');
     
-    // Validasi input
     if (!email || !password) {
         errorElement.textContent = 'Email dan password harus diisi';
         return;
@@ -111,13 +108,14 @@ async function handleLogin() {
         const { data, error } = await supabase.auth.signInWithPassword({
             email: email,
             password: password
+        }, {
+            expiresIn: 86400 // 24 JAM
         });
         
         if (error) {
             throw error;
         }
         
-        // Login berhasil
         showAppScreen();
         loadUserData(data.user);
         
@@ -153,50 +151,56 @@ function clearForm() {
     document.getElementById('loginError').textContent = '';
 }
 
-// Fungsi untuk load data user dari tabel karyawan
+// FUNGSI UTAMA: Load data karyawan dari tabel berdasarkan metadata
 async function loadUserData(user) {
-    try {
-        // Ambil data karyawan berdasarkan email user
-        const { data: karyawanData, error } = await supabase
-            .from('karyawan')
-            .select('*')
-            .eq('email', user.email)
-            .single();
-        
-        if (error) {
-            console.error('Error loading karyawan data:', error);
-            // Gunakan data default jika error
-            setDefaultProfile();
-            return;
-        }
-        
-        if (karyawanData) {
-            // Update profil dengan data dari database
-            updateProfile(karyawanData);
-            
-            // Load menu berdasarkan role
-            loadMenu(karyawanData.role);
-            
-            // Tampilkan notifikasi jika owner
-            if (karyawanData.role === 'owner') {
-                showNotifications();
-            }
-            
-            // Update avatar jika ada photo_url
-            if (karyawanData.photo_url) {
-                updateProfilePhoto(karyawanData.photo_url);
-            }
-        }
-        
-    } catch (error) {
-        console.error('Error in loadUserData:', error);
+    // 1. Ambil nama_karyawan dari metadata auth user
+    const namaKaryawan = user.user_metadata?.nama_karyawan;
+    
+    if (!namaKaryawan) {
+        console.error('nama_karyawan tidak ditemukan di metadata');
         setDefaultProfile();
+        return;
+    }
+    
+    console.log('Loading data untuk karyawan:', namaKaryawan);
+    
+    // 2. Query ke tabel karyawan dengan nama yang sama
+    const { data: karyawanData, error } = await supabase
+        .from('karyawan')
+        .select('*')
+        .eq('nama_karyawan', namaKaryawan)
+        .single();
+    
+    if (error) {
+        console.error('Error loading karyawan data:', error);
+        setDefaultProfile();
+        return;
+    }
+    
+    if (!karyawanData) {
+        console.error('Data karyawan tidak ditemukan di tabel');
+        setDefaultProfile();
+        return;
+    }
+    
+    // 3. Tampilkan data di UI
+    updateProfile(karyawanData);
+    loadMenu(karyawanData.role);
+    
+    // 4. Jika owner, tampilkan notifikasi
+    if (karyawanData.role === 'owner') {
+        showNotifications();
+    }
+    
+    // 5. Load foto jika ada
+    if (karyawanData.photo_url) {
+        updateProfilePhoto(karyawanData.photo_url);
     }
 }
 
-// Fungsi untuk update profil
+// Fungsi untuk update profil di UI
 function updateProfile(data) {
-    document.getElementById('profileName').textContent = data.nama_karyawan || '-';
+    document.getElementById('profileName').textContent = data.nama_karyawan;
     document.getElementById('profileOutlet').textContent = data.outlet || '-';
     document.getElementById('profileRole').textContent = data.role || '-';
     document.getElementById('profilePosition').textContent = data.posisi || '-';
@@ -206,12 +210,12 @@ function updateProfile(data) {
     document.getElementById('whatsappNumber').textContent = data.nomor_wa || '-';
 }
 
-// Fungsi untuk set profil default
+// Fungsi untuk set profil default (hanya jika error)
 function setDefaultProfile() {
     document.getElementById('profileName').textContent = 'Karyawan Babeh';
-    document.getElementById('profileOutlet').textContent = 'Outlet';
-    document.getElementById('profileRole').textContent = 'Karyawan';
-    document.getElementById('profilePosition').textContent = 'Posisi';
+    document.getElementById('profileOutlet').textContent = '-';
+    document.getElementById('profileRole').textContent = '-';
+    document.getElementById('profilePosition').textContent = '-';
     document.getElementById('joinDate').textContent = '-';
     document.getElementById('workPeriod').textContent = '-';
     document.getElementById('birthInfo').textContent = '-';
@@ -256,14 +260,12 @@ function loadMenu(role) {
             <div class="menu-title">${item.title}</div>
         `;
         
-        // Tambahkan event listener untuk setiap menu
         menuItem.addEventListener('click', () => handleMenuClick(item.id));
-        
         menuGrid.appendChild(menuItem);
     });
 }
 
-// Fungsi untuk menampilkan notifikasi
+// Fungsi untuk menampilkan notifikasi (hanya untuk owner)
 function showNotifications() {
     const notificationSection = document.getElementById('notificationSection');
     const notificationList = document.getElementById('notificationList');
@@ -289,7 +291,7 @@ function showNotifications() {
         notificationList.appendChild(notificationItem);
     });
     
-    // Tambahkan event listener untuk tombol notifikasi
+    // Event listener untuk tombol notifikasi
     document.querySelectorAll('.notification-btn.approve').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -307,7 +309,6 @@ function showNotifications() {
 
 // Fungsi untuk handle klik menu
 function handleMenuClick(menuId) {
-    // Tampilkan alert sementara - akan diimplementasikan nanti
     const menuTitles = {
         'komisi': 'Komisi',
         'slip': 'Slip Penghasilan',
@@ -321,17 +322,6 @@ function handleMenuClick(menuId) {
     };
     
     alert(`Menu "${menuTitles[menuId]}" akan diimplementasikan nanti.`);
-    
-    // Untuk pengembangan selanjutnya:
-    // switch(menuId) {
-    //     case 'komisi':
-    //         // Buka halaman komisi
-    //         break;
-    //     case 'slip':
-    //         // Buka halaman slip gaji
-    //         break;
-    //     // ... dan seterusnya
-    // }
 }
 
 // Fungsi untuk format tanggal
@@ -350,7 +340,7 @@ function formatDate(dateString) {
     }
 }
 
-// PWA Support (basic)
+// PWA Support
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
