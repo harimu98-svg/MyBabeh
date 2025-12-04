@@ -847,7 +847,7 @@ function calculateKomisiFromOrders(orders) {
     
     orders.forEach((order, index) => {
         jumlahTransaksi++;
-        totalKomisi += order.commission || 0;
+        totalKomisi += order.comission || 0;
         
         // Ambil outlet, serve_by, kasir dari order pertama
         if (!outlet) outlet = order.outlet || '';
