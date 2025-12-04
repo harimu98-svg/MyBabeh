@@ -618,6 +618,7 @@ function getFilterParams() {
     console.log('Filter params refined:', params);
     return params;
 }
+
 // [4.6] Fungsi untuk load komisi hari ini - PERBAIKAN FILTER
 async function loadTodayKomisi(filterParams) {
     const today = new Date();
@@ -847,83 +848,6 @@ async function loadWeeklyKomisi(filterParams) {
     // Tampilkan di UI
     displayWeeklyKomisi(dailyResults, total7Hari);
 }
-    
-    // Ambil semua order_no untuk query transaksi_detail
-    const orderNumbers = orders.map(order => order.order_no).filter(Boolean);
-    
-    console.log('Weekly order numbers to query:', orderNumbers);
-    
-    // Query transaksi_detail berdasarkan order_no
-    let detailQuery = supabase
-        .from('transaksi_detail')
-        .select('*')
-        .in('order_no', orderNumbers);
-    
-    const { data: details, error: detailError } = await detailQuery;
-    
-    if (detailError) {
-        console.error('Error loading weekly transaction details:', detailError);
-        // Tetap lanjutkan dengan hanya data orders
-    }
-    
-    console.log('Weekly transaction details found:', details?.length || 0);
-    
-    // Group details by order_no untuk lookup cepat
-    const detailsByOrderNo = {};
-    if (details) {
-        details.forEach(detail => {
-            if (!detailsByOrderNo[detail.order_no]) {
-                detailsByOrderNo[detail.order_no] = [];
-            }
-            detailsByOrderNo[detail.order_no].push(detail);
-        });
-    }
-    
-    // Gabungkan data orders dengan details
-    const ordersWithDetails = orders.map(order => {
-        const orderDetails = detailsByOrderNo[order.order_no] || [];
-        return {
-            ...order,
-            transaksi_detail: orderDetails
-        };
-    });
-    
-    // Group orders by date
-    const ordersByDate = {};
-    ordersWithDetails.forEach(order => {
-        const date = order.order_date;
-        if (!ordersByDate[date]) {
-            ordersByDate[date] = [];
-        }
-        ordersByDate[date].push(order);
-    });
-    
-    // Hitung komisi per hari
-    const dailyResults = [];
-    let total7Hari = 0;
-    
-    // Loop untuk 7 hari terakhir
-    for (let i = 6; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
-        
-        const dayOrders = ordersByDate[dateStr] || [];
-        const result = calculateKomisiFromOrders(dayOrders);
-        
-        result.date = dateStr;
-        result.dateFormatted = date.toLocaleDateString('id-ID');
-        dailyResults.push(result);
-        
-        total7Hari += result.total;
-    }
-    
-    console.log('Daily results:', dailyResults);
-    console.log('Total 7 hari:', total7Hari);
-    
-    // Tampilkan di UI
-    displayWeeklyKomisi(dailyResults, total7Hari);
-}
 
 // [4.8] Fungsi untuk hitung komisi dari orders - TAMBAH VALIDASI
 function calculateKomisiFromOrders(orders) {
@@ -986,6 +910,7 @@ function calculateKomisiFromOrders(orders) {
         kasir: kasir || '-'
     };
 }
+
 // [4.9] Fungsi untuk tampilkan komisi hari ini
 function displayTodayKomisi(data, date) {
     const content = document.getElementById('todayKomisiContent');
