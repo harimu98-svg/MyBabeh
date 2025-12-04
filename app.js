@@ -849,9 +849,29 @@ async function loadWeeklyKomisi(filterParams) {
     displayWeeklyKomisi(dailyResults, total7Hari);
 }
 
-// [4.8] Fungsi untuk hitung komisi dari orders - TAMBAH VALIDASI
-function calculateKomisiFromOrders(orders) {
-    let jumlahTransaksi = 0;
+// [4.8] Fungsi untuk hitung komisi dari orders - FIX VERSION
+async function calculateKomisiFromOrders(orders, namaKaryawan) {
+    console.log('=== DEBUG calculateKomisiFromOrders ===');
+    console.log('1. Orders received:', orders?.length || 0);
+    console.log('2. Nama karyawan param:', namaKaryawan);
+    console.log('3. Sample order:', orders?.[0]);
+    
+    // Default return jika tidak ada orders
+    if (!orders || orders.length === 0) {
+        console.log('No orders, returning zero data');
+        return {
+            jumlahTransaksi: 0,
+            komisi: 0,
+            uop: 0,
+            tips: 0,
+            total: 0,
+            outlet: '-',
+            serveBy: namaKaryawan || '-',
+            kasir: '-'
+        };
+    }
+    
+    let jumlahTransaksi = orders.length;
     let totalKomisi = 0;
     let totalUOP = 0;
     let totalTips = 0;
@@ -861,43 +881,110 @@ function calculateKomisiFromOrders(orders) {
     let serveBy = '';
     let kasir = '';
     
-    if (!orders || orders.length === 0) {
-        return {
-            jumlahTransaksi: 0,
-            komisi: 0,
-            uop: 0,
-            tips: 0,
-            total: 0,
-            outlet: '-',
-            serveBy: '-',
-            kasir: '-'
-        };
-    }
-    
+    // 1. HITUNG KOMISI DAN AMBIL INFO DASAR
     orders.forEach((order, index) => {
-        jumlahTransaksi++;
+        // Komisi dari transaksi_order - FIX: comission dengan SATU 'm'
+        const komisiOrder = order.comission || order.commission || 0;
+        totalKomisi += komisiOrder;
         
-        // PERBAIKAN: comission dengan satu 'm'
-        totalKomisi += order.comission || 0;
+        console.log(`Order ${index + 1}:`, {
+            order_no: order.order_no,
+            comission: order.comission,
+            commission: order.commission,
+            komisiUsed: komisiOrder
+        });
         
-        // Ambil outlet, serve_by dari order pertama yang ada data
+        // Ambil outlet, serve_by, kasir dari order pertama yang ada
         if (!outlet && order.outlet) outlet = order.outlet;
         if (!serveBy && order.serve_by) serveBy = order.serve_by;
         if (!kasir && order.kasir) kasir = order.kasir;
-        
-        // Hitung UOP dan Tips
-        if (order.transaksi_detail) {
-            order.transaksi_detail.forEach((detail) => {
+    });
+    
+    console.log('4. After komisi calculation:', {
+        totalKomisi,
+        outlet,
+        serveBy,
+        kasir
+    });
+    
+    // 2. CEK APAKAH ADA TRANSAKSI DENGAN ITEM_GROUP = 'UOP'
+    let adaTransaksiDenganUOP = false;
+    
+    orders.forEach((order) => {
+        if (order.transaksi_detail && order.transaksi_detail.length > 0) {
+            // Debug detail transaksi
+            console.log(`Order ${order.order_no} has ${order.transaksi_detail.length} details`);
+            
+            order.transaksi_detail.forEach((detail, idx) => {
+                console.log(`  Detail ${idx + 1}:`, {
+                    item_group: detail.item_group,
+                    amount: detail.amount,
+                    isUOP: detail.item_group === 'UOP',
+                    isTips: detail.item_group === 'Tips'
+                });
+                
                 if (detail.item_group === 'UOP') {
-                    totalUOP += detail.amount || 0;
-                } else if (detail.item_group === 'Tips') {
+                    adaTransaksiDenganUOP = true;
+                    console.log(`  FOUND UOP ITEM in order ${order.order_no}`);
+                }
+                
+                if (detail.item_group === 'Tips') {
                     totalTips += detail.amount || 0;
                 }
             });
+        } else {
+            console.log(`Order ${order.order_no} has NO details`);
         }
     });
     
+    console.log('5. UOP check result:', adaTransaksiDenganUOP);
+    console.log('6. Total tips:', totalTips);
+    
+    // 3. HITUNG UOP HANYA JIKA ADA TRANSAKSI DENGAN UOP
+    if (adaTransaksiDenganUOP && namaKaryawan) {
+        try {
+            console.log('7. Loading UOP rate for:', namaKaryawan);
+            
+            const { data: karyawanData, error } = await supabase
+                .from('karyawan')
+                .select('uop')
+                .eq('nama_karyawan', namaKaryawan)
+                .single();
+            
+            console.log('8. UOP query result:', { data: karyawanData, error });
+            
+            if (error) {
+                console.error('Error loading UOP:', error);
+                totalUOP = 0;
+            } else if (karyawanData && karyawanData.uop !== null && karyawanData.uop !== undefined) {
+                totalUOP = Number(karyawanData.uop);
+                console.log('9. UOP value found:', totalUOP);
+            } else {
+                totalUOP = 0;
+                console.log('10. UOP column empty or null');
+            }
+        } catch (err) {
+            console.error('Exception loading UOP:', err);
+            totalUOP = 0;
+        }
+    } else {
+        totalUOP = 0;
+        console.log('11. No UOP items found or no namaKaryawan');
+    }
+    
+    // 4. HITUNG TOTAL
     totalAmount = totalKomisi + totalUOP + totalTips;
+    
+    console.log('=== FINAL CALCULATION ===', {
+        jumlahTransaksi,
+        totalKomisi,
+        totalUOP,
+        totalTips,
+        totalAmount,
+        outlet,
+        serveBy,
+        kasir
+    });
     
     return {
         jumlahTransaksi,
@@ -906,7 +993,7 @@ function calculateKomisiFromOrders(orders) {
         tips: totalTips,
         total: totalAmount,
         outlet: outlet || '-',
-        serveBy: serveBy || '-',
+        serveBy: serveBy || namaKaryawan || '-',
         kasir: kasir || '-'
     };
 }
