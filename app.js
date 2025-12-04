@@ -709,29 +709,52 @@ async function loadTodayKomisi(filterParams) {
     displayTodayKomisi(result, today);
 }
 
-// [4.7] Fungsi untuk load komisi 7 hari terakhir - TIDAK TERMASUK HARI INI
+// [4.7] Fungsi untuk load komisi 7 hari terakhir - DENGAN DEBUG DETAIL
 async function loadWeeklyKomisi(filterParams) {
+    console.log('=== DEBUG LOAD WEEKLY KOMISI START ===');
+    
     const endDate = new Date();
     const startDate = new Date();
     
-    // PERBAIKAN: 7 hari SEBELUM hari ini (tidak termasuk hari ini)
-    startDate.setDate(startDate.getDate() - 7); // ← 7 hari sebelum
-    endDate.setDate(endDate.getDate() - 1);    // ← sampai kemarin
+    // 7 hari sebelum hari ini (tidak termasuk hari ini)
+    startDate.setDate(startDate.getDate() - 7); // 7 hari sebelum
+    endDate.setDate(endDate.getDate() - 1);     // kemarin
     
     // Format dates untuk query
     const startStr = startDate.toISOString().split('T')[0];
     const endStr = endDate.toISOString().split('T')[0];
     
-    console.log('=== DEBUG loadWeeklyKomisi ===');
-    console.log('7 hari TERAKHIR (tidak termasuk hari ini):');
-    console.log('Start date:', startStr, '(7 hari sebelum hari ini)');
-    console.log('End date:', endStr, '(kemarin)');
-    console.log('Nama karyawan:', filterParams.namaKaryawan);
+    console.log('1. Date range calculation:');
+    console.log('   Start (7 days ago):', startStr, startDate.toLocaleDateString('id-ID'));
+    console.log('   End (yesterday):', endStr, endDate.toLocaleDateString('id-ID'));
+    console.log('   Today:', new Date().toISOString().split('T')[0]);
     
     // FALLBACK nama karyawan
     const namaKaryawanAktif = filterParams.namaKaryawan || currentKaryawan?.nama_karyawan;
+    console.log('2. Nama karyawan aktif:', namaKaryawanAktif);
     
-    // Query untuk 7 hari terakhir (TIDAK TERMASUK HARI INI)
+    // TEST QUERY: Lihat semua data dulu tanpa filter tanggal
+    console.log('3. Testing query without date filter...');
+    const testQuery = supabase
+        .from('transaksi_order')
+        .select('order_date, order_no, serve_by')
+        .eq('serve_by', namaKaryawanAktif)
+        .order('order_date', { ascending: false })
+        .limit(10);
+    
+    const { data: testData, error: testError } = await testQuery;
+    
+    if (testError) {
+        console.error('Test query error:', testError);
+    } else {
+        console.log('4. Test query results (10 terbaru):', testData);
+        console.log('5. Unique dates in data:', 
+            [...new Set(testData?.map(d => d.order_date))].sort().reverse()
+        );
+    }
+    
+    // Query utama untuk 7 hari terakhir
+    console.log('6. Executing main query with date range...');
     let orderQuery = supabase
         .from('transaksi_order')
         .select('*')
@@ -742,19 +765,52 @@ async function loadWeeklyKomisi(filterParams) {
     // Filter berdasarkan serve_by
     if (namaKaryawanAktif && !isOwner) {
         orderQuery = orderQuery.eq('serve_by', namaKaryawanAktif);
+        console.log('7. Filter by serve_by:', namaKaryawanAktif);
     }
     
     const { data: orders, error: orderError } = await orderQuery;
     
     if (orderError) {
-        console.error('Error:', orderError);
+        console.error('8. Main query error:', orderError);
         return;
     }
     
-    console.log('Total orders found (excluding today):', orders?.length || 0);
+    console.log('9. Main query results count:', orders?.length || 0);
+    console.log('10. Orders found:', orders);
+    
+    // Jika tidak ada order dalam range tersebut
+    if (!orders || orders.length === 0) {
+        console.log('11. NO ORDERS FOUND in date range. Showing empty table...');
+        
+        // Buat data kosong untuk 7 hari
+        const dailyResults = [];
+        for (let i = 1; i <= 7; i++) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateStr = date.toISOString().split('T')[0];
+            
+            dailyResults.push({
+                date: dateStr,
+                dateFormatted: date.toLocaleDateString('id-ID'),
+                jumlahTransaksi: 0,
+                komisi: 0,
+                uop: 0,
+                tips: 0,
+                total: 0,
+                outlet: '-',
+                serveBy: namaKaryawanAktif || '-',
+                kasir: '-'
+            });
+        }
+        
+        console.log('12. Empty daily results:', dailyResults);
+        displayWeeklyKomisi(dailyResults, 0);
+        return;
+    }
     
     // Ambil order_no untuk query detail
-    const orderNumbers = orders?.map(order => order.order_no).filter(Boolean) || [];
+    const orderNumbers = orders.map(order => order.order_no).filter(Boolean);
+    console.log('13. Order numbers to query details:', orderNumbers);
     
     // Query transaksi_detail
     let detailQuery = supabase
@@ -765,7 +821,9 @@ async function loadWeeklyKomisi(filterParams) {
     const { data: details, error: detailError } = await detailQuery;
     
     if (detailError) {
-        console.error('Error details:', detailError);
+        console.error('14. Details query error:', detailError);
+    } else {
+        console.log('15. Details found:', details?.length || 0);
     }
     
     // Group details by order_no
@@ -780,15 +838,15 @@ async function loadWeeklyKomisi(filterParams) {
     }
     
     // Gabungkan data
-    const ordersWithDetails = orders?.map(order => {
+    const ordersWithDetails = orders.map(order => {
         const orderDetails = detailsByOrderNo[order.order_no] || [];
         return {
             ...order,
             transaksi_detail: orderDetails
         };
-    }) || [];
+    });
     
-    // Group orders by date
+    // Group orders by date untuk memudahkan lookup
     const ordersByDate = {};
     ordersWithDetails.forEach(order => {
         const date = order.order_date;
@@ -798,20 +856,23 @@ async function loadWeeklyKomisi(filterParams) {
         ordersByDate[date].push(order);
     });
     
-    // Hitung komisi per hari untuk 7 hari terakhir (TIDAK TERMASUK HARI INI)
+    console.log('16. Orders grouped by date:', Object.keys(ordersByDate));
+    
+    // Hitung komisi per hari untuk 7 hari terakhir
     const dailyResults = [];
     let total7Hari = 0;
     
-    // Loop 7 hari SEBELUM hari ini (terbaru di atas)
-    // Hari ke-1 = kemarin, hari ke-7 = 7 hari yang lalu
+    console.log('17. Calculating daily results...');
+    
+    // Loop 7 hari SEBELUM hari ini
     for (let i = 1; i <= 7; i++) {
         const date = new Date();
-        date.setDate(date.getDate() - i); // ← mulai dari kemarin (i=1)
+        date.setDate(date.getDate() - i);
         const dateStr = date.toISOString().split('T')[0];
         
         const dayOrders = ordersByDate[dateStr] || [];
         
-        console.log(`Date ${dateStr}: ${dayOrders.length} orders`);
+        console.log(`   Day ${i} (${dateStr}): ${dayOrders.length} orders`);
         
         const result = await calculateKomisiFromOrders(dayOrders, namaKaryawanAktif);
         
@@ -822,12 +883,14 @@ async function loadWeeklyKomisi(filterParams) {
         total7Hari += result.total;
     }
     
-    console.log('7 hari terakhir (tidak termasuk hari ini):', dailyResults);
-    console.log('Total 7 hari:', total7Hari);
+    console.log('18. Final daily results:', dailyResults);
+    console.log('19. Total 7 hari:', total7Hari);
+    console.log('=== DEBUG LOAD WEEKLY KOMISI END ===');
     
-    // Tampilkan di UI (terbaru di atas = kemarin paling atas)
+    // Tampilkan di UI
     displayWeeklyKomisi(dailyResults, total7Hari);
 }
+
 // [4.8] Fungsi untuk hitung komisi dari orders - FIX VERSION
 async function calculateKomisiFromOrders(orders, namaKaryawan) {
     console.log('=== DEBUG calculateKomisiFromOrders ===');
