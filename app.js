@@ -1101,7 +1101,7 @@ function displayWeeklyKomisi(dailyResults, total7Hari) {
     const tbody = document.getElementById('weeklyKomisiBody');
     tbody.innerHTML = '';
     
-   dailyResults.reverse().forEach(result => {
+   dailyResults.forEach(result => {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${result.dateFormatted}</td>
