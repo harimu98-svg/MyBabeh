@@ -539,8 +539,11 @@ function setupKomisiPageEvents() {
 }
 
 // Fungsi untuk load data komisi
+// Fungsi untuk load data komisi
 async function loadKomisiData() {
     try {
+        console.log('=== START LOADING KOMISI DATA ===');
+        
         // Tampilkan loading
         document.getElementById('loadingToday').style.display = 'block';
         document.getElementById('todayKomisiContent').style.display = 'none';
@@ -549,6 +552,7 @@ async function loadKomisiData() {
         
         // Tentukan parameter filter
         const filterParams = getFilterParams();
+        console.log('Filter params:', filterParams);
         
         // Load data hari ini
         await loadTodayKomisi(filterParams);
@@ -557,15 +561,47 @@ async function loadKomisiData() {
         await loadWeeklyKomisi(filterParams);
         
         // Update waktu terakhir update
-        document.getElementById('lastUpdateTime').textContent = 
-            new Date().toLocaleTimeString('id-ID');
-            
+        const updateTime = new Date().toLocaleTimeString('id-ID');
+        document.getElementById('lastUpdateTime').textContent = updateTime;
+        
+        console.log('=== FINISHED LOADING KOMISI DATA ===');
+        
     } catch (error) {
         console.error('Error loading komisi data:', error);
-        alert('Gagal memuat data komisi');
+        
+        // Tampilkan error message ke user
+        const todayContent = document.getElementById('todayKomisiContent');
+        const weeklyTable = document.getElementById('weeklyKomisiTable');
+        
+        document.getElementById('loadingToday').style.display = 'none';
+        document.getElementById('loadingWeekly').style.display = 'none';
+        
+        if (todayContent) {
+            todayContent.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #ff4757;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                    <p>Gagal memuat data komisi</p>
+                    <p style="font-size: 0.9rem; opacity: 0.7;">${error.message || 'Unknown error'}</p>
+                </div>
+            `;
+            todayContent.style.display = 'block';
+        }
+        
+        if (weeklyTable) {
+            weeklyTable.style.display = 'table';
+            const tbody = document.getElementById('weeklyKomisiBody');
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 20px; color: #ff4757;">
+                            Gagal memuat data
+                        </td>
+                    </tr>
+                `;
+            }
+        }
     }
 }
-
 // Fungsi untuk get filter parameters
 function getFilterParams() {
     const params = {
@@ -594,41 +630,145 @@ function getFilterParams() {
 }
 
 // Fungsi untuk load komisi hari ini
-async function loadTodayKomisi(filterParams) {
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+// Fungsi untuk load komisi 7 hari terakhir
+async function loadWeeklyKomisi(filterParams) {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 6); // 7 hari termasuk hari ini
     
-    // Query untuk data hari ini
-    let query = supabase
+    // Format dates untuk query
+    const startStr = startDate.toISOString().split('T')[0];
+    const endStr = endDate.toISOString().split('T')[0];
+    
+    console.log('Loading weekly orders from', startStr, 'to', endStr);
+    
+    // Query untuk 7 hari terakhir
+    let orderQuery = supabase
         .from('transaksi_order')
-        .select(`
-            *,
-            transaksi_detail (*)
-        `)
-        .eq('order_date', todayStr);
+        .select('*')
+        .gte('order_date', startStr)
+        .lte('order_date', endStr)
+        .order('order_date', { ascending: false });
     
     // Filter berdasarkan serve_by atau kasir
     if (filterParams.namaKaryawan) {
-        query = query.or(`serve_by.eq.${filterParams.namaKaryawan},kasir.eq.${filterParams.namaKaryawan}`);
+        orderQuery = orderQuery.or(`serve_by.eq.${filterParams.namaKaryawan},kasir.eq.${filterParams.namaKaryawan}`);
     }
     
     // Filter outlet jika ada
     if (filterParams.outlet) {
-        query = query.eq('outlet', filterParams.outlet);
+        orderQuery = orderQuery.eq('outlet', filterParams.outlet);
     }
     
-    const { data: orders, error } = await query;
+    const { data: orders, error: orderError } = await orderQuery;
     
-    if (error) {
-        console.error('Error loading today orders:', error);
+    if (orderError) {
+        console.error('Error loading weekly orders:', orderError);
         return;
     }
     
-    // Hitung total dan komponen
-    const result = calculateKomisiFromOrders(orders);
+    console.log('Weekly orders found:', orders?.length || 0);
+    
+    // Jika tidak ada order
+    if (!orders || orders.length === 0) {
+        // Buat data kosong untuk 7 hari
+        const dailyResults = [];
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            dailyResults.push({
+                date: date.toISOString().split('T')[0],
+                dateFormatted: date.toLocaleDateString('id-ID'),
+                jumlahTransaksi: 0,
+                komisi: 0,
+                uop: 0,
+                tips: 0,
+                total: 0,
+                outlet: filterParams.outlet || '-',
+                serveBy: filterParams.namaKaryawan || '-',
+                kasir: filterParams.namaKaryawan || '-'
+            });
+        }
+        
+        displayWeeklyKomisi(dailyResults, 0);
+        return;
+    }
+    
+    // Ambil semua order_no untuk query transaksi_detail
+    const orderNumbers = orders.map(order => order.order_no).filter(Boolean);
+    
+    console.log('Weekly order numbers to query:', orderNumbers);
+    
+    // Query transaksi_detail berdasarkan order_no
+    let detailQuery = supabase
+        .from('transaksi_detail')
+        .select('*')
+        .in('order_no', orderNumbers);
+    
+    const { data: details, error: detailError } = await detailQuery;
+    
+    if (detailError) {
+        console.error('Error loading weekly transaction details:', detailError);
+        // Tetap lanjutkan dengan hanya data orders
+    }
+    
+    console.log('Weekly transaction details found:', details?.length || 0);
+    
+    // Group details by order_no untuk lookup cepat
+    const detailsByOrderNo = {};
+    if (details) {
+        details.forEach(detail => {
+            if (!detailsByOrderNo[detail.order_no]) {
+                detailsByOrderNo[detail.order_no] = [];
+            }
+            detailsByOrderNo[detail.order_no].push(detail);
+        });
+    }
+    
+    // Gabungkan data orders dengan details
+    const ordersWithDetails = orders.map(order => {
+        const orderDetails = detailsByOrderNo[order.order_no] || [];
+        return {
+            ...order,
+            transaksi_detail: orderDetails
+        };
+    });
+    
+    // Group orders by date
+    const ordersByDate = {};
+    ordersWithDetails.forEach(order => {
+        const date = order.order_date;
+        if (!ordersByDate[date]) {
+            ordersByDate[date] = [];
+        }
+        ordersByDate[date].push(order);
+    });
+    
+    // Hitung komisi per hari
+    const dailyResults = [];
+    let total7Hari = 0;
+    
+    // Loop untuk 7 hari terakhir
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        
+        const dayOrders = ordersByDate[dateStr] || [];
+        const result = calculateKomisiFromOrders(dayOrders);
+        
+        result.date = dateStr;
+        result.dateFormatted = date.toLocaleDateString('id-ID');
+        dailyResults.push(result);
+        
+        total7Hari += result.total;
+    }
+    
+    console.log('Daily results:', dailyResults);
+    console.log('Total 7 hari:', total7Hari);
     
     // Tampilkan di UI
-    displayTodayKomisi(result, today);
+    displayWeeklyKomisi(dailyResults, total7Hari);
 }
 
 // Fungsi untuk load komisi 7 hari terakhir
@@ -715,7 +855,9 @@ function calculateKomisiFromOrders(orders) {
     let serveBy = '';
     let kasir = '';
     
-    orders.forEach(order => {
+    console.log('Calculating from', orders.length, 'orders');
+    
+    orders.forEach((order, index) => {
         jumlahTransaksi++;
         totalKomisi += order.commission || 0;
         
@@ -725,18 +867,35 @@ function calculateKomisiFromOrders(orders) {
         if (!kasir) kasir = order.kasir || '';
         
         // Hitung UOP dan Tips dari transaksi_detail
-        if (order.transaksi_detail) {
-            order.transaksi_detail.forEach(detail => {
+        if (order.transaksi_detail && order.transaksi_detail.length > 0) {
+            console.log(`Order ${index + 1} has ${order.transaksi_detail.length} details`);
+            
+            order.transaksi_detail.forEach((detail, detailIndex) => {
+                console.log(`  Detail ${detailIndex + 1}:`, detail.item_group, detail.amount);
+                
                 if (detail.item_group === 'UOP') {
                     totalUOP += detail.amount || 0;
                 } else if (detail.item_group === 'Tips') {
                     totalTips += detail.amount || 0;
                 }
             });
+        } else {
+            console.log(`Order ${index + 1} has no details`);
         }
     });
     
     totalAmount = totalKomisi + totalUOP + totalTips;
+    
+    console.log('Calculation results:', {
+        jumlahTransaksi,
+        komisi: totalKomisi,
+        uop: totalUOP,
+        tips: totalTips,
+        total: totalAmount,
+        outlet,
+        serveBy,
+        kasir
+    });
     
     return {
         jumlahTransaksi,
