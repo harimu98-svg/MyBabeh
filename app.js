@@ -703,7 +703,7 @@ async function loadTodayKomisi(filterParams) {
     });
     
     // Hitung komisi
-    const result = calculateKomisiFromOrders(ordersWithDetails);
+    const result = await calculateKomisiFromOrders(ordersWithDetails, filterParams.namaKaryawan || currentKaryawan?.nama_karyawan);
     
     // Tampilkan
     displayTodayKomisi(result, today);
@@ -836,7 +836,7 @@ async function loadWeeklyKomisi(filterParams) {
         const dateStr = date.toISOString().split('T')[0];
         
         const dayOrders = ordersByDate[dateStr] || [];
-        const result = calculateKomisiFromOrders(dayOrders);
+        const result = await calculateKomisiFromOrders(ordersWithDetails, filterParams.namaKaryawan || currentKaryawan?.nama_karyawan);
         
         result.date = dateStr;
         result.dateFormatted = date.toLocaleDateString('id-ID');
