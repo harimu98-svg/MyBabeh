@@ -829,9 +829,6 @@ async function loadWeeklyKomisi(filterParams) {
     displayWeeklyKomisi(dailyResults, total7Hari);
 }
     
-    // Tampilkan di UI
-    displayWeeklyKomisi(dailyResults, total7Hari);
-}
 
 // [4.8] Fungsi untuk hitung komisi dari orders - FIX VERSION
 async function calculateKomisiFromOrders(orders, namaKaryawan) {
