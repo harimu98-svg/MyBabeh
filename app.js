@@ -787,19 +787,42 @@ async function saveAnnouncement() {
     }
 }
 
-// Fungsi save ke Supabase
+// Fungsi save ke Supabase - VERSI SEDERHANA
 async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
     try {
         console.log('Saving to outlets:', selectedOutlets);
         
         // Jika pilih "Semua Outlet"
         if (selectedOutlets.includes('all')) {
-            const { error } = await supabase
+            // Ambil semua outlet dulu
+            const { data: allOutlets, error: fetchError } = await supabase
                 .from('outlet')
-                .update({ pengumuman_mybabeh: announcementText });
+                .select('id');
             
-            if (error) throw new Error(error.message);
-            return { success: true };
+            if (fetchError) throw new Error(`Gagal mengambil data outlet: ${fetchError.message}`);
+            
+            // Buat array update promises
+            const updatePromises = allOutlets.map(outlet => 
+                supabase
+                    .from('outlet')
+                    .update({ pengumuman_mybabeh: announcementText })
+                    .eq('id', outlet.id)
+            );
+            
+            // Jalankan semua update
+            const results = await Promise.allSettled(updatePromises);
+            
+            const successCount = results.filter(r => r.status === 'fulfilled' && !r.value.error).length;
+            const errors = results.filter(r => r.status === 'rejected' || r.value.error);
+            
+            console.log(`Updated ${successCount} out of ${allOutlets.length} outlets`);
+            
+            return { 
+                success: successCount > 0, 
+                outlets: 'all', 
+                successCount,
+                total: allOutlets.length 
+            };
         }
         
         // Simpan ke outlet yang dipilih
@@ -807,12 +830,21 @@ async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
         
         for (const outletValue of selectedOutlets) {
             try {
-                const { error } = await supabase
+                // Cari ID outlet
+                const { data: outletData } = await supabase
                     .from('outlet')
-                    .update({ pengumuman_mybabeh: announcementText })
-                    .eq('outlet', outletValue);
+                    .select('id')
+                    .eq('outlet', outletValue)
+                    .single();
                 
-                if (!error) successCount++;
+                if (outletData?.id) {
+                    const { error } = await supabase
+                        .from('outlet')
+                        .update({ pengumuman_mybabeh: announcementText })
+                        .eq('id', outletData.id);
+                    
+                    if (!error) successCount++;
+                }
             } catch (err) {
                 console.warn(`Failed to update ${outletValue}:`, err);
             }
@@ -820,7 +852,8 @@ async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
         
         return { 
             success: successCount > 0, 
-            successCount 
+            successCount,
+            total: selectedOutlets.length 
         };
         
     } catch (error) {
