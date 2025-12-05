@@ -1617,7 +1617,7 @@ async function getJadwalKaryawan(namaKaryawan) {
     }
 }
 
-// [9] Fungsi untuk tampilkan absensi hari ini
+// [9] Fungsi untuk tampilkan absensi hari ini - LAYOUT 2 KOLOM
 function displayTodayAbsensi(absensiData, date, namaKaryawan, jadwalData = null, isLatest = false) {
     const content = document.getElementById('todayAbsensiContent');
     
@@ -1668,51 +1668,138 @@ function displayTodayAbsensi(absensiData, date, namaKaryawan, jadwalData = null,
             </div>
         </div>
         
-        <div class="today-grid-absensi">
-            <div class="today-item">
-                <div class="today-label">Outlet</div>
-                <div class="today-value">${absensiData.outlet || '-'}</div>
+        <!-- Info Dasar (Outlet & Karyawan) -->
+        <div class="today-basic-info">
+            <div class="basic-info-item">
+                <div class="basic-label">Outlet</div>
+                <div class="basic-value">${absensiData.outlet || '-'}</div>
             </div>
-            <div class="today-item">
-                <div class="today-label">Karyawan</div>
-                <div class="today-value">${absensiData.nama || namaKaryawan || '-'}</div>
-            </div>
-            <div class="today-item">
-                <div class="today-label">Jadwal Masuk</div>
-                <div class="today-value">${jadwal.jadwal_masuk || '09:00'}</div>
-            </div>
-            <div class="today-item">
-                <div class="today-label">Jadwal Pulang</div>
-                <div class="today-value">${jadwal.jadwal_pulang || '21:00'}</div>
+            <div class="basic-info-item">
+                <div class="basic-label">Karyawan</div>
+                <div class="basic-value">${absensiData.nama || namaKaryawan || '-'}</div>
             </div>
         </div>
         
-        <div class="today-grid-absensi">
-            <div class="today-item highlight">
-                <div class="today-label">Clock In</div>
-                <div class="today-value clock-in">${clockinDisplay || '-'}</div>
-            </div>
-            <div class="today-item highlight">
-                <div class="today-label">Clock Out</div>
-                <div class="today-value clock-out">${clockoutDisplay || '-'}</div>
-            </div>
-            <div class="today-item highlight-status">
-                <div class="today-label">Jam Kerja</div>
-                <div class="today-value jam-kerja">${jamKerjaInfo.jamKerja}</div>
-            </div>
-            <div class="today-item highlight-status">
-                <div class="today-label">Keterangan</div>
-                <div class="today-value keterangan ${jamKerjaInfo.keteranganClass || ''}">
-                    ${jamKerjaInfo.keterangan}
+        <!-- Jadwal & Clock In/Out - 2 Kolom -->
+        <div class="today-schedule-section">
+            <h4><i class="fas fa-calendar-check"></i> Jadwal & Absensi</h4>
+            <div class="schedule-grid">
+                <!-- Kolom Kiri: Jadwal -->
+                <div class="schedule-column left-column">
+                    <div class="schedule-item">
+                        <div class="schedule-label">Jadwal Masuk</div>
+                        <div class="schedule-value jadwal-masuk">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>${jadwal.jadwal_masuk || '09:00'}</span>
+                        </div>
+                    </div>
+                    <div class="schedule-item">
+                        <div class="schedule-label">Jadwal Pulang</div>
+                        <div class="schedule-value jadwal-pulang">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>${jadwal.jadwal_pulang || '21:00'}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Kolom Kanan: Actual -->
+                <div class="schedule-column right-column">
+                    <div class="schedule-item">
+                        <div class="schedule-label">Clock In</div>
+                        <div class="schedule-value clock-in ${getClockStatusClass(clockinDisplay, jadwal.jadwal_masuk, 'in')}">
+                            <i class="fas fa-fingerprint"></i>
+                            <span>${clockinDisplay || '-'}</span>
+                            ${getClockStatusBadge(clockinDisplay, jadwal.jadwal_masuk, 'in')}
+                        </div>
+                    </div>
+                    <div class="schedule-item">
+                        <div class="schedule-label">Clock Out</div>
+                        <div class="schedule-value clock-out ${getClockStatusClass(clockoutDisplay, jadwal.jadwal_pulang, 'out')}">
+                            <i class="fas fa-fingerprint"></i>
+                            <span>${clockoutDisplay || '-'}</span>
+                            ${getClockStatusBadge(clockoutDisplay, jadwal.jadwal_pulang, 'out')}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+        
+        <!-- Ringkasan -->
+        <div class="today-summary-section">
+            <h4><i class="fas fa-chart-bar"></i> Ringkasan</h4>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="summary-label">Jam Kerja</div>
+                    <div class="summary-value jam-kerja">${jamKerjaInfo.jamKerja}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Status</div>
+                    <div class="summary-value keterangan ${jamKerjaInfo.keteranganClass || ''}">
+                        ${jamKerjaInfo.keterangan}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        ${isLatest ? `
+            <div class="today-note">
+                <i class="fas fa-info-circle"></i>
+                <span>Menampilkan data terbaru (${absensiData.tanggal}) karena belum ada absensi hari ini</span>
+            </div>
+        ` : ''}
     `;
     
     document.getElementById('loadingTodayAbsensi').style.display = 'none';
     content.style.display = 'block';
 }
 
+// Helper function untuk status clock in/out
+function getClockStatusClass(clockTime, scheduleTime, type) {
+    if (!clockTime || !scheduleTime) return 'no-data';
+    
+    const clock = parseTime(clockTime);
+    const schedule = parseTime(scheduleTime);
+    
+    if (type === 'in') {
+        if (clock.hours > schedule.hours || 
+            (clock.hours === schedule.hours && clock.minutes > schedule.minutes)) {
+            return 'late';
+        } else if (clock.hours < schedule.hours ||
+                   (clock.hours === schedule.hours && clock.minutes < schedule.minutes)) {
+            return 'early';
+        }
+    } else if (type === 'out') {
+        if (!clockTime) return 'no-data';
+        if (clock.hours < schedule.hours ||
+            (clock.hours === schedule.hours && clock.minutes < schedule.minutes)) {
+            return 'early-out';
+        }
+    }
+    
+    return 'on-time';
+}
+
+// Helper function untuk badge status
+function getClockStatusBadge(clockTime, scheduleTime, type) {
+    const statusClass = getClockStatusClass(clockTime, scheduleTime, type);
+    
+    const badges = {
+        'late': '<span class="status-badge late-badge">Terlambat</span>',
+        'early': '<span class="status-badge early-badge">Lebih Awal</span>',
+        'early-out': '<span class="status-badge early-out-badge">Pulang Cepat</span>',
+        'on-time': '<span class="status-badge on-time-badge">Tepat</span>',
+        'no-data': '<span class="status-badge no-data-badge">-</span>'
+    };
+    
+    return badges[statusClass] || '';
+}
+
+// Helper function untuk parse waktu
+function parseTime(timeStr) {
+    if (!timeStr) return { hours: 0, minutes: 0 };
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return { hours: hours || 0, minutes: minutes || 0 };
+}
 // [10] Fungsi untuk tampilkan absensi 7 hari
 function displayWeeklyAbsensi(weeklyData, jadwalData) {
     const tbody = document.getElementById('weeklyAbsensiBody');
