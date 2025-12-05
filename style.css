@@ -1116,8 +1116,9 @@ marquee {
 
 .schedule-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    grid-template-columns: 1fr 1fr !important; /* Force 2 columns */
+    gap: 15px !important;
+    margin: 0 !important;
 }
 
 @media (max-width: 768px) {
@@ -1134,11 +1135,11 @@ marquee {
 }
 
 .schedule-column.left-column {
-    padding-right: 10px;
+    padding-right: 0px;
 }
 
 .schedule-column.right-column {
-    padding-left: 10px;
+    padding-left: 0px;
 }
 
 @media (max-width: 768px) {
@@ -1149,12 +1150,10 @@ marquee {
 }
 
 .schedule-item {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-    border: 1px solid #eee;
-    transition: transform 0.2s, box-shadow 0.2s;
+    min-height: 120px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
 }
 
 .schedule-item:hover {
@@ -1399,4 +1398,23 @@ marquee {
 
 .today-summary-section {
     animation-delay: 0.2s;
+}
+/* PERBAIKAN RESPONSIVE untuk schedule-grid */
+@media (max-width: 768px) {
+    .schedule-grid {
+        grid-template-columns: 1fr !important; /* 1 kolom di mobile */
+        gap: 12px !important;
+    }
+}
+
+/* Pastikan schedule-value tidak terlalu besar */
+.schedule-value {
+    font-size: 1.3rem !important; /* Ukuran font lebih kecil */
+    gap: 8px !important;
+}
+
+.schedule-value i {
+    font-size: 1.5rem !important;
+    width: 35px !important;
+    height: 35px !important;
 }
