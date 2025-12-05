@@ -1123,37 +1123,35 @@ marquee {
 
 @media (max-width: 768px) {
     .schedule-grid {
-        grid-template-columns: 1fr;
-        gap: 15px;
+        grid-template-columns: 1fr !important;
+        gap: 10px !important; /* Lebih rapat */
+    }
+    
+    .schedule-item {
+        padding: 12px !important; /* Lebih kecil di mobile */
+        min-height: 90px !important;
+    }
+    
+    .schedule-value {
+        font-size: 1rem !important;
+    }
+    
+    .schedule-value i {
+        font-size: 1.2rem !important;
+        width: 30px !important;
+        height: 30px !important;
     }
 }
 
-.schedule-column {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.schedule-column.left-column {
-    padding-right: 5px;
-}
-
-.schedule-column.right-column {
-    padding-left: 5px;
-}
-
-@media (max-width: 768px) {
-    .schedule-column.left-column,
-    .schedule-column.right-column {
-        padding: 0;
-    }
-}
 
 .schedule-item {
-    min-height: 120px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: center !important;
+    background: white;
+    border-radius: 12px;
+    padding: 15px !important; /* Lebih kecil */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid #eee;
+    transition: none !important; /* Hapus transition */
+    min-height: 100px !important; /* Lebih kecil */
 }
 
 .schedule-item:hover {
@@ -1162,31 +1160,29 @@ marquee {
 }
 
 .schedule-label {
-    font-size: 0.9rem;
+    font-size: 0.8rem !important; /* Lebih kecil dari 0.9rem */
     color: #666;
-    margin-bottom: 10px;
+    margin-bottom: 8px !important; /* Lebih kecil */
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
+
 
 .schedule-value {
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-size: 1.5rem;
-    font-weight: 700;
+    gap: 8px !important; /* Lebih kecil */
+    font-size: 1.1rem !important; /* Lebih kecil dari 1.5rem */
+    font-weight: 600;
+}
+.schedule-value i {
+    font-size: 1.3rem !important; /* Lebih kecil dari 1.8rem */
+    width: 32px !important; /* Lebih kecil dari 40px */
+    height: 32px !important;
+    border-radius: 8px !important; /* Lebih kecil */
 }
 
-.schedule-value i {
-    font-size: 1.8rem;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-}
 
 /* Warna untuk Jadwal */
 .schedule-value.jadwal-masuk i {
