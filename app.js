@@ -160,138 +160,311 @@ function clearForm() {
     document.getElementById('loginError').textContent = '';
 }
 
-/* ANNOUNCEMENT BAR EDITABLE FOR OWNER */
-.announcement-bar.owner-editable {
-    cursor: pointer;
-    position: relative;
-    transition: all 0.3s ease;
+// ========== BAGIAN 3: FUNGSI UTAMA APP ==========
+// ==============================================
+
+// Fungsi untuk load data karyawan dari tabel berdasarkan metadata
+async function loadUserData(user) {
+    // 1. Ambil nama_karyawan dari auth user metadata
+    const namaKaryawan = user.user_metadata?.nama_karyawan;
+    
+    if (!namaKaryawan) {
+        console.error('nama_karyawan tidak ditemukan di metadata');
+        setDefaultProfile();
+        return;
+    }
+    
+    console.log('Loading data untuk karyawan:', namaKaryawan);
+    
+    // 2. Query ke tabel karyawan dengan nama yang sama
+    const { data: karyawanData, error } = await supabase
+        .from('karyawan')
+        .select('*')
+        .eq('nama_karyawan', namaKaryawan)
+        .single();
+    
+    if (error) {
+        console.error('Error loading karyawan data:', error);
+        setDefaultProfile();
+        return;
+    }
+    
+    if (!karyawanData) {
+        console.error('Data karyawan tidak ditemukan di tabel');
+        setDefaultProfile();
+        return;
+    }
+    
+    // 3. Tampilkan data di UI
+    updateProfile(karyawanData);
+    loadMenu(karyawanData.role);
+    
+    // 4. Jika owner, setup announcement bar
+    if (karyawanData.role === 'owner') {
+        makeAnnouncementEditable();
+    }
+    
+    // 5. Load saved announcement
+    loadSavedAnnouncement();
+    
+    // 6. Load foto jika ada
+    if (karyawanData.photo_url) {
+        updateProfilePhoto(karyawanData.photo_url);
+    }
 }
 
-.announcement-bar.owner-editable:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px dashed rgba(255, 255, 255, 0.3);
-    transform: translateY(-1px);
+// Fungsi untuk update profil di UI
+function updateProfile(data) {
+    document.getElementById('profileName').textContent = data.nama_karyawan;
+    document.getElementById('profileOutlet').textContent = data.outlet || '-';
+    document.getElementById('profileRole').textContent = data.role || '-';
+    document.getElementById('profilePosition').textContent = data.posisi || '-';
+    document.getElementById('joinDate').textContent = formatDate(data.tanggal_bergabung) || '-';
+    document.getElementById('workPeriod').textContent = data.masa_kerja || '-';
+    document.getElementById('birthInfo').textContent = data.tempat_tgl_lahir || '-';
+    document.getElementById('whatsappNumber').textContent = data.nomor_wa || '-';
 }
 
-.announcement-bar.owner-editable::after {
-    content: "✎";
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(255, 215, 0, 0.2);
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    color: #FFD700;
-    opacity: 0;
-    transition: opacity 0.3s;
+// Fungsi untuk set profil default (hanya jika error)
+function setDefaultProfile() {
+    document.getElementById('profileName').textContent = 'Karyawan Babeh';
+    document.getElementById('profileOutlet').textContent = '-';
+    document.getElementById('profileRole').textContent = '-';
+    document.getElementById('profilePosition').textContent = '-';
+    document.getElementById('joinDate').textContent = '-';
+    document.getElementById('workPeriod').textContent = '-';
+    document.getElementById('birthInfo').textContent = '-';
+    document.getElementById('whatsappNumber').textContent = '-';
+    
+    // Load menu default (kasir)
+    loadMenu('kasir');
 }
 
-.announcement-bar.owner-editable:hover::after {
-    opacity: 1;
+// Fungsi untuk update foto profil
+function updateProfilePhoto(photoUrl) {
+    const profilePhoto = document.getElementById('profilePhoto');
+    profilePhoto.innerHTML = '';
+    
+    const img = document.createElement('img');
+    img.src = photoUrl;
+    img.alt = 'Foto Profil';
+    img.onerror = function() {
+        // Jika gambar gagal load, tampilkan icon default
+        profilePhoto.innerHTML = '<i class="fas fa-user-circle"></i>';
+    };
+    
+    profilePhoto.appendChild(img);
 }
 
-/* EDIT POPUP */
-.edit-popup {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    animation: fadeIn 0.3s ease;
+// Fungsi untuk load menu berdasarkan role
+function loadMenu(role) {
+    const menuGrid = document.getElementById('menuGrid');
+    menuGrid.innerHTML = '';
+    
+    const items = menuItems[role] || menuItems.kasir;
+    
+    items.forEach(item => {
+        const menuItem = document.createElement('button');
+        menuItem.className = `menu-item ${item.colorClass}`;
+        menuItem.setAttribute('data-menu', item.id);
+        
+        menuItem.innerHTML = `
+            <div class="menu-icon">
+                <i class="fas ${item.icon}"></i>
+            </div>
+            <div class="menu-title">${item.title}</div>
+        `;
+        
+        menuItem.addEventListener('click', () => handleMenuClick(item.id));
+        menuGrid.appendChild(menuItem);
+    });
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+// Fungsi untuk buat announcement bar bisa diklik (owner only)
+function makeAnnouncementEditable() {
+    const announcementBar = document.getElementById('announcementBar');
+    if (announcementBar) {
+        // Hapus event listener lama jika ada
+        announcementBar.replaceWith(announcementBar.cloneNode(true));
+        
+        const newAnnouncementBar = document.getElementById('announcementBar');
+        newAnnouncementBar.classList.add('owner-editable');
+        newAnnouncementBar.title = "Klik untuk edit pengumuman";
+        newAnnouncementBar.addEventListener('click', showEditPopup);
+    }
 }
 
-.popup-content {
-    background: white;
-    border-radius: 15px;
-    padding: 25px;
-    width: 90%;
-    max-width: 500px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    animation: slideUp 0.3s ease;
+// Fungsi untuk tampilkan popup edit announcement
+function showEditPopup() {
+    const announcementText = document.getElementById('announcementText');
+    const marquee = announcementText.querySelector('marquee');
+    const currentText = marquee ? marquee.textContent : '';
+    
+    // Buat popup
+    const popupHTML = `
+        <div class="edit-popup" id="editPopup">
+            <div class="popup-content">
+                <h3><i class="fas fa-edit"></i> Edit Pengumuman</h3>
+                <textarea id="announcementInput" maxlength="200" placeholder="Masukkan teks pengumuman...">${currentText}</textarea>
+                <div class="popup-buttons">
+                    <button class="popup-btn cancel" id="cancelEdit">Batal</button>
+                    <button class="popup-btn save" id="saveAnnouncement">Simpan</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', popupHTML);
+    
+    // Setup event listeners
+    setupPopupEvents();
 }
 
-@keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+// Setup events untuk popup edit
+function setupPopupEvents() {
+    const popup = document.getElementById('editPopup');
+    const cancelBtn = document.getElementById('cancelEdit');
+    const saveBtn = document.getElementById('saveAnnouncement');
+    const input = document.getElementById('announcementInput');
+    
+    if (!popup || !input) return;
+    
+    // Fokus ke input
+    input.focus();
+    input.select();
+    
+    // Cancel button
+    cancelBtn.addEventListener('click', () => {
+        popup.remove();
+    });
+    
+    // Save button
+    saveBtn.addEventListener('click', () => {
+        saveAnnouncement();
+    });
+    
+    // ESC key untuk close
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            popup.remove();
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+    
+    // Click outside to close
+    popup.addEventListener('click', (e) => {
+        if (e.target === popup) {
+            popup.remove();
+            document.removeEventListener('keydown', escHandler);
+        }
+    });
+    
+    // Enter key untuk save
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.ctrlKey) {
+            saveAnnouncement();
+        }
+    });
 }
 
-.popup-content h3 {
-    color: #8A2BE2;
-    margin-bottom: 15px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 1.2rem;
+// Fungsi save announcement
+function saveAnnouncement() {
+    const input = document.getElementById('announcementInput');
+    const popup = document.getElementById('editPopup');
+    
+    if (!input || !popup) return;
+    
+    const newText = input.value.trim();
+    
+    if (newText === '') {
+        alert('Pengumuman tidak boleh kosong!');
+        input.focus();
+        return;
+    }
+    
+    // Update text di announcement bar
+    const announcementText = document.getElementById('announcementText');
+    if (announcementText) {
+        announcementText.innerHTML = `<marquee>${newText}</marquee>`;
+    }
+    
+    // Simpan ke localStorage
+    localStorage.setItem('babeh_announcement', newText);
+    
+    // Close popup
+    popup.remove();
+    
+    // Tampilkan pesan sukses
+    alert('Pengumuman berhasil diperbarui!');
 }
 
-.popup-content textarea {
-    width: 100%;
-    padding: 15px;
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
-    font-size: 1rem;
-    resize: vertical;
-    min-height: 100px;
-    margin-bottom: 20px;
-    font-family: inherit;
-    line-height: 1.5;
+// Load saved announcement dari localStorage
+function loadSavedAnnouncement() {
+    const savedText = localStorage.getItem('babeh_announcement');
+    const announcementText = document.getElementById('announcementText');
+    
+    if (savedText && announcementText) {
+        announcementText.innerHTML = `<marquee>${savedText}</marquee>`;
+    }
 }
 
-.popup-content textarea:focus {
-    outline: none;
-    border-color: #8A2BE2;
-    box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.1);
+// Fungsi untuk menampilkan notifikasi (hanya untuk owner)
+function showNotifications() {
+    const notificationSection = document.getElementById('notificationSection');
+    const notificationList = document.getElementById('notificationList');
+    
+    notificationSection.style.display = 'block';
+    notificationList.innerHTML = '';
+    
+    sampleNotifications.forEach(notification => {
+        const notificationItem = document.createElement('div');
+        notificationItem.className = 'notification-item';
+        
+        notificationItem.innerHTML = `
+            <div class="notification-content">
+                <div class="notification-date">${notification.date}</div>
+                <div class="notification-text">${notification.text}</div>
+            </div>
+            <div class="notification-actions">
+                <button class="notification-btn approve">Approve</button>
+                <button class="notification-btn reject">Reject</button>
+            </div>
+        `;
+        
+        notificationList.appendChild(notificationItem);
+    });
+    
+    // Event listener untuk tombol notifikasi
+    document.querySelectorAll('.notification-btn.approve').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            alert('Permintaan telah disetujui!');
+        });
+    });
+    
+    document.querySelectorAll('.notification-btn.reject').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            alert('Permintaan telah ditolak!');
+        });
+    });
 }
 
-.popup-buttons {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-}
-
-.popup-btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 0.95rem;
-    transition: all 0.2s;
-}
-
-.popup-btn.save {
-    background: linear-gradient(to right, #8A2BE2, #4169E1);
-    color: white;
-}
-
-.popup-btn.cancel {
-    background: #f5f5f5;
-    color: #666;
-}
-
-.popup-btn:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-}
-
-.popup-btn:active {
-    transform: translateY(0);
+// Fungsi untuk format tanggal
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+        });
+    } catch (error) {
+        return dateString;
+    }
 }
 // ========== BAGIAN 4: FUNGSI MENU KOMPONEN - KOMPISI ==========
 // ============================================================
