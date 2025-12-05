@@ -371,7 +371,7 @@ function setupPopupEvents() {
 // ========== FUNGSI PENGUMUMAN DATABASE ==========
 // ==============================================
 
-// Fungsi save announcement ke Supabase
+// Fungsi save announcement ke Supabase (ke tabel outlet)
 async function saveAnnouncementToSupabase(announcementText) {
     try {
         // 1. Ambil data user saat ini
@@ -399,17 +399,25 @@ async function saveAnnouncementToSupabase(announcementText) {
             throw new Error('Outlet user tidak ditemukan');
         }
         
-        // 3. Update pengumuman untuk semua karyawan dengan outlet yang sama
+        // 3. Update pengumuman di tabel outlet berdasarkan outlet user
         const { error: updateError } = await supabase
-            .from('karyawan')
+            .from('outlet')
             .update({ pengumuman_mybabeh: announcementText })
-            .eq('outlet', outletUser);
+            .eq('nama_outlet', outletUser); // Asumsi kolom di tabel outlet adalah 'nama_outlet'
         
         if (updateError) {
-            throw new Error(`Gagal menyimpan pengumuman: ${updateError.message}`);
+            // Coba dengan nama kolom lain jika 'nama_outlet' tidak ada
+            const { error: updateError2 } = await supabase
+                .from('outlet')
+                .update({ pengumuman_mybabeh: announcementText })
+                .eq('outlet', outletUser); // Coba dengan kolom 'outlet'
+            
+            if (updateError2) {
+                throw new Error(`Gagal menyimpan pengumuman: ${updateError2.message}`);
+            }
         }
         
-        console.log('Pengumuman berhasil disimpan ke database untuk outlet:', outletUser);
+        console.log('Pengumuman berhasil disimpan ke tabel outlet untuk outlet:', outletUser);
         return { success: true, outlet: outletUser };
         
     } catch (error) {
@@ -418,7 +426,7 @@ async function saveAnnouncementToSupabase(announcementText) {
     }
 }
 
-// Fungsi load saved announcement dari Supabase
+// Fungsi load saved announcement dari Supabase (dari tabel outlet)
 async function loadAnnouncementFromSupabase() {
     try {
         // 1. Ambil data user saat ini
@@ -429,10 +437,10 @@ async function loadAnnouncementFromSupabase() {
             return null;
         }
         
-        // 2. Ambil data karyawan untuk mendapatkan pengumuman
+        // 2. Ambil outlet dari data karyawan
         const { data: karyawanData, error: karyawanError } = await supabase
             .from('karyawan')
-            .select('pengumuman_mybabeh')
+            .select('outlet')
             .eq('nama_karyawan', namaKaryawan)
             .single();
         
@@ -441,8 +449,38 @@ async function loadAnnouncementFromSupabase() {
             return null;
         }
         
-        // 3. Return pengumuman
-        return karyawanData?.pengumuman_mybabeh || null;
+        const outletUser = karyawanData?.outlet;
+        
+        if (!outletUser) {
+            console.error('Outlet tidak ditemukan untuk karyawan:', namaKaryawan);
+            return null;
+        }
+        
+        // 3. Ambil pengumuman dari tabel outlet berdasarkan outlet
+        const { data: outletData, error: outletError } = await supabase
+            .from('outlet')
+            .select('pengumuman_mybabeh')
+            .eq('nama_outlet', outletUser) // Coba dengan 'nama_outlet' dulu
+            .single();
+        
+        if (outletError) {
+            // Coba dengan kolom 'outlet' jika 'nama_outlet' tidak ada
+            const { data: outletData2, error: outletError2 } = await supabase
+                .from('outlet')
+                .select('pengumuman_mybabeh')
+                .eq('outlet', outletUser)
+                .single();
+            
+            if (outletError2) {
+                console.error('Error loading outlet data:', outletError2);
+                return null;
+            }
+            
+            return outletData2?.pengumuman_mybabeh || null;
+        }
+        
+        // 4. Return pengumuman
+        return outletData?.pengumuman_mybabeh || null;
         
     } catch (error) {
         console.error('Error loading announcement from Supabase:', error);
@@ -482,7 +520,7 @@ async function saveAnnouncement() {
             .single();
         
         if (karyawanData?.role === 'owner') {
-            // Owner: simpan ke database
+            // Owner: simpan ke database tabel outlet
             const result = await saveAnnouncementToSupabase(newText);
             
             if (result.success) {
@@ -495,7 +533,7 @@ async function saveAnnouncement() {
                 // Simpan juga ke localStorage sebagai cache
                 localStorage.setItem('babeh_announcement', newText);
                 
-                alert('Pengumuman berhasil disimpan ke database!');
+                alert('Pengumuman berhasil disimpan ke database outlet!');
                 popup.remove();
             } else {
                 alert(`Gagal menyimpan ke database: ${result.error}`);
@@ -527,7 +565,7 @@ async function loadSavedAnnouncement() {
     if (!announcementText) return;
     
     try {
-        // 1. Coba load dari database dulu
+        // 1. Coba load dari database dulu (dari tabel outlet)
         const dbAnnouncement = await loadAnnouncementFromSupabase();
         
         if (dbAnnouncement) {
@@ -536,14 +574,18 @@ async function loadSavedAnnouncement() {
             
             // Update localStorage sebagai cache
             localStorage.setItem('babeh_announcement', dbAnnouncement);
+            console.log('Pengumuman diambil dari database outlet:', dbAnnouncement);
         } else {
             // 2. Jika tidak ada di database, coba dari localStorage
             const savedText = localStorage.getItem('babeh_announcement');
             if (savedText) {
                 announcementText.innerHTML = `<marquee>${savedText}</marquee>`;
+                console.log('Pengumuman diambil dari localStorage:', savedText);
             } else {
                 // 3. Default message
-                announcementText.innerHTML = `<marquee>Selamat datang di MyBabeh App! - ${new Date().toLocaleDateString('id-ID')}</marquee>`;
+                const defaultMsg = `Selamat datang di MyBabeh App! - ${new Date().toLocaleDateString('id-ID')}`;
+                announcementText.innerHTML = `<marquee>${defaultMsg}</marquee>`;
+                console.log('Pengumuman default ditampilkan');
             }
         }
     } catch (error) {
@@ -553,6 +595,9 @@ async function loadSavedAnnouncement() {
         const savedText = localStorage.getItem('babeh_announcement');
         if (savedText) {
             announcementText.innerHTML = `<marquee>${savedText}</marquee>`;
+        } else {
+            // Default fallback
+            announcementText.innerHTML = `<marquee>Selamat bekerja hari ini! - ${new Date().toLocaleDateString('id-ID')}</marquee>`;
         }
     }
 }
