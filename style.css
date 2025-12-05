@@ -1067,491 +1067,225 @@ marquee {
         font-size: 1.1rem;
     }
 }
-/* Layout 2 Kolom untuk Jadwal & Clock */
-.jadwal-clock-layout {
+/* ========== LAYOUT 2 KOLOM ABSENSI ========== */
+/* ========================================== */
+
+/* Container utama untuk layout 2 kolom */
+.today-schedule-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
-    margin-bottom: 25px;
+    margin: 25px 0;
 }
 
-.jadwal-column, .clock-column {
+/* Kolom kiri dan kanan */
+.schedule-column-left,
+.schedule-column-right {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 20px;
 }
 
-.schedule-card {
+/* Card untuk setiap item */
+.schedule-card-item {
     background: white;
-    border-radius: 15px;
+    border-radius: 16px;
     padding: 20px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-    border: 1px solid #eee;
-    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s ease;
 }
 
-.schedule-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+.schedule-card-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    border-color: #8A2BE2;
 }
 
-.schedule-header {
+/* Header card */
+.card-header {
     display: flex;
     align-items: center;
     gap: 12px;
     margin-bottom: 15px;
     padding-bottom: 12px;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 2px solid #f5f5f5;
 }
 
-.schedule-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+.card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
 }
 
-.schedule-icon.jadwal {
+.card-icon.schedule {
     background: linear-gradient(135deg, #4CAF50, #2E7D32);
     color: white;
 }
 
-.schedule-icon.clock {
+.card-icon.clock {
     background: linear-gradient(135deg, #2196F3, #0D47A1);
     color: white;
 }
 
-.schedule-title {
-    font-weight: 600;
+.card-title {
+    font-weight: 700;
     color: #333;
-    font-size: 1rem;
+    font-size: 1.1rem;
+    flex: 1;
 }
 
-.schedule-value {
-    font-size: 1.8rem;
-    font-weight: 700;
+/* Waktu display */
+.time-display {
     text-align: center;
-    margin: 10px 0;
-    font-family: 'Courier New', monospace;
+    margin: 15px 0;
 }
 
-.clock-time {
-    font-size: 2rem;
-    font-weight: 700;
-    text-align: center;
-    margin: 10px 0;
+.time-value {
+    font-size: 2.2rem;
+    font-weight: 800;
     font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+    line-height: 1;
+    margin-bottom: 5px;
+}
+
+.time-label {
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 600;
+    text-transform: uppercase;
     letter-spacing: 1px;
 }
 
-.clock-status {
+/* Status badge */
+.status-container {
     text-align: center;
-    margin-top: 10px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #f0f0f0;
 }
 
-.status-label {
+.status-badge-absensi {
     display: inline-block;
-    padding: 4px 12px;
+    padding: 6px 16px;
     border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
+    font-size: 0.85rem;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
-.status-tepat {
-    background: #E8F5E9;
+/* Warna status */
+.status-tepat-waktu {
+    background: linear-gradient(135deg, #E8F5E9, #C8E6C9);
     color: #2E7D32;
-    border: 1px solid #C8E6C9;
+    border: 1px solid #A5D6A7;
 }
 
 .status-terlambat {
-    background: #FFEBEE;
+    background: linear-gradient(135deg, #FFEBEE, #FFCDD2);
     color: #C62828;
-    border: 1px solid #FFCDD2;
+    border: 1px solid #EF9A9A;
 }
 
-.status-cepat {
-    background: #FFF3E0;
+.status-lebih-cepat {
+    background: linear-gradient(135deg, #FFF3E0, #FFE0B2);
     color: #EF6C00;
-    border: 1px solid #FFE0B2;
+    border: 1px solid #FFCC80;
 }
 
 .status-normal {
-    background: #E3F2FD;
+    background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
     color: #1565C0;
-    border: 1px solid #BBDEFB;
+    border: 1px solid #90CAF9;
 }
 
-.status-no-data {
-    background: #F5F5F5;
+.status-tidak-ada {
+    background: linear-gradient(135deg, #F5F5F5, #E0E0E0);
     color: #616161;
-    border: 1px solid #E0E0E0;
+    border: 1px solid #BDBDBD;
 }
 
-/* Responsive untuk mobile */
+/* Animasi */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.schedule-column-left .schedule-card-item {
+    animation: fadeInUp 0.5s ease-out 0.1s both;
+}
+
+.schedule-column-right .schedule-card-item {
+    animation: fadeInUp 0.5s ease-out 0.2s both;
+}
+
+/* Responsive untuk tablet */
 @media (max-width: 768px) {
-    .jadwal-clock-layout {
+    .today-schedule-container {
         grid-template-columns: 1fr;
         gap: 15px;
     }
     
-    .schedule-value {
-        font-size: 1.5rem;
+    .time-value {
+        font-size: 1.8rem;
     }
     
-    .clock-time {
-        font-size: 1.6rem;
+    .card-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
     }
 }
 
-/* Animation */
-@keyframes slideInLeft {
-    from {
-        opacity: 0;
-        transform: translateX(-20px);
+/* Responsive untuk mobile kecil */
+@media (max-width: 480px) {
+    .today-schedule-container {
+        gap: 12px;
+        margin: 20px 0;
     }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-@keyframes slideInRight {
-    from {
-        opacity: 0;
-        transform: translateX(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-.jadwal-column {
-    animation: slideInLeft 0.5s ease-out;
-}
-
-.clock-column {
-    animation: slideInRight 0.5s ease-out;
-}
-@media (max-width: 360px) {
-    .schedule-card {
+    
+    .schedule-card-item {
         padding: 15px;
     }
     
-    .schedule-value {
-        font-size: 1.3rem;
+    .time-value {
+        font-size: 1.6rem;
     }
     
-    .clock-time {
-        font-size: 1.4rem;
-    }
-    
-    .schedule-icon {
-        width: 35px;
-        height: 35px;
+    .card-title {
         font-size: 1rem;
     }
     
-    .schedule-title {
-        font-size: 0.9rem;
-    }
-}
-/* Today Absensi - Layout 2 Kolom */
-.today-basic-info {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-    margin-bottom: 25px;
-    padding: 15px;
-    background: #f8f9ff;
-    border-radius: 10px;
-    border: 1px solid #eef;
-}
-
-.basic-info-item {
-    text-align: center;
-}
-
-.basic-label {
-    font-size: 0.85rem;
-    color: #666;
-    margin-bottom: 5px;
-    font-weight: 600;
-}
-
-.basic-value {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #333;
-}
-
-/* Jadwal & Absensi Section */
-.today-schedule-section {
-    margin-bottom: 25px;
-}
-
-.today-schedule-section h4 {
-    color: #333;
-    margin-bottom: 15px;
-    font-size: 1.1rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.today-schedule-section h4 i {
-    color: #8A2BE2;
-}
-
-.schedule-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-}
-
-@media (max-width: 768px) {
-    .schedule-grid {
-        grid-template-columns: 1fr;
-        gap: 15px;
+    .status-badge-absensi {
+        padding: 5px 12px;
+        font-size: 0.8rem;
     }
 }
 
-.schedule-column {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+/* Highlight untuk hari ini */
+.today-highlight {
+    position: relative;
+    overflow: hidden;
 }
 
-.schedule-column.left-column {
-    padding-right: 10px;
+.today-highlight::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #8A2BE2, #4169E1);
 }
-
-.schedule-column.right-column {
-    padding-left: 10px;
-}
-
-@media (max-width: 768px) {
-    .schedule-column.left-column,
-    .schedule-column.right-column {
-        padding: 0;
-    }
-}
-
-.schedule-item {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-    border: 1px solid #eee;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.schedule-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-}
-
-.schedule-label {
-    font-size: 0.9rem;
-    color: #666;
-    margin-bottom: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.schedule-value {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 1.5rem;
-    font-weight: 700;
-}
-
-.schedule-value i {
-    font-size: 1.8rem;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-}
-
-/* Warna untuk Jadwal */
-.schedule-value.jadwal-masuk i {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32);
-    color: white;
-}
-
-.schedule-value.jadwal-pulang i {
-    background: linear-gradient(135deg, #2196F3, #0D47A1);
-    color: white;
-}
-
-/* Warna untuk Clock In/Out */
-.schedule-value.clock-in i {
-    background: linear-gradient(135deg, #FF9800, #F57C00);
-    color: white;
-}
-
-.schedule-value.clock-out i {
-    background: linear-gradient(135deg, #E91E63, #C2185B);
-    color: white;
-}
-
-/* Status Classes untuk Clock */
-.schedule-value.clock-in.on-time i {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32);
-}
-
-.schedule-value.clock-out.on-time i {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32);
-}
-
-.schedule-value.clock-in.late i {
-    background: linear-gradient(135deg, #FF5722, #D84315);
-}
-
-.schedule-value.clock-out.early-out i {
-    background: linear-gradient(135deg, #9C27B0, #7B1FA2);
-}
-
-.schedule-value.clock-in.early i {
-    background: linear-gradient(135deg, #00BCD4, #0097A7);
-}
-
-.schedule-value.no-data i {
-    background: linear-gradient(135deg, #9E9E9E, #616161);
-}
-
-/* Status Badge */
-.status-badge {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-left: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.late-badge {
-    background: #FFEBEE;
-    color: #C62828;
-    border: 1px solid #FFCDD2;
-}
-
-.early-badge {
-    background: #E3F2FD;
-    color: #1565C0;
-    border: 1px solid #BBDEFB;
-}
-
-.early-out-badge {
-    background: #F3E5F5;
-    color: #7B1FA2;
-    border: 1px solid #E1BEE7;
-}
-
-.on-time-badge {
-    background: #E8F5E9;
-    color: #2E7D32;
-    border: 1px solid #C8E6C9;
-}
-
-.no-data-badge {
-    background: #F5F5F5;
-    color: #616161;
-    border: 1px solid #E0E0E0;
-}
-
-/* Ringkasan Section */
-.today-summary-section {
-    margin-top: 25px;
-}
-
-.today-summary-section h4 {
-    color: #333;
-    margin-bottom: 15px;
-    font-size: 1.1rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.today-summary-section h4 i {
-    color: #8A2BE2;
-}
-
-.summary-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-}
-
-.summary-item {
-    background: linear-gradient(135deg, #8A2BE2, #4169E1);
-    color: white;
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-}
-
-.summary-label {
-    font-size: 0.9rem;
-    opacity: 0.9;
-    margin-bottom: 8px;
-    font-weight: 600;
-}
-
-.summary-value {
-    font-size: 1.4rem;
-    font-weight: 700;
-}
-
-.summary-value.jam-kerja {
-    color: #FFD700;
-}
-
-.summary-value.keterangan.tepat {
-    color: #32CD32;
-}
-
-.summary-value.keterangan.terlambat {
-    color: #FFA500;
-}
-
-.summary-value.keterangan.cepat {
-    color: #FF6347;
-}
-
-.summary-value.keterangan.tidak-absen {
-    color: #ccc;
-    font-style: italic;
-}
-
-/* Note */
-.today-note {
-    margin-top: 20px;
-    padding: 12px 15px;
-    background: #FFF3CD;
-    border: 1px solid #FFEEBA;
-    border-radius: 8px;
-    color: #856404;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.today-note i {
-    color: #FFC107;
-}
-
