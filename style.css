@@ -1399,3 +1399,107 @@ marquee {
 .today-summary-section {
     animation-delay: 0.2s;
 }
+/* Announcement Bar Clickable untuk Owner */
+.announcement-bar.owner-editable {
+    cursor: pointer;
+    position: relative;
+}
+
+.announcement-bar.owner-editable:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px dashed rgba(255, 255, 255, 0.3);
+}
+
+.announcement-bar.owner-editable::after {
+    content: "✎";
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 215, 0, 0.2);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #FFD700;
+}
+
+/* Popup Edit */
+.edit-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.popup-content {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.popup-content h3 {
+    color: #8A2BE2;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.popup-content textarea {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 1rem;
+    resize: vertical;
+    min-height: 100px;
+    margin-bottom: 20px;
+    font-family: inherit;
+}
+
+.popup-content textarea:focus {
+    outline: none;
+    border-color: #8A2BE2;
+}
+
+.popup-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.popup-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+
+.popup-btn.save {
+    background: #8A2BE2;
+    color: white;
+}
+
+.popup-btn.cancel {
+    background: #f5f5f5;
+    color: #666;
+}
+
+.popup-btn:hover {
+    opacity: 0.9;
+}
