@@ -1296,7 +1296,7 @@ function createAbsensiPage() {
                 <h3><i class="fas fa-history"></i> Absensi 7 Hari Terakhir</h3>
                 <div class="total-summary">
                     <span>Total Hari: <strong id="totalHariAbsensi">7</strong> hari</span>
-                    <small style="font-size: 0.8em; opacity: 0.7;">(tidak termasuk hari ini)</small>
+                  
                 </div>
             </div>
             <div class="weekly-absensi-table-container">
