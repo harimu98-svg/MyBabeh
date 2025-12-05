@@ -1360,3 +1360,43 @@ marquee {
 .today-note i {
     color: #FFC107;
 }
+/* Responsive untuk mobile */
+@media (max-width: 480px) {
+    .schedule-value {
+        font-size: 1.3rem;
+    }
+    
+    .schedule-value i {
+        font-size: 1.5rem;
+        width: 35px;
+        height: 35px;
+    }
+    
+    .summary-value {
+        font-size: 1.2rem;
+    }
+    
+    .status-badge {
+        font-size: 0.7rem;
+        padding: 3px 8px;
+    }
+}
+
+/* Animasi */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.today-schedule-section,
+.today-summary-section {
+    animation: fadeIn 0.5s ease-out;
+}
+
+.today-schedule-section {
+    animation-delay: 0.1s;
+}
+
+.today-summary-section {
+    animation-delay: 0.2s;
+}
