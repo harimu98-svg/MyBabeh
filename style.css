@@ -1554,3 +1554,26 @@ marquee {
 .today-note i {
     color: #FFC107;
 }
+@media (max-width: 360px) {
+    .schedule-card {
+        padding: 15px;
+    }
+    
+    .schedule-value {
+        font-size: 1.3rem;
+    }
+    
+    .clock-time {
+        font-size: 1.4rem;
+    }
+    
+    .schedule-icon {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
+    }
+    
+    .schedule-title {
+        font-size: 0.9rem;
+    }
+}
