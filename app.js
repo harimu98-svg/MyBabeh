@@ -458,33 +458,6 @@ async function loadOutletList() {
     }
 }
 
-// Fungsi untuk debug tabel outlet
-async function debugOutletTable() {
-    try {
-        console.log('=== DEBUG OUTLET TABLE ===');
-        
-        // Coba ambil semua data dari tabel outlet untuk debugging
-        const { data: allOutletData, error } = await supabase
-            .from('outlet')
-            .select('*')
-            .limit(5);
-        
-        if (error) {
-            console.error('Debug: Error getting outlet data:', error);
-            return;
-        }
-        
-        console.log('Debug: Raw outlet data (first 5 rows):', allOutletData);
-        
-        if (allOutletData && allOutletData.length > 0) {
-            console.log('Debug: Columns in first row:', Object.keys(allOutletData[0]));
-        }
-        
-    } catch (error) {
-        console.error('Debug: Exception getting outlet data:', error);
-    }
-}
-
 // Fungsi untuk get outlet user saat ini
 async function getCurrentUserOutlet() {
     try {
@@ -516,16 +489,13 @@ async function getCurrentUserOutlet() {
     }
 }
 
-// Fungsi untuk tampilkan modal edit dengan pilihan outlet
+// Fungsi untuk tampilkan modal edit dengan CHECKLIST outlet
 async function showEditPopup() {
     const announcementText = document.getElementById('announcementText');
     const marquee = announcementText?.querySelector('marquee');
     const currentText = marquee ? marquee.textContent : '';
     
     console.log('showEditPopup called');
-    
-    // Debug tabel outlet
-    await debugOutletTable();
     
     // Load daftar outlet
     const outlets = await loadOutletList();
@@ -534,67 +504,86 @@ async function showEditPopup() {
     const currentOutlet = await getCurrentUserOutlet();
     console.log('Current user outlet:', currentOutlet);
     
-    // Buat HTML untuk dropdown outlet
-    let outletOptions = '';
+    // Buat HTML untuk checklist outlet
+    let outletCheckboxes = '';
     
     if (outlets.length > 0) {
-        console.log(`Generating options for ${outlets.length} outlets`);
+        console.log(`Generating checkboxes for ${outlets.length} outlets`);
         
-        outletOptions = `
-            <option value="all">📢 Semua Outlet</option>
-            ${outlets.map(outlet => {
-                const isSelected = outlet.value === currentOutlet;
-                console.log(`Outlet: ${outlet.name}, Value: ${outlet.value}, Selected: ${isSelected}`);
-                return `
-                    <option value="${outlet.value}" ${isSelected ? 'selected' : ''}>
-                        ${outlet.name}
-                    </option>
-                `;
-            }).join('')}
+        outletCheckboxes = `
+            <!-- Opsi Semua Outlet -->
+            <div class="outlet-checkbox-item all-outlets">
+                <label class="outlet-checkbox-label">
+                    <input type="checkbox" id="checkAllOutlets" class="outlet-checkbox" value="all">
+                    <span class="checkmark"></span>
+                    <span class="outlet-name">
+                        <i class="fas fa-bullhorn"></i> <strong>📢 Semua Outlet</strong>
+                    </span>
+                </label>
+            </div>
+            
+            <!-- Daftar Outlet -->
+            <div class="outlet-checkbox-list" id="outletCheckboxList">
+                ${outlets.map(outlet => {
+                    const isChecked = outlet.value === currentOutlet;
+                    console.log(`Outlet: ${outlet.name}, Value: ${outlet.value}, Checked: ${isChecked}`);
+                    return `
+                        <div class="outlet-checkbox-item">
+                            <label class="outlet-checkbox-label">
+                                <input type="checkbox" class="outlet-checkbox" value="${outlet.value}" 
+                                    ${isChecked ? 'checked' : ''}>
+                                <span class="checkmark"></span>
+                                <span class="outlet-name">
+                                    <i class="fas fa-store"></i> ${outlet.name}
+                                </span>
+                            </label>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
         `;
     } else {
-        console.warn('No outlets available for dropdown');
-        outletOptions = `
-            <option value="">⚠️ Tidak ada outlet ditemukan</option>
-            <option value="default">Outlet Default</option>
+        console.warn('No outlets available for checklist');
+        outletCheckboxes = `
+            <div class="no-outlets-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Tidak ada outlet ditemukan</p>
+            </div>
         `;
     }
     
-    // Buat popup dengan dropdown multiple select
+    // Buat popup dengan checklist outlet
     const popupHTML = `
         <div class="edit-popup" id="editPopup">
             <div class="popup-content announcement-popup">
-                <h3><i class="fas fa-bullhorn"></i> Edit Pengumuman</h3>
+                <div class="popup-header">
+                    <h3><i class="fas fa-bullhorn"></i> Edit Pengumuman</h3>
+                    <button class="close-popup" id="closePopup">&times;</button>
+                </div>
                 
-                <!-- Pilihan Outlet -->
+                <!-- Pilihan Outlet dengan Checklist -->
                 <div class="outlet-selection-section">
-                    <label for="selectOutletAnnouncement">
-                        <i class="fas fa-store"></i> Pilih Outlet (${outlets.length} tersedia):
-                    </label>
-                    <div class="outlet-selection-container">
-                        <select 
-                            id="selectOutletAnnouncement" 
-                            class="outlet-select-multiple" 
-                            multiple
-                            size="6"
-                            style="width: 100%; padding: 8px; border-radius: 5px;"
-                        >
-                            ${outletOptions}
-                        </select>
-                        <div class="outlet-selection-info">
-                            <small>Gunakan Ctrl/Cmd + klik untuk memilih multiple outlet</small>
-                            <div class="outlet-selection-actions">
-                                <button type="button" class="select-all-btn" id="selectAllOutlets">
-                                    <i class="fas fa-check-square"></i> Pilih Semua
-                                </button>
-                                <button type="button" class="clear-selection-btn" id="clearSelection">
-                                    <i class="fas fa-times-circle"></i> Hapus Pilihan
-                                </button>
-                            </div>
+                    <div class="section-header">
+                        <label>
+                            <i class="fas fa-store"></i> Pilih Outlet 
+                            <span class="outlet-count">(${outlets.length} outlet tersedia)</span>
+                        </label>
+                        <div class="selection-actions">
+                            <button type="button" class="action-btn select-all-btn" id="selectAllBtn">
+                                <i class="fas fa-check-square"></i> Pilih Semua
+                            </button>
+                            <button type="button" class="action-btn clear-all-btn" id="clearAllBtn">
+                                <i class="fas fa-times-circle"></i> Hapus Semua
+                            </button>
                         </div>
-                        <div class="outlet-selection-stats" id="outletSelectionStats">
-                            <small>0 outlet terpilih</small>
-                        </div>
+                    </div>
+                    
+                    <div class="outlet-checklist-container">
+                        ${outletCheckboxes}
+                    </div>
+                    
+                    <div class="selection-stats" id="selectionStats">
+                        <span id="selectedCount">0</span> outlet terpilih
                     </div>
                 </div>
                 
@@ -606,9 +595,8 @@ async function showEditPopup() {
                     <textarea 
                         id="announcementInput" 
                         maxlength="500" 
-                        placeholder="Masukkan teks pengumuman..."
+                        placeholder="Masukkan teks pengumuman di sini..."
                         rows="4"
-                        style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"
                     >${currentText}</textarea>
                     <div class="char-counter">
                         <span id="charCount">${currentText.length}</span>/500 karakter
@@ -616,20 +604,20 @@ async function showEditPopup() {
                 </div>
                 
                 <!-- Preview -->
-                <div class="announcement-preview" style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                <div class="announcement-preview-section">
                     <label><i class="fas fa-eye"></i> Preview:</label>
-                    <div id="announcementPreview" style="padding: 8px; background: white; border: 1px dashed #ccc; margin-top: 5px; border-radius: 3px;">
-                        ${currentText || '(Kosong)'}
+                    <div class="preview-box" id="announcementPreview">
+                        ${currentText || 'Teks pengumuman akan muncul di sini...'}
                     </div>
                 </div>
                 
                 <!-- Tombol Action -->
-                <div class="popup-buttons announcement-buttons">
-                    <button class="popup-btn cancel" id="cancelEdit" style="flex: 1;">
+                <div class="popup-footer">
+                    <button class="popup-btn cancel-btn" id="cancelEdit">
                         <i class="fas fa-times"></i> Batal
                     </button>
-                    <button class="popup-btn save" id="saveAnnouncement" style="flex: 2;">
-                        <i class="fas fa-save"></i> Simpan Pengumuman
+                    <button class="popup-btn save-btn" id="saveAnnouncement">
+                        <i class="fas fa-paper-plane"></i> Kirim Pengumuman
                     </button>
                 </div>
             </div>
@@ -637,6 +625,9 @@ async function showEditPopup() {
     `;
     
     document.body.insertAdjacentHTML('beforeend', popupHTML);
+    
+    // Tambahkan CSS khusus untuk checklist
+    addChecklistStyles();
     
     // Setup event listeners khusus untuk popup pengumuman
     setupAnnouncementPopupEvents();
@@ -654,17 +645,272 @@ async function showEditPopup() {
     }, 100);
 }
 
-// Setup events untuk popup edit pengumuman
+// Tambahkan CSS untuk checklist
+function addChecklistStyles() {
+    const styleId = 'announcement-checklist-styles';
+    if (document.getElementById(styleId)) return;
+    
+    const styles = `
+        <style id="${styleId}">
+            /* Checklist Outlet Styles */
+            .outlet-selection-section {
+                background: #f8f9fa;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 15px;
+                border: 1px solid #e9ecef;
+            }
+            
+            .section-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #dee2e6;
+            }
+            
+            .section-header label {
+                font-weight: 600;
+                color: #2c3e50;
+                font-size: 16px;
+            }
+            
+            .outlet-count {
+                font-weight: normal;
+                color: #6c757d;
+                font-size: 14px;
+            }
+            
+            .selection-actions {
+                display: flex;
+                gap: 8px;
+            }
+            
+            .action-btn {
+                padding: 6px 12px;
+                border: none;
+                border-radius: 4px;
+                font-size: 13px;
+                cursor: pointer;
+                transition: all 0.3s;
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
+            
+            .select-all-btn {
+                background: #3498db;
+                color: white;
+            }
+            
+            .select-all-btn:hover {
+                background: #2980b9;
+            }
+            
+            .clear-all-btn {
+                background: #e74c3c;
+                color: white;
+            }
+            
+            .clear-all-btn:hover {
+                background: #c0392b;
+            }
+            
+            .outlet-checklist-container {
+                max-height: 200px;
+                overflow-y: auto;
+                padding: 10px;
+                background: white;
+                border-radius: 6px;
+                border: 1px solid #ddd;
+            }
+            
+            .outlet-checkbox-item {
+                margin-bottom: 8px;
+                padding: 8px;
+                border-radius: 4px;
+                transition: background 0.2s;
+            }
+            
+            .outlet-checkbox-item:hover {
+                background: #f1f8ff;
+            }
+            
+            .outlet-checkbox-item.all-outlets {
+                background: #e3f2fd;
+                border-left: 4px solid #2196f3;
+                margin-bottom: 12px;
+            }
+            
+            .outlet-checkbox-label {
+                display: flex;
+                align-items: center;
+                cursor: pointer;
+                font-size: 14px;
+                user-select: none;
+            }
+            
+            .outlet-checkbox {
+                display: none;
+            }
+            
+            .checkmark {
+                position: relative;
+                height: 18px;
+                width: 18px;
+                background-color: #fff;
+                border: 2px solid #adb5bd;
+                border-radius: 4px;
+                margin-right: 12px;
+                flex-shrink: 0;
+            }
+            
+            .outlet-checkbox:checked ~ .checkmark {
+                background-color: #2196f3;
+                border-color: #2196f3;
+            }
+            
+            .outlet-checkbox:checked ~ .checkmark:after {
+                content: "";
+                position: absolute;
+                left: 5px;
+                top: 2px;
+                width: 5px;
+                height: 10px;
+                border: solid white;
+                border-width: 0 2px 2px 0;
+                transform: rotate(45deg);
+            }
+            
+            .outlet-name {
+                color: #495057;
+            }
+            
+            .outlet-checkbox:checked ~ .outlet-name {
+                color: #2196f3;
+                font-weight: 500;
+            }
+            
+            .selection-stats {
+                margin-top: 10px;
+                padding: 8px 12px;
+                background: #e8f5e9;
+                border-radius: 4px;
+                font-size: 14px;
+                color: #2e7d32;
+                font-weight: 500;
+                text-align: center;
+            }
+            
+            .announcement-preview-section {
+                margin: 15px 0;
+            }
+            
+            .preview-box {
+                padding: 12px;
+                background: #fff3cd;
+                border: 1px solid #ffeaa7;
+                border-radius: 6px;
+                min-height: 60px;
+                font-style: italic;
+                color: #856404;
+                margin-top: 5px;
+            }
+            
+            .popup-footer {
+                display: flex;
+                gap: 10px;
+                margin-top: 20px;
+            }
+            
+            .cancel-btn {
+                background: #6c757d;
+                color: white;
+                flex: 1;
+            }
+            
+            .save-btn {
+                background: #28a745;
+                color: white;
+                flex: 2;
+            }
+            
+            .popup-btn {
+                padding: 10px 20px;
+                border: none;
+                border-radius: 6px;
+                font-size: 14px;
+                cursor: pointer;
+                transition: all 0.3s;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                font-weight: 500;
+            }
+            
+            .popup-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }
+            
+            .popup-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 15px;
+            }
+            
+            .close-popup {
+                background: none;
+                border: none;
+                font-size: 24px;
+                cursor: pointer;
+                color: #6c757d;
+                padding: 0;
+                width: 30px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+            }
+            
+            .close-popup:hover {
+                background: #f8f9fa;
+                color: #dc3545;
+            }
+            
+            .no-outlets-message {
+                text-align: center;
+                padding: 30px;
+                color: #6c757d;
+            }
+            
+            .no-outlets-message i {
+                font-size: 32px;
+                margin-bottom: 10px;
+                color: #ffc107;
+            }
+        </style>
+    `;
+    
+    document.head.insertAdjacentHTML('beforeend', styles);
+}
+
+// Setup events untuk popup edit pengumuman dengan checklist
 function setupAnnouncementPopupEvents() {
     const popup = document.getElementById('editPopup');
     const cancelBtn = document.getElementById('cancelEdit');
     const saveBtn = document.getElementById('saveAnnouncement');
+    const closeBtn = document.getElementById('closePopup');
     const input = document.getElementById('announcementInput');
-    const outletSelect = document.getElementById('selectOutletAnnouncement');
-    const selectAllBtn = document.getElementById('selectAllOutlets');
-    const clearBtn = document.getElementById('clearSelection');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const checkAllOutlets = document.getElementById('checkAllOutlets');
     
-    if (!popup || !input || !outletSelect) {
+    if (!popup || !input) {
         console.error('Popup elements not found');
         return;
     }
@@ -677,21 +923,30 @@ function setupAnnouncementPopupEvents() {
         if (charCount) {
             charCount.textContent = length;
             if (length > 450) {
-                charCount.style.color = '#ff4757';
+                charCount.style.color = '#dc3545';
             } else if (length > 400) {
-                charCount.style.color = '#ffa502';
+                charCount.style.color = '#fd7e14';
             } else {
-                charCount.style.color = '#2ed573';
+                charCount.style.color = '#28a745';
             }
         }
     }
     
     // Update selection stats
     function updateSelectionStats() {
-        const selectedCount = outletSelect.selectedOptions.length;
-        const statsEl = document.getElementById('outletSelectionStats');
+        const checkboxes = document.querySelectorAll('.outlet-checkbox:not([value="all"])');
+        const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+        const statsEl = document.getElementById('selectedCount');
         if (statsEl) {
-            statsEl.innerHTML = `<small>${selectedCount} outlet terpilih</small>`;
+            statsEl.textContent = selectedCount;
+            const statsContainer = document.getElementById('selectionStats');
+            if (selectedCount === 0) {
+                statsContainer.style.background = '#f8d7da';
+                statsContainer.style.color = '#721c24';
+            } else {
+                statsContainer.style.background = '#e8f5e9';
+                statsContainer.style.color = '#2e7d32';
+            }
         }
     }
     
@@ -699,7 +954,27 @@ function setupAnnouncementPopupEvents() {
     function updatePreview(text) {
         const previewEl = document.getElementById('announcementPreview');
         if (previewEl) {
-            previewEl.textContent = text || '(Kosong)';
+            previewEl.textContent = text || 'Teks pengumuman akan muncul di sini...';
+        }
+    }
+    
+    // Fungsi untuk update "Semua Outlet" checkbox
+    function updateAllOutletsCheckbox() {
+        const checkboxes = document.querySelectorAll('.outlet-checkbox:not([value="all"])');
+        const allChecked = checkboxes.length > 0 && Array.from(checkboxes).every(cb => cb.checked);
+        const noneChecked = Array.from(checkboxes).every(cb => !cb.checked);
+        
+        if (checkAllOutlets) {
+            if (allChecked) {
+                checkAllOutlets.checked = true;
+                checkAllOutsets.indeterminate = false;
+            } else if (noneChecked) {
+                checkAllOutlets.checked = false;
+                checkAllOutlets.indeterminate = false;
+            } else {
+                checkAllOutlets.checked = false;
+                checkAllOutlets.indeterminate = true;
+            }
         }
     }
     
@@ -709,28 +984,60 @@ function setupAnnouncementPopupEvents() {
         updatePreview(e.target.value);
     });
     
-    // Outlet selection change event
-    outletSelect.addEventListener('change', updateSelectionStats);
+    // Checkbox change events
+    function setupCheckboxEvents() {
+        // Event untuk "Semua Outlet" checkbox
+        if (checkAllOutlets) {
+            checkAllOutlets.addEventListener('change', function() {
+                const checkboxes = document.querySelectorAll('.outlet-checkbox:not([value="all"])');
+                checkboxes.forEach(cb => {
+                    cb.checked = this.checked;
+                });
+                updateSelectionStats();
+            });
+        }
+        
+        // Event untuk outlet checkboxes
+        const outletCheckboxes = document.querySelectorAll('.outlet-checkbox:not([value="all"])');
+        outletCheckboxes.forEach(cb => {
+            cb.addEventListener('change', function() {
+                updateSelectionStats();
+                updateAllOutletsCheckbox();
+            });
+        });
+    }
     
-    // Tombol pilih semua outlet
+    // Tombol Pilih Semua
     if (selectAllBtn) {
         selectAllBtn.addEventListener('click', () => {
-            const options = outletSelect.options;
-            for (let i = 0; i < options.length; i++) {
-                options[i].selected = true;
+            const checkboxes = document.querySelectorAll('.outlet-checkbox:not([value="all"])');
+            checkboxes.forEach(cb => {
+                cb.checked = true;
+            });
+            if (checkAllOutlets) {
+                checkAllOutlets.checked = true;
+                checkAllOutlets.indeterminate = false;
             }
             updateSelectionStats();
         });
     }
     
-    // Tombol hapus pilihan
-    if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-            const options = outletSelect.options;
-            for (let i = 0; i < options.length; i++) {
-                options[i].selected = false;
-            }
+    // Tombol Hapus Semua
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', () => {
+            const checkboxes = document.querySelectorAll('.outlet-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = false;
+                cb.indeterminate = false;
+            });
             updateSelectionStats();
+        });
+    }
+    
+    // Close button
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            popup.remove();
         });
     }
     
@@ -741,7 +1048,7 @@ function setupAnnouncementPopupEvents() {
     
     // Save button
     saveBtn.addEventListener('click', () => {
-        saveAnnouncementWithOutlet();
+        saveAnnouncementWithChecklist();
     });
     
     // ESC key untuk close
@@ -764,24 +1071,30 @@ function setupAnnouncementPopupEvents() {
     // Enter key untuk save (Ctrl+Enter)
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && e.ctrlKey) {
-            saveAnnouncementWithOutlet();
+            saveAnnouncementWithChecklist();
         }
     });
     
+    // Setup checkbox events setelah DOM selesai
+    setTimeout(() => {
+        setupCheckboxEvents();
+        updateSelectionStats();
+        updateAllOutletsCheckbox();
+    }, 100);
+    
     // Inisialisasi
     updateCharCounter(input.value.length);
-    updateSelectionStats();
+    updatePreview(input.value);
     
     console.log('Popup events setup completed');
 }
 
-// Fungsi save announcement dengan outlet selection
-async function saveAnnouncementWithOutlet() {
+// Fungsi save announcement dengan checklist
+async function saveAnnouncementWithChecklist() {
     const input = document.getElementById('announcementInput');
-    const outletSelect = document.getElementById('selectOutletAnnouncement');
     const popup = document.getElementById('editPopup');
     
-    if (!input || !outletSelect || !popup) {
+    if (!input || !popup) {
         alert('Elemen tidak ditemukan!');
         return;
     }
@@ -794,13 +1107,12 @@ async function saveAnnouncementWithOutlet() {
         return;
     }
     
-    // Ambil outlet yang dipilih
-    const selectedOptions = Array.from(outletSelect.selectedOptions);
-    const selectedOutlets = selectedOptions.map(option => option.value);
+    // Ambil outlet yang dipilih dari checklist
+    const checkboxes = document.querySelectorAll('.outlet-checkbox:checked');
+    const selectedOutlets = Array.from(checkboxes).map(cb => cb.value);
     
     if (selectedOutlets.length === 0) {
         alert('Pilih minimal satu outlet!');
-        outletSelect.focus();
         return;
     }
     
@@ -824,14 +1136,16 @@ async function saveAnnouncementWithOutlet() {
         
         if (karyawanData?.role === 'owner') {
             // Tampilkan loading
+            const saveBtn = document.getElementById('saveAnnouncement');
+            const originalText = saveBtn.innerHTML;
             saveBtn.disabled = true;
-            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
             
             // Owner: simpan ke database dengan outlet yang dipilih
             const result = await saveAnnouncementToSupabase(newText, selectedOutlets);
             
             saveBtn.disabled = false;
-            saveBtn.innerHTML = '<i class="fas fa-save"></i> Simpan Pengumuman';
+            saveBtn.innerHTML = originalText;
             
             if (result.success) {
                 // Update UI untuk outlet user saat ini
@@ -844,13 +1158,13 @@ async function saveAnnouncementWithOutlet() {
                 localStorage.setItem('babeh_announcement', newText);
                 
                 // Tampilkan pesan sukses
-                let successMessage = 'Pengumuman berhasil disimpan!';
+                let successMessage = '';
                 if (selectedOutlets.includes('all')) {
-                    successMessage = 'Pengumuman berhasil disimpan ke SEMUA outlet!';
+                    successMessage = '✅ Pengumuman berhasil dikirim ke SEMUA outlet!';
                 } else if (selectedOutlets.length === 1) {
-                    successMessage = `Pengumuman berhasil disimpan ke outlet: ${selectedOutlets[0]}`;
+                    successMessage = `✅ Pengumuman berhasil dikirim ke outlet: ${selectedOutlets[0]}`;
                 } else {
-                    successMessage = `Pengumuman berhasil disimpan ke ${selectedOutlets.length} outlet`;
+                    successMessage = `✅ Pengumuman berhasil dikirim ke ${selectedOutlets.length} outlet`;
                 }
                 
                 alert(successMessage);
@@ -862,7 +1176,7 @@ async function saveAnnouncementWithOutlet() {
                     // UI sudah diupdate di atas
                 }
             } else {
-                alert(`Gagal menyimpan ke database: ${result.error}`);
+                alert(`❌ Gagal menyimpan pengumuman: ${result.error}`);
             }
         } else {
             // Non-owner: hanya simpan ke localStorage
@@ -874,19 +1188,19 @@ async function saveAnnouncementWithOutlet() {
                 announcementText.innerHTML = `<marquee>${newText}</marquee>`;
             }
             
-            alert('Pengumuman berhasil disimpan!');
+            alert('✅ Pengumuman berhasil disimpan!');
             popup.remove();
         }
         
     } catch (error) {
         console.error('Error saving announcement:', error);
-        alert('Terjadi kesalahan saat menyimpan pengumuman: ' + error.message);
+        alert('❌ Terjadi kesalahan saat menyimpan pengumuman: ' + error.message);
         
         // Reset button state
         const saveBtn = document.getElementById('saveAnnouncement');
         if (saveBtn) {
             saveBtn.disabled = false;
-            saveBtn.innerHTML = '<i class="fas fa-save"></i> Simpan Pengumuman';
+            saveBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Pengumuman';
         }
     }
 }
@@ -895,7 +1209,7 @@ async function saveAnnouncementWithOutlet() {
 async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
     try {
         console.log('Saving announcement to Supabase...');
-        console.log('Text:', announcementText);
+        console.log('Text:', announcementText.substring(0, 50) + '...');
         console.log('Selected outlets:', selectedOutlets);
         
         // Jika "Semua Outlet" dipilih
@@ -903,7 +1217,10 @@ async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
             // Update semua outlet
             const { error: updateError } = await supabase
                 .from('outlet')
-                .update({ pengumuman_mybabeh: announcementText });
+                .update({ 
+                    pengumuman_mybabeh: announcementText,
+                    updated_at: new Date().toISOString()
+                });
             
             if (updateError) {
                 throw new Error(`Gagal menyimpan pengumuman ke semua outlet: ${updateError.message}`);
@@ -924,7 +1241,10 @@ async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
                 // Coba update dengan kolom 'outlet'
                 const { error: updateError } = await supabase
                     .from('outlet')
-                    .update({ pengumuman_mybabeh: announcementText })
+                    .update({ 
+                        pengumuman_mybabeh: announcementText,
+                        updated_at: new Date().toISOString()
+                    })
                     .eq('outlet', outletValue);
                 
                 if (updateError) {
@@ -933,7 +1253,10 @@ async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
                     // Coba dengan kolom lain jika 'outlet' tidak berhasil
                     const { error: updateError2 } = await supabase
                         .from('outlet')
-                        .update({ pengumuman_mybabeh: announcementText })
+                        .update({ 
+                            pengumuman_mybabeh: announcementText,
+                            updated_at: new Date().toISOString()
+                        })
                         .or(`nama_outlet.eq.${outletValue},outlet_name.eq.${outletValue},name.eq.${outletValue}`);
                     
                     if (updateError2) {
@@ -970,66 +1293,6 @@ async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
     } catch (error) {
         console.error('Error saving announcement to Supabase:', error);
         return { success: false, error: error.message };
-    }
-}
-
-// Load saved announcement dari database - PERBAIKAN
-async function loadSavedAnnouncement() {
-    const announcementText = document.getElementById('announcementText');
-    
-    if (!announcementText) {
-        console.warn('Announcement text element not found');
-        return;
-    }
-    
-    try {
-        console.log('Loading saved announcement...');
-        
-        // 1. Coba load dari database dulu (dari tabel outlet)
-        const dbAnnouncement = await loadAnnouncementFromSupabase();
-        
-        if (dbAnnouncement) {
-            // Jika ada di database, gunakan itu
-            announcementText.innerHTML = `<marquee>${dbAnnouncement}</marquee>`;
-            
-            // Update localStorage sebagai cache
-            localStorage.setItem('babeh_announcement', dbAnnouncement);
-            console.log('Pengumuman diambil dari database outlet:', dbAnnouncement);
-        } else {
-            // 2. Jika tidak ada di database, coba dari localStorage
-            const savedText = localStorage.getItem('babeh_announcement');
-            if (savedText) {
-                announcementText.innerHTML = `<marquee>${savedText}</marquee>`;
-                console.log('Pengumuman diambil dari localStorage:', savedText);
-            } else {
-                // 3. Default message berdasarkan waktu
-                const now = new Date();
-                const hour = now.getHours();
-                let greeting = '';
-                
-                if (hour < 10) greeting = 'Selamat pagi 🌅';
-                else if (hour < 15) greeting = 'Selamat siang ☀️';
-                else if (hour < 18) greeting = 'Selamat sore 🌇';
-                else greeting = 'Selamat malam 🌙';
-                
-                const defaultMsg = `${greeting}! Semoga hari Anda menyenangkan - ${now.toLocaleDateString('id-ID')}`;
-                announcementText.innerHTML = `<marquee>${defaultMsg}</marquee>`;
-                console.log('Pengumuman default ditampilkan');
-            }
-        }
-    } catch (error) {
-        console.error('Error loading announcement:', error);
-        
-        // Fallback ke localStorage
-        const savedText = localStorage.getItem('babeh_announcement');
-        if (savedText) {
-            announcementText.innerHTML = `<marquee>${savedText}</marquee>`;
-        } else {
-            // Default fallback
-            const now = new Date();
-            const defaultMsg = `Selamat bekerja hari ini! 👨‍💼 - ${now.toLocaleDateString('id-ID')}`;
-            announcementText.innerHTML = `<marquee>${defaultMsg}</marquee>`;
-        }
     }
 }
 // Fungsi untuk menampilkan notifikasi (hanya untuk owner)
