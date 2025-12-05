@@ -204,8 +204,8 @@ async function loadUserData(user) {
         makeAnnouncementEditable();
     }
     
-    // 5. Load saved announcement
-    loadSavedAnnouncement();
+    // 5. Load saved announcement dari database
+    await loadSavedAnnouncement();
     
     // 6. Load foto jika ada
     if (karyawanData.photo_url) {
@@ -368,8 +368,90 @@ function setupPopupEvents() {
     });
 }
 
-// Fungsi save announcement
-function saveAnnouncement() {
+// ========== FUNGSI PENGUMUMAN DATABASE ==========
+// ==============================================
+
+// Fungsi save announcement ke Supabase
+async function saveAnnouncementToSupabase(announcementText) {
+    try {
+        // 1. Ambil data user saat ini
+        const { data: { user } } = await supabase.auth.getUser();
+        const namaKaryawan = user?.user_metadata?.nama_karyawan;
+        
+        if (!namaKaryawan) {
+            throw new Error('User tidak ditemukan');
+        }
+        
+        // 2. Ambil data karyawan untuk mendapatkan outlet
+        const { data: karyawanData, error: karyawanError } = await supabase
+            .from('karyawan')
+            .select('outlet')
+            .eq('nama_karyawan', namaKaryawan)
+            .single();
+        
+        if (karyawanError) {
+            throw new Error(`Gagal mengambil data outlet: ${karyawanError.message}`);
+        }
+        
+        const outletUser = karyawanData?.outlet;
+        
+        if (!outletUser) {
+            throw new Error('Outlet user tidak ditemukan');
+        }
+        
+        // 3. Update pengumuman untuk semua karyawan dengan outlet yang sama
+        const { error: updateError } = await supabase
+            .from('karyawan')
+            .update({ pengumuman_mybabeh: announcementText })
+            .eq('outlet', outletUser);
+        
+        if (updateError) {
+            throw new Error(`Gagal menyimpan pengumuman: ${updateError.message}`);
+        }
+        
+        console.log('Pengumuman berhasil disimpan ke database untuk outlet:', outletUser);
+        return { success: true, outlet: outletUser };
+        
+    } catch (error) {
+        console.error('Error saving announcement to Supabase:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Fungsi load saved announcement dari Supabase
+async function loadAnnouncementFromSupabase() {
+    try {
+        // 1. Ambil data user saat ini
+        const { data: { user } } = await supabase.auth.getUser();
+        const namaKaryawan = user?.user_metadata?.nama_karyawan;
+        
+        if (!namaKaryawan) {
+            return null;
+        }
+        
+        // 2. Ambil data karyawan untuk mendapatkan pengumuman
+        const { data: karyawanData, error: karyawanError } = await supabase
+            .from('karyawan')
+            .select('pengumuman_mybabeh')
+            .eq('nama_karyawan', namaKaryawan)
+            .single();
+        
+        if (karyawanError) {
+            console.error('Error loading karyawan data:', karyawanError);
+            return null;
+        }
+        
+        // 3. Return pengumuman
+        return karyawanData?.pengumuman_mybabeh || null;
+        
+    } catch (error) {
+        console.error('Error loading announcement from Supabase:', error);
+        return null;
+    }
+}
+
+// Fungsi save announcement - PERBAIKAN
+async function saveAnnouncement() {
     const input = document.getElementById('announcementInput');
     const popup = document.getElementById('editPopup');
     
@@ -383,29 +465,95 @@ function saveAnnouncement() {
         return;
     }
     
-    // Update text di announcement bar
-    const announcementText = document.getElementById('announcementText');
-    if (announcementText) {
-        announcementText.innerHTML = `<marquee>${newText}</marquee>`;
+    try {
+        // Ambil data user untuk cek role
+        const { data: { user } } = await supabase.auth.getUser();
+        const namaKaryawan = user?.user_metadata?.nama_karyawan;
+        
+        if (!namaKaryawan) {
+            throw new Error('User tidak ditemukan');
+        }
+        
+        // Ambil role untuk cek apakah owner
+        const { data: karyawanData } = await supabase
+            .from('karyawan')
+            .select('role')
+            .eq('nama_karyawan', namaKaryawan)
+            .single();
+        
+        if (karyawanData?.role === 'owner') {
+            // Owner: simpan ke database
+            const result = await saveAnnouncementToSupabase(newText);
+            
+            if (result.success) {
+                // Update UI
+                const announcementText = document.getElementById('announcementText');
+                if (announcementText) {
+                    announcementText.innerHTML = `<marquee>${newText}</marquee>`;
+                }
+                
+                // Simpan juga ke localStorage sebagai cache
+                localStorage.setItem('babeh_announcement', newText);
+                
+                alert('Pengumuman berhasil disimpan ke database!');
+                popup.remove();
+            } else {
+                alert(`Gagal menyimpan ke database: ${result.error}`);
+            }
+        } else {
+            // Non-owner: hanya simpan ke localStorage
+            localStorage.setItem('babeh_announcement', newText);
+            
+            // Update UI
+            const announcementText = document.getElementById('announcementText');
+            if (announcementText) {
+                announcementText.innerHTML = `<marquee>${newText}</marquee>`;
+            }
+            
+            alert('Pengumuman berhasil disimpan!');
+            popup.remove();
+        }
+        
+    } catch (error) {
+        console.error('Error saving announcement:', error);
+        alert('Terjadi kesalahan saat menyimpan pengumuman');
     }
-    
-    // Simpan ke localStorage
-    localStorage.setItem('babeh_announcement', newText);
-    
-    // Close popup
-    popup.remove();
-    
-    // Tampilkan pesan sukses
-    alert('Pengumuman berhasil diperbarui!');
 }
 
-// Load saved announcement dari localStorage
-function loadSavedAnnouncement() {
-    const savedText = localStorage.getItem('babeh_announcement');
+// Load saved announcement dari database - PERBAIKAN
+async function loadSavedAnnouncement() {
     const announcementText = document.getElementById('announcementText');
     
-    if (savedText && announcementText) {
-        announcementText.innerHTML = `<marquee>${savedText}</marquee>`;
+    if (!announcementText) return;
+    
+    try {
+        // 1. Coba load dari database dulu
+        const dbAnnouncement = await loadAnnouncementFromSupabase();
+        
+        if (dbAnnouncement) {
+            // Jika ada di database, gunakan itu
+            announcementText.innerHTML = `<marquee>${dbAnnouncement}</marquee>`;
+            
+            // Update localStorage sebagai cache
+            localStorage.setItem('babeh_announcement', dbAnnouncement);
+        } else {
+            // 2. Jika tidak ada di database, coba dari localStorage
+            const savedText = localStorage.getItem('babeh_announcement');
+            if (savedText) {
+                announcementText.innerHTML = `<marquee>${savedText}</marquee>`;
+            } else {
+                // 3. Default message
+                announcementText.innerHTML = `<marquee>Selamat datang di MyBabeh App! - ${new Date().toLocaleDateString('id-ID')}</marquee>`;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading announcement:', error);
+        
+        // Fallback ke localStorage
+        const savedText = localStorage.getItem('babeh_announcement');
+        if (savedText) {
+            announcementText.innerHTML = `<marquee>${savedText}</marquee>`;
+        }
     }
 }
 
@@ -466,6 +614,7 @@ function formatDate(dateString) {
         return dateString;
     }
 }
+
 // ========== BAGIAN 4: FUNGSI MENU KOMPONEN - KOMPISI ==========
 // ============================================================
 
@@ -1934,6 +2083,7 @@ function parseTime(timeStr) {
     const [hours, minutes] = timeStr.split(':').map(Number);
     return { hours: hours || 0, minutes: minutes || 0 };
 }
+
 // [10] Fungsi untuk tampilkan absensi 7 hari
 function displayWeeklyAbsensi(weeklyData, jadwalData) {
     const tbody = document.getElementById('weeklyAbsensiBody');
