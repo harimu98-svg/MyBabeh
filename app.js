@@ -64,6 +64,9 @@ const sampleNotifications = [
     }
 ];
 
+// Variabel simple untuk announcement
+let currentAnnouncement = "";
+
 // ========== BAGIAN 2: FUNGSI AUTH & LOGIN ==========
 // =================================================
 
@@ -331,7 +334,125 @@ function formatDate(dateString) {
         return dateString;
     }
 }
+ // Setup announcement
+    if (karyawanData.role === 'owner') {
+        makeAnnouncementEditable();
+    }
+    
+    // Load saved announcement
+    loadSavedAnnouncement();
+}
 
+// Fungsi simple untuk buat announcement bisa diklik
+function makeAnnouncementEditable() {
+    const announcementBar = document.getElementById('announcementBar');
+    if (announcementBar) {
+        announcementBar.classList.add('owner-editable');
+        announcementBar.title = "Klik untuk edit pengumuman";
+        announcementBar.addEventListener('click', showEditPopup);
+    }
+}
+
+// Fungsi untuk tampilkan popup edit
+function showEditPopup() {
+    const announcementText = document.getElementById('announcementText');
+    const marquee = announcementText.querySelector('marquee');
+    currentAnnouncement = marquee.textContent;
+    
+    // Buat popup
+    const popupHTML = `
+        <div class="edit-popup" id="editPopup">
+            <div class="popup-content">
+                <h3><i class="fas fa-edit"></i> Edit Pengumuman</h3>
+                <textarea id="announcementInput" maxlength="200" placeholder="Masukkan teks pengumuman...">${currentAnnouncement}</textarea>
+                <div class="popup-buttons">
+                    <button class="popup-btn cancel" id="cancelEdit">Batal</button>
+                    <button class="popup-btn save" id="saveAnnouncement">Simpan</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', popupHTML);
+    
+    // Setup event listeners
+    setupPopupEvents();
+}
+
+// Setup events untuk popup
+function setupPopupEvents() {
+    const popup = document.getElementById('editPopup');
+    const cancelBtn = document.getElementById('cancelEdit');
+    const saveBtn = document.getElementById('saveAnnouncement');
+    const input = document.getElementById('announcementInput');
+    
+    // Fokus ke input
+    input.focus();
+    input.select();
+    
+    // Cancel button
+    cancelBtn.addEventListener('click', () => {
+        popup.remove();
+    });
+    
+    // Save button
+    saveBtn.addEventListener('click', () => {
+        saveAnnouncement();
+    });
+    
+    // ESC key untuk close
+    document.addEventListener('keydown', function escHandler(e) {
+        if (e.key === 'Escape') {
+            popup.remove();
+            document.removeEventListener('keydown', escHandler);
+        }
+    });
+    
+    // Click outside to close
+    popup.addEventListener('click', (e) => {
+        if (e.target === popup) {
+            popup.remove();
+        }
+    });
+}
+
+// Fungsi save announcement
+function saveAnnouncement() {
+    const input = document.getElementById('announcementInput');
+    const newText = input.value.trim();
+    
+    if (newText === '') {
+        alert('Pengumuman tidak boleh kosong!');
+        return;
+    }
+    
+    // Update text
+    const announcementText = document.getElementById('announcementText');
+    const marquee = announcementText.querySelector('marquee');
+    marquee.textContent = newText;
+    
+    // Simpan ke localStorage
+    localStorage.setItem('babeh_announcement', newText);
+    
+    // Close popup
+    document.getElementById('editPopup').remove();
+    
+    // Tampilkan pesan sukses
+    alert('Pengumuman berhasil diperbarui!');
+}
+
+// Load saved announcement
+function loadSavedAnnouncement() {
+    const savedText = localStorage.getItem('babeh_announcement');
+    const announcementText = document.getElementById('announcementText');
+    
+    if (savedText && announcementText) {
+        const marquee = announcementText.querySelector('marquee');
+        if (marquee) {
+            marquee.textContent = savedText;
+        }
+    }
+}
 // ========== BAGIAN 4: FUNGSI MENU KOMPONEN - KOMPISI ==========
 // ============================================================
 
