@@ -1067,3 +1067,296 @@ marquee {
         font-size: 1.1rem;
     }
 }
+/* Today Absensi - Layout 2 Kolom */
+.today-basic-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+    padding: 15px;
+    background: #f8f9ff;
+    border-radius: 10px;
+    border: 1px solid #eef;
+}
+
+.basic-info-item {
+    text-align: center;
+}
+
+.basic-label {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.basic-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Jadwal & Absensi Section */
+.today-schedule-section {
+    margin-bottom: 25px;
+}
+
+.today-schedule-section h4 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.today-schedule-section h4 i {
+    color: #8A2BE2;
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 768px) {
+    .schedule-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+}
+
+.schedule-column {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.schedule-column.left-column {
+    padding-right: 10px;
+}
+
+.schedule-column.right-column {
+    padding-left: 10px;
+}
+
+@media (max-width: 768px) {
+    .schedule-column.left-column,
+    .schedule-column.right-column {
+        padding: 0;
+    }
+}
+
+.schedule-item {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+    border: 1px solid #eee;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.schedule-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.schedule-label {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.schedule-value {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.schedule-value i {
+    font-size: 1.8rem;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+}
+
+/* Warna untuk Jadwal */
+.schedule-value.jadwal-masuk i {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    color: white;
+}
+
+.schedule-value.jadwal-pulang i {
+    background: linear-gradient(135deg, #2196F3, #0D47A1);
+    color: white;
+}
+
+/* Warna untuk Clock In/Out */
+.schedule-value.clock-in i {
+    background: linear-gradient(135deg, #FF9800, #F57C00);
+    color: white;
+}
+
+.schedule-value.clock-out i {
+    background: linear-gradient(135deg, #E91E63, #C2185B);
+    color: white;
+}
+
+/* Status Classes untuk Clock */
+.schedule-value.clock-in.on-time i {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+}
+
+.schedule-value.clock-out.on-time i {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+}
+
+.schedule-value.clock-in.late i {
+    background: linear-gradient(135deg, #FF5722, #D84315);
+}
+
+.schedule-value.clock-out.early-out i {
+    background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+}
+
+.schedule-value.clock-in.early i {
+    background: linear-gradient(135deg, #00BCD4, #0097A7);
+}
+
+.schedule-value.no-data i {
+    background: linear-gradient(135deg, #9E9E9E, #616161);
+}
+
+/* Status Badge */
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.late-badge {
+    background: #FFEBEE;
+    color: #C62828;
+    border: 1px solid #FFCDD2;
+}
+
+.early-badge {
+    background: #E3F2FD;
+    color: #1565C0;
+    border: 1px solid #BBDEFB;
+}
+
+.early-out-badge {
+    background: #F3E5F5;
+    color: #7B1FA2;
+    border: 1px solid #E1BEE7;
+}
+
+.on-time-badge {
+    background: #E8F5E9;
+    color: #2E7D32;
+    border: 1px solid #C8E6C9;
+}
+
+.no-data-badge {
+    background: #F5F5F5;
+    color: #616161;
+    border: 1px solid #E0E0E0;
+}
+
+/* Ringkasan Section */
+.today-summary-section {
+    margin-top: 25px;
+}
+
+.today-summary-section h4 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.today-summary-section h4 i {
+    color: #8A2BE2;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.summary-item {
+    background: linear-gradient(135deg, #8A2BE2, #4169E1);
+    color: white;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+}
+
+.summary-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.summary-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.summary-value.jam-kerja {
+    color: #FFD700;
+}
+
+.summary-value.keterangan.tepat {
+    color: #32CD32;
+}
+
+.summary-value.keterangan.terlambat {
+    color: #FFA500;
+}
+
+.summary-value.keterangan.cepat {
+    color: #FF6347;
+}
+
+.summary-value.keterangan.tidak-absen {
+    color: #ccc;
+    font-style: italic;
+}
+
+/* Note */
+.today-note {
+    margin-top: 20px;
+    padding: 12px 15px;
+    background: #FFF3CD;
+    border: 1px solid #FFEEBA;
+    border-radius: 8px;
+    color: #856404;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.today-note i {
+    color: #FFC107;
+}
