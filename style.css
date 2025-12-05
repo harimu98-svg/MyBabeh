@@ -1399,22 +1399,3 @@ marquee {
 .today-summary-section {
     animation-delay: 0.2s;
 }
-/* PERBAIKAN RESPONSIVE untuk schedule-grid */
-@media (max-width: 768px) {
-    .schedule-grid {
-        grid-template-columns: 1fr !important; /* 1 kolom di mobile */
-        gap: 12px !important;
-    }
-}
-
-/* Pastikan schedule-value tidak terlalu besar */
-.schedule-value {
-    font-size: 1.3rem !important; /* Ukuran font lebih kecil */
-    gap: 8px !important;
-}
-
-.schedule-value i {
-    font-size: 1.5rem !important;
-    width: 35px !important;
-    height: 35px !important;
-}
