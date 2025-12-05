@@ -12,7 +12,7 @@ body {
     overflow-x: hidden;
 }
 
-/* Login Screen Styles */
+/* ========== LOGIN SCREEN ========== */
 .login-container {
     display: flex;
     justify-content: center;
@@ -112,7 +112,7 @@ body {
     font-size: 0.85rem;
 }
 
-/* App Screen Styles */
+/* ========== APP SCREEN ========== */
 .app-container {
     display: flex;
     flex-direction: column;
@@ -238,7 +238,7 @@ body {
     gap: 5px;
 }
 
-/* Main Content */
+/* ========== MAIN CONTENT ========== */
 .main-content {
     flex: 1;
     padding: 20px;
@@ -307,7 +307,61 @@ body {
 .menu-stok { background: linear-gradient(135deg, #FFA500, #FF8C00); }
 .menu-sertifikasi { background: linear-gradient(135deg, #4682B4, #5F9EA0); }
 
-/* Notification Section */
+/* ========== ANNOUNCEMENT BAR ========== */
+.announcement-bar {
+    background: #333;
+    color: white;
+    padding: 10px 20px;
+    margin: 0 20px 20px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.announcement-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.announcement-content i {
+    color: #FFD700;
+    font-size: 1.2rem;
+}
+
+marquee {
+    flex: 1;
+    font-size: 0.9rem;
+}
+
+/* Announcement Bar Clickable untuk Owner */
+.announcement-bar.owner-editable {
+    cursor: pointer;
+    position: relative;
+}
+
+.announcement-bar.owner-editable:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px dashed rgba(255, 255, 255, 0.3);
+}
+
+.announcement-bar.owner-editable::after {
+    content: "✎";
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 215, 0, 0.2);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #FFD700;
+}
+
+/* ========== NOTIFICATION SECTION ========== */
 .notification-section {
     background: white;
     border-radius: 15px;
@@ -378,33 +432,7 @@ body {
     opacity: 0.9;
 }
 
-/* Announcement Bar */
-.announcement-bar {
-    background: #333;
-    color: white;
-    padding: 10px 20px;
-    margin: 0 20px 20px;
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.announcement-content {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.announcement-content i {
-    color: #FFD700;
-    font-size: 1.2rem;
-}
-
-marquee {
-    flex: 1;
-    font-size: 0.9rem;
-}
-
-/* Footer */
+/* ========== FOOTER ========== */
 .app-footer {
     text-align: center;
     padding: 15px;
@@ -420,41 +448,7 @@ marquee {
     color: #888;
 }
 
-/* Responsive Design */
-@media (max-width: 480px) {
-    .menu-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-    }
-    
-    .menu-item {
-        padding: 15px 10px;
-        min-height: 100px;
-    }
-    
-    .menu-icon {
-        font-size: 1.8rem;
-    }
-    
-    .menu-title {
-        font-size: 0.85rem;
-    }
-    
-    .profile-section {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    .profile-info {
-        justify-content: center;
-    }
-    
-    .announcement-bar {
-        margin: 0 10px 15px;
-    }
-}
-
-/* Scrollbar Styling */
+/* ========== SCROLLBAR STYLING ========== */
 ::-webkit-scrollbar {
     width: 6px;
 }
@@ -473,7 +467,7 @@ marquee {
     background: linear-gradient(to bottom, #7B1FA2, #303F9F);
 }
 
-/* Komisi Page Styles */
+/* ========== KOMISI PAGE ========== */
 .komisi-page {
     position: fixed;
     top: 0;
@@ -794,58 +788,7 @@ marquee {
     text-align: right;
 }
 
-/* Loading */
-.loading {
-    padding: 40px 20px;
-    text-align: center;
-    color: #666;
-    font-style: italic;
-}
-
-/* Footer */
-.komisi-footer {
-    padding: 15px 20px;
-    text-align: center;
-    color: #888;
-    font-size: 0.85rem;
-    border-top: 1px solid #eee;
-    margin-top: 20px;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .owner-filter {
-        grid-template-columns: 1fr;
-        margin: 10px;
-    }
-    
-    .today-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .section-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .weekly-komisi-table th,
-    .weekly-komisi-table td {
-        padding: 8px 6px;
-        font-size: 0.85rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .today-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .komisi-header h2 {
-        font-size: 1.1rem;
-    }
-}
-
-/* Absensi Page Styles */
+/* ========== ABSENSI PAGE ========== */
 .absensi-page {
     position: fixed;
     top: 0;
@@ -900,183 +843,15 @@ marquee {
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
-.today-grid-absensi {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-.today-grid-absensi:last-child {
-    margin-bottom: 0;
-}
-
-.today-item.highlight {
-    background: linear-gradient(135deg, #e6f7ff, #f0f9ff);
-    border-color: #b3e0ff;
-}
-
-.today-item.highlight-status {
-    background: linear-gradient(135deg, #f0fff4, #f9fff9);
-    border-color: #c6f6d5;
-}
-
-.today-item .clock-in {
-    color: #32CD32;
-    font-weight: bold;
-}
-
-.today-item .clock-out {
-    color: #FF6347;
-    font-weight: bold;
-}
-
-.today-item .jam-kerja {
-    color: #4169E1;
-    font-weight: bold;
-}
-
-.today-item .keterangan.tepat {
-    color: #32CD32;
-    font-weight: bold;
-}
-
-.today-item .keterangan.terlambat {
-    color: #FFA500;
-    font-weight: bold;
-}
-
-.today-item .keterangan.cepat {
-    color: #FF6347;
-    font-weight: bold;
-}
-
-.today-item .keterangan.tidak-absen {
-    color: #888;
-    font-style: italic;
-}
-
-.today-absensi-empty {
-    text-align: center;
-    padding: 40px 20px;
-    color: #666;
-}
-
-/* Weekly Absensi Table */
-.weekly-absensi-table-container {
-    background: white;
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-    overflow-x: auto;
-    margin: 0 15px; /* Tambahkan margin kiri-kanan */
-}
-
-.weekly-absensi-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 900px;
-}
-
-.weekly-absensi-table th {
-    background: #f8f9ff;
-    padding: 15px 12px;
-    text-align: left;
-    font-weight: 600;
-    color: #333;
-    font-size: 0.9rem;
-    border-bottom: 2px solid #eef;
-    white-space: nowrap;
-}
-
-.weekly-absensi-table td {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
-    font-size: 0.9rem;
-    color: #555;
-}
-
-.weekly-absensi-table tbody tr:hover {
-    background: #f8f9ff;
-}
-
-.weekly-absensi-table td.keterangan-cell.tepat {
-    color: #32CD32;
-    font-weight: 600;
-}
-
-.weekly-absensi-table td.keterangan-cell.terlambat {
-    color: #FFA500;
-    font-weight: 600;
-}
-
-.weekly-absensi-table td.keterangan-cell.cepat {
-    color: #FF6347;
-    font-weight: 600;
-}
-
-.weekly-absensi-table td.keterangan-cell.tidak-absen {
-    color: #888;
-    font-style: italic;
-}
-
-/* Today Other Absensi */
-.today-other-absensi {
-    margin-top: 20px;
-    padding: 10px 15px;
-    background: #f8f9ff;
-    border-radius: 10px;
-    border: 1px solid #eef;
-    font-size: 0.9rem;
-    color: #666;
-}
-
-.today-other-absensi i {
-    color: #8A2BE2;
-    margin-right: 8px;
-}
-
-/* Absensi Footer */
-.absensi-footer {
-    padding: 15px 20px;
-    text-align: center;
-    color: #888;
-    font-size: 0.85rem;
-    border-top: 1px solid #eee;
-    margin-top: 20px;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .today-grid-absensi {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .weekly-absensi-table th,
-    .weekly-absensi-table td {
-        padding: 8px 6px;
-        font-size: 0.85rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .today-grid-absensi {
-        grid-template-columns: 1fr;
-    }
-    
-    .absensi-header h2 {
-        font-size: 1.1rem;
-    }
-}
-/* Today Absensi - Layout 2 Kolom */
+/* Today Basic Info */
 .today-basic-info {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-    margin-bottom: 25px;
-    padding: 15px;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 12px;
     background: #f8f9ff;
-    border-radius: 10px;
+    border-radius: 8px;
     border: 1px solid #eef;
 }
 
@@ -1085,30 +860,30 @@ marquee {
 }
 
 .basic-label {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     color: #666;
-    margin-bottom: 5px;
+    margin-bottom: 3px;
     font-weight: 600;
 }
 
 .basic-value {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     color: #333;
 }
 
-/* Jadwal & Absensi Section */
+/* Jadwal & Absensi Section - COMPACT VERSION */
 .today-schedule-section {
-    margin-bottom: 25px;
+    margin-bottom: 20px;
 }
 
 .today-schedule-section h4 {
     color: #333;
-    margin-bottom: 15px;
-    font-size: 1.1rem;
+    margin-bottom: 12px;
+    font-size: 1rem;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .today-schedule-section h4 i {
@@ -1117,135 +892,80 @@ marquee {
 
 .schedule-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr !important; /* Force 2 columns */
-    gap: 15px !important;
-    margin: 0 !important;
-}
-
-@media (max-width: 768px) {
-    .schedule-grid {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-}
-
-.schedule-column {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.schedule-column.left-column {
-    padding-right: 5px;
-}
-
-.schedule-column.right-column {
-    padding-left: 5px;
-}
-
-@media (max-width: 768px) {
-    .schedule-column.left-column,
-    .schedule-column.right-column {
-        padding: 0;
-    }
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 0;
 }
 
 .schedule-item {
-    min-height: 120px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: center !important;
+    background: #f8f9ff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 10px;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: none;
 }
 
 .schedule-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    transform: none;
+    box-shadow: none;
 }
 
 .schedule-label {
-    font-size: 0.9rem;
+    font-size: 0.7rem;
     color: #666;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
 .schedule-value {
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-size: 1.5rem;
-    font-weight: 700;
+    gap: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
 }
 
 .schedule-value i {
-    font-size: 1.8rem;
-    width: 40px;
-    height: 40px;
+    font-size: 1rem;
+    width: 24px;
+    height: 24px;
+    border-radius: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 10px;
-}
-
-/* Warna untuk Jadwal */
-.schedule-value.jadwal-masuk i {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    font-size: 0.9rem;
     color: white;
 }
 
-.schedule-value.jadwal-pulang i {
-    background: linear-gradient(135deg, #2196F3, #0D47A1);
-    color: white;
-}
+/* Warna icon */
+.schedule-value.jadwal-masuk i { background: #4CAF50; }
+.schedule-value.jadwal-pulang i { background: #2196F3; }
+.schedule-value.clock-in i { background: #FF9800; }
+.schedule-value.clock-out i { background: #E91E63; }
 
-/* Warna untuk Clock In/Out */
-.schedule-value.clock-in i {
-    background: linear-gradient(135deg, #FF9800, #F57C00);
-    color: white;
-}
-
-.schedule-value.clock-out i {
-    background: linear-gradient(135deg, #E91E63, #C2185B);
-    color: white;
-}
-
-/* Status Classes untuk Clock */
-.schedule-value.clock-in.on-time i {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32);
-}
-
-.schedule-value.clock-out.on-time i {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32);
-}
-
-.schedule-value.clock-in.late i {
-    background: linear-gradient(135deg, #FF5722, #D84315);
-}
-
-.schedule-value.clock-out.early-out i {
-    background: linear-gradient(135deg, #9C27B0, #7B1FA2);
-}
-
-.schedule-value.clock-in.early i {
-    background: linear-gradient(135deg, #00BCD4, #0097A7);
-}
-
-.schedule-value.no-data i {
-    background: linear-gradient(135deg, #9E9E9E, #616161);
-}
+.schedule-value.clock-in.on-time i { background: #4CAF50; }
+.schedule-value.clock-out.on-time i { background: #4CAF50; }
+.schedule-value.clock-in.late i { background: #FF5722; }
+.schedule-value.clock-out.early-out i { background: #9C27B0; }
+.schedule-value.clock-in.early i { background: #00BCD4; }
+.schedule-value.no-data i { background: #9E9E9E; }
 
 /* Status Badge */
 .status-badge {
     display: inline-block;
-    padding: 4px 10px;
+    padding: 2px 6px;
     border-radius: 20px;
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     font-weight: 600;
-    margin-left: 10px;
+    margin-left: 6px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
 .late-badge {
@@ -1280,16 +1000,16 @@ marquee {
 
 /* Ringkasan Section */
 .today-summary-section {
-    margin-top: 25px;
+    margin-top: 20px;
 }
 
 .today-summary-section h4 {
     color: #333;
-    margin-bottom: 15px;
-    font-size: 1.1rem;
+    margin-bottom: 12px;
+    font-size: 1rem;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .today-summary-section h4 i {
@@ -1298,27 +1018,27 @@ marquee {
 
 .summary-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
 }
 
 .summary-item {
     background: linear-gradient(135deg, #8A2BE2, #4169E1);
     color: white;
-    border-radius: 12px;
-    padding: 20px;
+    border-radius: 10px;
+    padding: 15px;
     text-align: center;
 }
 
 .summary-label {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     opacity: 0.9;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
     font-weight: 600;
 }
 
 .summary-value {
-    font-size: 1.4rem;
+    font-size: 1.1rem;
     font-weight: 700;
 }
 
@@ -1345,90 +1065,119 @@ marquee {
 
 /* Note */
 .today-note {
-    margin-top: 20px;
-    padding: 12px 15px;
+    margin-top: 15px;
+    padding: 10px 12px;
     background: #FFF3CD;
     border: 1px solid #FFEEBA;
-    border-radius: 8px;
+    border-radius: 6px;
     color: #856404;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .today-note i {
     color: #FFC107;
 }
-/* Responsive untuk mobile */
-@media (max-width: 480px) {
-    .schedule-value {
-        font-size: 1.3rem;
-    }
-    
-    .schedule-value i {
-        font-size: 1.5rem;
-        width: 35px;
-        height: 35px;
-    }
-    
-    .summary-value {
-        font-size: 1.2rem;
-    }
-    
-    .status-badge {
-        font-size: 0.7rem;
-        padding: 3px 8px;
-    }
+
+/* Today Absensi Empty State */
+.today-absensi-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
 }
 
-/* Animasi */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+/* ========== WEEKLY ABSENSI SECTION ========== */
+.weekly-absensi-section {
+    padding: 20px;
 }
 
-.today-schedule-section,
-.today-summary-section {
-    animation: fadeIn 0.5s ease-out;
+.weekly-absensi-section .section-header {
+    padding: 0 10px;
+    margin-bottom: 15px;
 }
 
-.today-schedule-section {
-    animation-delay: 0.1s;
+.weekly-absensi-table-container {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    overflow-x: auto;
+    margin: 0 10px;
+    border: 1px solid #eee;
 }
 
-.today-summary-section {
-    animation-delay: 0.2s;
-}
-/* Announcement Bar Clickable untuk Owner */
-.announcement-bar.owner-editable {
-    cursor: pointer;
-    position: relative;
+.weekly-absensi-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 900px;
 }
 
-.announcement-bar.owner-editable:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px dashed rgba(255, 255, 255, 0.3);
+.weekly-absensi-table th {
+    background: #f8f9ff;
+    padding: 15px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9rem;
+    border-bottom: 2px solid #eef;
+    white-space: nowrap;
 }
 
-.announcement-bar.owner-editable::after {
-    content: "✎";
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(255, 215, 0, 0.2);
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    color: #FFD700;
+.weekly-absensi-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #eee;
+    font-size: 0.9rem;
+    color: #555;
 }
 
-/* Popup Edit */
+.weekly-absensi-table tbody tr:hover {
+    background: #f8f9ff;
+}
+
+.weekly-absensi-table td.keterangan-cell.tepat {
+    color: #32CD32;
+    font-weight: 600;
+}
+
+.weekly-absensi-table td.keterangan-cell.terlambat {
+    color: #FFA500;
+    font-weight: 600;
+}
+
+.weekly-absensi-table td.keterangan-cell.cepat {
+    color: #FF6347;
+    font-weight: 600;
+}
+
+.weekly-absensi-table td.keterangan-cell.tidak-absen {
+    color: #888;
+    font-style: italic;
+}
+
+/* Kolom pertama dan terakhir lebih berjarak */
+.weekly-absensi-table th:first-child,
+.weekly-absensi-table td:first-child {
+    padding-left: 20px;
+}
+
+.weekly-absensi-table th:last-child,
+.weekly-absensi-table td:last-child {
+    padding-right: 20px;
+}
+
+/* Absensi Footer */
+.absensi-footer {
+    padding: 15px 20px;
+    text-align: center;
+    color: #888;
+    font-size: 0.85rem;
+    border-top: 1px solid #eee;
+    margin-top: 20px;
+}
+
+/* ========== EDIT POPUP ========== */
 .edit-popup {
     position: fixed;
     top: 0;
@@ -1440,6 +1189,12 @@ marquee {
     align-items: center;
     justify-content: center;
     z-index: 9999;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .popup-content {
@@ -1449,6 +1204,12 @@ marquee {
     width: 90%;
     max-width: 500px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
 .popup-content h3 {
@@ -1457,6 +1218,7 @@ marquee {
     display: flex;
     align-items: center;
     gap: 10px;
+    font-size: 1.2rem;
 }
 
 .popup-content textarea {
@@ -1469,11 +1231,13 @@ marquee {
     min-height: 100px;
     margin-bottom: 20px;
     font-family: inherit;
+    line-height: 1.5;
 }
 
 .popup-content textarea:focus {
     outline: none;
     border-color: #8A2BE2;
+    box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.1);
 }
 
 .popup-buttons {
@@ -1489,10 +1253,11 @@ marquee {
     font-weight: 600;
     cursor: pointer;
     font-size: 0.95rem;
+    transition: all 0.2s;
 }
 
 .popup-btn.save {
-    background: #8A2BE2;
+    background: linear-gradient(to right, #8A2BE2, #4169E1);
     color: white;
 }
 
@@ -1503,4 +1268,202 @@ marquee {
 
 .popup-btn:hover {
     opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.popup-btn:active {
+    transform: translateY(0);
+}
+
+/* ========== LOADING ========== */
+.loading {
+    padding: 40px 20px;
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+.komisi-footer {
+    padding: 15px 20px;
+    text-align: center;
+    color: #888;
+    font-size: 0.85rem;
+    border-top: 1px solid #eee;
+    margin-top: 20px;
+}
+
+/* ========== MEDIA QUERIES ========== */
+@media (max-width: 768px) {
+    /* Komisi Page */
+    .owner-filter {
+        grid-template-columns: 1fr;
+        margin: 10px;
+    }
+    
+    .today-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .weekly-komisi-table th,
+    .weekly-komisi-table td {
+        padding: 8px 6px;
+        font-size: 0.85rem;
+    }
+    
+    /* Absensi Page */
+    .schedule-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Profile Section */
+    .profile-section {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .profile-info {
+        justify-content: center;
+    }
+    
+    /* Weekly Absensi Table */
+    .weekly-absensi-section {
+        padding: 15px;
+    }
+    
+    .weekly-absensi-table-container {
+        margin: 0 8px;
+        border-radius: 12px;
+    }
+    
+    .weekly-absensi-table th,
+    .weekly-absensi-table td {
+        padding: 10px 12px;
+        font-size: 0.85rem;
+    }
+    
+    .weekly-absensi-table th:first-child,
+    .weekly-absensi-table td:first-child {
+        padding-left: 15px;
+    }
+    
+    .weekly-absensi-table th:last-child,
+    .weekly-absensi-table td:last-child {
+        padding-right: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Menu Grid */
+    .menu-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .menu-item {
+        padding: 12px 8px;
+        min-height: 90px;
+    }
+    
+    .menu-icon {
+        font-size: 1.6rem;
+    }
+    
+    .menu-title {
+        font-size: 0.8rem;
+    }
+    
+    /* Announcement Bar */
+    .announcement-bar {
+        margin: 0 10px 15px;
+        padding: 8px 12px;
+    }
+    
+    /* Komisi Page */
+    .today-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .komisi-header h2 {
+        font-size: 1.1rem;
+    }
+    
+    .absensi-header h2 {
+        font-size: 1.1rem;
+    }
+    
+    /* Basic Info */
+    .today-basic-info {
+        grid-template-columns: 1fr;
+        padding: 10px;
+    }
+    
+    /* Schedule Items */
+    .schedule-value {
+        font-size: 0.9rem;
+    }
+    
+    .schedule-value i {
+        font-size: 0.9rem;
+        width: 22px;
+        height: 22px;
+    }
+    
+    .summary-value {
+        font-size: 1rem;
+    }
+    
+    .status-badge {
+        font-size: 0.6rem;
+        padding: 2px 5px;
+    }
+    
+    /* Weekly Absensi */
+    .weekly-absensi-section {
+        padding: 10px;
+    }
+    
+    .weekly-absensi-table-container {
+        margin: 0 5px;
+        border-radius: 10px;
+    }
+    
+    .weekly-absensi-table th,
+    .weekly-absensi-table td {
+        padding: 8px 10px;
+        font-size: 0.8rem;
+    }
+    
+    .weekly-absensi-table th:first-child,
+    .weekly-absensi-table td:first-child {
+        padding-left: 12px;
+    }
+    
+    .weekly-absensi-table th:last-child,
+    .weekly-absensi-table td:last-child {
+        padding-right: 12px;
+    }
+    
+    /* Popup */
+    .popup-content {
+        padding: 20px;
+        width: 95%;
+    }
+    
+    .popup-buttons {
+        flex-direction: column;
+    }
+    
+    .popup-btn {
+        width: 100%;
+    }
 }
