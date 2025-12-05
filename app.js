@@ -374,32 +374,114 @@ function setupPopupEvents() {
 // Variabel global untuk menyimpan daftar outlet
 let outletList = [];
 
-// Fungsi untuk load daftar outlet dari database
+// Fungsi untuk load daftar outlet dari database (kolom 'outlet')
 async function loadOutletList() {
     try {
+        console.log('Loading outlet list from database...');
+        
+        // Query untuk ambil semua outlet dari tabel outlet
         const { data: outlets, error } = await supabase
             .from('outlet')
-            .select('nama_outlet, outlet, id') // Ambil semua kemungkinan kolom
-            .order('nama_outlet');
+            .select('outlet, id') // Ambil kolom outlet dan id
+            .order('outlet'); // Urutkan berdasarkan nama outlet
         
         if (error) {
             console.error('Error loading outlets:', error);
-            return [];
+            // Coba query alternatif jika kolom 'outlet' tidak ada
+            const { data: outletsAlt, error: errorAlt } = await supabase
+                .from('outlet')
+                .select('*') // Ambil semua kolom
+                .order('id');
+            
+            if (errorAlt) {
+                console.error('Error loading outlets (alternative):', errorAlt);
+                return [];
+            }
+            
+            // Cari kolom yang mungkin berisi nama outlet
+            outlets = outletsAlt.map(outlet => {
+                // Coba cari kolom yang berisi nama outlet
+                const possibleKeys = ['outlet', 'nama_outlet', 'nama', 'name', 'outlet_name'];
+                for (const key of possibleKeys) {
+                    if (outlet[key] && typeof outlet[key] === 'string') {
+                        return {
+                            id: outlet.id,
+                            name: outlet[key],
+                            value: outlet[key]
+                        };
+                    }
+                }
+                // Default jika tidak ditemukan
+                return {
+                    id: outlet.id,
+                    name: `Outlet ${outlet.id}`,
+                    value: `Outlet ${outlet.id}`
+                };
+            });
+        } else {
+            // Normalisasi data outlet
+            outletList = outlets.map(outlet => ({
+                id: outlet.id,
+                name: outlet.outlet || `Outlet ${outlet.id}`,
+                value: outlet.outlet || `outlet_${outlet.id}`
+            }));
         }
         
-        // Normalisasi data outlet
-        outletList = outlets.map(outlet => ({
-            id: outlet.id,
-            name: outlet.nama_outlet || outlet.outlet || 'Unknown',
-            value: outlet.nama_outlet || outlet.outlet
-        }));
+        // Filter duplikat
+        const uniqueOutlets = [];
+        const seenValues = new Set();
         
-        console.log('Outlet list loaded:', outletList);
+        outletList.forEach(outlet => {
+            if (outlet.value && !seenValues.has(outlet.value)) {
+                seenValues.add(outlet.value);
+                uniqueOutlets.push(outlet);
+            }
+        });
+        
+        outletList = uniqueOutlets;
+        
+        console.log('Outlet list loaded successfully:', outletList);
+        console.log('Total outlets found:', outletList.length);
+        
+        // Debug: log beberapa contoh outlet
+        if (outletList.length > 0) {
+            console.log('Sample outlets:', outletList.slice(0, 3));
+        } else {
+            console.warn('No outlets found in the database');
+        }
+        
         return outletList;
         
     } catch (error) {
         console.error('Exception loading outlets:', error);
         return [];
+    }
+}
+
+// Fungsi untuk debug tabel outlet
+async function debugOutletTable() {
+    try {
+        console.log('=== DEBUG OUTLET TABLE ===');
+        
+        // Coba ambil semua data dari tabel outlet untuk debugging
+        const { data: allOutletData, error } = await supabase
+            .from('outlet')
+            .select('*')
+            .limit(5);
+        
+        if (error) {
+            console.error('Debug: Error getting outlet data:', error);
+            return;
+        }
+        
+        console.log('Debug: Raw outlet data (first 5 rows):', allOutletData);
+        
+        if (allOutletData && allOutletData.length > 0) {
+            console.log('Debug: Columns in first row:', Object.keys(allOutletData[0]));
+        }
+        
+    } catch (error) {
+        console.error('Debug: Exception getting outlet data:', error);
     }
 }
 
@@ -409,116 +491,27 @@ async function getCurrentUserOutlet() {
         const { data: { user } } = await supabase.auth.getUser();
         const namaKaryawan = user?.user_metadata?.nama_karyawan;
         
-        if (!namaKaryawan) return null;
+        if (!namaKaryawan) {
+            console.log('getCurrentUserOutlet: No nama_karyawan found');
+            return null;
+        }
         
-        const { data: karyawanData } = await supabase
+        const { data: karyawanData, error } = await supabase
             .from('karyawan')
             .select('outlet')
             .eq('nama_karyawan', namaKaryawan)
             .single();
         
+        if (error) {
+            console.error('getCurrentUserOutlet: Error getting karyawan data:', error);
+            return null;
+        }
+        
+        console.log('getCurrentUserOutlet: Found outlet:', karyawanData?.outlet);
         return karyawanData?.outlet || null;
         
     } catch (error) {
-        console.error('Error getting user outlet:', error);
-        return null;
-    }
-}
-
-// Fungsi save announcement ke Supabase (ke tabel outlet)
-async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
-    try {
-        // Jika "Semua Outlet" dipilih
-        if (selectedOutlets.includes('all')) {
-            // Update semua outlet
-            const { error: updateError } = await supabase
-                .from('outlet')
-                .update({ pengumuman_mybabeh: announcementText });
-            
-            if (updateError) {
-                throw new Error(`Gagal menyimpan pengumuman ke semua outlet: ${updateError.message}`);
-            }
-            
-            console.log('Pengumuman berhasil disimpan ke SEMUA outlet');
-            return { success: true, outlets: 'all' };
-        }
-        
-        // Update outlet yang dipilih
-        let successCount = 0;
-        let errorMessages = [];
-        
-        for (const outletValue of selectedOutlets) {
-            try {
-                // Coba update dengan berbagai kemungkinan kolom
-                let updateResult = await supabase
-                    .from('outlet')
-                    .update({ pengumuman_mybabeh: announcementText })
-                    .eq('nama_outlet', outletValue);
-                
-                if (updateResult.error) {
-                    // Coba dengan kolom 'outlet' jika 'nama_outlet' tidak berhasil
-                    updateResult = await supabase
-                        .from('outlet')
-                        .update({ pengumuman_mybabeh: announcementText })
-                        .eq('outlet', outletValue);
-                }
-                
-                if (updateResult.error) {
-                    errorMessages.push(`${outletValue}: ${updateResult.error.message}`);
-                } else {
-                    successCount++;
-                }
-            } catch (outletError) {
-                errorMessages.push(`${outletValue}: ${outletError.message}`);
-            }
-        }
-        
-        if (errorMessages.length > 0) {
-            console.warn(`Some outlets failed:`, errorMessages);
-        }
-        
-        console.log(`Pengumuman berhasil disimpan ke ${successCount} outlet`);
-        return { 
-            success: true, 
-            outlets: selectedOutlets,
-            successCount,
-            errors: errorMessages
-        };
-        
-    } catch (error) {
-        console.error('Error saving announcement to Supabase:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-// Fungsi load saved announcement dari Supabase (dari tabel outlet)
-async function loadAnnouncementFromSupabase() {
-    try {
-        // 1. Ambil outlet user saat ini
-        const currentOutlet = await getCurrentUserOutlet();
-        
-        if (!currentOutlet) {
-            console.warn('Outlet user tidak ditemukan');
-            return null;
-        }
-        
-        // 2. Ambil pengumuman dari tabel outlet berdasarkan outlet user
-        const { data: outletData, error: outletError } = await supabase
-            .from('outlet')
-            .select('pengumuman_mybabeh')
-            .or(`nama_outlet.eq.${currentOutlet},outlet.eq.${currentOutlet}`)
-            .single();
-        
-        if (outletError) {
-            console.error('Error loading outlet data:', outletError);
-            return null;
-        }
-        
-        // 3. Return pengumuman
-        return outletData?.pengumuman_mybabeh || null;
-        
-    } catch (error) {
-        console.error('Error loading announcement from Supabase:', error);
+        console.error('getCurrentUserOutlet: Exception:', error);
         return null;
     }
 }
@@ -526,28 +519,45 @@ async function loadAnnouncementFromSupabase() {
 // Fungsi untuk tampilkan modal edit dengan pilihan outlet
 async function showEditPopup() {
     const announcementText = document.getElementById('announcementText');
-    const marquee = announcementText.querySelector('marquee');
+    const marquee = announcementText?.querySelector('marquee');
     const currentText = marquee ? marquee.textContent : '';
     
+    console.log('showEditPopup called');
+    
+    // Debug tabel outlet
+    await debugOutletTable();
+    
     // Load daftar outlet
-    await loadOutletList();
+    const outlets = await loadOutletList();
     
     // Ambil outlet user saat ini
     const currentOutlet = await getCurrentUserOutlet();
+    console.log('Current user outlet:', currentOutlet);
     
     // Buat HTML untuk dropdown outlet
     let outletOptions = '';
-    if (outletList.length > 0) {
+    
+    if (outlets.length > 0) {
+        console.log(`Generating options for ${outlets.length} outlets`);
+        
         outletOptions = `
             <option value="all">📢 Semua Outlet</option>
-            ${outletList.map(outlet => 
-                `<option value="${outlet.value}" ${outlet.value === currentOutlet ? 'selected' : ''}>
-                    ${outlet.name}
-                </option>`
-            ).join('')}
+            ${outlets.map(outlet => {
+                const isSelected = outlet.value === currentOutlet;
+                console.log(`Outlet: ${outlet.name}, Value: ${outlet.value}, Selected: ${isSelected}`);
+                return `
+                    <option value="${outlet.value}" ${isSelected ? 'selected' : ''}>
+                        ${outlet.name}
+                    </option>
+                `;
+            }).join('')}
         `;
     } else {
-        outletOptions = '<option value="">Loading outlet...</option>';
+        console.warn('No outlets available for dropdown');
+        outletOptions = `
+            <option value="">⚠️ Tidak ada outlet ditemukan</option>
+            <option value="default">Outlet Default</option>
+        `;
     }
     
     // Buat popup dengan dropdown multiple select
@@ -559,23 +569,31 @@ async function showEditPopup() {
                 <!-- Pilihan Outlet -->
                 <div class="outlet-selection-section">
                     <label for="selectOutletAnnouncement">
-                        <i class="fas fa-store"></i> Pilih Outlet:
+                        <i class="fas fa-store"></i> Pilih Outlet (${outlets.length} tersedia):
                     </label>
                     <div class="outlet-selection-container">
                         <select 
                             id="selectOutletAnnouncement" 
                             class="outlet-select-multiple" 
                             multiple
-                            size="5"
+                            size="6"
                             style="width: 100%; padding: 8px; border-radius: 5px;"
                         >
                             ${outletOptions}
                         </select>
                         <div class="outlet-selection-info">
                             <small>Gunakan Ctrl/Cmd + klik untuk memilih multiple outlet</small>
-                            <button type="button" class="select-all-btn" id="selectAllOutlets">
-                                <i class="fas fa-check-square"></i> Pilih Semua
-                            </button>
+                            <div class="outlet-selection-actions">
+                                <button type="button" class="select-all-btn" id="selectAllOutlets">
+                                    <i class="fas fa-check-square"></i> Pilih Semua
+                                </button>
+                                <button type="button" class="clear-selection-btn" id="clearSelection">
+                                    <i class="fas fa-times-circle"></i> Hapus Pilihan
+                                </button>
+                            </div>
+                        </div>
+                        <div class="outlet-selection-stats" id="outletSelectionStats">
+                            <small>0 outlet terpilih</small>
                         </div>
                     </div>
                 </div>
@@ -590,18 +608,27 @@ async function showEditPopup() {
                         maxlength="500" 
                         placeholder="Masukkan teks pengumuman..."
                         rows="4"
+                        style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"
                     >${currentText}</textarea>
                     <div class="char-counter">
-                        <span id="charCount">0</span>/500 karakter
+                        <span id="charCount">${currentText.length}</span>/500 karakter
+                    </div>
+                </div>
+                
+                <!-- Preview -->
+                <div class="announcement-preview" style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                    <label><i class="fas fa-eye"></i> Preview:</label>
+                    <div id="announcementPreview" style="padding: 8px; background: white; border: 1px dashed #ccc; margin-top: 5px; border-radius: 3px;">
+                        ${currentText || '(Kosong)'}
                     </div>
                 </div>
                 
                 <!-- Tombol Action -->
                 <div class="popup-buttons announcement-buttons">
-                    <button class="popup-btn cancel" id="cancelEdit">
+                    <button class="popup-btn cancel" id="cancelEdit" style="flex: 1;">
                         <i class="fas fa-times"></i> Batal
                     </button>
-                    <button class="popup-btn save" id="saveAnnouncement">
+                    <button class="popup-btn save" id="saveAnnouncement" style="flex: 2;">
                         <i class="fas fa-save"></i> Simpan Pengumuman
                     </button>
                 </div>
@@ -621,6 +648,8 @@ async function showEditPopup() {
             input.focus();
             input.select();
             updateCharCounter(input.value.length);
+            updateSelectionStats();
+            updatePreview(input.value);
         }
     }, 100);
 }
@@ -633,8 +662,14 @@ function setupAnnouncementPopupEvents() {
     const input = document.getElementById('announcementInput');
     const outletSelect = document.getElementById('selectOutletAnnouncement');
     const selectAllBtn = document.getElementById('selectAllOutlets');
+    const clearBtn = document.getElementById('clearSelection');
     
-    if (!popup || !input || !outletSelect) return;
+    if (!popup || !input || !outletSelect) {
+        console.error('Popup elements not found');
+        return;
+    }
+    
+    console.log('setupAnnouncementPopupEvents: Elements found');
     
     // Update character counter
     function updateCharCounter(length) {
@@ -651,10 +686,31 @@ function setupAnnouncementPopupEvents() {
         }
     }
     
+    // Update selection stats
+    function updateSelectionStats() {
+        const selectedCount = outletSelect.selectedOptions.length;
+        const statsEl = document.getElementById('outletSelectionStats');
+        if (statsEl) {
+            statsEl.innerHTML = `<small>${selectedCount} outlet terpilih</small>`;
+        }
+    }
+    
+    // Update preview
+    function updatePreview(text) {
+        const previewEl = document.getElementById('announcementPreview');
+        if (previewEl) {
+            previewEl.textContent = text || '(Kosong)';
+        }
+    }
+    
     // Character counter event
     input.addEventListener('input', (e) => {
         updateCharCounter(e.target.value.length);
+        updatePreview(e.target.value);
     });
+    
+    // Outlet selection change event
+    outletSelect.addEventListener('change', updateSelectionStats);
     
     // Tombol pilih semua outlet
     if (selectAllBtn) {
@@ -663,6 +719,18 @@ function setupAnnouncementPopupEvents() {
             for (let i = 0; i < options.length; i++) {
                 options[i].selected = true;
             }
+            updateSelectionStats();
+        });
+    }
+    
+    // Tombol hapus pilihan
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            const options = outletSelect.options;
+            for (let i = 0; i < options.length; i++) {
+                options[i].selected = false;
+            }
+            updateSelectionStats();
         });
     }
     
@@ -700,8 +768,11 @@ function setupAnnouncementPopupEvents() {
         }
     });
     
-    // Inisialisasi character counter
+    // Inisialisasi
     updateCharCounter(input.value.length);
+    updateSelectionStats();
+    
+    console.log('Popup events setup completed');
 }
 
 // Fungsi save announcement dengan outlet selection
@@ -710,7 +781,10 @@ async function saveAnnouncementWithOutlet() {
     const outletSelect = document.getElementById('selectOutletAnnouncement');
     const popup = document.getElementById('editPopup');
     
-    if (!input || !outletSelect || !popup) return;
+    if (!input || !outletSelect || !popup) {
+        alert('Elemen tidak ditemukan!');
+        return;
+    }
     
     const newText = input.value.trim();
     
@@ -721,13 +795,16 @@ async function saveAnnouncementWithOutlet() {
     }
     
     // Ambil outlet yang dipilih
-    const selectedOutlets = Array.from(outletSelect.selectedOptions).map(option => option.value);
+    const selectedOptions = Array.from(outletSelect.selectedOptions);
+    const selectedOutlets = selectedOptions.map(option => option.value);
     
     if (selectedOutlets.length === 0) {
         alert('Pilih minimal satu outlet!');
         outletSelect.focus();
         return;
     }
+    
+    console.log('Saving announcement to outlets:', selectedOutlets);
     
     try {
         // Ambil data user untuk cek role
@@ -746,8 +823,15 @@ async function saveAnnouncementWithOutlet() {
             .single();
         
         if (karyawanData?.role === 'owner') {
+            // Tampilkan loading
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+            
             // Owner: simpan ke database dengan outlet yang dipilih
             const result = await saveAnnouncementToSupabase(newText, selectedOutlets);
+            
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Simpan Pengumuman';
             
             if (result.success) {
                 // Update UI untuk outlet user saat ini
@@ -796,7 +880,96 @@ async function saveAnnouncementWithOutlet() {
         
     } catch (error) {
         console.error('Error saving announcement:', error);
-        alert('Terjadi kesalahan saat menyimpan pengumuman');
+        alert('Terjadi kesalahan saat menyimpan pengumuman: ' + error.message);
+        
+        // Reset button state
+        const saveBtn = document.getElementById('saveAnnouncement');
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Simpan Pengumuman';
+        }
+    }
+}
+
+// Fungsi save announcement ke Supabase (ke tabel outlet)
+async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
+    try {
+        console.log('Saving announcement to Supabase...');
+        console.log('Text:', announcementText);
+        console.log('Selected outlets:', selectedOutlets);
+        
+        // Jika "Semua Outlet" dipilih
+        if (selectedOutlets.includes('all')) {
+            // Update semua outlet
+            const { error: updateError } = await supabase
+                .from('outlet')
+                .update({ pengumuman_mybabeh: announcementText });
+            
+            if (updateError) {
+                throw new Error(`Gagal menyimpan pengumuman ke semua outlet: ${updateError.message}`);
+            }
+            
+            console.log('Pengumuman berhasil disimpan ke SEMUA outlet');
+            return { success: true, outlets: 'all' };
+        }
+        
+        // Update outlet yang dipilih satu per satu
+        let successCount = 0;
+        let errorMessages = [];
+        
+        for (const outletValue of selectedOutlets) {
+            try {
+                console.log(`Updating outlet: ${outletValue}`);
+                
+                // Coba update dengan kolom 'outlet'
+                const { error: updateError } = await supabase
+                    .from('outlet')
+                    .update({ pengumuman_mybabeh: announcementText })
+                    .eq('outlet', outletValue);
+                
+                if (updateError) {
+                    console.log(`Trying alternative column for ${outletValue}`);
+                    
+                    // Coba dengan kolom lain jika 'outlet' tidak berhasil
+                    const { error: updateError2 } = await supabase
+                        .from('outlet')
+                        .update({ pengumuman_mybabeh: announcementText })
+                        .or(`nama_outlet.eq.${outletValue},outlet_name.eq.${outletValue},name.eq.${outletValue}`);
+                    
+                    if (updateError2) {
+                        errorMessages.push(`${outletValue}: ${updateError2.message}`);
+                        console.error(`Failed to update ${outletValue}:`, updateError2);
+                    } else {
+                        successCount++;
+                        console.log(`Successfully updated ${outletValue}`);
+                    }
+                } else {
+                    successCount++;
+                    console.log(`Successfully updated ${outletValue}`);
+                }
+            } catch (outletError) {
+                errorMessages.push(`${outletValue}: ${outletError.message}`);
+                console.error(`Exception updating ${outletValue}:`, outletError);
+            }
+        }
+        
+        if (errorMessages.length > 0) {
+            console.warn(`Some outlets failed:`, errorMessages);
+        }
+        
+        console.log(`Pengumuman berhasil disimpan ke ${successCount} outlet`);
+        
+        return { 
+            success: successCount > 0, 
+            outlets: selectedOutlets,
+            successCount,
+            errorCount: errorMessages.length,
+            errors: errorMessages
+        };
+        
+    } catch (error) {
+        console.error('Error saving announcement to Supabase:', error);
+        return { success: false, error: error.message };
     }
 }
 
@@ -804,9 +977,14 @@ async function saveAnnouncementWithOutlet() {
 async function loadSavedAnnouncement() {
     const announcementText = document.getElementById('announcementText');
     
-    if (!announcementText) return;
+    if (!announcementText) {
+        console.warn('Announcement text element not found');
+        return;
+    }
     
     try {
+        console.log('Loading saved announcement...');
+        
         // 1. Coba load dari database dulu (dari tabel outlet)
         const dbAnnouncement = await loadAnnouncementFromSupabase();
         
@@ -829,12 +1007,12 @@ async function loadSavedAnnouncement() {
                 const hour = now.getHours();
                 let greeting = '';
                 
-                if (hour < 12) greeting = 'Selamat pagi';
-                else if (hour < 15) greeting = 'Selamat siang';
-                else if (hour < 18) greeting = 'Selamat sore';
-                else greeting = 'Selamat malam';
+                if (hour < 10) greeting = 'Selamat pagi 🌅';
+                else if (hour < 15) greeting = 'Selamat siang ☀️';
+                else if (hour < 18) greeting = 'Selamat sore 🌇';
+                else greeting = 'Selamat malam 🌙';
                 
-                const defaultMsg = `${greeting}! Selamat bekerja - ${now.toLocaleDateString('id-ID')}`;
+                const defaultMsg = `${greeting}! Semoga hari Anda menyenangkan - ${now.toLocaleDateString('id-ID')}`;
                 announcementText.innerHTML = `<marquee>${defaultMsg}</marquee>`;
                 console.log('Pengumuman default ditampilkan');
             }
@@ -849,7 +1027,7 @@ async function loadSavedAnnouncement() {
         } else {
             // Default fallback
             const now = new Date();
-            const defaultMsg = `Selamat bekerja hari ini! - ${now.toLocaleDateString('id-ID')}`;
+            const defaultMsg = `Selamat bekerja hari ini! 👨‍💼 - ${now.toLocaleDateString('id-ID')}`;
             announcementText.innerHTML = `<marquee>${defaultMsg}</marquee>`;
         }
     }
