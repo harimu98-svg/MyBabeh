@@ -1617,7 +1617,7 @@ async function getJadwalKaryawan(namaKaryawan) {
     }
 }
 
-// [9] Fungsi untuk tampilkan absensi hari ini - LAYOUT 2 KOLOM
+// [9] Fungsi untuk tampilkan absensi hari ini - LAYOUT 2 KOLOM BARU
 function displayTodayAbsensi(absensiData, date, namaKaryawan, jadwalData = null, isLatest = false) {
     const content = document.getElementById('todayAbsensiContent');
     
@@ -1660,6 +1660,10 @@ function displayTodayAbsensi(absensiData, date, namaKaryawan, jadwalData = null,
         jadwal.jadwal_pulang
     );
     
+    // Tentukan status untuk clock in dan clock out
+    const clockinStatus = getClockStatus(clockinDisplay, jadwal.jadwal_masuk, 'in');
+    const clockoutStatus = getClockStatus(clockoutDisplay, jadwal.jadwal_pulang, 'out');
+    
     content.innerHTML = `
         <div class="today-header">
             <div class="date-display">
@@ -1680,60 +1684,85 @@ function displayTodayAbsensi(absensiData, date, namaKaryawan, jadwalData = null,
             </div>
         </div>
         
-        <!-- Jadwal & Clock In/Out - 2 Kolom -->
-        <div class="today-schedule-section">
-            <h4><i class="fas fa-calendar-check"></i> Jadwal & Absensi</h4>
-            <div class="schedule-grid">
-                <!-- Kolom Kiri: Jadwal -->
-                <div class="schedule-column left-column">
-                    <div class="schedule-item">
-                        <div class="schedule-label">Jadwal Masuk</div>
-                        <div class="schedule-value jadwal-masuk">
+        <!-- Layout 2 Kolom: Jadwal vs Clock -->
+        <div class="jadwal-clock-layout">
+            <!-- Kolom Kiri: Jadwal -->
+            <div class="jadwal-column">
+                <!-- Jadwal Masuk -->
+                <div class="schedule-card">
+                    <div class="schedule-header">
+                        <div class="schedule-icon jadwal">
                             <i class="fas fa-sign-in-alt"></i>
-                            <span>${jadwal.jadwal_masuk || '09:00'}</span>
                         </div>
+                        <div class="schedule-title">Jadwal Masuk</div>
                     </div>
-                    <div class="schedule-item">
-                        <div class="schedule-label">Jadwal Pulang</div>
-                        <div class="schedule-value jadwal-pulang">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <span>${jadwal.jadwal_pulang || '21:00'}</span>
-                        </div>
+                    <div class="schedule-value">${jadwal.jadwal_masuk || '09:00'}</div>
+                    <div class="clock-status">
+                        <span class="status-label status-normal">TERJADWAL</span>
                     </div>
                 </div>
                 
-                <!-- Kolom Kanan: Actual -->
-                <div class="schedule-column right-column">
-                    <div class="schedule-item">
-                        <div class="schedule-label">Clock In</div>
-                        <div class="schedule-value clock-in ${getClockStatusClass(clockinDisplay, jadwal.jadwal_masuk, 'in')}">
-                            <i class="fas fa-fingerprint"></i>
-                            <span>${clockinDisplay || '-'}</span>
-                            ${getClockStatusBadge(clockinDisplay, jadwal.jadwal_masuk, 'in')}
+                <!-- Jadwal Pulang -->
+                <div class="schedule-card">
+                    <div class="schedule-header">
+                        <div class="schedule-icon jadwal">
+                            <i class="fas fa-sign-out-alt"></i>
                         </div>
+                        <div class="schedule-title">Jadwal Pulang</div>
                     </div>
-                    <div class="schedule-item">
-                        <div class="schedule-label">Clock Out</div>
-                        <div class="schedule-value clock-out ${getClockStatusClass(clockoutDisplay, jadwal.jadwal_pulang, 'out')}">
+                    <div class="schedule-value">${jadwal.jadwal_pulang || '21:00'}</div>
+                    <div class="clock-status">
+                        <span class="status-label status-normal">TERJADWAL</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Kolom Kanan: Clock -->
+            <div class="clock-column">
+                <!-- Clock In -->
+                <div class="schedule-card">
+                    <div class="schedule-header">
+                        <div class="schedule-icon clock">
                             <i class="fas fa-fingerprint"></i>
-                            <span>${clockoutDisplay || '-'}</span>
-                            ${getClockStatusBadge(clockoutDisplay, jadwal.jadwal_pulang, 'out')}
                         </div>
+                        <div class="schedule-title">Clock In</div>
+                    </div>
+                    <div class="clock-time">${clockinDisplay || '--:--'}</div>
+                    <div class="clock-status">
+                        <span class="status-label ${getStatusClass(clockinStatus)}">
+                            ${getStatusText(clockinStatus)}
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Clock Out -->
+                <div class="schedule-card">
+                    <div class="schedule-header">
+                        <div class="schedule-icon clock">
+                            <i class="fas fa-fingerprint"></i>
+                        </div>
+                        <div class="schedule-title">Clock Out</div>
+                    </div>
+                    <div class="clock-time">${clockoutDisplay || '--:--'}</div>
+                    <div class="clock-status">
+                        <span class="status-label ${getStatusClass(clockoutStatus)}">
+                            ${getStatusText(clockoutStatus)}
+                        </span>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Ringkasan -->
+        <!-- Ringkasan Jam Kerja -->
         <div class="today-summary-section">
-            <h4><i class="fas fa-chart-bar"></i> Ringkasan</h4>
+            <h4><i class="fas fa-chart-bar"></i> Ringkasan Jam Kerja</h4>
             <div class="summary-grid">
                 <div class="summary-item">
-                    <div class="summary-label">Jam Kerja</div>
+                    <div class="summary-label">Total Jam Kerja</div>
                     <div class="summary-value jam-kerja">${jamKerjaInfo.jamKerja}</div>
                 </div>
                 <div class="summary-item">
-                    <div class="summary-label">Status</div>
+                    <div class="summary-label">Status Kehadiran</div>
                     <div class="summary-value keterangan ${jamKerjaInfo.keteranganClass || ''}">
                         ${jamKerjaInfo.keterangan}
                     </div>
@@ -1753,9 +1782,10 @@ function displayTodayAbsensi(absensiData, date, namaKaryawan, jadwalData = null,
     content.style.display = 'block';
 }
 
-// Helper function untuk status clock in/out
-function getClockStatusClass(clockTime, scheduleTime, type) {
-    if (!clockTime || !scheduleTime) return 'no-data';
+// Helper function untuk status clock
+function getClockStatus(clockTime, scheduleTime, type) {
+    if (!clockTime) return 'no-data';
+    if (!scheduleTime) return 'normal';
     
     const clock = parseTime(clockTime);
     const schedule = parseTime(scheduleTime);
@@ -1763,42 +1793,52 @@ function getClockStatusClass(clockTime, scheduleTime, type) {
     if (type === 'in') {
         if (clock.hours > schedule.hours || 
             (clock.hours === schedule.hours && clock.minutes > schedule.minutes)) {
-            return 'late';
+            return 'terlambat';
         } else if (clock.hours < schedule.hours ||
                    (clock.hours === schedule.hours && clock.minutes < schedule.minutes)) {
-            return 'early';
+            return 'cepat';
+        } else {
+            return 'tepat';
         }
     } else if (type === 'out') {
-        if (!clockTime) return 'no-data';
         if (clock.hours < schedule.hours ||
             (clock.hours === schedule.hours && clock.minutes < schedule.minutes)) {
-            return 'early-out';
+            return 'cepat';
+        } else if (clock.hours > schedule.hours ||
+                   (clock.hours === schedule.hours && clock.minutes > schedule.minutes)) {
+            return 'lebih';
+        } else {
+            return 'tepat';
         }
     }
     
-    return 'on-time';
+    return 'normal';
 }
 
-// Helper function untuk badge status
-function getClockStatusBadge(clockTime, scheduleTime, type) {
-    const statusClass = getClockStatusClass(clockTime, scheduleTime, type);
-    
-    const badges = {
-        'late': '<span class="status-badge late-badge">Terlambat</span>',
-        'early': '<span class="status-badge early-badge">Lebih Awal</span>',
-        'early-out': '<span class="status-badge early-out-badge">Pulang Cepat</span>',
-        'on-time': '<span class="status-badge on-time-badge">Tepat</span>',
-        'no-data': '<span class="status-badge no-data-badge">-</span>'
+// Helper function untuk class status
+function getStatusClass(status) {
+    const classes = {
+        'tepat': 'status-tepat',
+        'terlambat': 'status-terlambat',
+        'cepat': 'status-cepat',
+        'normal': 'status-normal',
+        'lebih': 'status-normal',
+        'no-data': 'status-no-data'
     };
-    
-    return badges[statusClass] || '';
+    return classes[status] || 'status-normal';
 }
 
-// Helper function untuk parse waktu
-function parseTime(timeStr) {
-    if (!timeStr) return { hours: 0, minutes: 0 };
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    return { hours: hours || 0, minutes: minutes || 0 };
+// Helper function untuk text status
+function getStatusText(status) {
+    const texts = {
+        'tepat': 'TEPAT WAKTU',
+        'terlambat': 'TERLAMBAT',
+        'cepat': 'LEBIH CEPAT',
+        'normal': 'NORMAL',
+        'lebih': 'LEBIH LAMA',
+        'no-data': 'TIDAK ADA DATA'
+    };
+    return texts[status] || 'NORMAL';
 }
 // [10] Fungsi untuk tampilkan absensi 7 hari
 function displayWeeklyAbsensi(weeklyData, jadwalData) {
