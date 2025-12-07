@@ -2355,7 +2355,7 @@ marquee {
 /* Style untuk status cell - TANPA BORDER */
 .weekly-absensi-table td[class*="status-"] {
     padding: 6.4px 9.6px !important; /* 80% dari 8px 12px = 6.4px 9.6px */
-    border-radius: 6.4px !important;  /* 80% dari 8px = 6.4px */
+    border-radius:7.2px !important;  /* 80% dari 8px = 6.4px */
     font-weight: 600;
     font-size: 0.68rem !important;    /* 80% dari 0.85rem = 0.68rem */
     text-align: center;
