@@ -2026,71 +2026,44 @@ marquee {
         opacity: 0.5;
     }
 }
-/* ========== TEST - STATUS PILL CENTERING ========== */
-/* Copy ini dan tempel di BAWAH SEMUA CSS LAIN */
+/* ========== STATUS PILL - GRID SOLUTION ========== */
 
-.weekly-absensi-table {
-    border-collapse: separate !important;
-    border-spacing: 0 8px !important;
+.weekly-absensi-table td.status-cell {
+    /* Jadikan cell sebagai grid container */
+    display: grid !important;
+    place-items: center !important; /* magic centering */
+    padding: 12px 4px !important;
+    min-width: 140px;
+    min-height: 60px;
 }
 
-.weekly-absensi-table td {
-    padding: 16px 10px !important;
-    text-align: center !important;
-    vertical-align: middle !important;
-    border-top: 1px solid #e5e7eb !important;
-    border-bottom: 1px solid #e5e7eb !important;
-}
-
-.weekly-absensi-table td:first-child {
-    border-left: 1px solid #e5e7eb !important;
-    border-radius: 10px 0 0 10px !important;
-}
-
-.weekly-absensi-table td:last-child {
-    border-right: 1px solid #e5e7eb !important;
-    border-radius: 0 10px 10px 0 !important;
-}
-
-/* KOLOM STATUS - FIXED CENTER */
-.weekly-absensi-table td:nth-child(9) {
-    padding: 8px 4px !important;
-}
-
-.weekly-absensi-table td[class*="status-"] {
-    /* RESET & FORCE */
-    all: unset !important;
+/* Elemen span/text di dalam cell */
+.weekly-absensi-table td.status-cell > span {
+    /* Pill styling */
+    padding: 8px 16px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    border: 2px solid;
+    min-width: 110px;
+    text-align: center;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
     
-    /* PILL STYLING */
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-width: 120px !important;
-    padding: 10px 20px !important;
+    /* Warna akan diatur oleh class status */
+}
+
+/* Atau jika langsung di td */
+.weekly-absensi-table td[class*="status-"] {
+    display: grid !important;
+    place-items: center !important;
     border-radius: 50px !important;
     font-weight: 700 !important;
     font-size: 0.85rem !important;
     border: 2px solid !important;
-    margin: 0 auto !important;
-    text-align: center !important;
-    white-space: nowrap !important;
-    
-    /* POSITION dalam cell */
-    position: relative !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-}
-
-/* Warna */
-.weekly-absensi-table .status-tepat {
-    background: #d1fae5 !important;
-    color: #065f46 !important;
-    border-color: #10b981 !important;
-}
-
-.weekly-absensi-table .status-terlambat {
-    background: #fef3c7 !important;
-    color: #92400e !important;
-    border-color: #f59e0b !important;
+    padding: 10px 20px !important;
+    min-width: 120px !important;
+    min-height: 44px !important;
+    margin: 4px auto !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08) !important;
 }
