@@ -1855,7 +1855,7 @@ async function showAbsensiPage() {
     }
 }
 
-// [2] Fungsi untuk buat halaman absensi
+// [2] Fungsi untuk buat halaman absensi - TAMBAHKAN KOLOM JADWAL
 function createAbsensiPage() {
     // Hapus halaman absensi sebelumnya jika ada
     const existingPage = document.getElementById('absensiPage');
@@ -1939,11 +1939,12 @@ function createAbsensiPage() {
                             <th>Tanggal</th>
                             <th>Outlet</th>
                             <th>Karyawan</th>
+                            <th>Jadwal Masuk</th>
+                            <th>Jadwal Pulang</th>
                             <th>Clock In</th>
                             <th>Clock Out</th>
                             <th>Jam Kerja</th>
                             <th>Status Kehadiran</th>
-                            <th>Keterangan</th>
                         </tr>
                     </thead>
                     <tbody id="weeklyAbsensiBody">
@@ -1964,6 +1965,7 @@ function createAbsensiPage() {
     // Setup event listeners
     setupAbsensiPageEvents();
 }
+
 
 // [3] Setup event listeners untuk halaman absensi
 function setupAbsensiPageEvents() {
@@ -2100,14 +2102,11 @@ function getAbsensiFilterParams() {
     return params;
 }
 
-// [6] Fungsi untuk load absensi hari ini - AMBIL LANGSUNG DARI TABEL
+// [6] Fungsi untuk load absensi hari ini - DENGAN JADWAL
 async function loadTodayAbsensi(filterParams) {
     // Format tanggal DD/MM/YYYY
     const today = new Date();
-    const day = today.getDate().toString().padStart(2, '0');
-    const month = (today.getMonth() + 1).toString().padStart(2, '0');
-    const year = today.getFullYear();
-    const todayStr = `${day}/${month}/${year}`;
+    const todayStr = formatDateDDMMYYYY(today);
     
     // Query langsung dari tabel absen
     let query = supabase
@@ -2129,8 +2128,9 @@ async function loadTodayAbsensi(filterParams) {
     
     if (error) {
         console.error('Error loading today absensi:', error);
-        // Tampilkan data kosong
-        displayTodayAbsensi(null, today);
+        // Tampilkan data kosong dengan jadwal default
+        const jadwal = await getJadwalKaryawan(filterParams.namaKaryawan);
+        displayTodayAbsensi(null, today, jadwal);
         return;
     }
     
@@ -2144,11 +2144,16 @@ async function loadTodayAbsensi(filterParams) {
         displayData = absensiData?.[0] || null;
     }
     
+    // Ambil jadwal karyawan
+    const jadwal = await getJadwalKaryawan(
+        displayData?.nama || filterParams.namaKaryawan || currentKaryawanAbsensi?.nama_karyawan
+    );
+    
     // Tampilkan data
-    displayTodayAbsensi(displayData, today);
+    displayTodayAbsensi(displayData, today, jadwal);
 }
 
-// [7] Fungsi untuk load absensi 7 hari terakhir - AMBIL LANGSUNG DARI TABEL
+// [7] Fungsi untuk load absensi 7 hari terakhir - DENGAN JADWAL
 async function loadWeeklyAbsensi(filterParams) {
     // Tanggal range: 7 hari sebelum hari ini
     const endDate = new Date();
@@ -2161,10 +2166,7 @@ async function loadWeeklyAbsensi(filterParams) {
     for (let i = 1; i <= 7; i++) {
         const date = new Date();
         date.setDate(date.getDate() - i);
-        const day = date.getDate().toString().padStart(2, '0');
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const year = date.getFullYear();
-        dateRange.push(`${day}/${month}/${year}`);
+        dateRange.push(formatDateDDMMYYYY(date));
     }
     
     // Query untuk 7 hari terakhir
@@ -2189,26 +2191,31 @@ async function loadWeeklyAbsensi(filterParams) {
     
     if (error) {
         console.error('Error loading weekly absensi:', error);
-        displayWeeklyAbsensi([]);
+        displayWeeklyAbsensi([], filterParams.namaKaryawan);
         return;
     }
+    
+    // Ambil jadwal karyawan
+    const jadwal = await getJadwalKaryawan(
+        filterParams.namaKaryawan || currentKaryawanAbsensi?.nama_karyawan
+    );
     
     // Untuk owner melihat semua, ambil berdasarkan filter
     let displayData = [];
     if (isOwnerAbsensi && !filterParams.filterByKaryawan) {
         // Owner melihat semua: ambil semua data dan group by tanggal
-        displayData = processOwnerWeeklyData(absensiData, dateRange);
+        displayData = processOwnerWeeklyData(absensiData, dateRange, jadwal);
     } else {
         // Non-owner atau owner pilih karyawan tertentu
-        displayData = processKaryawanWeeklyData(absensiData, dateRange, filterParams.namaKaryawan);
+        displayData = processKaryawanWeeklyData(absensiData, dateRange, filterParams.namaKaryawan, jadwal);
     }
     
     // Tampilkan data
     displayWeeklyAbsensi(displayData);
 }
 
-// [8] Helper: Process data untuk owner (semua karyawan)
-function processOwnerWeeklyData(absensiData, dateRange) {
+// [8] Helper: Process data untuk owner (semua karyawan) - DENGAN JADWAL
+function processOwnerWeeklyData(absensiData, dateRange, jadwalDefault) {
     const result = [];
     
     dateRange.forEach(dateStr => {
@@ -2222,11 +2229,12 @@ function processOwnerWeeklyData(absensiData, dateRange) {
                 tanggal_display: formatDateDisplay(dateStr),
                 outlet: 'Multiple',
                 nama: `${dataForDate.length} Karyawan`,
+                jadwal_masuk: jadwalDefault?.jadwal_masuk || '09:00',
+                jadwal_pulang: jadwalDefault?.jadwal_pulang || '21:00',
                 clockin: 'Multiple',
                 clockout: 'Multiple',
                 jamkerja: 'Multiple',
-                status_kehadiran: 'Multiple',
-                keterangan: `${dataForDate.length} data absensi`
+                status_kehadiran: 'Multiple'
             });
         } else {
             // Tidak ada data untuk tanggal ini
@@ -2235,11 +2243,12 @@ function processOwnerWeeklyData(absensiData, dateRange) {
                 tanggal_display: formatDateDisplay(dateStr),
                 outlet: '-',
                 nama: '-',
+                jadwal_masuk: jadwalDefault?.jadwal_masuk || '09:00',
+                jadwal_pulang: jadwalDefault?.jadwal_pulang || '21:00',
                 clockin: '-',
                 clockout: '-',
                 jamkerja: '-',
-                status_kehadiran: 'Tidak ada data',
-                keterangan: 'Tidak ada absensi'
+                status_kehadiran: 'Tidak ada data'
             });
         }
     });
@@ -2247,8 +2256,8 @@ function processOwnerWeeklyData(absensiData, dateRange) {
     return result;
 }
 
-// [9] Helper: Process data untuk karyawan tertentu
-function processKaryawanWeeklyData(absensiData, dateRange, namaKaryawan) {
+// [9] Helper: Process data untuk karyawan tertentu - DENGAN JADWAL
+function processKaryawanWeeklyData(absensiData, dateRange, namaKaryawan, jadwal) {
     const result = [];
     
     dateRange.forEach(dateStr => {
@@ -2263,11 +2272,12 @@ function processKaryawanWeeklyData(absensiData, dateRange, namaKaryawan) {
                 tanggal_display: formatDateDisplay(dateStr),
                 outlet: dataForKaryawan.outlet || '-',
                 nama: dataForKaryawan.nama || '-',
+                jadwal_masuk: jadwal?.jadwal_masuk || '09:00',
+                jadwal_pulang: jadwal?.jadwal_pulang || '21:00',
                 clockin: formatWaktuSimple(dataForKaryawan.clockin),
                 clockout: formatWaktuSimple(dataForKaryawan.clockout),
                 jamkerja: dataForKaryawan.jamkerja || '-',
-                status_kehadiran: dataForKaryawan.status_kehadiran || '-',
-                keterangan: dataForKaryawan.status_kehadiran || '-'
+                status_kehadiran: dataForKaryawan.status_kehadiran || '-'
             });
         } else {
             // Tidak ada data untuk tanggal ini
@@ -2276,11 +2286,12 @@ function processKaryawanWeeklyData(absensiData, dateRange, namaKaryawan) {
                 tanggal_display: formatDateDisplay(dateStr),
                 outlet: '-',
                 nama: namaKaryawan || '-',
+                jadwal_masuk: jadwal?.jadwal_masuk || '09:00',
+                jadwal_pulang: jadwal?.jadwal_pulang || '21:00',
                 clockin: '-',
                 clockout: '-',
                 jamkerja: '-',
-                status_kehadiran: 'Tidak absen',
-                keterangan: 'Tidak ada data absensi'
+                status_kehadiran: 'Tidak absen'
             });
         }
     });
@@ -2288,8 +2299,8 @@ function processKaryawanWeeklyData(absensiData, dateRange, namaKaryawan) {
     return result;
 }
 
-// [10] Fungsi untuk tampilkan absensi hari ini - GUNAKAN DATA LANGSUNG
-function displayTodayAbsensi(absensiData, date) {
+// [10] Fungsi untuk tampilkan absensi hari ini - DENGAN JADWAL & ABSENSI
+function displayTodayAbsensi(absensiData, date, jadwal) {
     const content = document.getElementById('todayAbsensiContent');
     
     // Jika tidak ada data absensi
@@ -2307,6 +2318,27 @@ function displayTodayAbsensi(absensiData, date) {
                 <p style="color: #666;">Belum ada data absensi hari ini</p>
                 <p style="font-size: 0.9rem; color: #888;">Nama: ${currentKaryawanAbsensi?.nama_karyawan || '-'}</p>
             </div>
+            
+            <!-- Tampilkan Jadwal meski tidak ada absensi -->
+            <div class="today-schedule-info">
+                <h4><i class="fas fa-calendar-check"></i> Jadwal Hari Ini</h4>
+                <div class="schedule-grid">
+                    <div class="schedule-item">
+                        <div class="schedule-label">Jadwal Masuk</div>
+                        <div class="schedule-value">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>${jadwal?.jadwal_masuk || '09:00'}</span>
+                        </div>
+                    </div>
+                    <div class="schedule-item">
+                        <div class="schedule-label">Jadwal Pulang</div>
+                        <div class="schedule-value">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>${jadwal?.jadwal_pulang || '21:00'}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
         
         document.getElementById('loadingTodayAbsensi').style.display = 'none';
@@ -2314,7 +2346,7 @@ function displayTodayAbsensi(absensiData, date) {
         return;
     }
     
-    // AMBIL DATA LANGSUNG DARI DATABASE - TIDAK PERLU HITUNG LAGI
+    // AMBIL DATA LANGSUNG DARI DATABASE + TAMPILKAN JADWAL
     content.innerHTML = `
         <div class="today-header">
             <div class="date-display">
@@ -2335,22 +2367,43 @@ function displayTodayAbsensi(absensiData, date) {
             </div>
         </div>
         
-        <!-- Clock In/Out -->
-        <div class="today-clock-section">
-            <h4><i class="fas fa-clock"></i> Waktu Absensi</h4>
-            <div class="clock-grid">
-                <div class="clock-item">
-                    <div class="clock-label">Clock In</div>
-                    <div class="clock-value ${absensiData.clockin ? 'has-data' : 'no-data'}">
-                        <i class="fas fa-sign-in-alt"></i>
-                        <span>${formatWaktuSimple(absensiData.clockin) || '-'}</span>
+        <!-- Jadwal & Absensi - 2 Kolom -->
+        <div class="today-schedule-section">
+            <h4><i class="fas fa-calendar-check"></i> Jadwal & Absensi</h4>
+            <div class="schedule-grid">
+                <!-- Kolom Kiri: Jadwal -->
+                <div class="schedule-column left-column">
+                    <div class="schedule-item">
+                        <div class="schedule-label">Jadwal Masuk</div>
+                        <div class="schedule-value jadwal-masuk">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>${jadwal?.jadwal_masuk || '09:00'}</span>
+                        </div>
+                    </div>
+                    <div class="schedule-item">
+                        <div class="schedule-label">Jadwal Pulang</div>
+                        <div class="schedule-value jadwal-pulang">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>${jadwal?.jadwal_pulang || '21:00'}</span>
+                        </div>
                     </div>
                 </div>
-                <div class="clock-item">
-                    <div class="clock-label">Clock Out</div>
-                    <div class="clock-value ${absensiData.clockout ? 'has-data' : 'no-data'}">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>${formatWaktuSimple(absensiData.clockout) || '-'}</span>
+                
+                <!-- Kolom Kanan: Actual Absensi -->
+                <div class="schedule-column right-column">
+                    <div class="schedule-item">
+                        <div class="schedule-label">Clock In</div>
+                        <div class="schedule-value clock-in ${absensiData.clockin ? 'has-data' : 'no-data'}">
+                            <i class="fas fa-fingerprint"></i>
+                            <span>${formatWaktuSimple(absensiData.clockin) || '-'}</span>
+                        </div>
+                    </div>
+                    <div class="schedule-item">
+                        <div class="schedule-label">Clock Out</div>
+                        <div class="schedule-value clock-out ${absensiData.clockout ? 'has-data' : 'no-data'}">
+                            <i class="fas fa-fingerprint"></i>
+                            <span>${formatWaktuSimple(absensiData.clockout) || '-'}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2380,7 +2433,7 @@ function displayTodayAbsensi(absensiData, date) {
     content.style.display = 'block';
 }
 
-// [11] Fungsi untuk tampilkan absensi 7 hari
+// [11] Fungsi untuk tampilkan absensi 7 hari - DENGAN KOLOM JADWAL
 function displayWeeklyAbsensi(weeklyData) {
     const tbody = document.getElementById('weeklyAbsensiBody');
     tbody.innerHTML = '';
@@ -2393,13 +2446,14 @@ function displayWeeklyAbsensi(weeklyData) {
             <td>${item.tanggal_display}</td>
             <td>${item.outlet || '-'}</td>
             <td>${item.nama || '-'}</td>
+            <td>${item.jadwal_masuk || '09:00'}</td>
+            <td>${item.jadwal_pulang || '21:00'}</td>
             <td>${item.clockin || '-'}</td>
             <td>${item.clockout || '-'}</td>
             <td>${item.jamkerja || '-'}</td>
             <td class="status-cell ${getStatusClass(item.status_kehadiran)}">
                 ${item.status_kehadiran || '-'}
             </td>
-            <td>${item.keterangan || '-'}</td>
         `;
         tbody.appendChild(row);
         
@@ -2415,6 +2469,8 @@ function displayWeeklyAbsensi(weeklyData) {
     document.getElementById('loadingWeeklyAbsensi').style.display = 'none';
     document.getElementById('weeklyAbsensiTable').style.display = 'table';
 }
+
+
 
 // [12] Fungsi untuk load dropdown outlet (owner only) - DARI KARYAWAN
 async function loadOutletDropdownAbsensi() {
@@ -2494,7 +2550,51 @@ async function loadKaryawanDropdownAbsensi() {
         `;
     }
 }
+// ========== FUNGSI BARU/REVISI ==========
 
+// [14] Fungsi untuk ambil jadwal dari tabel karyawan - DIHIDUPKAN KEMBALI
+async function getJadwalKaryawan(namaKaryawan) {
+    if (!namaKaryawan) {
+        return { jadwal_masuk: '09:00', jadwal_pulang: '21:00' };
+    }
+    
+    try {
+        const { data, error } = await supabase
+            .from('karyawan')
+            .select('jadwal_masuk, jadwal_pulang')
+            .eq('nama_karyawan', namaKaryawan)
+            .single();
+        
+        if (error) {
+            console.error('Error loading jadwal karyawan:', error);
+            return { jadwal_masuk: '09:00', jadwal_pulang: '21:00' };
+        }
+        
+        return {
+            jadwal_masuk: data.jadwal_masuk || '09:00',
+            jadwal_pulang: data.jadwal_pulang || '21:00'
+        };
+        
+    } catch (err) {
+        console.error('Exception loading jadwal:', err);
+        return { jadwal_masuk: '09:00', jadwal_pulang: '21:00' };
+    }
+}
+
+// [15] Helper: Format tanggal DD/MM/YYYY
+function formatDateDDMMYYYY(date) {
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+// [16] Helper: Format tanggal untuk display
+function formatDateDisplay(dateStr) {
+    if (!dateStr) return '-';
+    const [day, month, year] = dateStr.split('/');
+    return `${day}/${month}/${year}`;
+}
 // ========== HELPER FUNCTIONS YANG DIPERTAHANKAN ==========
 
 // Format tanggal untuk display
