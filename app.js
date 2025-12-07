@@ -2451,9 +2451,11 @@ function displayWeeklyAbsensi(weeklyData) {
             <td>${item.clockin || '-'}</td>
             <td>${item.clockout || '-'}</td>
             <td>${item.jamkerja || '-'}</td>
-            <td class="status-cell ${getStatusClass(item.status_kehadiran)}">
-                ${item.status_kehadiran || '-'}
-            </td>
+            <td class="status-cell">
+    <span class="status-pill ${getStatusClass(item.status_kehadiran)}">
+        ${item.status_kehadiran || '-'}
+    </span>
+</td>
         `;
         tbody.appendChild(row);
         
@@ -2637,17 +2639,23 @@ function formatWaktuSimple(waktu) {
 
 // Helper untuk class CSS berdasarkan status
 function getStatusClass(status) {
-    if (!status) return '';
+    if (!status) return 'tidak-absen';
     
-    if (status.includes('Terlambat')) return 'status-terlambat';
-    if (status.includes('Pulang Cepat')) return 'status-cepat';
-    if (status === 'Tepat waktu') return 'status-tepat';
-    if (status === 'Belum absen' || status === 'Tidak absen') return 'status-tidak-absen';
-    if (status === 'Masih bekerja') return 'status-masih-bekerja';
+    if (status.includes('Terlambat') || status.includes('terlambat')) 
+        return 'terlambat';
+    if (status.includes('Pulang Cepat') || status.includes('pulang cepat')) 
+        return 'pulang-cepat';
+    if (status.includes('Tepat waktu') || status.includes('tepat waktu')) 
+        return 'tepat-waktu';
+    if (status.includes('Belum absen') || status.includes('Tidak absen') || status.includes('tidak absen')) 
+        return 'tidak-absen';
+    if (status.includes('Masih bekerja') || status.includes('masih bekerja')) 
+        return 'masih-bekerja';
+    if (status.includes('Libur') || status.includes('libur') || status.includes('Cuti')) 
+        return 'libur';
     
-    return '';
+    return 'tidak-absen';
 }
-
 
 // ========== BAGIAN 5: FUNGSI HANDLE MENU CLICK ==========
 // ======================================================
