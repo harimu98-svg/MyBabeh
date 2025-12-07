@@ -2336,3 +2336,56 @@ marquee {
         }
     }
 }
+/* ========== FIX PERMANEN UNTUK STATUS KEHADIRAN ========== */
+
+/* Hapus semua border default dari tabel */
+.weekly-absensi-table,
+.weekly-absensi-table th,
+.weekly-absensi-table td {
+    border: none !important;
+}
+
+/* Border hanya untuk pemisah row */
+.weekly-absensi-table tbody tr {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Style untuk status cell - TANPA BORDER */
+.weekly-absensi-table td[class*="status-"] {
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-align: center;
+    min-width: 120px;
+    margin: 2px 0;
+    border: none !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Warna untuk setiap status */
+.weekly-absensi-table td.status-tepat {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0) !important;
+    color: #059669 !important;
+}
+
+.weekly-absensi-table td.status-terlambat {
+    background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+    color: #d97706 !important;
+}
+
+.weekly-absensi-table td.status-cepat {
+    background: linear-gradient(135deg, #fee2e2, #fecaca) !important;
+    color: #dc2626 !important;
+}
+
+.weekly-absensi-table td.status-tidak-absen {
+    background: linear-gradient(135deg, #f3f4f6, #e5e7eb) !important;
+    color: #6b7280 !important;
+    font-style: italic;
+}
+
+.weekly-absensi-table td.status-masih-bekerja {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
+    color: #2563eb !important;
+}
