@@ -1058,28 +1058,34 @@ function createKomisiPage() {
         </header>
         
         <!-- Filter untuk Owner -->
-        <div id="ownerFilterSection" class="owner-filter" style="display: ${isOwner ? 'flex' : 'none'};">
-            <!-- URUTAN BERUBAH: Outlet dulu, baru Karyawan -->
-            <div class="filter-group">
-                <label for="selectOutlet">Pilih Outlet:</label>
-                <select id="selectOutlet" class="outlet-select">
-                    <option value="all">Semua Outlet</option>
-                </select>
+        <div id="ownerFilterSection" class="owner-filter" style="display: ${isOwner ? 'block' : 'none'};">
+            <!-- BARIS PERTAMA: Outlet dan Periode -->
+            <div class="filter-row first-row">
+                <div class="filter-group">
+                    <label for="selectOutlet">Outlet:</label>
+                    <select id="selectOutlet" class="outlet-select">
+                        <option value="all">Semua Outlet</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="dateRange">Periode:</label>
+                    <select id="dateRange" class="date-select">
+                        <option value="today">Hari Ini</option>
+                        <option value="week">7 Hari Terakhir</option>
+                        <option value="month">Bulan Ini</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
             </div>
-            <div class="filter-group">
-                <label for="selectKaryawan">Pilih Karyawan:</label>
-                <select id="selectKaryawan" class="karyawan-select">
-                    <option value="">Semua Karyawan</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="dateRange">Periode:</label>
-                <select id="dateRange" class="date-select">
-                    <option value="today">Hari Ini</option>
-                    <option value="week">7 Hari Terakhir</option>
-                    <option value="month">Bulan Ini</option>
-                    <option value="custom">Custom</option>
-                </select>
+            
+            <!-- BARIS KEDUA: Pilih Karyawan saja -->
+            <div class="filter-row second-row">
+                <div class="filter-group full-width">
+                    <label for="selectKaryawan">Pilih Karyawan:</label>
+                    <select id="selectKaryawan" class="karyawan-select">
+                        <option value="">Semua Karyawan</option>
+                    </select>
+                </div>
             </div>
         </div>
         
