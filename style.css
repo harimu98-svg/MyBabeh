@@ -474,7 +474,7 @@ marquee {
     left: 0;
     right: 0;
     bottom: 0;
-    background: #f8f9ff;
+    background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
     z-index: 1000;
     overflow-y: auto;
     padding-bottom: 20px;
@@ -483,131 +483,177 @@ marquee {
 .komisi-header {
     background: linear-gradient(135deg, #8A2BE2 0%, #4169E1 100%);
     color: white;
-    padding: 15px 20px;
+    padding: 18px 15px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     position: sticky;
     top: 0;
     z-index: 100;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .komisi-header h2 {
     margin: 0;
-    font-size: 1.3rem;
+    font-size: 1.25rem;
     display: flex;
     align-items: center;
     gap: 10px;
+    font-weight: 600;
 }
 
 .back-btn {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.25);
     border: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
     color: white;
     cursor: pointer;
     font-size: 1.2rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.3s;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .back-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.35);
+    transform: translateY(-2px);
 }
 
 .refresh-btn {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.25);
     border: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
     color: white;
     cursor: pointer;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.3s;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .refresh-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.35);
+    transform: translateY(-2px) rotate(30deg);
 }
 
-/* Owner Filter */
+/* Owner Filter - IMPROVED MOBILE */
 .owner-filter {
     background: white;
-    padding: 15px 20px;
-    margin: 10px 20px;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
+    padding: 16px;
+    margin: 12px;
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(138, 43, 226, 0.08);
+    border: 1px solid rgba(138, 43, 226, 0.1);
+}
+
+.filter-row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.filter-row.first-row {
+    flex-direction: row;
+    flex-wrap: wrap;
 }
 
 .filter-group {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
+    flex: 1;
+    min-width: 0;
+}
+
+.filter-group.full-width {
+    flex: 1 0 100%;
 }
 
 .filter-group label {
-    font-size: 0.85rem;
-    color: #666;
+    display: block;
+    font-size: 0.82rem;
+    color: #6c63ff;
+    margin-bottom: 6px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .karyawan-select,
 .outlet-select,
 .date-select {
-    padding: 10px 12px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #e0e6ff;
+    border-radius: 10px;
     font-size: 0.95rem;
     background: white;
     color: #333;
     outline: none;
-    transition: border 0.3s;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
 }
 
 .karyawan-select:focus,
 .outlet-select:focus,
 .date-select:focus {
     border-color: #8A2BE2;
-    box-shadow: 0 0 0 2px rgba(138, 43, 226, 0.1);
+    box-shadow: 0 4px 12px rgba(138, 43, 226, 0.15);
+    transform: translateY(-1px);
 }
 
-/* Today Komisi Section */
+/* Today Komisi Section - MODERN CARD */
 .today-komisi-section {
-    padding: 20px;
+    padding: 16px;
 }
 
 .today-komisi-section h3 {
     color: #333;
-    margin-bottom: 15px;
-    font-size: 1.2rem;
+    margin-bottom: 16px;
+    font-size: 1.15rem;
     display: flex;
     align-items: center;
     gap: 10px;
+    font-weight: 600;
+}
+
+.today-komisi-section h3 i {
+    background: linear-gradient(135deg, #8A2BE2, #4169E1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .today-komisi-card {
     background: white;
-    border-radius: 15px;
+    border-radius: 18px;
     padding: 20px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.07);
+    border: 1px solid rgba(138, 43, 226, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+
+.today-komisi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #8A2BE2, #4169E1);
 }
 
 .today-header {
     margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #eee;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(138, 43, 226, 0.1);
 }
 
 .date-display {
@@ -615,59 +661,71 @@ marquee {
     align-items: center;
     gap: 10px;
     color: #666;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
+    font-weight: 500;
 }
 
 .date-display i {
     color: #8A2BE2;
+    font-size: 1.1rem;
 }
 
 .today-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
     margin-bottom: 20px;
 }
 
 .today-item {
     text-align: center;
-    padding: 15px;
-    background: #f8f9ff;
-    border-radius: 10px;
-    border: 1px solid #eef;
+    padding: 16px 12px;
+    background: linear-gradient(135deg, #f8f9ff, #f0f4ff);
+    border-radius: 12px;
+    border: 1px solid rgba(138, 43, 226, 0.1);
+    transition: all 0.3s ease;
+}
+
+.today-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(138, 43, 226, 0.1);
+    border-color: rgba(138, 43, 226, 0.2);
 }
 
 .today-item.highlight {
-    background: linear-gradient(135deg, #e6f7ff, #f0f9ff);
-    border-color: #b3e0ff;
+    background: linear-gradient(135deg, #e6f7ff, #d9f2ff);
+    border-color: rgba(0, 123, 255, 0.2);
+    grid-column: 1 / -1;
 }
 
 .today-label {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: #666;
-    margin-bottom: 5px;
+    margin-bottom: 6px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .today-value {
     font-size: 1.1rem;
-    font-weight: 600;
-    color: #333;
+    font-weight: 700;
+    color: #2d3436;
 }
 
 .today-totals {
-    background: #f8f9ff;
-    border-radius: 10px;
-    padding: 15px;
-    border: 1px solid #eef;
+    background: linear-gradient(135deg, #f8f9ff, #f0f4ff);
+    border-radius: 14px;
+    padding: 18px;
+    border: 1px solid rgba(138, 43, 226, 0.1);
 }
 
 .total-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid #eef;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(138, 43, 226, 0.1);
 }
 
 .total-item:last-child {
@@ -675,25 +733,31 @@ marquee {
 }
 
 .total-label {
-    font-size: 0.95rem;
-    color: #666;
+    font-size: 0.92rem;
+    color: #555;
+    font-weight: 500;
 }
 
 .total-value {
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: #333;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #2d3436;
 }
 
 .total-item.grand-total {
-    padding-top: 15px;
-    margin-top: 10px;
+    padding-top: 16px;
+    margin-top: 12px;
     border-top: 2px solid #8A2BE2;
+    background: linear-gradient(135deg, rgba(138, 43, 226, 0.05), rgba(65, 105, 225, 0.05));
+    border-radius: 10px;
+    padding: 14px;
+    margin-left: -4px;
+    margin-right: -4px;
 }
 
 .total-item.grand-total .total-label {
-    font-size: 1.1rem;
-    color: #333;
+    font-size: 1.05rem;
+    color: #8A2BE2;
     font-weight: 700;
 }
 
@@ -703,43 +767,99 @@ marquee {
     font-weight: 700;
 }
 
+/* UOP Reason Notice - IMPROVED */
+.uop-reason-notice {
+    background: linear-gradient(135deg, #fff5f5, #ffeaea);
+    border-left: 4px solid #ff4757;
+    padding: 12px 16px;
+    margin-top: 16px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.uop-reason-notice .reason-text {
+    color: #ff4757;
+    font-style: italic;
+    font-size: 0.88rem;
+    font-weight: 500;
+}
+
+.uop-reason-notice i {
+    color: #ff4757;
+    font-size: 1.1rem;
+}
+
 /* Weekly Komisi Section */
 .weekly-komisi-section {
-    padding: 20px;
+    padding: 16px;
 }
 
 .weekly-komisi-section h3 {
     color: #333;
-    margin-bottom: 15px;
-    font-size: 1.2rem;
+    margin-bottom: 16px;
+    font-size: 1.15rem;
     display: flex;
     align-items: center;
     gap: 10px;
+    font-weight: 600;
+}
+
+.weekly-komisi-section h3 i {
+    background: linear-gradient(135deg, #8A2BE2, #4169E1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
+    margin-bottom: 16px;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 12px;
 }
 
 .total-summary {
     background: linear-gradient(135deg, #8A2BE2, #4169E1);
     color: white;
-    padding: 8px 15px;
-    border-radius: 20px;
-    font-size: 0.95rem;
+    padding: 10px 18px;
+    border-radius: 25px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(138, 43, 226, 0.2);
 }
 
 .weekly-komisi-table-container {
     background: white;
-    border-radius: 15px;
+    border-radius: 18px;
     overflow: hidden;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-    overflow-x: auto;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.07);
+    border: 1px solid rgba(138, 43, 226, 0.08);
+    position: relative;
+}
+
+.weekly-komisi-table-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #8A2BE2, #4169E1);
 }
 
 .weekly-komisi-table {
@@ -749,43 +869,94 @@ marquee {
 }
 
 .weekly-komisi-table th {
-    background: #f8f9ff;
-    padding: 15px 12px;
+    background: linear-gradient(135deg, #f8f9ff, #f0f4ff);
+    padding: 16px 14px;
     text-align: left;
-    font-weight: 600;
-    color: #333;
-    font-size: 0.9rem;
-    border-bottom: 2px solid #eef;
+    font-weight: 700;
+    color: #2d3436;
+    font-size: 0.88rem;
+    border-bottom: 2px solid rgba(138, 43, 226, 0.15);
     white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .weekly-komisi-table td {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
+    padding: 14px;
+    border-bottom: 1px solid rgba(138, 43, 226, 0.08);
     font-size: 0.9rem;
     color: #555;
+    transition: background 0.3s ease;
 }
 
 .weekly-komisi-table tbody tr:hover {
-    background: #f8f9ff;
+    background: linear-gradient(135deg, rgba(138, 43, 226, 0.03), rgba(65, 105, 225, 0.03));
 }
 
 .weekly-komisi-table td.total-column {
-    font-weight: 600;
+    font-weight: 700;
     color: #8A2BE2;
+    font-size: 1rem;
 }
 
-.weekly-komisi-table th:nth-child(5),
-.weekly-komisi-table td:nth-child(5),
-.weekly-komisi-table th:nth-child(6),
-.weekly-komisi-table td:nth-child(6),
-.weekly-komisi-table th:nth-child(7),
-.weekly-komisi-table td:nth-child(7),
-.weekly-komisi-table th:nth-child(8),
-.weekly-komisi-table td:nth-child(8),
-.weekly-komisi-table th:nth-child(9),
-.weekly-komisi-table td:nth-child(9) {
+.text-danger {
+    color: #ff4757 !important;
+    font-weight: 700;
+    position: relative;
+}
+
+.text-danger::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #ff4757;
+    border-radius: 1px;
+    opacity: 0.5;
+}
+
+/* Table Alignment */
+.weekly-komisi-table th:nth-child(n+5),
+.weekly-komisi-table td:nth-child(n+5) {
     text-align: right;
+}
+
+.weekly-komisi-table th:first-child,
+.weekly-komisi-table td:first-child {
+    padding-left: 18px;
+}
+
+.weekly-komisi-table th:last-child,
+.weekly-komisi-table td:last-child {
+    padding-right: 18px;
+}
+
+/* UOP Reason Row in Table */
+.uop-reason-row {
+    background: linear-gradient(135deg, #fff5f5, #ffeaea) !important;
+}
+
+.uop-reason-cell {
+    padding: 8px 14px !important;
+    border-top: 1px dashed #ffcccc !important;
+}
+
+.uop-reason-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #ff4757;
+    font-style: italic;
+    font-size: 0.82rem;
+    padding: 6px 12px;
+    background: rgba(255, 71, 87, 0.05);
+    border-radius: 6px;
+}
+
+.uop-reason-info i {
+    font-size: 0.9rem;
 }
 
 /* ========== ABSENSI PAGE ========== */
@@ -795,64 +966,85 @@ marquee {
     left: 0;
     right: 0;
     bottom: 0;
-    background: #f8f9ff;
+    background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
     z-index: 1000;
     overflow-y: auto;
     padding-bottom: 20px;
 }
 
 .absensi-header {
-    background: linear-gradient(135deg, #8A2BE2 0%, #4169E1 100%);
+    background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
     color: white;
-    padding: 15px 20px;
+    padding: 18px 15px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     position: sticky;
     top: 0;
     z-index: 100;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 184, 148, 0.1);
 }
 
 .absensi-header h2 {
     margin: 0;
-    font-size: 1.3rem;
+    font-size: 1.25rem;
     display: flex;
     align-items: center;
     gap: 10px;
+    font-weight: 600;
 }
 
 /* Today Absensi Section */
 .today-absensi-section {
-    padding: 20px;
+    padding: 16px;
 }
 
 .today-absensi-section h3 {
     color: #333;
-    margin-bottom: 15px;
-    font-size: 1.2rem;
+    margin-bottom: 16px;
+    font-size: 1.15rem;
     display: flex;
     align-items: center;
     gap: 10px;
+    font-weight: 600;
+}
+
+.today-absensi-section h3 i {
+    background: linear-gradient(135deg, #00b894, #00a085);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .today-absensi-card {
     background: white;
-    border-radius: 15px;
+    border-radius: 18px;
     padding: 20px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.07);
+    border: 1px solid rgba(0, 184, 148, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+
+.today-absensi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #00b894, #00a085);
 }
 
 /* Today Basic Info */
 .today-basic-info {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
     margin-bottom: 20px;
-    padding: 12px;
-    background: #f8f9ff;
-    border-radius: 8px;
-    border: 1px solid #eef;
+    padding: 16px;
+    background: linear-gradient(135deg, #f0fff9, #e6fff4);
+    border-radius: 14px;
+    border: 1px solid rgba(0, 184, 148, 0.1);
 }
 
 .basic-info-item {
@@ -860,252 +1052,285 @@ marquee {
 }
 
 .basic-label {
-    font-size: 0.75rem;
-    color: #666;
-    margin-bottom: 3px;
-    font-weight: 600;
+    font-size: 0.78rem;
+    color: #00a085;
+    margin-bottom: 4px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .basic-value {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #333;
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: #2d3436;
 }
 
-/* Jadwal & Absensi Section - COMPACT VERSION */
+/* Jadwal & Absensi Section - MODERN COMPACT */
 .today-schedule-section {
     margin-bottom: 20px;
 }
 
 .today-schedule-section h4 {
     color: #333;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     font-size: 1rem;
     display: flex;
     align-items: center;
     gap: 8px;
+    font-weight: 600;
 }
 
 .today-schedule-section h4 i {
-    color: #8A2BE2;
+    background: linear-gradient(135deg, #8A2BE2, #4169E1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 1.1rem;
 }
 
 .schedule-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr !important; 
-    gap: 10px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
     margin: 0;
 }
 
 .schedule-item {
-    background: #f8f9ff;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 10px;
-    min-height: 80px;
+    background: linear-gradient(135deg, #f8f9ff, #f0f4ff);
+    border: 1px solid rgba(0, 184, 148, 0.1);
+    border-radius: 12px;
+    padding: 14px 12px;
+    min-height: 85px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    transition: none;
+    transition: all 0.3s ease;
 }
 
 .schedule-item:hover {
-    transform: none;
-    box-shadow: none;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 184, 148, 0.1);
+    border-color: rgba(0, 184, 148, 0.2);
 }
 
 .schedule-label {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     color: #666;
-    margin-bottom: 5px;
-    font-weight: 600;
+    margin-bottom: 6px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.5px;
 }
 
 .schedule-value {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 0.95rem;
-    font-weight: 600;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: 700;
 }
 
 .schedule-value i {
     font-size: 1rem;
-    width: 24px;
-    height: 24px;
-    border-radius: 5px;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
     color: white;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
 }
 
-/* Warna icon */
-.schedule-value.jadwal-masuk i { background: #4CAF50; }
-.schedule-value.jadwal-pulang i { background: #2196F3; }
-.schedule-value.clock-in i { background: #FF9800; }
-.schedule-value.clock-out i { background: #E91E63; }
-
-.schedule-value.clock-in.on-time i { background: #4CAF50; }
-.schedule-value.clock-out.on-time i { background: #4CAF50; }
-.schedule-value.clock-in.late i { background: #FF5722; }
-.schedule-value.clock-out.early-out i { background: #9C27B0; }
-.schedule-value.clock-in.early i { background: #00BCD4; }
-.schedule-value.no-data i { background: #9E9E9E; }
-
-/* Status Badge */
-.status-badge {
-    display: inline-block;
-    padding: 2px 6px;
-    border-radius: 20px;
-    font-size: 0.65rem;
-    font-weight: 600;
-    margin-left: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+/* Warna icon dengan gradient */
+.schedule-value.jadwal-masuk i { 
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+}
+.schedule-value.jadwal-pulang i { 
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+}
+.schedule-value.clock-in i { 
+    background: linear-gradient(135deg, #FF9800, #f57c00);
+}
+.schedule-value.clock-out i { 
+    background: linear-gradient(135deg, #E91E63, #c2185b);
 }
 
-.late-badge {
-    background: #FFEBEE;
-    color: #C62828;
-    border: 1px solid #FFCDD2;
-}
-
-.early-badge {
-    background: #E3F2FD;
-    color: #1565C0;
-    border: 1px solid #BBDEFB;
-}
-
-.early-out-badge {
-    background: #F3E5F5;
-    color: #7B1FA2;
-    border: 1px solid #E1BEE7;
-}
-
-.on-time-badge {
-    background: #E8F5E9;
-    color: #2E7D32;
-    border: 1px solid #C8E6C9;
-}
-
-.no-data-badge {
-    background: #F5F5F5;
-    color: #616161;
-    border: 1px solid #E0E0E0;
-}
-
-/* Ringkasan Section */
-.today-summary-section {
+/* Today Data Section */
+.today-data-section {
     margin-top: 20px;
+    background: linear-gradient(135deg, #f0fff9, #e6fff4);
+    border-radius: 14px;
+    padding: 18px;
+    border: 1px solid rgba(0, 184, 148, 0.1);
 }
 
-.today-summary-section h4 {
+.today-data-section h4 {
     color: #333;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     font-size: 1rem;
     display: flex;
     align-items: center;
     gap: 8px;
-}
-
-.today-summary-section h4 i {
-    color: #8A2BE2;
-}
-
-.summary-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 15px;
-}
-
-.summary-item {
-    background: linear-gradient(135deg, #8A2BE2, #4169E1);
-    color: white;
-    border-radius: 10px;
-    padding: 15px;
-    text-align: center;
-}
-
-.summary-label {
-    font-size: 0.8rem;
-    opacity: 0.9;
-    margin-bottom: 5px;
     font-weight: 600;
 }
 
-.summary-value {
+.today-data-section h4 i {
+    background: linear-gradient(135deg, #00b894, #00a085);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 1.1rem;
+}
+
+.data-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.data-item {
+    background: white;
+    border-radius: 10px;
+    padding: 16px;
+    border: 1px solid rgba(0, 184, 148, 0.1);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+}
+
+.data-label {
+    font-size: 0.8rem;
+    color: #00a085;
+    margin-bottom: 6px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.data-value {
     font-size: 1.1rem;
     font-weight: 700;
+    color: #2d3436;
 }
 
-.summary-value.jam-kerja {
-    color: #FFD700;
+/* Status Colors for Absensi */
+.status-terlambat {
+    color: #ff7675;
+    background: linear-gradient(135deg, #fff5f5, #ffeaea);
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: inline-block;
+    font-weight: 600;
+    border: 1px solid #ff7675;
 }
 
-.summary-value.keterangan.tepat {
-    color: #32CD32;
+.status-cepat {
+    color: #fdcb6e;
+    background: linear-gradient(135deg, #fff9e6, #fff5cc);
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: inline-block;
+    font-weight: 600;
+    border: 1px solid #fdcb6e;
 }
 
-.summary-value.keterangan.terlambat {
-    color: #FFA500;
+.status-tepat {
+    color: #00b894;
+    background: linear-gradient(135deg, #e8fff9, #d0fff0);
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: inline-block;
+    font-weight: 600;
+    border: 1px solid #00b894;
 }
 
-.summary-value.keterangan.cepat {
-    color: #FF6347;
+.status-tidak-absen {
+    color: #636e72;
+    background: linear-gradient(135deg, #f8f9fa, #f1f2f6);
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: inline-block;
+    font-weight: 600;
+    border: 1px solid #636e72;
 }
 
-.summary-value.keterangan.tidak-absen {
-    color: #ccc;
-    font-style: italic;
+.status-masih-bekerja {
+    color: #0984e3;
+    background: linear-gradient(135deg, #e8f4ff, #d9ebff);
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: inline-block;
+    font-weight: 600;
+    border: 1px solid #0984e3;
 }
 
-/* Note */
-.today-note {
-    margin-top: 15px;
-    padding: 10px 12px;
-    background: #FFF3CD;
-    border: 1px solid #FFEEBA;
-    border-radius: 6px;
-    color: #856404;
-    font-size: 0.8rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.today-note i {
-    color: #FFC107;
-}
-
-/* Today Absensi Empty State */
+/* Empty State */
 .today-absensi-empty {
     text-align: center;
     padding: 40px 20px;
     color: #666;
 }
 
-/* ========== WEEKLY ABSENSI SECTION ========== */
-.weekly-absensi-section {
-    padding: 20px;
+.today-absensi-empty i {
+    font-size: 3rem;
+    color: #00b894;
+    margin-bottom: 15px;
+    opacity: 0.3;
 }
 
-.weekly-absensi-section .section-header {
-    padding: 0 10px;
+/* Schedule Info when no data */
+.today-schedule-info {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(0, 184, 148, 0.1);
+}
+
+.today-schedule-info h4 {
+    color: #333;
     margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+/* ========== WEEKLY ABSENSI SECTION ========== */
+.weekly-absensi-section {
+    padding: 16px;
+}
+
+.weekly-absensi-section h3 {
+    color: #333;
+    margin-bottom: 16px;
+    font-size: 1.15rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+.weekly-absensi-section h3 i {
+    background: linear-gradient(135deg, #00b894, #00a085);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .weekly-absensi-table-container {
     background: white;
-    border-radius: 15px;
+    border-radius: 18px;
     overflow: hidden;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-    overflow-x: auto;
-    margin: 0 10px;
-    border: 1px solid #eee;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.07);
+    border: 1px solid rgba(0, 184, 148, 0.08);
+    position: relative;
+}
+
+.weekly-absensi-table-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #00b894, #00a085);
 }
 
 .weekly-absensi-table {
@@ -1115,357 +1340,385 @@ marquee {
 }
 
 .weekly-absensi-table th {
-    background: #f8f9ff;
-    padding: 15px 16px;
+    background: linear-gradient(135deg, #f0fff9, #e6fff4);
+    padding: 16px 14px;
     text-align: left;
-    font-weight: 600;
-    color: #333;
-    font-size: 0.9rem;
-    border-bottom: 2px solid #eef;
+    font-weight: 700;
+    color: #2d3436;
+    font-size: 0.88rem;
+    border-bottom: 2px solid rgba(0, 184, 148, 0.15);
     white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .weekly-absensi-table td {
-    padding: 12px 16px;
-    border-bottom: 1px solid #eee;
+    padding: 14px;
+    border-bottom: 1px solid rgba(0, 184, 148, 0.08);
     font-size: 0.9rem;
     color: #555;
+    transition: background 0.3s ease;
 }
 
 .weekly-absensi-table tbody tr:hover {
-    background: #f8f9ff;
+    background: linear-gradient(135deg, rgba(0, 184, 148, 0.03), rgba(0, 160, 133, 0.03));
 }
 
-.weekly-absensi-table td.keterangan-cell.tepat {
-    color: #32CD32;
+.status-cell {
     font-weight: 600;
+    padding: 8px 12px;
+    border-radius: 6px;
+    display: inline-block;
+    margin: 2px;
 }
 
-.weekly-absensi-table td.keterangan-cell.terlambat {
-    color: #FFA500;
-    font-weight: 600;
-}
-
-.weekly-absensi-table td.keterangan-cell.cepat {
-    color: #FF6347;
-    font-weight: 600;
-}
-
-.weekly-absensi-table td.keterangan-cell.tidak-absen {
-    color: #888;
-    font-style: italic;
-}
-
-/* Kolom pertama dan terakhir lebih berjarak */
-.weekly-absensi-table th:first-child,
-.weekly-absensi-table td:first-child {
-    padding-left: 20px;
-}
-
-.weekly-absensi-table th:last-child,
-.weekly-absensi-table td:last-child {
-    padding-right: 20px;
-}
-
-/* Absensi Footer */
+/* Footer */
+.komisi-footer,
 .absensi-footer {
-    padding: 15px 20px;
-    text-align: center;
-    color: #888;
-    font-size: 0.85rem;
-    border-top: 1px solid #eee;
-    margin-top: 20px;
-}
-
-/* ========== EDIT POPUP ========== */
-.edit-popup {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.popup-content {
-    background: white;
-    border-radius: 15px;
-    padding: 25px;
-    width: 90%;
-    max-width: 500px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-.popup-content h3 {
-    color: #8A2BE2;
-    margin-bottom: 15px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 1.2rem;
-}
-
-.popup-content textarea {
-    width: 100%;
-    padding: 15px;
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
-    font-size: 1rem;
-    resize: vertical;
-    min-height: 100px;
-    margin-bottom: 20px;
-    font-family: inherit;
-    line-height: 1.5;
-}
-
-.popup-content textarea:focus {
-    outline: none;
-    border-color: #8A2BE2;
-    box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.1);
-}
-
-.popup-buttons {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-}
-
-.popup-btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 0.95rem;
-    transition: all 0.2s;
-}
-
-.popup-btn.save {
-    background: linear-gradient(to right, #8A2BE2, #4169E1);
-    color: white;
-}
-
-.popup-btn.cancel {
-    background: #f5f5f5;
-    color: #666;
-}
-
-.popup-btn:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-}
-
-.popup-btn:active {
-    transform: translateY(0);
-}
-
-/* ========== LOADING ========== */
-.loading {
-    padding: 40px 20px;
+    padding: 16px;
     text-align: center;
     color: #666;
-    font-style: italic;
-}
-
-.komisi-footer {
-    padding: 15px 20px;
-    text-align: center;
-    color: #888;
-    font-size: 0.85rem;
-    border-top: 1px solid #eee;
+    font-size: 0.82rem;
     margin-top: 20px;
+    border-top: 1px solid rgba(138, 43, 226, 0.1);
 }
 
-/* ========== MEDIA QUERIES ========== */
-@media (max-width: 768px) {
-    /* Komisi Page */
+.absensi-footer {
+    border-top: 1px solid rgba(0, 184, 148, 0.1);
+}
+
+/* ========== MEDIA QUERIES FOR ANDROID PORTRAIT ========== */
+@media (max-width: 480px) {
+    /* Global Adjustments */
+    .komisi-page,
+    .absensi-page {
+        padding-bottom: 15px;
+    }
+    
+    .komisi-header,
+    .absensi-header {
+        padding: 15px 12px;
+    }
+    
+    .komisi-header h2,
+    .absensi-header h2 {
+        font-size: 1.1rem;
+    }
+    
+    .back-btn,
+    .refresh-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1.1rem;
+    }
+    
+    /* Filter Adjustments */
     .owner-filter {
-        grid-template-columns: 1fr;
-        margin: 10px;
+        margin: 8px;
+        padding: 14px;
+        border-radius: 14px;
     }
     
-    .today-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .section-header {
+    .filter-row.first-row {
         flex-direction: column;
-        align-items: flex-start;
+        gap: 10px;
     }
     
-    .weekly-komisi-table th,
-    .weekly-komisi-table td {
-        padding: 8px 6px;
-        font-size: 0.85rem;
+    .filter-group {
+        min-width: 100%;
     }
     
-    /* Absensi Page */
+    .filter-group label {
+        font-size: 0.78rem;
+    }
+    
+    .outlet-select,
+    .karyawan-select,
+    .date-select {
+        padding: 11px 12px;
+        font-size: 0.9rem;
+        border-radius: 8px;
+    }
+    
+    /* Today Grid Adjustments */
+    .today-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .today-item {
+        padding: 14px 10px;
+    }
+    
+    .today-label {
+        font-size: 0.76rem;
+    }
+    
+    .today-value {
+        font-size: 1rem;
+    }
+    
+    /* Schedule Grid Adjustments */
     .schedule-grid {
         grid-template-columns: 1fr;
         gap: 10px;
     }
     
-    .summary-grid {
-        grid-template-columns: 1fr;
+    .schedule-item {
+        min-height: 75px;
+        padding: 12px 10px;
     }
     
-    /* Profile Section */
-    .profile-section {
-        flex-direction: column;
-        text-align: center;
+    .schedule-label {
+        font-size: 0.72rem;
     }
     
-    .profile-info {
-        justify-content: center;
-    }
-    
-    /* Weekly Absensi Table */
-    .weekly-absensi-section {
-        padding: 15px;
-    }
-    
-    .weekly-absensi-table-container {
-        margin: 0 8px;
-        border-radius: 12px;
-    }
-    
-    .weekly-absensi-table th,
-    .weekly-absensi-table td {
-        padding: 10px 12px;
-        font-size: 0.85rem;
-    }
-    
-    .weekly-absensi-table th:first-child,
-    .weekly-absensi-table td:first-child {
-        padding-left: 15px;
-    }
-    
-    .weekly-absensi-table th:last-child,
-    .weekly-absensi-table td:last-child {
-        padding-right: 15px;
-    }
-}
-
-@media (max-width: 480px) {
-    /* Menu Grid */
-    .menu-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-    }
-    
-    .menu-item {
-        padding: 12px 8px;
-        min-height: 90px;
-    }
-    
-    .menu-icon {
-        font-size: 1.6rem;
-    }
-    
-    .menu-title {
-        font-size: 0.8rem;
-    }
-    
-    /* Announcement Bar */
-    .announcement-bar {
-        margin: 0 10px 15px;
-        padding: 8px 12px;
-    }
-    
-    /* Komisi Page */
-    .today-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .komisi-header h2 {
-        font-size: 1.1rem;
-    }
-    
-    .absensi-header h2 {
-        font-size: 1.1rem;
-    }
-    
-    /* Basic Info */
-    .today-basic-info {
-        grid-template-columns: 1fr;
-        padding: 10px;
-    }
-    
-    /* Schedule Items */
     .schedule-value {
-        font-size: 0.9rem;
+        font-size: 0.95rem;
     }
     
     .schedule-value i {
-        font-size: 0.9rem;
-        width: 22px;
-        height: 22px;
+        width: 26px;
+        height: 26px;
+        font-size: 0.95rem;
     }
     
-    .summary-value {
+    /* Data Grid Adjustments */
+    .data-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .data-item {
+        padding: 14px;
+    }
+    
+    .data-label {
+        font-size: 0.76rem;
+    }
+    
+    .data-value {
         font-size: 1rem;
     }
     
-    .status-badge {
-        font-size: 0.6rem;
-        padding: 2px 5px;
+    /* Today Totals Adjustments */
+    .today-totals {
+        padding: 16px;
     }
     
-    /* Weekly Absensi */
-    .weekly-absensi-section {
-        padding: 10px;
+    .total-item {
+        padding: 10px 0;
     }
     
+    .total-label {
+        font-size: 0.88rem;
+    }
+    
+    .total-value {
+        font-size: 0.95rem;
+    }
+    
+    .total-item.grand-total {
+        padding: 12px;
+    }
+    
+    .total-item.grand-total .total-label {
+        font-size: 1rem;
+    }
+    
+    .total-item.grand-total .total-value {
+        font-size: 1.1rem;
+    }
+    
+    /* Table Container Adjustments */
+    .weekly-komisi-table-container,
     .weekly-absensi-table-container {
-        margin: 0 5px;
-        border-radius: 10px;
+        margin: 0 8px;
+        border-radius: 14px;
     }
     
+    .weekly-komisi-table th,
     .weekly-absensi-table th,
+    .weekly-komisi-table td,
     .weekly-absensi-table td {
-        padding: 8px 10px;
-        font-size: 0.8rem;
+        padding: 10px 8px;
+        font-size: 0.82rem;
     }
     
+    .weekly-komisi-table th,
+    .weekly-absensi-table th {
+        font-size: 0.8rem;
+        padding: 12px 8px;
+    }
+    
+    .weekly-komisi-table th:first-child,
     .weekly-absensi-table th:first-child,
+    .weekly-komisi-table td:first-child,
     .weekly-absensi-table td:first-child {
         padding-left: 12px;
     }
     
+    .weekly-komisi-table th:last-child,
     .weekly-absensi-table th:last-child,
+    .weekly-komisi-table td:last-child,
     .weekly-absensi-table td:last-child {
         padding-right: 12px;
     }
     
-    /* Popup */
-    .popup-content {
-        padding: 20px;
-        width: 95%;
-    }
-    
-    .popup-buttons {
+    /* Section Header Adjustments */
+    .section-header {
         flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
     }
     
-    .popup-btn {
-        width: 100%;
+    .total-summary {
+        text-align: center;
+        padding: 10px 16px;
+        font-size: 0.88rem;
     }
+    
+    /* Basic Info Adjustments */
+    .today-basic-info {
+        grid-template-columns: 1fr;
+        padding: 14px;
+        gap: 10px;
+    }
+    
+    .basic-label {
+        font-size: 0.74rem;
+    }
+    
+    .basic-value {
+        font-size: 0.92rem;
+    }
+    
+    /* UOP Reason Adjustments */
+    .uop-reason-notice {
+        padding: 10px 14px;
+        margin-top: 12px;
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+    }
+    
+    .uop-reason-notice .reason-text {
+        font-size: 0.84rem;
+    }
+    
+    .uop-reason-info {
+        flex-direction: column;
+        text-align: center;
+        gap: 6px;
+        padding: 8px 10px;
+        font-size: 0.8rem;
+    }
+    
+    /* Section Padding Adjustments */
+    .today-komisi-section,
+    .today-absensi-section,
+    .weekly-komisi-section,
+    .weekly-absensi-section {
+        padding: 12px;
+    }
+    
+    /* Cards Adjustments */
+    .today-komisi-card,
+    .today-absensi-card {
+        padding: 16px;
+        border-radius: 16px;
+    }
+    
+    /* Status Badges in Mobile */
+    .status-terlambat,
+    .status-cepat,
+    .status-tepat,
+    .status-tidak-absen,
+    .status-masih-bekerja {
+        padding: 5px 10px;
+        font-size: 0.82rem;
+    }
+}
+
+/* Extra Small Devices (iPhone SE, etc) */
+@media (max-width: 360px) {
+    .today-grid {
+        gap: 8px;
+    }
+    
+    .today-item {
+        padding: 12px 8px;
+    }
+    
+    .today-label {
+        font-size: 0.72rem;
+    }
+    
+    .today-value {
+        font-size: 0.95rem;
+    }
+    
+    .schedule-item {
+        min-height: 70px;
+        padding: 10px 8px;
+    }
+    
+    .schedule-label {
+        font-size: 0.7rem;
+    }
+    
+    .schedule-value {
+        font-size: 0.9rem;
+    }
+    
+    .weekly-komisi-table th,
+    .weekly-absensi-table th,
+    .weekly-komisi-table td,
+    .weekly-absensi-table td {
+        padding: 8px 6px;
+        font-size: 0.78rem;
+    }
+    
+    .weekly-komisi-table th,
+    .weekly-absensi-table th {
+        font-size: 0.76rem;
+        padding: 10px 6px;
+    }
+}
+
+/* Smooth Scroll */
+.komisi-page,
+.absensi-page {
+    scroll-behavior: smooth;
+}
+
+/* Animation for Loading */
+.loading {
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Touch Feedback */
+.karyawan-select:active,
+.outlet-select:active,
+.date-select:active,
+.back-btn:active,
+.refresh-btn:active {
+    transform: scale(0.98);
+}
+
+/* Ensure text is readable on mobile */
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 /* Styles untuk popup pengumuman */
 .announcement-popup {
