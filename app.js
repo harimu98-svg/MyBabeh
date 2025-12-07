@@ -975,39 +975,60 @@ function formatDate(dateString) {
     }
 }
 
-// ========== BAGIAN 4: FUNGSI MENU KOMPONEN - KOMPISI ==========
+// ========== BAGIAN 4: FUNGSI MENU KOMPONEN - KOMISI ==========
 // ============================================================
 
-// Variabel global untuk state komisi
+// Variabel global
 let currentKaryawan = null;
 let isOwner = false;
+let currentUserOutlet = null;
 
 // [4.1] Fungsi untuk tampilkan halaman komisi
 async function showKomisiPage() {
-    // Simpan data karyawan saat ini
-    const { data: { user } } = await supabase.auth.getUser();
-    const namaKaryawan = user?.user_metadata?.nama_karyawan;
-    
-    if (!namaKaryawan) return;
-    
-    // Ambil data karyawan lengkap
-    const { data: karyawanData } = await supabase
-        .from('karyawan')
-        .select('*')
-        .eq('nama_karyawan', namaKaryawan)
-        .single();
-    
-    currentKaryawan = karyawanData;
-    isOwner = karyawanData?.role === 'owner';
-    
-    // Sembunyikan main app, tampilkan halaman komisi
-    document.getElementById('appScreen').style.display = 'none';
-    
-    // Buat container halaman komisi
-    createKomisiPage();
-    
-    // Load data komisi
-    await loadKomisiData();
+    try {
+        // Ambil data user
+        const { data: { user } } = await supabase.auth.getUser();
+        const namaKaryawan = user?.user_metadata?.nama_karyawan;
+        
+        if (!namaKaryawan) {
+            alert('User tidak ditemukan!');
+            return;
+        }
+        
+        // Ambil data karyawan lengkap (untuk outlet dan role)
+        const { data: karyawanData } = await supabase
+            .from('karyawan')
+            .select('role, outlet')
+            .eq('nama_karyawan', namaKaryawan)
+            .single();
+        
+        if (!karyawanData) {
+            alert('Data karyawan tidak ditemukan!');
+            return;
+        }
+        
+        currentKaryawan = {
+            nama_karyawan: namaKaryawan,
+            role: karyawanData.role,
+            outlet: karyawanData.outlet
+        };
+        
+        currentUserOutlet = karyawanData.outlet;
+        isOwner = karyawanData.role === 'owner';
+        
+        // Sembunyikan main app, tampilkan halaman komisi
+        document.getElementById('appScreen').style.display = 'none';
+        
+        // Buat container halaman komisi
+        createKomisiPage();
+        
+        // Load data komisi
+        await loadKomisiData();
+        
+    } catch (error) {
+        console.error('Error in showKomisiPage:', error);
+        alert('Gagal memuat halaman komisi!');
+    }
 }
 
 // [4.2] Fungsi untuk buat halaman komisi
@@ -1037,17 +1058,18 @@ function createKomisiPage() {
         </header>
         
         <!-- Filter untuk Owner -->
-        <div id="ownerFilterSection" class="owner-filter" style="display: none;">
+        <div id="ownerFilterSection" class="owner-filter" style="display: ${isOwner ? 'flex' : 'none'};">
+            <!-- URUTAN BERUBAH: Outlet dulu, baru Karyawan -->
             <div class="filter-group">
-                <label for="selectKaryawan">Pilih Karyawan:</label>
-                <select id="selectKaryawan" class="karyawan-select">
-                    <option value="">Loading...</option>
+                <label for="selectOutlet">Pilih Outlet:</label>
+                <select id="selectOutlet" class="outlet-select">
+                    <option value="all">Semua Outlet</option>
                 </select>
             </div>
             <div class="filter-group">
-                <label for="selectOutlet">Outlet:</label>
-                <select id="selectOutlet" class="outlet-select">
-                    <option value="all">Semua Outlet</option>
+                <label for="selectKaryawan">Pilih Karyawan:</label>
+                <select id="selectKaryawan" class="karyawan-select">
+                    <option value="">Semua Karyawan</option>
                 </select>
             </div>
             <div class="filter-group">
@@ -1093,6 +1115,7 @@ function createKomisiPage() {
                             <th>Komisi</th>
                             <th>UOP</th>
                             <th>Tips QRIS</th>
+                            <th>Alasan UOP</th>
                             <th>Total</th>
                         </tr>
                     </thead>
@@ -1130,27 +1153,23 @@ function setupKomisiPageEvents() {
     
     // Filter untuk owner
     if (isOwner) {
-        const filterSection = document.getElementById('ownerFilterSection');
-        filterSection.style.display = 'block';
-        
-        // Load dropdown karyawan
-        loadKaryawanDropdown();
-        
         // Load dropdown outlet
         loadOutletDropdown();
         
-        // Event listeners untuk filter
+        // Event listener untuk outlet change
+        document.getElementById('selectOutlet').addEventListener('change', async () => {
+            await loadKaryawanDropdown(); // Reload karyawan berdasarkan outlet
+            await loadKomisiData();
+        });
+        
+        // Event listener untuk karyawan change
         document.getElementById('selectKaryawan').addEventListener('change', async () => {
             await loadKomisiData();
         });
         
-        document.getElementById('selectOutlet').addEventListener('change', async () => {
-            await loadKomisiData();
-        });
-        
+        // Event listener untuk date range
         document.getElementById('dateRange').addEventListener('change', async (e) => {
             if (e.target.value === 'custom') {
-                // Tampilkan date picker custom
                 showCustomDatePicker();
             } else {
                 await loadKomisiData();
@@ -1213,7 +1232,7 @@ async function loadKomisiData() {
             if (tbody) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="9" style="text-align: center; padding: 20px; color: #ff4757;">
+                        <td colspan="10" style="text-align: center; padding: 20px; color: #ff4757;">
                             Gagal memuat data
                         </td>
                     </tr>
@@ -1223,515 +1242,452 @@ async function loadKomisiData() {
     }
 }
 
-// [4.5] Fungsi untuk get filter parameters - UPDATE LOGIC
+// [4.5] Fungsi untuk get filter parameters
 function getFilterParams() {
     const params = {
         namaKaryawan: currentKaryawan?.nama_karyawan,
         role: currentKaryawan?.role,
+        outlet: currentUserOutlet, // OUTLET DARI TABEL KARYAWAN
         isOwner: isOwner
     };
     
     if (isOwner) {
-        const selectKaryawan = document.getElementById('selectKaryawan');
         const selectOutlet = document.getElementById('selectOutlet');
+        const selectKaryawan = document.getElementById('selectKaryawan');
         const dateRange = document.getElementById('dateRange');
         
-        // Untuk owner: gunakan value dari dropdown jika dipilih
+        // Untuk owner: gunakan filter dari dropdown
+        if (selectOutlet && selectOutlet.value !== 'all') {
+            params.outlet = selectOutlet.value;
+        } else {
+            params.outlet = null; // Semua outlet
+        }
+        
         if (selectKaryawan && selectKaryawan.value) {
             params.namaKaryawan = selectKaryawan.value;
             params.filterByKaryawan = true;
         } else {
-            params.namaKaryawan = null; // Owner lihat semua
+            params.namaKaryawan = null;
             params.filterByKaryawan = false;
-        }
-        
-        if (selectOutlet && selectOutlet.value !== 'all') {
-            params.outlet = selectOutlet.value;
         }
         
         if (dateRange) {
             params.dateRange = dateRange.value;
         }
     } else {
-        // Untuk non-owner: selalu filter berdasarkan serve_by = nama sendiri
+        // Untuk non-owner: selalu filter berdasarkan nama sendiri
         params.filterByKaryawan = true;
-        params.outlet = null; // Non-owner tidak bisa filter outlet
+        // Outlet tetap dari karyawan.outlet
     }
     
     console.log('Filter params refined:', params);
     return params;
 }
 
-// [4.6] Fungsi untuk load komisi hari ini - PERBAIKAN FILTER
+// [4.6] Fungsi untuk load komisi hari ini - DARI TABEL KOMISI
 async function loadTodayKomisi(filterParams) {
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
     
-    console.log('Loading today komisi for:', filterParams.namaKaryawan);
-    
-    // Query transaksi_order
-    let orderQuery = supabase
-        .from('transaksi_order')
-        .select('*')
-        .eq('order_date', todayStr);
-    
-    // PERBAIKAN: Filter HANYA serve_by = nama karyawan (kecuali owner)
-    if (filterParams.namaKaryawan && !isOwner) {
-        // Untuk non-owner: HANYA tampilkan data sendiri
-        orderQuery = orderQuery.eq('serve_by', filterParams.namaKaryawan);
-        console.log('Non-owner filter: serve_by =', filterParams.namaKaryawan);
-    } else if (filterParams.namaKaryawan && isOwner) {
-        // Untuk owner: Tampilkan semua atau sesuai filter dropdown
-        if (filterParams.namaKaryawan && document.getElementById('selectKaryawan')?.value) {
-            // Jika owner pilih karyawan tertentu di dropdown
-            orderQuery = orderQuery.eq('serve_by', filterParams.namaKaryawan);
-            console.log('Owner filter selected karyawan:', filterParams.namaKaryawan);
-        } else {
-            // Jika owner pilih "Semua Karyawan", tidak pakai filter serve_by
-            console.log('Owner viewing all karyawan');
-        }
-    }
-    
-    // Filter outlet jika ada
-    if (filterParams.outlet && filterParams.outlet !== 'all') {
-        orderQuery = orderQuery.eq('outlet', filterParams.outlet);
-    }
-    
-    const { data: orders, error: orderError } = await orderQuery;
-    
-    if (orderError) {
-        console.error('Error loading today orders:', orderError);
-        return;
-    }
-    
-    console.log('Today orders found:', orders?.length || 0);
-    
-    // Jika tidak ada order
-    if (!orders || orders.length === 0) {
-        displayTodayKomisi({
-            jumlahTransaksi: 0,
-            komisi: 0,
-            uop: 0,
-            tips: 0,
-            total: 0,
-            outlet: filterParams.outlet || '-',
-            serveBy: filterParams.namaKaryawan || '-',
-            kasir: '-' // Kasir tidak relevan untuk serve_by view
-        }, today);
-        return;
-    }
-    
-    // Ambil order_no untuk query detail
-    const orderNumbers = orders.map(order => order.order_no).filter(Boolean);
-    
-    // Query transaksi_detail
-    let detailQuery = supabase
-        .from('transaksi_detail')
-        .select('*')
-        .in('order_no', orderNumbers);
-    
-    const { data: details, error: detailError } = await detailQuery;
-    
-    if (detailError) {
-        console.error('Error loading transaction details:', detailError);
-    }
-    
-    // Gabungkan data
-    const ordersWithDetails = orders.map(order => {
-        const orderDetails = details?.filter(detail => detail.order_no === order.order_no) || [];
-        return {
-            ...order,
-            transaksi_detail: orderDetails
-        };
+    console.log('Loading today komisi from komisi table for:', {
+        tanggal: today,
+        namaKaryawan: filterParams.namaKaryawan,
+        outlet: filterParams.outlet
     });
     
-    // Hitung komisi
-    const result = await calculateKomisiFromOrders(ordersWithDetails, filterParams.namaKaryawan || currentKaryawan?.nama_karyawan);
+    // Query langsung dari tabel komisi
+    let query = supabase
+        .from('komisi')
+        .select('*')
+        .eq('tanggal', today);
     
-    // Tampilkan
-    displayTodayKomisi(result, today);
+    // Filter berdasarkan serve_by
+    if (filterParams.filterByKaryawan && filterParams.namaKaryawan) {
+        query = query.eq('serve_by', filterParams.namaKaryawan);
+        console.log('Filter by serve_by:', filterParams.namaKaryawan);
+    }
+    
+    // Filter berdasarkan outlet (jika bukan semua outlet)
+    if (filterParams.outlet) {
+        query = query.eq('outlet', filterParams.outlet);
+        console.log('Filter by outlet:', filterParams.outlet);
+    }
+    
+    const { data: komisiData, error } = await query;
+    
+    if (error) {
+        console.error('Error loading today komisi:', error);
+        throw error;
+    }
+    
+    console.log('Komisi data found:', komisiData?.length || 0, 'records');
+    
+    // Jika tidak ada data di komisi, ambil info karyawan untuk outlet
+    if (!komisiData || komisiData.length === 0) {
+        const outletInfo = await getOutletInfo(filterParams.namaKaryawan || currentKaryawan.nama_karyawan);
+        
+        displayTodayKomisi({
+            tanggal: today,
+            outlet: outletInfo.outlet || currentUserOutlet || '-',
+            serve_by: filterParams.namaKaryawan || currentKaryawan.nama_karyawan || '-',
+            kasir: '-',
+            jumlah_transaksi: 0,
+            komisi: 0,
+            uop: 0,
+            tips_qris: 0,
+            alasan_nouop: 'Belum ada transaksi hari ini',
+            total_transaksi: 0
+        }, new Date());
+        return;
+    }
+    
+    // Untuk non-owner: tampilkan data pertama (seharusnya cuma 1)
+    // Untuk owner: mungkin banyak data, tampilkan summary
+    if (isOwner && !filterParams.filterByKaryawan) {
+        // Owner melihat semua karyawan: hitung total
+        const summary = calculateSummary(komisiData);
+        displayTodayKomisi(summary, new Date());
+    } else {
+        // Non-owner atau owner pilih karyawan tertentu
+        const data = komisiData[0];
+        displayTodayKomisi(data, new Date());
+    }
 }
 
-// [4.7] Fungsi untuk load komisi 7 hari terakhir - DENGAN DEBUG DETAIL
+// [4.7] Fungsi untuk load komisi 7 hari terakhir - DARI TABEL KOMISI
 async function loadWeeklyKomisi(filterParams) {
-    console.log('=== DEBUG LOAD WEEKLY KOMISI START ===');
+    console.log('=== LOAD WEEKLY KOMISI FROM KOMISI TABLE ===');
     
+    // Tanggal range: 7 hari sebelum hari ini
     const endDate = new Date();
+    endDate.setDate(endDate.getDate() - 1); // sampai kemarin
     const startDate = new Date();
-    
-    // 7 hari sebelum hari ini (tidak termasuk hari ini)
     startDate.setDate(startDate.getDate() - 7); // 7 hari sebelum
-    endDate.setDate(endDate.getDate() - 1);     // kemarin
     
-    // Format dates untuk query
     const startStr = startDate.toISOString().split('T')[0];
     const endStr = endDate.toISOString().split('T')[0];
     
-    console.log('1. Date range calculation:');
-    console.log('   Start (7 days ago):', startStr, startDate.toLocaleDateString('id-ID'));
-    console.log('   End (yesterday):', endStr, endDate.toLocaleDateString('id-ID'));
-    console.log('   Today:', new Date().toISOString().split('T')[0]);
+    console.log('Date range:', startStr, 'to', endStr);
     
-    // FALLBACK nama karyawan
-    const namaKaryawanAktif = filterParams.namaKaryawan || currentKaryawan?.nama_karyawan;
-    console.log('2. Nama karyawan aktif:', namaKaryawanAktif);
-    
-    // TEST QUERY: Lihat semua data dulu tanpa filter tanggal
-    console.log('3. Testing query without date filter...');
-    const testQuery = supabase
-        .from('transaksi_order')
-        .select('order_date, order_no, serve_by')
-        .eq('serve_by', namaKaryawanAktif)
-        .order('order_date', { ascending: false })
-        .limit(10);
-    
-    const { data: testData, error: testError } = await testQuery;
-    
-    if (testError) {
-        console.error('Test query error:', testError);
-    } else {
-        console.log('4. Test query results (10 terbaru):', testData);
-        console.log('5. Unique dates in data:', 
-            [...new Set(testData?.map(d => d.order_date))].sort().reverse()
-        );
-    }
-    
-    // Query utama untuk 7 hari terakhir
-    console.log('6. Executing main query with date range...');
-    let orderQuery = supabase
-        .from('transaksi_order')
+    // Query dari tabel komisi
+    let query = supabase
+        .from('komisi')
         .select('*')
-        .gte('order_date', startStr)  // ≥ 7 hari sebelum
-        .lte('order_date', endStr)    // ≤ kemarin
-        .order('order_date', { ascending: false });
+        .gte('tanggal', startStr)
+        .lte('tanggal', endStr)
+        .order('tanggal', { ascending: false });
     
     // Filter berdasarkan serve_by
-    if (namaKaryawanAktif && !isOwner) {
-        orderQuery = orderQuery.eq('serve_by', namaKaryawanAktif);
-        console.log('7. Filter by serve_by:', namaKaryawanAktif);
+    if (filterParams.filterByKaryawan && filterParams.namaKaryawan) {
+        query = query.eq('serve_by', filterParams.namaKaryawan);
     }
     
-    const { data: orders, error: orderError } = await orderQuery;
-    
-    if (orderError) {
-        console.error('8. Main query error:', orderError);
-        return;
+    // Filter berdasarkan outlet
+    if (filterParams.outlet) {
+        query = query.eq('outlet', filterParams.outlet);
     }
     
-    console.log('9. Main query results count:', orders?.length || 0);
-    console.log('10. Orders found:', orders);
+    const { data: komisiData, error } = await query;
     
-    // Jika tidak ada order dalam range tersebut
-    if (!orders || orders.length === 0) {
-        console.log('11. NO ORDERS FOUND in date range. Showing empty table...');
-        
-        // Buat data kosong untuk 7 hari
-        const dailyResults = [];
+    if (error) {
+        console.error('Error loading weekly komisi:', error);
+        throw error;
+    }
+    
+    console.log('Weekly komisi found:', komisiData?.length || 0, 'records');
+    
+    // Group by tanggal untuk tampilan
+    const groupedByDate = {};
+    
+    if (komisiData && komisiData.length > 0) {
+        komisiData.forEach(item => {
+            const date = item.tanggal;
+            if (!groupedByDate[date]) {
+                groupedByDate[date] = [];
+            }
+            groupedByDate[date].push(item);
+        });
+    }
+    
+    // Buat array untuk 7 hari
+    const dailyResults = [];
+    let total7Hari = 0;
+    
+    // Untuk owner melihat semua: hitung per hari (bukan per karyawan)
+    if (isOwner && !filterParams.filterByKaryawan) {
+        // Loop 7 hari terakhir
         for (let i = 1; i <= 7; i++) {
             const date = new Date();
             date.setDate(date.getDate() - i);
             const dateStr = date.toISOString().split('T')[0];
             
-            dailyResults.push({
-                date: dateStr,
-                dateFormatted: date.toLocaleDateString('id-ID'),
-                jumlahTransaksi: 0,
-                komisi: 0,
-                uop: 0,
-                tips: 0,
-                total: 0,
-                outlet: '-',
-                serveBy: namaKaryawanAktif || '-',
-                kasir: '-'
-            });
+            const dayData = groupedByDate[dateStr] || [];
+            const summary = calculateSummary(dayData);
+            
+            summary.date = dateStr;
+            summary.dateFormatted = formatDateLocal(date);
+            dailyResults.push(summary);
+            
+            total7Hari += summary.total_transaksi || 0;
         }
-        
-        console.log('12. Empty daily results:', dailyResults);
-        displayWeeklyKomisi(dailyResults, 0);
-        return;
-    }
-    
-    // Ambil order_no untuk query detail
-    const orderNumbers = orders.map(order => order.order_no).filter(Boolean);
-    console.log('13. Order numbers to query details:', orderNumbers);
-    
-    // Query transaksi_detail
-    let detailQuery = supabase
-        .from('transaksi_detail')
-        .select('*')
-        .in('order_no', orderNumbers);
-    
-    const { data: details, error: detailError } = await detailQuery;
-    
-    if (detailError) {
-        console.error('14. Details query error:', detailError);
     } else {
-        console.log('15. Details found:', details?.length || 0);
-    }
-    
-    // Group details by order_no
-    const detailsByOrderNo = {};
-    if (details) {
-        details.forEach(detail => {
-            if (!detailsByOrderNo[detail.order_no]) {
-                detailsByOrderNo[detail.order_no] = [];
+        // Non-owner atau owner pilih karyawan tertentu
+        for (let i = 1; i <= 7; i++) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateStr = date.toISOString().split('T')[0];
+            
+            const dayData = groupedByDate[dateStr] || [];
+            
+            // Ambil data untuk karyawan tertentu
+            let karyawanData = null;
+            if (filterParams.namaKaryawan) {
+                karyawanData = dayData.find(item => item.serve_by === filterParams.namaKaryawan);
+            } else if (dayData.length > 0) {
+                karyawanData = dayData[0]; // Ambil pertama jika tidak filter
             }
-            detailsByOrderNo[detail.order_no].push(detail);
-        });
-    }
-    
-    // Gabungkan data
-    const ordersWithDetails = orders.map(order => {
-        const orderDetails = detailsByOrderNo[order.order_no] || [];
-        return {
-            ...order,
-            transaksi_detail: orderDetails
-        };
-    });
-    
-    // Group orders by date untuk memudahkan lookup
-    const ordersByDate = {};
-    ordersWithDetails.forEach(order => {
-        const date = order.order_date;
-        if (!ordersByDate[date]) {
-            ordersByDate[date] = [];
+            
+            // Jika tidak ada data di komisi, ambil info outlet dari karyawan
+            if (!karyawanData) {
+                const outletInfo = await getOutletInfo(filterParams.namaKaryawan || currentKaryawan.nama_karyawan);
+                
+                karyawanData = {
+                    tanggal: dateStr,
+                    outlet: outletInfo.outlet || currentUserOutlet || '-',
+                    serve_by: filterParams.namaKaryawan || currentKaryawan.nama_karyawan || '-',
+                    kasir: '-',
+                    jumlah_transaksi: 0,
+                    komisi: 0,
+                    uop: 0,
+                    tips_qris: 0,
+                    alasan_nouop: 'Belum ada transaksi',
+                    total_transaksi: 0
+                };
+            }
+            
+            karyawanData.date = dateStr;
+            karyawanData.dateFormatted = formatDateLocal(date);
+            dailyResults.push(karyawanData);
+            
+            total7Hari += karyawanData.total_transaksi || 0;
         }
-        ordersByDate[date].push(order);
-    });
-    
-    console.log('16. Orders grouped by date:', Object.keys(ordersByDate));
-    
-    // Hitung komisi per hari untuk 7 hari terakhir
-    const dailyResults = [];
-    let total7Hari = 0;
-    
-    console.log('17. Calculating daily results...');
-    
-    // Loop 7 hari SEBELUM hari ini
-    for (let i = 1; i <= 7; i++) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
-        
-        const dayOrders = ordersByDate[dateStr] || [];
-        
-        console.log(`   Day ${i} (${dateStr}): ${dayOrders.length} orders`);
-        
-        const result = await calculateKomisiFromOrders(dayOrders, namaKaryawanAktif);
-        
-        result.date = dateStr;
-        result.dateFormatted = date.toLocaleDateString('id-ID');
-        dailyResults.push(result);
-        
-        total7Hari += result.total;
     }
     
-    console.log('18. Final daily results:', dailyResults);
-    console.log('19. Total 7 hari:', total7Hari);
-    console.log('=== DEBUG LOAD WEEKLY KOMISI END ===');
+    console.log('Daily results prepared:', dailyResults.length);
     
     // Tampilkan di UI
     displayWeeklyKomisi(dailyResults, total7Hari);
 }
 
-// [4.8] Fungsi untuk hitung komisi dari orders - FIX VERSION
-async function calculateKomisiFromOrders(orders, namaKaryawan) {
-    console.log('=== DEBUG calculateKomisiFromOrders ===');
-    console.log('1. Orders received:', orders?.length || 0);
-    console.log('2. Nama karyawan param:', namaKaryawan);
-    console.log('3. Sample order:', orders?.[0]);
-    
-    // Default return jika tidak ada orders
-    if (!orders || orders.length === 0) {
-        console.log('No orders, returning zero data');
+// [4.8] Fungsi helper: get outlet info dari tabel karyawan
+async function getOutletInfo(namaKaryawan) {
+    try {
+        if (!namaKaryawan) return { outlet: currentUserOutlet || '-' };
+        
+        const { data, error } = await supabase
+            .from('karyawan')
+            .select('outlet')
+            .eq('nama_karyawan', namaKaryawan)
+            .single();
+        
+        if (error) {
+            console.error('Error getting outlet info:', error);
+            return { outlet: currentUserOutlet || '-' };
+        }
+        
+        return { outlet: data.outlet || currentUserOutlet || '-' };
+    } catch (error) {
+        console.error('Exception getting outlet info:', error);
+        return { outlet: currentUserOutlet || '-' };
+    }
+}
+
+// [4.9] Fungsi helper: calculate summary untuk owner view
+function calculateSummary(komisiDataArray) {
+    if (!komisiDataArray || komisiDataArray.length === 0) {
         return {
-            jumlahTransaksi: 0,
+            outlet: 'Multiple',
+            serve_by: 'Multiple',
+            kasir: '-',
+            jumlah_transaksi: 0,
             komisi: 0,
             uop: 0,
-            tips: 0,
-            total: 0,
-            outlet: '-',
-            serveBy: namaKaryawan || '-',
-            kasir: '-'
+            tips_qris: 0,
+            alasan_nouop: 'Tidak ada data',
+            total_transaksi: 0
         };
     }
     
-    let jumlahTransaksi = orders.length;
-    let totalKomisi = 0;
-    let totalUOP = 0;
-    let totalTips = 0;
-    let totalAmount = 0;
-    
-    let outlet = '';
-    let serveBy = '';
-    let kasir = '';
-    
-    // 1. HITUNG KOMISI DAN AMBIL INFO DASAR
-    orders.forEach((order, index) => {
-        // Komisi dari transaksi_order - FIX: comission dengan SATU 'm'
-        const komisiOrder = order.comission || order.commission || 0;
-        totalKomisi += komisiOrder;
-        
-        console.log(`Order ${index + 1}:`, {
-            order_no: order.order_no,
-            comission: order.comission,
-            commission: order.commission,
-            komisiUsed: komisiOrder
-        });
-        
-        // Ambil outlet, serve_by, kasir dari order pertama yang ada
-        if (!outlet && order.outlet) outlet = order.outlet;
-        if (!serveBy && order.serve_by) serveBy = order.serve_by;
-        if (!kasir && order.kasir) kasir = order.kasir;
-    });
-    
-    console.log('4. After komisi calculation:', {
-        totalKomisi,
-        outlet,
-        serveBy,
-        kasir
-    });
-    
-    // 2. CEK APAKAH ADA TRANSAKSI DENGAN ITEM_GROUP = 'UOP'
-    let adaTransaksiDenganUOP = false;
-    
-    orders.forEach((order) => {
-        if (order.transaksi_detail && order.transaksi_detail.length > 0) {
-            // Debug detail transaksi
-            console.log(`Order ${order.order_no} has ${order.transaksi_detail.length} details`);
-            
-            order.transaksi_detail.forEach((detail, idx) => {
-                console.log(`  Detail ${idx + 1}:`, {
-                    item_group: detail.item_group,
-                    amount: detail.amount,
-                    isUOP: detail.item_group === 'UOP',
-                    isTips: detail.item_group === 'Tips'
-                });
-                
-                if (detail.item_group === 'UOP') {
-                    adaTransaksiDenganUOP = true;
-                    console.log(`  FOUND UOP ITEM in order ${order.order_no}`);
-                }
-                
-                if (detail.item_group === 'Tips') {
-                    totalTips += detail.amount || 0;
-                }
-            });
-        } else {
-            console.log(`Order ${order.order_no} has NO details`);
-        }
-    });
-    
-    console.log('5. UOP check result:', adaTransaksiDenganUOP);
-    console.log('6. Total tips:', totalTips);
-    
-    // 3. HITUNG UOP HANYA JIKA ADA TRANSAKSI DENGAN UOP
-    if (adaTransaksiDenganUOP && namaKaryawan) {
-        try {
-            console.log('7. Loading UOP rate for:', namaKaryawan);
-            
-            const { data: karyawanData, error } = await supabase
-                .from('karyawan')
-                .select('uop')
-                .eq('nama_karyawan', namaKaryawan)
-                .single();
-            
-            console.log('8. UOP query result:', { data: karyawanData, error });
-            
-            if (error) {
-                console.error('Error loading UOP:', error);
-                totalUOP = 0;
-            } else if (karyawanData && karyawanData.uop !== null && karyawanData.uop !== undefined) {
-                totalUOP = Number(karyawanData.uop);
-                console.log('9. UOP value found:', totalUOP);
-            } else {
-                totalUOP = 0;
-                console.log('10. UOP column empty or null');
-            }
-        } catch (err) {
-            console.error('Exception loading UOP:', err);
-            totalUOP = 0;
-        }
-    } else {
-        totalUOP = 0;
-        console.log('11. No UOP items found or no namaKaryawan');
-    }
-    
-    // 4. HITUNG TOTAL
-    totalAmount = totalKomisi + totalUOP + totalTips;
-    
-    console.log('=== FINAL CALCULATION ===', {
-        jumlahTransaksi,
-        totalKomisi,
-        totalUOP,
-        totalTips,
-        totalAmount,
-        outlet,
-        serveBy,
-        kasir
-    });
-    
-    return {
-        jumlahTransaksi,
-        komisi: totalKomisi,
-        uop: totalUOP,
-        tips: totalTips,
-        total: totalAmount,
-        outlet: outlet || '-',
-        serveBy: serveBy || namaKaryawan || '-',
-        kasir: kasir || '-'
+    const summary = {
+        outlet: 'Multiple Outlets',
+        serve_by: `${komisiDataArray.length} Karyawan`,
+        kasir: 'Multiple',
+        jumlah_transaksi: 0,
+        komisi: 0,
+        uop: 0,
+        tips_qris: 0,
+        alasan_nouop: null,
+        total_transaksi: 0
     };
+    
+    komisiDataArray.forEach(item => {
+        summary.jumlah_transaksi += item.jumlah_transaksi || 0;
+        summary.komisi += item.komisi || 0;
+        summary.uop += item.uop || 0;
+        summary.tips_qris += item.tips_qris || 0;
+        summary.total_transaksi += item.total_transaksi || 0;
+    });
+    
+    return summary;
 }
 
-// [4.9] Fungsi untuk tampilkan komisi hari ini
+// [4.10] Fungsi untuk load dropdown outlet (owner only)
+async function loadOutletDropdown() {
+    const select = document.getElementById('selectOutlet');
+    
+    try {
+        const { data: outlets, error } = await supabase
+            .from('karyawan')  // AMBIL DARI KARYAWAN, BUKAN TRANSAKSI
+            .select('outlet')
+            .not('outlet', 'is', null)
+            .order('outlet');
+        
+        if (error) throw error;
+        
+        // Get unique outlets
+        const uniqueOutlets = [...new Set(outlets.map(o => o.outlet))].filter(Boolean);
+        
+        select.innerHTML = `
+            <option value="all">Semua Outlet</option>
+            ${uniqueOutlets.map(outlet => 
+                `<option value="${outlet}">${outlet}</option>`
+            ).join('')}
+        `;
+        
+        // Set outlet user saat ini sebagai default jika bukan owner semua outlet
+        if (currentUserOutlet && uniqueOutlets.includes(currentUserOutlet)) {
+            select.value = currentUserOutlet;
+        }
+        
+        // Setelah outlet di-load, load karyawan dropdown
+        await loadKaryawanDropdown();
+        
+    } catch (error) {
+        console.error('Error loading outlets:', error);
+        select.innerHTML = '<option value="all">Semua Outlet</option>';
+    }
+}
+
+// [4.11] Fungsi untuk load dropdown karyawan berdasarkan outlet (owner only)
+async function loadKaryawanDropdown() {
+    const select = document.getElementById('selectKaryawan');
+    const outletSelect = document.getElementById('selectOutlet');
+    const selectedOutlet = outletSelect ? outletSelect.value : null;
+    
+    try {
+        let query = supabase
+            .from('karyawan')
+            .select('nama_karyawan, role')
+            .order('nama_karyawan');
+        
+        // Filter berdasarkan outlet jika dipilih
+        if (selectedOutlet && selectedOutlet !== 'all') {
+            query = query.eq('outlet', selectedOutlet);
+        }
+        
+        const { data: karyawanList, error } = await query;
+        
+        if (error) throw error;
+        
+        select.innerHTML = `
+            <option value="">Semua Karyawan</option>
+            ${karyawanList.map(k => 
+                `<option value="${k.nama_karyawan}">${k.nama_karyawan} (${k.role})</option>`
+            ).join('')}
+        `;
+        
+        // Auto-select karyawan saat ini jika bukan owner mode all
+        if (!isOwner && currentKaryawan) {
+            select.value = currentKaryawan.nama_karyawan;
+        }
+        
+    } catch (error) {
+        console.error('Error loading karyawan list:', error);
+        select.innerHTML = `
+            <option value="">Error loading data</option>
+            ${currentKaryawan ? `<option value="${currentKaryawan.nama_karyawan}">${currentKaryawan.nama_karyawan}</option>` : ''}
+        `;
+    }
+}
+
+// [4.12] Fungsi untuk tampilkan komisi hari ini
 function displayTodayKomisi(data, date) {
     const content = document.getElementById('todayKomisiContent');
+    
+    const totalUop = data.uop || 0;
+    const showUopReason = totalUop === 0 && data.alasan_nouop;
     
     content.innerHTML = `
         <div class="today-header">
             <div class="date-display">
                 <i class="fas fa-calendar-alt"></i>
-                <span>${date.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                <span>${formatDateLocal(date)}</span>
+            </div>
+            <div class="outlet-display">
+                <i class="fas fa-store"></i>
+                <span>Outlet: ${data.outlet || currentUserOutlet || '-'}</span>
             </div>
         </div>
         
         <div class="today-grid">
             <div class="today-item">
-                <div class="today-label">Outlet</div>
-                <div class="today-value">${data.outlet || '-'}</div>
-            </div>
-            <div class="today-item">
                 <div class="today-label">Serve By</div>
-                <div class="today-value">${data.serveBy || '-'}</div>
+                <div class="today-value">${data.serve_by || currentKaryawan?.nama_karyawan || '-'}</div>
             </div>
             <div class="today-item">
                 <div class="today-label">Kasir</div>
                 <div class="today-value">${data.kasir || '-'}</div>
             </div>
-            <div class="today-item highlight">
+            <div class="today-item">
                 <div class="today-label">Jumlah Transaksi</div>
-                <div class="today-value">${data.jumlahTransaksi}</div>
+                <div class="today-value">${data.jumlah_transaksi || 0}</div>
+            </div>
+            <div class="today-item">
+                <div class="today-label">UOP</div>
+                <div class="today-value ${totalUop === 0 ? 'text-danger' : ''}">
+                    ${formatRupiah(totalUop)}
+                </div>
             </div>
         </div>
         
         <div class="today-totals">
             <div class="total-item">
+                <div class="total-label">Total Transaksi</div>
+                <div class="total-value">${formatRupiah(data.total_transaksi || 0)}</div>
+            </div>
+            <div class="total-item">
                 <div class="total-label">Komisi</div>
-                <div class="total-value">${formatRupiah(data.komisi)}</div>
+                <div class="total-value">${formatRupiah(data.komisi || 0)}</div>
             </div>
             <div class="total-item">
                 <div class="total-label">UOP</div>
-                <div class="total-value">${formatRupiah(data.uop)}</div>
+                <div class="total-value">${formatRupiah(totalUop)}</div>
             </div>
             <div class="total-item">
                 <div class="total-label">Tips QRIS</div>
-                <div class="total-value">${formatRupiah(data.tips)}</div>
+                <div class="total-value">${formatRupiah(data.tips_qris || 0)}</div>
             </div>
             <div class="total-item grand-total">
-                <div class="total-label">Total</div>
-                <div class="total-value">${formatRupiah(data.total)}</div>
+                <div class="total-label">Total Pendapatan</div>
+                <div class="total-value">${formatRupiah((data.komisi || 0) + totalUop + (data.tips_qris || 0))}</div>
             </div>
         </div>
+        
+        ${showUopReason ? `
+        <div class="uop-reason-notice">
+            <i class="fas fa-exclamation-circle"></i>
+            <span class="reason-text">UOP = 0, ${data.alasan_nouop}</span>
+        </div>
+        ` : ''}
     `;
     
     // Sembunyikan loading, tampilkan content
@@ -1739,23 +1695,72 @@ function displayTodayKomisi(data, date) {
     content.style.display = 'block';
 }
 
-// [4.10] Fungsi untuk tampilkan komisi 7 hari
+// [4.13] Fungsi untuk tampilkan komisi 7 hari
 function displayWeeklyKomisi(dailyResults, total7Hari) {
     const tbody = document.getElementById('weeklyKomisiBody');
     tbody.innerHTML = '';
     
-   dailyResults.forEach(result => {
+    dailyResults.forEach(result => {
+        const totalUop = result.uop || 0;
+        const hasUopReason = totalUop === 0 && result.alasan_nouop;
+        
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${result.dateFormatted}</td>
-            <td>${result.outlet || '-'}</td>
-            <td>${result.serveBy || '-'}</td>
+            <td>${result.outlet || currentUserOutlet || '-'}</td>
+            <td>${result.serve_by || currentKaryawan?.nama_karyawan || '-'}</td>
             <td>${result.kasir || '-'}</td>
-            <td>${result.jumlahTransaksi}</td>
-            <td>${formatRupiah(result.komisi)}</td>
-            <td>${formatRupiah(result.uop)}</td>
-            <td>${formatRupiah(result.tips)}</td>
-            <td class="total-column">${formatRupiah(result.total)}</td>
+            <td>${result.jumlah_transaksi || 0}</td>
+            <td>${formatRupiah(result.komisi || 0)}</td>
+            <td class="${totalUop === 0 ? 'text-danger' : ''}">${formatRupiah(totalUop)}</td>
+            <td>${formatRupiah(result.tips_qris || 0)}</td>
+            <td class="alasan-column">${result.alasan_nouop || '-'}</td>
+            <td class="total-column">${formatRupiah((result.komisi || 0) + totalUop + (result.tips_qris || 0))}</td>
+        `;
+        tbody.appendChild(row);
+        
+        // Tambahkan row info alasan jika UOP = 0
+        if (hasUopReason) {
+            const reasonRow = document.createElement('tr');
+            reasonRow.className = 'uop-reason-row';
+            reasonRow.innerHTML = `
+                <td colspan="10" class="uop-reason-cell">
+                    <div class="uop-reason-info">
+                        <i class="fas fa-info-circle"></i>
+                        <span>UOP = 0, ${result.alasan_nouop}</span>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(reasonRow);
+        }
+    });
+    
+    // Update total 7 hari
+    document.getElementById('total7Hari').textContent = formatRupiah(total7Hari);
+    
+    // Sembunyikan loading, tampilkan table
+    document.getElementById('loadingWeekly').style.display = 'none';
+    document.getElementById('weeklyKomisiTable').style.display = 'table';
+}
+
+// [4.13] Fungsi untuk tampilkan komisi 7 hari
+function displayWeeklyKomisi(dailyResults, total7Hari) {
+    const tbody = document.getElementById('weeklyKomisiBody');
+    tbody.innerHTML = '';
+    
+    dailyResults.forEach(result => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${result.dateFormatted}</td>
+            <td>${result.outlet || currentUserOutlet || '-'}</td>
+            <td>${result.serve_by || currentKaryawan?.nama_karyawan || '-'}</td>
+            <td>${result.kasir || '-'}</td>
+            <td>${result.jumlah_transaksi || 0}</td>
+            <td>${formatRupiah(result.komisi || 0)}</td>
+            <td>${formatRupiah(result.uop || 0)}</td>
+            <td>${formatRupiah(result.tips_qris || 0)}</td>
+            <td class="alasan-column">${result.alasan_nouop || '-'}</td>
+            <td class="total-column">${formatRupiah((result.komisi || 0) + (result.uop || 0) + (result.tips_qris || 0))}</td>
         `;
         tbody.appendChild(row);
     });
@@ -1768,70 +1773,21 @@ function displayWeeklyKomisi(dailyResults, total7Hari) {
     document.getElementById('weeklyKomisiTable').style.display = 'table';
 }
 
-// [4.11] Fungsi untuk load dropdown karyawan (owner only)
-async function loadKaryawanDropdown() {
-    const select = document.getElementById('selectKaryawan');
-    
-    const { data: karyawanList, error } = await supabase
-        .from('karyawan')
-        .select('nama_karyawan, role')
-        .order('nama_karyawan'); // PERBAIKAN: nama_karyawan bukan nama_karyaman
-    
-    if (error) {
-        console.error('Error loading karyawan list:', error);
-        select.innerHTML = `
-            <option value="">Error loading data</option>
-            ${currentKaryawan ? `<option value="${currentKaryawan.nama_karyawan}">${currentKaryawan.nama_karyawan}</option>` : ''}
-        `;
-        return;
-    }
-    
-    select.innerHTML = `
-        <option value="">Semua Karyawan</option>
-        ${karyawanList.map(k => 
-            `<option value="${k.nama_karyawan}">${k.nama_karyawan} (${k.role})</option>`
-        ).join('')}
-    `;
-    
-    // Select karyawan saat ini jika bukan "Semua Karyawan"
-    if (!isOwner && currentKaryawan) {
-        select.value = currentKaryawan.nama_karyawan;
-    }
-}
-
-// [4.12] Fungsi untuk load dropdown outlet
-async function loadOutletDropdown() {
-    const select = document.getElementById('selectOutlet');
-    
-    const { data: outlets, error } = await supabase
-        .from('transaksi_order')
-        .select('outlet')
-        .order('outlet');
-    
-    if (error) {
-        console.error('Error loading outlets:', error);
-        select.innerHTML = '<option value="all">Semua Outlet</option>';
-        return;
-    }
-    
-    // Get unique outlets
-    const uniqueOutlets = [...new Set(outlets.map(o => o.outlet))].filter(Boolean);
-    
-    select.innerHTML = `
-        <option value="all">Semua Outlet</option>
-        ${uniqueOutlets.map(outlet => 
-            `<option value="${outlet}">${outlet}</option>`
-        ).join('')}
-    `;
-}
-
-// [4.13] Fungsi format Rupiah
+// [4.14] Helper functions
 function formatRupiah(amount) {
     if (amount === 0 || !amount) return 'Rp 0';
     return 'Rp ' + amount.toLocaleString('id-ID');
 }
 
-// [4.14] Fungsi untuk custom date picker (placeholder)
+function formatDateLocal(date) {
+    return date.toLocaleDateString('id-ID', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+}
+
 function showCustomDatePicker() {
     alert('Fitur custom date picker akan diimplementasikan nanti.');
     document.getElementById('dateRange').value = 'week';
