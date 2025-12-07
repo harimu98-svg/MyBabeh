@@ -2030,3 +2030,30 @@ marquee {
         opacity: 0.5;
     }
 }
+/* 1. Pastikan parent cell di-center */
+.weekly-absensi-table td {
+    text-align: center !important;    /* horizontal center */
+    vertical-align: middle !important; /* vertical center */
+}
+
+/* 2. Pill sebagai inline-block dengan auto margin */
+.weekly-absensi-table td.status-cell {
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    display: inline-block !important;
+    margin: 0 auto !important; /* horizontal center */
+    min-width: 100px;
+    max-width: 120px;
+    text-align: center;
+    white-space: nowrap;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    vertical-align: middle;
+}
+
+/* 3. Pastikan pill tidak terlalu besar */
+.weekly-absensi-table td.status-cell {
+    max-height: 32px; /* batasi tinggi */
+    overflow: hidden;
+}
