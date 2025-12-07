@@ -1409,44 +1409,6 @@ marquee {
     background: linear-gradient(135deg, rgba(14, 165, 233, 0.03), rgba(3, 105, 161, 0.03));
 }
 
-/* Status Kehadiran di Tabel */
-.weekly-absensi-table td.status-cell {
-    font-weight: 600;
-    padding: 8px 12px;
-    border-radius: 6px;
-    margin: 2px;
-}
-
-.weekly-absensi-table td.status-tepat {
-    color: #10b981;
-    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-    border: 1px solid #10b981;
-}
-
-.weekly-absensi-table td.status-terlambat {
-    color: #f59e0b;
-    background: linear-gradient(135deg, #fef3c7, #fde68a);
-    border: 1px solid #f59e0b;
-}
-
-.weekly-absensi-table td.status-cepat {
-    color: #ef4444;
-    background: linear-gradient(135deg, #fee2e2, #fecaca);
-    border: 1px solid #ef4444;
-}
-
-.weekly-absensi-table td.status-tidak-absen {
-    color: #6b7280;
-    background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
-    border: 1px solid #6b7280;
-    font-style: italic;
-}
-
-.weekly-absensi-table td.status-masih-bekerja {
-    color: #3b82f6;
-    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-    border: 1px solid #3b82f6;
-}
 
 /* Footer */
 .komisi-footer,
@@ -2141,7 +2103,6 @@ marquee {
     min-width: 100px; /* Dikecilkan dari 120px */
     max-width: 110px;
     font-size: 0.8rem !important; /* Dikecilkan */
-
     margin: 1px 0;
     line-height: 1.3;
     white-space: nowrap;
