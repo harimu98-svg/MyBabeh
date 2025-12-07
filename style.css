@@ -2136,12 +2136,12 @@ marquee {
 .weekly-absensi-table td.status-cell {
     font-weight: 600;
     padding: 4px 8px !important; /* Dikecilkan */
-    border-radius: 6px !important;
+    border-radius: 8px !important;
     text-align: center;
     min-width: 100px; /* Dikecilkan dari 120px */
     max-width: 110px;
     font-size: 0.8rem !important; /* Dikecilkan */
-    border: 1px solid !important; /* Border tipis */
+
     margin: 1px 0;
     line-height: 1.3;
     white-space: nowrap;
