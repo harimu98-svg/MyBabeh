@@ -1770,27 +1770,28 @@ marquee {
 /* Responsive untuk Jadwal & Absensi 2 Kolom */
 @media (max-width: 480px) {
     .today-schedule-section .schedule-grid {
-        grid-template-columns: 1fr; /* 1 kolom di mobile */
-        gap: 10px;
+        grid-template-columns: 1fr 1fr; /* PERUBAHAN: dari 1fr menjadi 1fr 1fr */
+        gap: 8px; /* dikurangi gap untuk mobile */
     }
     
     .today-schedule-section .schedule-item {
-        padding: 12px 10px;
-        min-height: 70px;
+        padding: 10px 8px; /* lebih kecil untuk mobile */
+        min-height: 65px; /* disesuaikan */
     }
     
     .today-schedule-section .schedule-label {
-        font-size: 0.7rem;
+        font-size: 0.65rem; /* lebih kecil */
+        margin-bottom: 4px;
     }
     
     .today-schedule-section .schedule-value {
-        font-size: 0.9rem;
+        font-size: 0.85rem; /* lebih kecil */
     }
     
     .today-schedule-section .schedule-value i {
-        width: 24px;
-        height: 24px;
-        font-size: 0.75rem;
+        width: 22px;
+        height: 22px;
+        font-size: 0.7rem;
     }
 }
 
