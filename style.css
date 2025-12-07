@@ -1993,3 +1993,347 @@ marquee {
         opacity: 0.5;
     }
 }
+/* ========== PERBAIKAN KHUSUS UNTUK ANDROID/MOBILE ========== */
+
+/* PERBAIKAN: Jadwal & Absensi 2 Kolom di Mobile */
+@media (max-width: 480px) {
+    .today-schedule-section .schedule-grid {
+        grid-template-columns: 1fr 1fr !important; /* PAKSA 2 KOLOM DI MOBILE */
+        gap: 8px;
+    }
+    
+    .today-schedule-section .schedule-column {
+        gap: 8px;
+    }
+    
+    .today-schedule-section .schedule-item {
+        padding: 10px 8px;
+        min-height: 65px;
+    }
+    
+    .today-schedule-section .schedule-label {
+        font-size: 0.7rem;
+        margin-bottom: 4px;
+        letter-spacing: 0.2px;
+        white-space: nowrap;
+    }
+    
+    .today-schedule-section .schedule-value {
+        font-size: 0.85rem;
+        gap: 6px;
+    }
+    
+    .today-schedule-section .schedule-value i {
+        width: 22px;
+        height: 22px;
+        font-size: 0.7rem;
+    }
+    
+    /* Pastikan layout 2x2 di mobile */
+    .today-schedule-section .left-column {
+        grid-column: 1;
+    }
+    
+    .today-schedule-section .right-column {
+        grid-column: 2;
+    }
+    
+    /* Pastikan item berada di posisi yang benar */
+    .today-schedule-section .schedule-item:nth-child(1) { /* Jadwal Masuk */
+        grid-row: 1;
+        grid-column: 1;
+    }
+    
+    .today-schedule-section .schedule-item:nth-child(2) { /* Jadwal Pulang */
+        grid-row: 2;
+        grid-column: 1;
+    }
+    
+    .today-schedule-section .schedule-item:nth-child(3) { /* Clock In */
+        grid-row: 1;
+        grid-column: 2;
+    }
+    
+    .today-schedule-section .schedule-item:nth-child(4) { /* Clock Out */
+        grid-row: 2;
+        grid-column: 2;
+    }
+}
+
+/* Untuk tablet kecil (481px - 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+    .today-schedule-section .schedule-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    
+    .today-schedule-section .schedule-item {
+        min-height: 75px;
+    }
+}
+
+/* ========== PERBAIKAN STYLE STATUS KEHADIRAN ========== */
+
+/* Status Kehadiran di Today Data Section */
+.data-value.status {
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    text-align: center;
+    display: inline-block;
+    min-width: 120px;
+    border: 2px solid !important;
+}
+
+/* Warna dan Style Berbeda untuk Setiap Status */
+.data-value.status-tepat-waktu {
+    color: #059669 !important;
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0) !important;
+    border-color: #059669 !important;
+    box-shadow: 0 2px 5px rgba(5, 150, 105, 0.2);
+}
+
+.data-value.status-terlambat {
+    color: #d97706 !important;
+    background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+    border-color: #d97706 !important;
+    box-shadow: 0 2px 5px rgba(217, 119, 6, 0.2);
+}
+
+.data-value.status-pulang-cepat {
+    color: #dc2626 !important;
+    background: linear-gradient(135deg, #fee2e2, #fecaca) !important;
+    border-color: #dc2626 !important;
+    box-shadow: 0 2px 5px rgba(220, 38, 38, 0.2);
+}
+
+.data-value.status-belum-absen {
+    color: #4b5563 !important;
+    background: linear-gradient(135deg, #f3f4f6, #e5e7eb) !important;
+    border-color: #9ca3af !important;
+    box-shadow: 0 2px 5px rgba(156, 163, 175, 0.2);
+    font-style: italic;
+}
+
+.data-value.status-tidak-absen {
+    color: #6b7280 !important;
+    background: linear-gradient(135deg, #f3f4f6, #e5e7eb) !important;
+    border-color: #d1d5db !important;
+    box-shadow: 0 2px 5px rgba(209, 213, 219, 0.2);
+    font-style: italic;
+}
+
+.data-value.status-masih-bekerja {
+    color: #2563eb !important;
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 2px 5px rgba(37, 99, 235, 0.2);
+}
+
+/* ========== PERBAIKAN TABEL ABSENSI 7 HARI ========== */
+
+/* Status Kehadiran di Tabel - STYLE BARU */
+.weekly-absensi-table td.status-cell {
+    font-weight: 600;
+    padding: 8px 10px !important;
+    border-radius: 6px;
+    text-align: center;
+    min-width: 120px;
+    font-size: 0.85rem;
+    border: 2px solid;
+    transition: all 0.3s ease;
+}
+
+/* Warna dan Style Berbeda untuk Setiap Status di Tabel */
+.weekly-absensi-table td.status-tepat {
+    color: #059669 !important;
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0) !important;
+    border-color: #059669 !important;
+    box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+}
+
+.weekly-absensi-table td.status-tepat:hover {
+    background: linear-gradient(135deg, #a7f3d0, #6ee7b7) !important;
+    transform: translateY(-1px);
+}
+
+.weekly-absensi-table td.status-terlambat {
+    color: #d97706 !important;
+    background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+    border-color: #d97706 !important;
+    box-shadow: 0 2px 4px rgba(217, 119, 6, 0.2);
+}
+
+.weekly-absensi-table td.status-terlambat:hover {
+    background: linear-gradient(135deg, #fde68a, #fcd34d) !important;
+    transform: translateY(-1px);
+}
+
+.weekly-absensi-table td.status-cepat {
+    color: #dc2626 !important;
+    background: linear-gradient(135deg, #fee2e2, #fecaca) !important;
+    border-color: #dc2626 !important;
+    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+}
+
+.weekly-absensi-table td.status-cepat:hover {
+    background: linear-gradient(135deg, #fecaca, #fca5a5) !important;
+    transform: translateY(-1px);
+}
+
+.weekly-absensi-table td.status-tidak-absen {
+    color: #6b7280 !important;
+    background: linear-gradient(135deg, #f3f4f6, #e5e7eb) !important;
+    border-color: #d1d5db !important;
+    box-shadow: 0 2px 4px rgba(209, 213, 219, 0.2);
+    font-style: italic;
+}
+
+.weekly-absensi-table td.status-tidak-absen:hover {
+    background: linear-gradient(135deg, #e5e7eb, #d1d5db) !important;
+}
+
+.weekly-absensi-table td.status-masih-bekerja {
+    color: #2563eb !important;
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.weekly-absensi-table td.status-masih-bekerja:hover {
+    background: linear-gradient(135deg, #bfdbfe, #93c5fd) !important;
+    transform: translateY(-1px);
+}
+
+/* Status khusus lainnya */
+.weekly-absensi-table td.status-cuti {
+    color: #7c3aed !important;
+    background: linear-gradient(135deg, #ede9fe, #ddd6fe) !important;
+    border-color: #7c3aed !important;
+    box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
+}
+
+.weekly-absensi-table td.status-sakit {
+    color: #db2777 !important;
+    background: linear-gradient(135deg, #fce7f3, #fbcfe8) !important;
+    border-color: #db2777 !important;
+    box-shadow: 0 2px 4px rgba(219, 39, 119, 0.2);
+}
+
+.weekly-absensi-table td.status-izin {
+    color: #ea580c !important;
+    background: linear-gradient(135deg, #ffedd5, #fed7aa) !important;
+    border-color: #ea580c !important;
+    box-shadow: 0 2px 4px rgba(234, 88, 12, 0.2);
+}
+
+/* ========== PERBAIKAN RESPONSIVE TABEL ========== */
+@media (max-width: 768px) {
+    /* Perbaikan tabel di mobile */
+    .weekly-absensi-table td.status-cell {
+        min-width: 100px;
+        font-size: 0.8rem;
+        padding: 6px 8px !important;
+    }
+    
+    .data-value.status {
+        min-width: 100px;
+        font-size: 0.85rem !important;
+        padding: 6px 10px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .weekly-absensi-table td.status-cell {
+        min-width: 90px;
+        font-size: 0.75rem;
+        padding: 5px 6px !important;
+    }
+    
+    .data-value.status {
+        min-width: 90px;
+        font-size: 0.8rem !important;
+        padding: 5px 8px !important;
+    }
+    
+    /* Pastikan tabel tidak terlalu kecil */
+    .weekly-absensi-table {
+        min-width: 600px;
+    }
+}
+
+/* ========== PERBAIKAN VISUAL LAINNYA ========== */
+
+/* Efek hover untuk schedule items */
+.today-schedule-section .schedule-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-color: rgba(14, 165, 233, 0.3);
+}
+
+/* Highlight untuk data yang ada vs tidak ada */
+.schedule-value.has-data {
+    color: #1e40af;
+    font-weight: 700;
+}
+
+.schedule-value.no-data {
+    color: #6b7280;
+    opacity: 0.7;
+    font-style: italic;
+}
+
+/* Perbaikan layout today basic info di mobile */
+@media (max-width: 480px) {
+    .today-basic-info {
+        grid-template-columns: 1fr 1fr; /* 2 kolom di mobile */
+        gap: 8px;
+        padding: 12px;
+    }
+    
+    .basic-info-item {
+        text-align: center;
+        padding: 8px;
+    }
+    
+    .basic-label {
+        font-size: 0.75rem;
+    }
+    
+    .basic-value {
+        font-size: 0.9rem;
+    }
+}
+
+/* Scroll indicator untuk tabel di mobile */
+@media (max-width: 480px) {
+    .weekly-absensi-table-container {
+        position: relative;
+    }
+    
+    .weekly-absensi-table-container::after {
+        content: '← Geser untuk melihat lebih →';
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        background: rgba(14, 165, 233, 0.9);
+        color: white;
+        padding: 6px 10px;
+        border-radius: 15px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        z-index: 5;
+        pointer-events: none;
+        animation: bounce 2s infinite;
+    }
+    
+    @keyframes bounce {
+        0%, 100% {
+            transform: translateX(0);
+        }
+        50% {
+            transform: translateX(-5px);
+        }
+    }
+}
