@@ -1409,79 +1409,7 @@ marquee {
     background: linear-gradient(135deg, rgba(14, 165, 233, 0.03), rgba(3, 105, 161, 0.03));
 }
 
-/* ========== PERBAIKAN STATUS PILL - 100% CENTER ========== */
 
-/* 1. Reset TOTAL untuk cell yang berisi status */
-.weekly-absensi-table td[class*="status-"] {
-    padding: 12px 8px !important; /* beri ruang di cell */
-    text-align: center !important;
-    vertical-align: middle !important;
-    height: 60px; /* FIX height cell */
-}
-
-/* 2. Buat CONTAINER khusus di dalam cell */
-.status-pill-container {
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    height: 100% !important;
-    width: 100% !important;
-}
-
-/* 3. Styling PILL itu sendiri */
-.status-pill {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-width: 100px !important;
-    max-width: 120px !important;
-    padding: 8px 16px !important;
-    border-radius: 50px !important; /* pill shape */
-    font-weight: 700 !important;
-    font-size: 0.85rem !important;
-    text-align: center !important;
-    white-space: nowrap !important;
-    border: 2px solid !important;
-    line-height: 1 !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-}
-
-/* 4. Warna untuk setiap status */
-.status-pill.tepat-waktu {
-    background-color: #d1fae5 !important;
-    color: #065f46 !important;
-    border-color: #10b981 !important;
-}
-
-.status-pill.terlambat {
-    background-color: #fef3c7 !important;
-    color: #92400e !important;
-    border-color: #f59e0b !important;
-}
-
-.status-pill.pulang-cepat {
-    background-color: #fee2e2 !important;
-    color: #991b1b !important;
-    border-color: #ef4444 !important;
-}
-
-.status-pill.tidak-absen {
-    background-color: #f3f4f6 !important;
-    color: #374151 !important;
-    border-color: #9ca3af !important;
-    font-style: italic !important;
-}
-
-.status-pill.masih-bekerja {
-    background-color: #dbeafe !important;
-    color: #1e40af !important;
-    border-color: #3b82f6 !important;
-}
-
-/* 5. Untuk testing - beri border pada cell */
-.weekly-absensi-table td {
-    border: 1px solid rgba(0,0,0,0.05) !important;
-}
 /* Footer */
 .komisi-footer,
 .absensi-footer {
