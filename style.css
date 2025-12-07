@@ -2017,8 +2017,8 @@ marquee {
     vertical-align: middle !important;     /* Vertical center */
     
     /* UKURAN CELL */
-    min-width: 90px !important;            /* Lebih kecil */
-    max-width: 100px;
+    min-width: 80px !important;            /* Lebih kecil */
+    max-width: 90px;
     
     /* HAPUS BORDER/OUTLINE YANG TIDAK PERLU */
     border: none !important;
