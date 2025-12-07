@@ -1805,33 +1805,54 @@ function showCustomDatePicker() {
 // Variabel global untuk state absensi
 let currentKaryawanAbsensi = null;
 let isOwnerAbsensi = false;
+let currentUserOutletAbsensi = null;
 
 // [1] Fungsi untuk tampilkan halaman absensi
 async function showAbsensiPage() {
-    // Simpan data karyawan saat ini
-    const { data: { user } } = await supabase.auth.getUser();
-    const namaKaryawan = user?.user_metadata?.nama_karyawan;
-    
-    if (!namaKaryawan) return;
-    
-    // Ambil data karyawan lengkap
-    const { data: karyawanData } = await supabase
-        .from('karyawan')
-        .select('*')
-        .eq('nama_karyawan', namaKaryawan)
-        .single();
-    
-    currentKaryawanAbsensi = karyawanData;
-    isOwnerAbsensi = karyawanData?.role === 'owner';
-    
-    // Sembunyikan main app, tampilkan halaman absensi
-    document.getElementById('appScreen').style.display = 'none';
-    
-    // Buat container halaman absensi
-    createAbsensiPage();
-    
-    // Load data absensi
-    await loadAbsensiData();
+    try {
+        // Ambil data user
+        const { data: { user } } = await supabase.auth.getUser();
+        const namaKaryawan = user?.user_metadata?.nama_karyawan;
+        
+        if (!namaKaryawan) {
+            alert('User tidak ditemukan!');
+            return;
+        }
+        
+        // Ambil data karyawan lengkap (untuk outlet dan role)
+        const { data: karyawanData } = await supabase
+            .from('karyawan')
+            .select('role, outlet')
+            .eq('nama_karyawan', namaKaryawan)
+            .single();
+        
+        if (!karyawanData) {
+            alert('Data karyawan tidak ditemukan!');
+            return;
+        }
+        
+        currentKaryawanAbsensi = {
+            nama_karyawan: namaKaryawan,
+            role: karyawanData.role,
+            outlet: karyawanData.outlet
+        };
+        
+        currentUserOutletAbsensi = karyawanData.outlet;
+        isOwnerAbsensi = karyawanData.role === 'owner';
+        
+        // Sembunyikan main app, tampilkan halaman absensi
+        document.getElementById('appScreen').style.display = 'none';
+        
+        // Buat container halaman absensi
+        createAbsensiPage();
+        
+        // Load data absensi
+        await loadAbsensiData();
+        
+    } catch (error) {
+        console.error('Error in showAbsensiPage:', error);
+        alert('Gagal memuat halaman absensi!');
+    }
 }
 
 // [2] Fungsi untuk buat halaman absensi
@@ -1860,27 +1881,34 @@ function createAbsensiPage() {
             </div>
         </header>
         
-        <!-- Filter untuk Owner -->
-        <div id="ownerAbsensiFilterSection" class="owner-filter" style="display: none;">
-            <div class="filter-group">
-                <label for="selectKaryawanAbsensi">Pilih Karyawan:</label>
-                <select id="selectKaryawanAbsensi" class="karyawan-select">
-                    <option value="">Loading...</option>
-                </select>
+        <!-- Filter untuk Owner - SAMAKAN DENGAN KOMISI -->
+        <div id="ownerAbsensiFilterSection" class="owner-filter" style="display: ${isOwnerAbsensi ? 'block' : 'none'};">
+            <!-- BARIS PERTAMA: Outlet dan Periode -->
+            <div class="filter-row first-row">
+                <div class="filter-group">
+                    <label for="selectOutletAbsensi">Outlet:</label>
+                    <select id="selectOutletAbsensi" class="outlet-select">
+                        <option value="all">Semua Outlet</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="dateRangeAbsensi">Periode:</label>
+                    <select id="dateRangeAbsensi" class="date-select">
+                        <option value="today">Hari Ini</option>
+                        <option value="week">7 Hari Terakhir</option>
+                        <option value="month">Bulan Ini</option>
+                    </select>
+                </div>
             </div>
-            <div class="filter-group">
-                <label for="selectOutletAbsensi">Outlet:</label>
-                <select id="selectOutletAbsensi" class="outlet-select">
-                    <option value="all">Semua Outlet</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="dateRangeAbsensi">Periode:</label>
-                <select id="dateRangeAbsensi" class="date-select">
-                    <option value="today">Hari Ini</option>
-                    <option value="week">7 Hari Terakhir</option>
-                    <option value="month">Bulan Ini</option>
-                </select>
+            
+            <!-- BARIS KEDUA: Pilih Karyawan saja -->
+            <div class="filter-row second-row">
+                <div class="filter-group full-width">
+                    <label for="selectKaryawanAbsensi">Pilih Karyawan:</label>
+                    <select id="selectKaryawanAbsensi" class="karyawan-select">
+                        <option value="">Semua Karyawan</option>
+                    </select>
+                </div>
             </div>
         </div>
         
@@ -1901,7 +1929,6 @@ function createAbsensiPage() {
                 <h3><i class="fas fa-history"></i> Absensi 7 Hari Terakhir</h3>
                 <div class="total-summary">
                     <span>Total Hari: <strong id="totalHariAbsensi">7</strong> hari</span>
-                  
                 </div>
             </div>
             <div class="weekly-absensi-table-container">
@@ -1912,11 +1939,10 @@ function createAbsensiPage() {
                             <th>Tanggal</th>
                             <th>Outlet</th>
                             <th>Karyawan</th>
-                            <th>Jadwal Masuk</th>
-                            <th>Jadwal Pulang</th>
                             <th>Clock In</th>
                             <th>Clock Out</th>
                             <th>Jam Kerja</th>
+                            <th>Status Kehadiran</th>
                             <th>Keterangan</th>
                         </tr>
                     </thead>
@@ -1954,24 +1980,21 @@ function setupAbsensiPageEvents() {
     
     // Filter untuk owner
     if (isOwnerAbsensi) {
-        const filterSection = document.getElementById('ownerAbsensiFilterSection');
-        filterSection.style.display = 'block';
-        
-        // Load dropdown karyawan
-        loadKaryawanDropdownAbsensi();
-        
         // Load dropdown outlet
         loadOutletDropdownAbsensi();
         
-        // Event listeners untuk filter
+        // Event listener untuk outlet change
+        document.getElementById('selectOutletAbsensi').addEventListener('change', async () => {
+            await loadKaryawanDropdownAbsensi(); // Reload karyawan berdasarkan outlet
+            await loadAbsensiData();
+        });
+        
+        // Event listener untuk karyawan change
         document.getElementById('selectKaryawanAbsensi').addEventListener('change', async () => {
             await loadAbsensiData();
         });
         
-        document.getElementById('selectOutletAbsensi').addEventListener('change', async () => {
-            await loadAbsensiData();
-        });
-        
+        // Event listener untuk date range
         document.getElementById('dateRangeAbsensi').addEventListener('change', async () => {
             await loadAbsensiData();
         });
@@ -1981,8 +2004,6 @@ function setupAbsensiPageEvents() {
 // [4] Fungsi untuk load data absensi
 async function loadAbsensiData() {
     try {
-        console.log('=== START LOADING ABSENSI DATA ===');
-        
         // Tampilkan loading
         document.getElementById('loadingTodayAbsensi').style.display = 'block';
         document.getElementById('todayAbsensiContent').style.display = 'none';
@@ -1991,7 +2012,6 @@ async function loadAbsensiData() {
         
         // Tentukan parameter filter
         const filterParams = getAbsensiFilterParams();
-        console.log('Absensi filter params:', filterParams);
         
         // Load data hari ini
         await loadTodayAbsensi(filterParams);
@@ -2002,8 +2022,6 @@ async function loadAbsensiData() {
         // Update waktu terakhir update
         const updateTime = new Date().toLocaleTimeString('id-ID');
         document.getElementById('lastUpdateAbsensiTime').textContent = updateTime;
-        
-        console.log('=== FINISHED LOADING ABSENSI DATA ===');
         
     } catch (error) {
         console.error('Error loading absensi data:', error);
@@ -2032,7 +2050,7 @@ async function loadAbsensiData() {
             if (tbody) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="9" style="text-align: center; padding: 20px; color: #ff4757;">
+                        <td colspan="8" style="text-align: center; padding: 20px; color: #ff4757;">
                             Gagal memuat data
                         </td>
                     </tr>
@@ -2047,183 +2065,231 @@ function getAbsensiFilterParams() {
     const params = {
         namaKaryawan: currentKaryawanAbsensi?.nama_karyawan,
         role: currentKaryawanAbsensi?.role,
+        outlet: currentUserOutletAbsensi,
         isOwner: isOwnerAbsensi
     };
     
     if (isOwnerAbsensi) {
-        const selectKaryawan = document.getElementById('selectKaryawanAbsensi');
         const selectOutlet = document.getElementById('selectOutletAbsensi');
+        const selectKaryawan = document.getElementById('selectKaryawanAbsensi');
         const dateRange = document.getElementById('dateRangeAbsensi');
+        
+        // Untuk owner: gunakan filter dari dropdown
+        if (selectOutlet && selectOutlet.value !== 'all') {
+            params.outlet = selectOutlet.value;
+        } else {
+            params.outlet = null;
+        }
         
         if (selectKaryawan && selectKaryawan.value) {
             params.namaKaryawan = selectKaryawan.value;
-        }
-        
-        if (selectOutlet && selectOutlet.value !== 'all') {
-            params.outlet = selectOutlet.value;
+            params.filterByKaryawan = true;
+        } else {
+            params.namaKaryawan = null;
+            params.filterByKaryawan = false;
         }
         
         if (dateRange) {
             params.dateRange = dateRange.value;
         }
+    } else {
+        // Untuk non-owner: selalu filter berdasarkan nama sendiri
+        params.filterByKaryawan = true;
     }
     
     return params;
 }
 
-// [6] Fungsi untuk load absensi hari ini - SUPPORT DD/MM/YYYY
+// [6] Fungsi untuk load absensi hari ini - AMBIL LANGSUNG DARI TABEL
 async function loadTodayAbsensi(filterParams) {
-    console.log('=== DEBUG loadTodayAbsensi ===');
-    
     // Format tanggal DD/MM/YYYY
     const today = new Date();
     const day = today.getDate().toString().padStart(2, '0');
     const month = (today.getMonth() + 1).toString().padStart(2, '0');
     const year = today.getFullYear();
-    const todayStr = `${day}/${month}/${year}`; // Format: 05/12/2025
+    const todayStr = `${day}/${month}/${year}`;
     
-    console.log('Today date (DD/MM/YYYY):', todayStr);
-    
-    const namaKaryawanAktif = filterParams.namaKaryawan || currentKaryawanAbsensi?.nama_karyawan;
-    console.log('Nama karyawan:', namaKaryawanAktif);
-    
-    // Query data absensi hari ini dengan format DD/MM/YYYY
-    let absensiQuery = supabase
+    // Query langsung dari tabel absen
+    let query = supabase
         .from('absen')
         .select('*')
-        .eq('tanggal', todayStr);  // Format: 05/12/2025
+        .eq('tanggal', todayStr);
     
-    // Filter berdasarkan nama jika bukan owner
-    if (namaKaryawanAktif && !isOwnerAbsensi) {
-        absensiQuery = absensiQuery.eq('nama', namaKaryawanAktif);
+    // Filter berdasarkan nama
+    if (filterParams.filterByKaryawan && filterParams.namaKaryawan) {
+        query = query.eq('nama', filterParams.namaKaryawan);
     }
     
-    const { data: absensiToday, error } = await absensiQuery;
+    // Filter berdasarkan outlet
+    if (filterParams.outlet) {
+        query = query.eq('outlet', filterParams.outlet);
+    }
+    
+    const { data: absensiData, error } = await query;
     
     if (error) {
         console.error('Error loading today absensi:', error);
-        
         // Tampilkan data kosong
-        const jadwalData = await getJadwalKaryawan(namaKaryawanAktif);
-        displayTodayAbsensi(null, today, namaKaryawanAktif, jadwalData, false);
+        displayTodayAbsensi(null, today);
         return;
     }
     
-    console.log('Today absensi found:', absensiToday?.length || 0);
-    
-    // Ambil jadwal dari tabel karyawan
-    const jadwalData = await getJadwalKaryawan(namaKaryawanAktif);
-    
-    // Jika owner melihat semua, ambil data untuk karyawan tertentu
-    let absensiData = null;
-    if (isOwnerAbsensi && namaKaryawanAktif) {
-        // Owner pilih karyawan tertentu di dropdown
-        absensiData = absensiToday?.find(absensi => 
-            absensi.nama === namaKaryawanAktif
-        ) || absensiToday?.[0];
+    // Untuk owner melihat semua: ambil data pertama atau summary
+    let displayData = null;
+    if (isOwnerAbsensi && !filterParams.filterByKaryawan && absensiData && absensiData.length > 0) {
+        // Owner melihat semua: ambil data pertama untuk preview
+        displayData = absensiData[0];
     } else {
-        // Non-owner atau owner tanpa filter
-        absensiData = absensiToday?.[0];
+        // Non-owner atau owner pilih karyawan tertentu
+        displayData = absensiData?.[0] || null;
     }
     
     // Tampilkan data
-    displayTodayAbsensi(absensiData, today, namaKaryawanAktif, jadwalData, false);
+    displayTodayAbsensi(displayData, today);
 }
 
-// [7] Fungsi untuk load absensi 7 hari terakhir - SUPPORT DD/MM/YYYY
+// [7] Fungsi untuk load absensi 7 hari terakhir - AMBIL LANGSUNG DARI TABEL
 async function loadWeeklyAbsensi(filterParams) {
-    console.log('=== DEBUG loadWeeklyAbsensi ===');
+    // Tanggal range: 7 hari sebelum hari ini
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() - 1); // sampai kemarin
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 7); // 7 hari sebelum
     
-    const namaKaryawanAktif = filterParams.namaKaryawan || currentKaryawanAbsensi?.nama_karyawan;
-    
-    // Query SEMUA data untuk karyawan ini
-    let absensiQuery = supabase
-        .from('absen')
-        .select('*')
-        .eq('nama', namaKaryawanAktif)
-        .order('tanggal', { ascending: false });
-    
-    const { data: allAbsensi, error } = await absensiQuery;
-    
-    if (error) {
-        console.error('Error loading all absensi:', error);
-        return;
-    }
-    
-    console.log('All absensi found:', allAbsensi?.length || 0);
-    
-    // Ambil jadwal karyawan
-    const jadwalData = await getJadwalKaryawan(namaKaryawanAktif);
-    
-    // Buat array untuk 7 hari terakhir (tidak termasuk hari ini)
+    // Format ke array DD/MM/YYYY
     const dateRange = [];
     for (let i = 1; i <= 7; i++) {
         const date = new Date();
         date.setDate(date.getDate() - i);
-        
         const day = date.getDate().toString().padStart(2, '0');
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
         const year = date.getFullYear();
-        
-        dateRange.push({
-            dateStr: `${day}/${month}/${year}`, // DD/MM/YYYY
-            dateObj: date,
-            dateDisplay: date.toLocaleDateString('id-ID') // 5/12/2025
-        });
+        dateRange.push(`${day}/${month}/${year}`);
     }
     
-    console.log('7 hari terakhir:', dateRange.map(d => d.dateStr));
+    // Query untuk 7 hari terakhir
+    let query = supabase
+        .from('absen')
+        .select('*')
+        .in('tanggal', dateRange);
     
-    // Match data dengan tanggal
-    const weeklyData = [];
+    // Filter berdasarkan nama
+    if (filterParams.filterByKaryawan && filterParams.namaKaryawan) {
+        query = query.eq('nama', filterParams.namaKaryawan);
+    }
     
-    dateRange.forEach(dateInfo => {
-        // Cari data untuk tanggal ini
-        const absensiForDate = allAbsensi?.find(absensi => 
-            absensi.tanggal === dateInfo.dateStr
-        );
-        
-        weeklyData.push({
-            dateInfo: dateInfo,
-            absensi: absensiForDate || null
-        });
-    });
+    // Filter berdasarkan outlet
+    if (filterParams.outlet) {
+        query = query.eq('outlet', filterParams.outlet);
+    }
+    
+    query = query.order('tanggal', { ascending: false });
+    
+    const { data: absensiData, error } = await query;
+    
+    if (error) {
+        console.error('Error loading weekly absensi:', error);
+        displayWeeklyAbsensi([]);
+        return;
+    }
+    
+    // Untuk owner melihat semua, ambil berdasarkan filter
+    let displayData = [];
+    if (isOwnerAbsensi && !filterParams.filterByKaryawan) {
+        // Owner melihat semua: ambil semua data dan group by tanggal
+        displayData = processOwnerWeeklyData(absensiData, dateRange);
+    } else {
+        // Non-owner atau owner pilih karyawan tertentu
+        displayData = processKaryawanWeeklyData(absensiData, dateRange, filterParams.namaKaryawan);
+    }
     
     // Tampilkan data
-    displayWeeklyAbsensi(weeklyData, jadwalData);
+    displayWeeklyAbsensi(displayData);
 }
 
-// [8] Fungsi untuk ambil jadwal dari tabel karyawan
-async function getJadwalKaryawan(namaKaryawan) {
-    if (!namaKaryawan) {
-        return { jadwal_masuk: '09:00', jadwal_pulang: '21:00' };
-    }
+// [8] Helper: Process data untuk owner (semua karyawan)
+function processOwnerWeeklyData(absensiData, dateRange) {
+    const result = [];
     
-    try {
-        const { data, error } = await supabase
-            .from('karyawan')
-            .select('jadwal_masuk, jadwal_pulang')
-            .eq('nama_karyawan', namaKaryawan)
-            .single();
+    dateRange.forEach(dateStr => {
+        const dataForDate = absensiData?.filter(item => item.tanggal === dateStr) || [];
         
-        if (error) {
-            console.error('Error loading jadwal karyawan:', error);
-            return { jadwal_masuk: '09:00', jadwal_pulang: '21:00' };
+        if (dataForDate.length > 0) {
+            // Untuk owner: tampilkan summary atau data pertama
+            const firstData = dataForDate[0];
+            result.push({
+                tanggal: dateStr,
+                tanggal_display: formatDateDisplay(dateStr),
+                outlet: 'Multiple',
+                nama: `${dataForDate.length} Karyawan`,
+                clockin: 'Multiple',
+                clockout: 'Multiple',
+                jamkerja: 'Multiple',
+                status_kehadiran: 'Multiple',
+                keterangan: `${dataForDate.length} data absensi`
+            });
+        } else {
+            // Tidak ada data untuk tanggal ini
+            result.push({
+                tanggal: dateStr,
+                tanggal_display: formatDateDisplay(dateStr),
+                outlet: '-',
+                nama: '-',
+                clockin: '-',
+                clockout: '-',
+                jamkerja: '-',
+                status_kehadiran: 'Tidak ada data',
+                keterangan: 'Tidak ada absensi'
+            });
         }
-        
-        return {
-            jadwal_masuk: data.jadwal_masuk || '09:00',
-            jadwal_pulang: data.jadwal_pulang || '21:00'
-        };
-        
-    } catch (err) {
-        console.error('Exception loading jadwal:', err);
-        return { jadwal_masuk: '09:00', jadwal_pulang: '21:00' };
-    }
+    });
+    
+    return result;
 }
 
-// [9] Fungsi untuk tampilkan absensi hari ini - LAYOUT 2 KOLOM
-function displayTodayAbsensi(absensiData, date, namaKaryawan, jadwalData = null, isLatest = false) {
+// [9] Helper: Process data untuk karyawan tertentu
+function processKaryawanWeeklyData(absensiData, dateRange, namaKaryawan) {
+    const result = [];
+    
+    dateRange.forEach(dateStr => {
+        const dataForKaryawan = absensiData?.find(item => 
+            item.tanggal === dateStr && 
+            (!namaKaryawan || item.nama === namaKaryawan)
+        );
+        
+        if (dataForKaryawan) {
+            result.push({
+                tanggal: dateStr,
+                tanggal_display: formatDateDisplay(dateStr),
+                outlet: dataForKaryawan.outlet || '-',
+                nama: dataForKaryawan.nama || '-',
+                clockin: formatWaktuSimple(dataForKaryawan.clockin),
+                clockout: formatWaktuSimple(dataForKaryawan.clockout),
+                jamkerja: dataForKaryawan.jamkerja || '-',
+                status_kehadiran: dataForKaryawan.status_kehadiran || '-',
+                keterangan: dataForKaryawan.status_kehadiran || '-'
+            });
+        } else {
+            // Tidak ada data untuk tanggal ini
+            result.push({
+                tanggal: dateStr,
+                tanggal_display: formatDateDisplay(dateStr),
+                outlet: '-',
+                nama: namaKaryawan || '-',
+                clockin: '-',
+                clockout: '-',
+                jamkerja: '-',
+                status_kehadiran: 'Tidak absen',
+                keterangan: 'Tidak ada data absensi'
+            });
+        }
+    });
+    
+    return result;
+}
+
+// [10] Fungsi untuk tampilkan absensi hari ini - GUNAKAN DATA LANGSUNG
+function displayTodayAbsensi(absensiData, date) {
     const content = document.getElementById('todayAbsensiContent');
     
     // Jika tidak ada data absensi
@@ -2232,14 +2298,14 @@ function displayTodayAbsensi(absensiData, date, namaKaryawan, jadwalData = null,
             <div class="today-header">
                 <div class="date-display">
                     <i class="fas fa-calendar-alt"></i>
-                    <span>${date.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                    <span>${formatDateLocal(date)}</span>
                 </div>
             </div>
             
             <div class="today-absensi-empty">
                 <i class="fas fa-clock" style="font-size: 3rem; color: #ccc; margin-bottom: 15px;"></i>
                 <p style="color: #666;">Belum ada data absensi hari ini</p>
-                <p style="font-size: 0.9rem; color: #888;">Nama: ${namaKaryawan || '-'}</p>
+                <p style="font-size: 0.9rem; color: #888;">Nama: ${currentKaryawanAbsensi?.nama_karyawan || '-'}</p>
             </div>
         `;
         
@@ -2248,225 +2314,98 @@ function displayTodayAbsensi(absensiData, date, namaKaryawan, jadwalData = null,
         return;
     }
     
-    // Format waktu dan hitung
-    const clockinDisplay = formatWaktu(absensiData.clockin);
-    const clockoutDisplay = formatWaktu(absensiData.clockout);
-    const jadwal = jadwalData || { jadwal_masuk: '09:00', jadwal_pulang: '21:00' };
-    
-    // Parse tanggal dari format DD/MM/YYYY untuk perhitungan
-    const [day, month, year] = absensiData.tanggal.split('/');
-    const tanggalForCalculation = `${year}-${month}-${day}`;
-    
-    const jamKerjaInfo = hitungJamKerja(
-        tanggalForCalculation,
-        clockinDisplay,
-        clockoutDisplay,
-        jadwal.jadwal_masuk,
-        jadwal.jadwal_pulang
-    );
-    
+    // AMBIL DATA LANGSUNG DARI DATABASE - TIDAK PERLU HITUNG LAGI
     content.innerHTML = `
         <div class="today-header">
             <div class="date-display">
                 <i class="fas fa-calendar-alt"></i>
-                <span>${date.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                <span>${formatDateLocal(date)}</span>
             </div>
         </div>
         
-        <!-- Info Dasar (Outlet & Karyawan) -->
+        <!-- Info Dasar -->
         <div class="today-basic-info">
             <div class="basic-info-item">
                 <div class="basic-label">Outlet</div>
-                <div class="basic-value">${absensiData.outlet || '-'}</div>
+                <div class="basic-value">${absensiData.outlet || currentUserOutletAbsensi || '-'}</div>
             </div>
             <div class="basic-info-item">
                 <div class="basic-label">Karyawan</div>
-                <div class="basic-value">${absensiData.nama || namaKaryawan || '-'}</div>
+                <div class="basic-value">${absensiData.nama || currentKaryawanAbsensi?.nama_karyawan || '-'}</div>
             </div>
         </div>
         
-        <!-- Jadwal & Clock In/Out - 2 Kolom -->
-        <div class="today-schedule-section">
-            <h4><i class="fas fa-calendar-check"></i> Jadwal & Absensi</h4>
-            <div class="schedule-grid">
-                <!-- Kolom Kiri: Jadwal -->
-                <div class="schedule-column left-column">
-                    <div class="schedule-item">
-                        <div class="schedule-label">Jadwal Masuk</div>
-                        <div class="schedule-value jadwal-masuk">
-                            <i class="fas fa-sign-in-alt"></i>
-                            <span>${jadwal.jadwal_masuk || '09:00'}</span>
-                        </div>
-                    </div>
-                    <div class="schedule-item">
-                        <div class="schedule-label">Jadwal Pulang</div>
-                        <div class="schedule-value jadwal-pulang">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <span>${jadwal.jadwal_pulang || '21:00'}</span>
-                        </div>
+        <!-- Clock In/Out -->
+        <div class="today-clock-section">
+            <h4><i class="fas fa-clock"></i> Waktu Absensi</h4>
+            <div class="clock-grid">
+                <div class="clock-item">
+                    <div class="clock-label">Clock In</div>
+                    <div class="clock-value ${absensiData.clockin ? 'has-data' : 'no-data'}">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>${formatWaktuSimple(absensiData.clockin) || '-'}</span>
                     </div>
                 </div>
-                
-                <!-- Kolom Kanan: Actual -->
-                <div class="schedule-column right-column">
-                    <div class="schedule-item">
-                        <div class="schedule-label">Clock In</div>
-                        <div class="schedule-value clock-in ${getClockStatusClass(clockinDisplay, jadwal.jadwal_masuk, 'in')}">
-                            <i class="fas fa-fingerprint"></i>
-                            <span>${clockinDisplay || '-'}</span>
-                            ${getClockStatusBadge(clockinDisplay, jadwal.jadwal_masuk, 'in')}
-                        </div>
-                    </div>
-                    <div class="schedule-item">
-                        <div class="schedule-label">Clock Out</div>
-                        <div class="schedule-value clock-out ${getClockStatusClass(clockoutDisplay, jadwal.jadwal_pulang, 'out')}">
-                            <i class="fas fa-fingerprint"></i>
-                            <span>${clockoutDisplay || '-'}</span>
-                            ${getClockStatusBadge(clockoutDisplay, jadwal.jadwal_pulang, 'out')}
-                        </div>
+                <div class="clock-item">
+                    <div class="clock-label">Clock Out</div>
+                    <div class="clock-value ${absensiData.clockout ? 'has-data' : 'no-data'}">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>${formatWaktuSimple(absensiData.clockout) || '-'}</span>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Ringkasan -->
-        <div class="today-summary-section">
-            <h4><i class="fas fa-chart-bar"></i> Ringkasan</h4>
-            <div class="summary-grid">
-                <div class="summary-item">
-                    <div class="summary-label">Jam Kerja</div>
-                    <div class="summary-value jam-kerja">${jamKerjaInfo.jamKerja}</div>
+        <!-- Data dari Database -->
+        <div class="today-data-section">
+            <h4><i class="fas fa-chart-bar"></i> Data Absensi</h4>
+            <div class="data-grid">
+                <div class="data-item">
+                    <div class="data-label">Jam Kerja</div>
+                    <div class="data-value jam-kerja">
+                        ${absensiData.jamkerja || '-'}
+                    </div>
                 </div>
-                <div class="summary-item">
-                    <div class="summary-label">Status</div>
-                    <div class="summary-value keterangan ${jamKerjaInfo.keteranganClass || ''}">
-                        ${jamKerjaInfo.keterangan}
+                <div class="data-item">
+                    <div class="data-label">Status Kehadiran</div>
+                    <div class="data-value status ${getStatusClass(absensiData.status_kehadiran)}">
+                        ${absensiData.status_kehadiran || 'Belum absen'}
                     </div>
                 </div>
             </div>
         </div>
-        
-        ${isLatest ? `
-            <div class="today-note">
-                <i class="fas fa-info-circle"></i>
-                <span>Menampilkan data terbaru (${absensiData.tanggal}) karena belum ada absensi hari ini</span>
-            </div>
-        ` : ''}
     `;
     
     document.getElementById('loadingTodayAbsensi').style.display = 'none';
     content.style.display = 'block';
 }
 
-// Helper function untuk status clock in/out
-function getClockStatusClass(clockTime, scheduleTime, type) {
-    if (!clockTime || !scheduleTime) return 'no-data';
-    
-    const clock = parseTime(clockTime);
-    const schedule = parseTime(scheduleTime);
-    
-    if (type === 'in') {
-        if (clock.hours > schedule.hours || 
-            (clock.hours === schedule.hours && clock.minutes > schedule.minutes)) {
-            return 'late';
-        } else if (clock.hours < schedule.hours ||
-                   (clock.hours === schedule.hours && clock.minutes < schedule.minutes)) {
-            return 'early';
-        }
-    } else if (type === 'out') {
-        if (!clockTime) return 'no-data';
-        if (clock.hours < schedule.hours ||
-            (clock.hours === schedule.hours && clock.minutes < schedule.minutes)) {
-            return 'early-out';
-        }
-    }
-    
-    return 'on-time';
-}
-
-// Helper function untuk badge status
-function getClockStatusBadge(clockTime, scheduleTime, type) {
-    const statusClass = getClockStatusClass(clockTime, scheduleTime, type);
-    
-    const badges = {
-        'late': '<span class="status-badge late-badge">Terlambat</span>',
-        'early': '<span class="status-badge early-badge">Lebih Awal</span>',
-        'early-out': '<span class="status-badge early-out-badge">Pulang Cepat</span>',
-        'on-time': '<span class="status-badge on-time-badge">Tepat</span>',
-        'no-data': '<span class="status-badge no-data-badge">-</span>'
-    };
-    
-    return badges[statusClass] || '';
-}
-
-// Helper function untuk parse waktu
-function parseTime(timeStr) {
-    if (!timeStr) return { hours: 0, minutes: 0 };
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    return { hours: hours || 0, minutes: minutes || 0 };
-}
-
-// [10] Fungsi untuk tampilkan absensi 7 hari
-function displayWeeklyAbsensi(weeklyData, jadwalData) {
+// [11] Fungsi untuk tampilkan absensi 7 hari
+function displayWeeklyAbsensi(weeklyData) {
     const tbody = document.getElementById('weeklyAbsensiBody');
     tbody.innerHTML = '';
     
     let foundCount = 0;
     
     weeklyData.forEach(item => {
-        const { dateInfo, absensi } = item;
-        
-        let rowHTML = '';
-        
-        if (absensi) {
-            foundCount++;
-            
-            const clockinDisplay = formatWaktu(absensi.clockin);
-            const clockoutDisplay = formatWaktu(absensi.clockout);
-            
-            // Parse tanggal DD/MM/YYYY ke YYYY-MM-DD untuk perhitungan
-            const [day, month, year] = absensi.tanggal.split('/');
-            const tanggalForCalculation = `${year}-${month}-${day}`;
-            
-            const jamKerjaInfo = hitungJamKerja(
-                tanggalForCalculation,
-                clockinDisplay,
-                clockoutDisplay,
-                jadwalData.jadwal_masuk,
-                jadwalData.jadwal_pulang
-            );
-            
-            rowHTML = `
-                <td>${dateInfo.dateDisplay}</td>
-                <td>${absensi.outlet || '-'}</td>
-                <td>${absensi.nama || '-'}</td>
-                <td>${jadwalData.jadwal_masuk || '09:00'}</td>
-                <td>${jadwalData.jadwal_pulang || '21:00'}</td>
-                <td>${clockinDisplay || '-'}</td>
-                <td>${clockoutDisplay || '-'}</td>
-                <td>${jamKerjaInfo.jamKerja}</td>
-                <td class="keterangan-cell ${jamKerjaInfo.keteranganClass || ''}">
-                    ${jamKerjaInfo.keterangan}
-                </td>
-            `;
-        } else {
-            // Data kosong
-            rowHTML = `
-                <td>${dateInfo.dateDisplay}</td>
-                <td>-</td>
-                <td>-</td>
-                <td>${jadwalData.jadwal_masuk || '09:00'}</td>
-                <td>${jadwalData.jadwal_pulang || '21:00'}</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>Tidak absen</td>
-            `;
-        }
-        
         const row = document.createElement('tr');
-        row.innerHTML = rowHTML;
+        row.innerHTML = `
+            <td>${item.tanggal_display}</td>
+            <td>${item.outlet || '-'}</td>
+            <td>${item.nama || '-'}</td>
+            <td>${item.clockin || '-'}</td>
+            <td>${item.clockout || '-'}</td>
+            <td>${item.jamkerja || '-'}</td>
+            <td class="status-cell ${getStatusClass(item.status_kehadiran)}">
+                ${item.status_kehadiran || '-'}
+            </td>
+            <td>${item.keterangan || '-'}</td>
+        `;
         tbody.appendChild(row);
+        
+        if (item.status_kehadiran && item.status_kehadiran !== 'Tidak ada data') {
+            foundCount++;
+        }
     });
     
     // Update total hari dengan data
@@ -2477,170 +2416,138 @@ function displayWeeklyAbsensi(weeklyData, jadwalData) {
     document.getElementById('weeklyAbsensiTable').style.display = 'table';
 }
 
-// [11] Fungsi untuk format waktu
-function formatWaktu(waktuString) {
-    if (!waktuString) return null;
+// [12] Fungsi untuk load dropdown outlet (owner only) - DARI KARYAWAN
+async function loadOutletDropdownAbsensi() {
+    const select = document.getElementById('selectOutletAbsensi');
     
     try {
-        // Jika waktu sudah dalam format HH:MM
-        if (typeof waktuString === 'string' && waktuString.match(/^\d{2}:\d{2}$/)) {
-            return waktuString;
+        const { data: outlets, error } = await supabase
+            .from('karyawan')  // AMBIL DARI KARYAWAN
+            .select('outlet')
+            .not('outlet', 'is', null)
+            .order('outlet');
+        
+        if (error) throw error;
+        
+        // Get unique outlets
+        const uniqueOutlets = [...new Set(outlets.map(o => o.outlet))].filter(Boolean);
+        
+        select.innerHTML = `
+            <option value="all">Semua Outlet</option>
+            ${uniqueOutlets.map(outlet => 
+                `<option value="${outlet}">${outlet}</option>`
+            ).join('')}
+        `;
+        
+        // Set outlet user saat ini sebagai default
+        if (currentUserOutletAbsensi && uniqueOutlets.includes(currentUserOutletAbsensi)) {
+            select.value = currentUserOutletAbsensi;
         }
         
-        // Jika waktu dalam format ISO atau timestamp
-        if (typeof waktuString === 'string') {
-            // Coba parse sebagai time
-            if (waktuString.includes(':')) {
-                const parts = waktuString.split(':');
-                if (parts.length >= 2) {
-                    const hours = parts[0].padStart(2, '0');
-                    const minutes = parts[1].padStart(2, '0');
-                    return `${hours}:${minutes}`;
-                }
-            }
-            
-            // Coba parse sebagai date
-            const date = new Date(waktuString);
-            if (!isNaN(date.getTime())) {
-                const hours = date.getHours().toString().padStart(2, '0');
-                const minutes = date.getMinutes().toString().padStart(2, '0');
-                return `${hours}:${minutes}`;
-            }
-        }
+        // Setelah outlet di-load, load karyawan dropdown
+        await loadKaryawanDropdownAbsensi();
         
-        return null;
-    } catch (e) {
-        console.warn('Error formatting waktu:', e);
-        return null;
+    } catch (error) {
+        console.error('Error loading outlets for absensi:', error);
+        select.innerHTML = '<option value="all">Semua Outlet</option>';
     }
 }
 
-// [12] Fungsi untuk hitung jam kerja dan keterangan
-function hitungJamKerja(tanggal, clockinDisplay, clockoutDisplay, jadwalMasuk, jadwalPulang) {
-    let jamKerja = 'Masih bekerja';
-    let keterangan = '';
-    let keteranganClass = '';
-    
-    if (clockinDisplay && clockoutDisplay) {
-        try {
-            // Buat tanggal lengkap untuk perhitungan
-            const clockinFull = `${tanggal}T${clockinDisplay}:00`;
-            const clockoutFull = `${tanggal}T${clockoutDisplay}:00`;
-            
-            const clockin = new Date(clockinFull);
-            const clockout = new Date(clockoutFull);
-            
-            if (!isNaN(clockin.getTime()) && !isNaN(clockout.getTime())) {
-                const diffMs = clockout - clockin;
-                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-                const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                
-                if (diffHours > 0 || diffMinutes > 0) {
-                    jamKerja = `${diffHours} jam ${diffMinutes} menit`;
-                } else {
-                    jamKerja = '0 jam 0 menit';
-                }
-            }
-        } catch (e) {
-            console.warn('Error hitung jam kerja:', e);
-            jamKerja = 'Error hitung';
-        }
-    }
-    
-    // Hitung keterangan
-    if (clockinDisplay) {
-        const [clockinHours, clockinMinutes] = clockinDisplay.split(':').map(Number);
-        const [jadwalMasukHours, jadwalMasukMinutes] = (jadwalMasuk || '09:00').split(':').map(Number);
-        
-        if (clockinHours > jadwalMasukHours || 
-            (clockinHours === jadwalMasukHours && clockinMinutes > jadwalMasukMinutes)) {
-            const telatMenit = (clockinHours - jadwalMasukHours) * 60 + (clockinMinutes - jadwalMasukMinutes);
-            keterangan = `Terlambat ${telatMenit} menit`;
-            keteranganClass = 'terlambat';
-        }
-    }
-    
-    if (clockoutDisplay && keterangan === '') {
-        const [clockoutHours, clockoutMinutes] = clockoutDisplay.split(':').map(Number);
-        const [jadwalPulangHours, jadwalPulangMinutes] = (jadwalPulang || '21:00').split(':').map(Number);
-        
-        if (clockoutHours < jadwalPulangHours || 
-            (clockoutHours === jadwalPulangHours && clockoutMinutes < jadwalPulangMinutes)) {
-            const cepatMenit = (jadwalPulangHours - clockoutHours) * 60 + (jadwalPulangMinutes - clockoutMinutes);
-            keterangan = `Pulang Cepat ${cepatMenit} menit`;
-            keteranganClass = 'cepat';
-        }
-    }
-    
-    if (keterangan === '' && clockinDisplay) {
-        keterangan = 'Tepat waktu';
-        keteranganClass = 'tepat';
-    }
-    
-    if (!clockinDisplay) {
-        keterangan = 'Tidak absen';
-        keteranganClass = 'tidak-absen';
-    }
-    
-    return { jamKerja, keterangan, keteranganClass };
-}
-
-// [13] Fungsi untuk load dropdown karyawan (owner only)
+// [13] Fungsi untuk load dropdown karyawan berdasarkan outlet (owner only)
 async function loadKaryawanDropdownAbsensi() {
     const select = document.getElementById('selectKaryawanAbsensi');
+    const outletSelect = document.getElementById('selectOutletAbsensi');
+    const selectedOutlet = outletSelect ? outletSelect.value : null;
     
-    const { data: karyawanList, error } = await supabase
-        .from('karyawan')
-        .select('nama_karyawan, role')
-        .order('nama_karyawan');
-    
-    if (error) {
+    try {
+        let query = supabase
+            .from('karyawan')
+            .select('nama_karyawan, role')
+            .order('nama_karyawan');
+        
+        // Filter berdasarkan outlet jika dipilih
+        if (selectedOutlet && selectedOutlet !== 'all') {
+            query = query.eq('outlet', selectedOutlet);
+        }
+        
+        const { data: karyawanList, error } = await query;
+        
+        if (error) throw error;
+        
+        select.innerHTML = `
+            <option value="">Semua Karyawan</option>
+            ${karyawanList.map(k => 
+                `<option value="${k.nama_karyawan}">${k.nama_karyawan} (${k.role})</option>`
+            ).join('')}
+        `;
+        
+        // Auto-select karyawan saat ini jika bukan owner mode all
+        if (!isOwnerAbsensi && currentKaryawanAbsensi) {
+            select.value = currentKaryawanAbsensi.nama_karyawan;
+        }
+        
+    } catch (error) {
         console.error('Error loading karyawan list for absensi:', error);
         select.innerHTML = `
             <option value="">Error loading data</option>
             ${currentKaryawanAbsensi ? `<option value="${currentKaryawanAbsensi.nama_karyawan}">${currentKaryawanAbsensi.nama_karyawan}</option>` : ''}
         `;
-        return;
-    }
-    
-    select.innerHTML = `
-        <option value="">Semua Karyawan</option>
-        ${karyawanList.map(k => 
-            `<option value="${k.nama_karyawan}">${k.nama_karyawan} (${k.role})</option>`
-        ).join('')}
-    `;
-    
-    // Select karyawan saat ini jika bukan "Semua Karyawan"
-    if (!isOwnerAbsensi && currentKaryawanAbsensi) {
-        select.value = currentKaryawanAbsensi.nama_karyawan;
     }
 }
 
-// [14] Fungsi untuk load dropdown outlet
-async function loadOutletDropdownAbsensi() {
-    const select = document.getElementById('selectOutletAbsensi');
-    
-    const { data: outlets, error } = await supabase
-        .from('absen')
-        .select('outlet')
-        .order('outlet');
-    
-    if (error) {
-        console.error('Error loading outlets for absensi:', error);
-        select.innerHTML = '<option value="all">Semua Outlet</option>';
-        return;
-    }
-    
-    // Get unique outlets
-    const uniqueOutlets = [...new Set(outlets.map(o => o.outlet))].filter(Boolean);
-    
-    select.innerHTML = `
-        <option value="all">Semua Outlet</option>
-        ${uniqueOutlets.map(outlet => 
-            `<option value="${outlet}">${outlet}</option>`
-        ).join('')}
-    `;
+// ========== HELPER FUNCTIONS YANG DIPERTAHANKAN ==========
+
+// Format tanggal untuk display
+function formatDateLocal(date) {
+    return date.toLocaleDateString('id-ID', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
 }
+
+// Format tanggal DD/MM/YYYY ke tampilan
+function formatDateDisplay(dateStr) {
+    if (!dateStr) return '-';
+    const [day, month, year] = dateStr.split('/');
+    return `${day}/${month}/${year}`;
+}
+
+// Format waktu simple
+function formatWaktuSimple(waktu) {
+    if (!waktu) return null;
+    // Jika sudah format HH:MM, return langsung
+    if (typeof waktu === 'string' && waktu.match(/^\d{1,2}:\d{2}$/)) {
+        return waktu;
+    }
+    // Jika timestamp atau ISO, parse
+    try {
+        const date = new Date(waktu);
+        if (!isNaN(date.getTime())) {
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            return `${hours}:${minutes}`;
+        }
+    } catch (e) {
+        console.warn('Error formatting waktu:', e);
+    }
+    return waktu;
+}
+
+// Helper untuk class CSS berdasarkan status
+function getStatusClass(status) {
+    if (!status) return '';
+    
+    if (status.includes('Terlambat')) return 'status-terlambat';
+    if (status.includes('Pulang Cepat')) return 'status-cepat';
+    if (status === 'Tepat waktu') return 'status-tepat';
+    if (status === 'Belum absen' || status === 'Tidak absen') return 'status-tidak-absen';
+    if (status === 'Masih bekerja') return 'status-masih-bekerja';
+    
+    return '';
+}
+
 
 // ========== BAGIAN 5: FUNGSI HANDLE MENU CLICK ==========
 // ======================================================
