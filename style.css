@@ -1467,10 +1467,10 @@ marquee {
 /* Responsive untuk Pill Status */
 @media (max-width: 768px) {
     .weekly-absensi-table td.status-cell {
-        min-width: 85px;
-        max-width: 100px;
+        min-width: 100px;
+        max-width: 150px;
         font-size: 0.75rem;
-        padding: 3px 6px !important;
+        padding: 2px 4px !important;
         border-radius: 15px !important;
     }
 }
