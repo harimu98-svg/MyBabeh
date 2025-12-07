@@ -2354,15 +2354,22 @@ marquee {
 
 /* Style untuk status cell - TANPA BORDER */
 .weekly-absensi-table td[class*="status-"] {
-    padding: 6.4px 9.6px !important;
-    border-radius: 6.4px !important;
+    padding: 6.4px 9.6px !important; /* 80% dari 8px 12px = 6.4px 9.6px */
+    border-radius: 6.4px !important;  /* 80% dari 8px = 6.4px */
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.68rem !important;    /* 80% dari 0.85rem = 0.68rem */
     text-align: center;
-    min-width: 100px;
-    margin: 2px 0;
+    min-width: 96px !important;       /* 80% dari 120px = 96px */
+    max-width: 105px;
+    margin: 1.6px 0;                 /* 80% dari 2px = 1.6px */
     border: none !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 1.6px 3.2px rgba(0, 0, 0, 0.064) !important; /* 80% */
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+    height: fit-content;
 }
 /* Warna untuk setiap status */
 .weekly-absensi-table td.status-tepat {
