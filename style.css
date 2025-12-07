@@ -2353,7 +2353,6 @@ marquee {
 }
 
 /* Style untuk status cell - TANPA BORDER */
-/* Style untuk status cell - TANPA BORDER */
 .weekly-absensi-table td[class*="status-"] {
     padding: 8px 12px !important;
     border-radius: 8px !important;
@@ -2390,4 +2389,17 @@ marquee {
 .weekly-absensi-table td.status-masih-bekerja {
     background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
     color: #2563eb !important;
+}
+.status-pil {
+    padding: 3px 10px !important;      /* Lebih kecil vertikal */
+    border-radius: 50px !important;    /* Bentuk pil/bulatan */
+    font-size: 0.65rem !important;     /* Lebih kecil */
+    font-weight: 600;
+    min-width: 85px !important;        /* Lebih kecil */
+    max-width: 95px;
+    text-align: center;
+    border: none !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+    display: inline-block;
+    line-height: 1.1;
 }
