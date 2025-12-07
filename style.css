@@ -2026,68 +2026,151 @@ marquee {
         opacity: 0.5;
     }
 }
-/* ========== FIX: CELL BORDER TETAP, PILL TANPA BORDER ========== */
+/* ========== STATUS PILL - CELL BORDER ADA, PILL TANPA BORDER ========== */
 
-/* 1. Pastikan SEMUA cell di tabel punya border yang sama */
-.weekly-absensi-table td {
-    /* Ini styling default dari line 1328 */
-    padding: 14px !important;
-    border-bottom: 1px solid rgba(14, 165, 233, 0.08) !important;
-    font-size: 0.9rem !important;
-    color: #4a5568 !important;
-    vertical-align: middle !important;
-    text-align: center !important; /* tambahkan untuk centering */
-}
-
-/* 2. Khusus untuk kolom status (kolom ke-9) */
-.weekly-absensi-table td:nth-child(9) {
-    /* Tetap pakai border cell default */
-    /* Hanya ubah alignment */
+/* 1. Untuk cell yang berisi status - TETAPKAN BORDER SEPERTI CELL LAIN */
+.weekly-absensi-table td:has(> .status-pill),
+.weekly-absensi-table td[class*="status-"] {
+    /* Border cell seperti cell lain (ambil dari styling tabel) */
+    border-bottom: 1px solid rgba(14, 165, 233, 0.08) !important; /* dari line 1328 */
+    
+    /* Tetap grid untuk centering */
     display: grid !important;
     place-items: center !important;
+    padding: 12px 4px !important;
     min-width: 140px !important;
+    min-height: 60px !important;
+    text-align: center !important;
+    
+    /* Padding seperti cell lain */
+    padding: 14px !important; /* sama dengan line 1328: padding: 14px; */
 }
 
-/* 3. Styling untuk PILL di dalam cell */
-.weekly-absensi-table td[class*="status-"] {
-    /* INI PILLNYA - TANPA BORDER & SHADOW */
-    border: none !important; /* hapus border pill */
-    box-shadow: none !important; /* hapus shadow pill */
+/* 2. Jika ada span di dalam cell status - INI PILLNYA */
+.weekly-absensi-table td.status-cell > span {
+    /* Pill styling dasar - TANPA BORDER & SHADOW */
+    padding: 8px 20px !important;
     border-radius: 50px !important;
     font-weight: 700 !important;
     font-size: 0.85rem !important;
-    padding: 8px 20px !important;
+    border: none !important; /* HAPUS border pill saja */
     min-width: 120px !important;
+    max-width: 140px !important;
     text-align: center !important;
     white-space: nowrap !important;
+    box-shadow: none !important; /* HAPUS shadow pill saja */
+    letter-spacing: 0.3px !important;
     
-    /* Border CELL tetap ada (dari styling td di atas) */
-    /* Background gradient untuk pill */
+    /* Transisi halus */
+    transition: all 0.2s ease !important;
 }
 
-/* 4. Warna untuk setiap pill status */
-.weekly-absensi-table td.status-tepat {
-    background: linear-gradient(135deg, #d1fae5, #a7f3d0) !important;
+/* 3. Warna Status Pill - TANPA BORDER & SHADOW */
+
+/* ✅ TEPAT WAKTU - Hijau */
+.status-tepat,
+.weekly-absensi-table td.status-tepat,
+.status-pill.tepat-waktu {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%) !important;
     color: #065f46 !important;
+    /* HAPUS border-color dan box-shadow untuk pill saja */
 }
 
-.weekly-absensi-table td.status-terlambat {
-    background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+/* ⏰ TERLAMBAT - Kuning/Orange */
+.status-terlambat,
+.weekly-absensi-table td.status-terlambat,
+.status-pill.terlambat {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
     color: #92400e !important;
 }
 
-.weekly-absensi-table td.status-cepat {
-    background: linear-gradient(135deg, #fee2e2, #fecaca) !important;
+/* 🚪 PULANG CEPAT - Merah */
+.status-cepat,
+.weekly-absensi-table td.status-cepat,
+.status-pill.pulang-cepat {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%) !important;
     color: #991b1b !important;
 }
 
-.weekly-absensi-table td.status-tidak-absen {
-    background: linear-gradient(135deg, #f3f4f6, #e5e7eb) !important;
+/* ❌ TIDAK ABSEN - Abu-abu */
+.status-tidak-absen,
+.weekly-absensi-table td.status-tidak-absen,
+.status-pill.tidak-absen {
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%) !important;
     color: #374151 !important;
     font-style: italic !important;
 }
 
-.weekly-absensi-table td.status-masih-bekerja {
-    background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
+/* ⏳ MASIH BEKERJA - Biru */
+.status-masih-bekerja,
+.weekly-absensi-table td.status-masih-bekerja,
+.status-pill.masih-bekerja {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
     color: #1e40af !important;
+}
+
+/* 4. Untuk kasus dimana status langsung di td (tanpa span) */
+.weekly-absensi-table td[class*="status-"]:not(:has(> span)) {
+    /* Border cell tetap ada */
+    border-bottom: 1px solid rgba(14, 165, 233, 0.08) !important;
+    
+    /* Styling pill langsung di td - TANPA BORDER & SHADOW */
+    border-radius: 50px !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem !important;
+    border: none !important; /* HAPUS border pill */
+    padding: 10px 24px !important;
+    min-width: 130px !important;
+    min-height: 44px !important;
+    box-shadow: none !important; /* HAPUS shadow pill */
+    
+    /* Tetap gunakan grid untuk centering */
+    display: grid !important;
+    place-items: center !important;
+}
+
+/* 5. Pastikan cell status mengikuti styling cell lain di tabel */
+.weekly-absensi-table td {
+    /* Styling default cell (dari line 1328) */
+    padding: 14px !important;
+    border-bottom: 1px solid rgba(14, 165, 233, 0.08) !important;
+    font-size: 0.9rem !important;
+    color: #4a5568 !important;
+    transition: background 0.3s ease !important;
+    vertical-align: middle !important; /* tambahkan ini */
+}
+
+/* 6. Hover row tetap bekerja */
+.weekly-absensi-table tbody tr:hover td {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.03), rgba(3, 105, 161, 0.03)) !important;
+}
+
+/* 7. Responsive untuk mobile */
+@media (max-width: 768px) {
+    .weekly-absensi-table td[class*="status-"] {
+        min-width: 120px !important;
+        min-height: 50px !important;
+        padding: 12px 4px !important; /* tetap ada padding cell */
+    }
+    
+    .weekly-absensi-table td.status-cell > span,
+    .weekly-absensi-table td[class*="status-"]:not(:has(> span)) {
+        padding: 6px 14px !important;
+        font-size: 0.8rem !important;
+        min-width: 100px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .weekly-absensi-table td[class*="status-"] {
+        min-width: 100px !important;
+        padding: 10px 2px !important; /* tetap ada padding cell */
+    }
+    
+    .weekly-absensi-table td.status-cell > span,
+    .weekly-absensi-table td[class*="status-"]:not(:has(> span)) {
+        padding: 5px 10px !important;
+        font-size: 0.75rem !important;
+        min-width: 85px !important;
+    }
 }
