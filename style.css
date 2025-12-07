@@ -1460,6 +1460,7 @@ marquee {
 /* Pastikan cell tabel mendukung vertical centering */
 .weekly-absensi-table td {
     vertical-align: middle !important;
+    text-align: center !important; /* Horizontal center untuk semua cell */
 }
 /* Responsive untuk Pill Status */
 @media (max-width: 768px) {
