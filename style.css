@@ -2141,7 +2141,6 @@ marquee {
     text-align: center;
     min-width: 120px;
     font-size: 0.85rem;
-    border: 2px solid;
     transition: all 0.3s ease;
 }
 
