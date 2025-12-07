@@ -1412,7 +1412,7 @@ marquee {
 /* Status Kehadiran di Tabel - TAMPILAN PILL TERPUSAT */
 .weekly-absensi-table td.status-cell {
     font-weight: 600;
-    padding: 4px 8px !important;
+    padding: 2px 4px !important;
     border-radius: 20px !important; /* lebih bulat untuk pill effect */
     margin: 4px auto !important; /* auto untuk centering horizontal */
     display: inline-block !important; /* tidak memenuhi cell */
@@ -1460,6 +1460,7 @@ marquee {
 /* Pastikan cell tabel mendukung vertical centering */
 .weekly-absensi-table td {
     vertical-align: middle !important;
+     horizontal-align: middle !important;
     text-align: center !important; /* Horizontal center untuk semua cell */
 }
 /* Responsive untuk Pill Status */
