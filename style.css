@@ -1876,3 +1876,58 @@ marquee {
 .outlet-checklist-container::-webkit-scrollbar-thumb:hover {
     background: #95a5a6;
 }
+/* Styling untuk alasan UOP */
+.uop-reason-notice {
+    background-color: #fff5f5;
+    border-left: 4px solid #ff4757;
+    padding: 10px 15px;
+    margin-top: 15px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.uop-reason-notice .reason-text {
+    color: #ff4757;
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+.uop-reason-notice i {
+    color: #ff4757;
+}
+
+/* Styling untuk row alasan di tabel */
+.uop-reason-row {
+    background-color: #fff5f5 !important;
+}
+
+.uop-reason-cell {
+    padding: 5px 10px !important;
+    border-top: 1px dashed #ffcccc !important;
+}
+
+.uop-reason-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #ff4757;
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+.uop-reason-info i {
+    font-size: 0.8rem;
+}
+
+/* Text warna merah untuk UOP = 0 */
+.text-danger {
+    color: #ff4757 !important;
+    font-weight: 500;
+}
+
+/* Highlight UOP column di tabel */
+.weekly-komisi-table td:nth-child(7) {
+    font-weight: 500;
+}
