@@ -2737,5 +2737,1657 @@ function createBasicServiceWorker() {
             });
     }
 }
+// ========== FUNGSI MENU KOMPONEN - KAS & SETORAN ==========
+// ==========================================================
 
+// Variabel global untuk state Kas & Setoran
+let currentKasUser = null;
+let isOwnerKas = false;
+let currentOutletKas = null;
+
+// Konfigurasi WhatsApp API (sama seperti di index.html)
+const WA_API_URL = 'https://waha-yetv8qi4e3zk.anakit.sumopod.my.id/api/sendText';
+const WA_API_KEY = 'sfcoGbpdLDkGZhKw2rx8sbb14vf4d8V6';
+const WA_CHAT_ID = '62811159429-1533260196@g.us';
+
+// [1] Fungsi untuk tampilkan halaman Kas & Setoran
+async function showKasPage() {
+    try {
+        // Ambil data user
+        const { data: { user } } = await supabase.auth.getUser();
+        const namaKaryawan = user?.user_metadata?.nama_karyawan;
+        
+        if (!namaKaryawan) {
+            alert('User tidak ditemukan!');
+            return;
+        }
+        
+        // Ambil data karyawan lengkap
+        const { data: karyawanData } = await supabase
+            .from('karyawan')
+            .select('role, outlet')
+            .eq('nama_karyawan', namaKaryawan)
+            .single();
+        
+        if (!karyawanData) {
+            alert('Data karyawan tidak ditemukan!');
+            return;
+        }
+        
+        currentKasUser = {
+            nama_karyawan: namaKaryawan,
+            role: karyawanData.role,
+            outlet: karyawanData.outlet
+        };
+        
+        currentOutletKas = karyawanData.outlet;
+        isOwnerKas = karyawanData.role === 'owner';
+        
+        // Sembunyikan main app, tampilkan halaman Kas
+        document.getElementById('appScreen').style.display = 'none';
+        
+        // Buat container halaman Kas
+        createKasPage();
+        
+        // Load data awal
+        await loadKasData();
+        
+    } catch (error) {
+        console.error('Error in showKasPage:', error);
+        alert('Gagal memuat halaman Kas & Setoran!');
+    }
+}
+
+// [2] Fungsi untuk buat halaman Kas & Setoran
+function createKasPage() {
+    // Hapus halaman Kas sebelumnya jika ada
+    const existingPage = document.getElementById('kasPage');
+    if (existingPage) {
+        existingPage.remove();
+    }
+    
+    // Buat container halaman Kas
+    const kasPage = document.createElement('div');
+    kasPage.id = 'kasPage';
+    kasPage.className = 'kas-page';
+    kasPage.innerHTML = `
+        <!-- Header -->
+        <header class="kas-header">
+            <button class="back-btn" id="backToMainFromKas">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2><i class="fas fa-cash-register"></i> Kas & Setoran</h2>
+            <div class="header-actions">
+                <button class="refresh-btn" id="refreshKas">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </header>
+        
+        <!-- User Info -->
+        <div class="kas-user-info">
+            <div class="kas-user-info-grid">
+                <div class="kas-user-item">
+                    <i class="fas fa-store"></i>
+                    <div>
+                        <div class="kas-user-label">Outlet</div>
+                        <div class="kas-user-value" id="kasOutletDisplay">${currentOutletKas || '-'}</div>
+                    </div>
+                </div>
+                <div class="kas-user-item">
+                    <i class="fas fa-user"></i>
+                    <div>
+                        <div class="kas-user-label">Kasir</div>
+                        <div class="kas-user-value" id="kasKasirDisplay">${currentKasUser?.nama_karyawan || '-'}</div>
+                    </div>
+                </div>
+                <div class="kas-user-item">
+                    <i class="fas fa-user-tag"></i>
+                    <div>
+                        <div class="kas-user-label">Role</div>
+                        <div class="kas-user-value" id="kasRoleDisplay">${currentKasUser?.role || '-'}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Filter untuk Owner -->
+        <div id="ownerKasFilterSection" class="owner-filter" style="display: ${isOwnerKas ? 'block' : 'none'};">
+            <div class="filter-row first-row">
+                <div class="filter-group">
+                    <label for="selectOutletKas">Outlet:</label>
+                    <select id="selectOutletKas" class="outlet-select">
+                        <option value="all">Semua Outlet</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="selectKasirKas">Pilih Kasir:</label>
+                    <select id="selectKasirKas" class="karyawan-select">
+                        <option value="">Semua Kasir</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Filter Tanggal -->
+        <div class="date-filter-section">
+            <div class="date-filter-group">
+                <label for="filterTanggalKas">Pilih Tanggal:</label>
+                <input type="date" id="filterTanggalKas" class="date-input">
+            </div>
+            <div class="tanggal-display">
+                <i class="fas fa-calendar-alt"></i>
+                <span id="displayTanggalKas">Hari ini: -</span>
+            </div>
+        </div>
+        
+        <!-- Ringkasan KAS -->
+        <section class="ringkasan-kas-section">
+            <h3><i class="fas fa-chart-bar"></i> Ringkasan KAS</h3>
+            <div class="ringkasan-card">
+                <div class="loading" id="loadingRingkasan">Loading ringkasan...</div>
+                <div id="ringkasanContent" style="display: none;">
+                    <!-- Data akan diisi oleh JavaScript -->
+                </div>
+            </div>
+        </section>
+        
+        <!-- Status Setoran -->
+        <section class="ringkasan-kas-section">
+            <h3><i class="fas fa-money-bill-wave"></i> Status Setoran</h3>
+            <div class="status-setoran-card">
+                <div class="loading" id="loadingSetoran">Loading status setoran...</div>
+                <div id="setoranStatusContent" style="display: none;">
+                    <!-- Data akan diisi oleh JavaScript -->
+                </div>
+            </div>
+        </section>
+        
+        <!-- Pemasukan -->
+        <section class="pemasukan-pengeluaran-section">
+            <h3 class="section-title-kas"><i class="fas fa-arrow-down"></i> Pemasukan</h3>
+            <div class="pemasukan-card">
+                <div class="loading" id="loadingPemasukan">Loading data pemasukan...</div>
+                <div id="pemasukanContent" style="display: none;">
+                    <!-- Data auto-generate akan ditampilkan di sini -->
+                </div>
+                <div class="total-section">
+                    <div class="total-label">TOTAL PEMASUKAN</div>
+                    <div class="total-amount pemasukan" id="totalPemasukanDisplay">Rp 0</div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Pengeluaran -->
+        <section class="pemasukan-pengeluaran-section">
+            <h3 class="section-title-kas"><i class="fas fa-arrow-up"></i> Pengeluaran</h3>
+            <div class="pengeluaran-card">
+                <div class="loading" id="loadingPengeluaran">Loading data pengeluaran...</div>
+                <div id="pengeluaranContent" style="display: none;">
+                    <!-- Data auto-generate akan ditampilkan di sini -->
+                </div>
+                <div class="total-section">
+                    <div class="total-label">TOTAL PENGELUARAN</div>
+                    <div class="total-amount pengeluaran" id="totalPengeluaranDisplay">Rp 0</div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Action Buttons -->
+        <div class="kas-action-buttons">
+            <button class="kas-btn setor" id="setorBtnKas">
+                <i class="fas fa-money-bill-wave"></i> SETOR
+            </button>
+            <button class="kas-btn verifikasi" id="verifikasiSetoranBtnKas" style="display: ${isOwnerKas ? 'flex' : 'none'};">
+                <i class="fas fa-check-circle"></i> VERIFIKASI
+            </button>
+        </div>
+        
+        <!-- Submit Button -->
+        <div class="kas-action-buttons">
+            <button class="kas-btn submit" id="submitBtnKas">
+                <i class="fas fa-paper-plane"></i> SUBMIT DATA KAS
+            </button>
+        </div>
+        
+        <!-- Modal Setoran -->
+        <div class="setoran-modal-overlay" id="setoranModalKas" style="display: none;">
+            <div class="setoran-modal">
+                <div class="setoran-modal-header">
+                    <h3><i class="fas fa-money-bill-wave"></i> Form Setoran</h3>
+                    <button class="close-modal-btn" id="closeModalKas">&times;</button>
+                </div>
+                <div class="setoran-modal-body">
+                    <div class="modal-info-grid">
+                        <div class="modal-info-item">
+                            <div class="modal-info-label">Outlet</div>
+                            <div class="modal-info-value" id="modalOutletKas">${currentOutletKas || '-'}</div>
+                        </div>
+                        <div class="modal-info-item">
+                            <div class="modal-info-label">Kasir</div>
+                            <div class="modal-info-value" id="modalKasirKas">${currentKasUser?.nama_karyawan || '-'}</div>
+                        </div>
+                        <div class="modal-info-item">
+                            <div class="modal-info-label">Periode</div>
+                            <div class="modal-info-value" id="modalPeriodeKas">-</div>
+                        </div>
+                        <div class="modal-info-item">
+                            <div class="modal-info-label">Total Kewajiban</div>
+                            <div class="modal-info-value" id="modalKewajibanKas">Rp 0</div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-form-group">
+                        <label for="totalSetoranInputKas">Total Setoran *</label>
+                        <input type="number" id="totalSetoranInputKas" placeholder="Masukkan jumlah setoran">
+                    </div>
+                    
+                    <div class="modal-form-group">
+                        <label for="metodeSetoranKas">Metode Setoran *</label>
+                        <select id="metodeSetoranKas">
+                            <option value="">Pilih Metode</option>
+                            <option value="Transfer BSI">Transfer BSI</option>
+                            <option value="Transfer DANA">Transfer DANA</option>
+                            <option value="Cash">Cash</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="setoran-modal-footer">
+                    <button class="kas-btn submit" id="submitSetoranBtnKas">
+                        <i class="fas fa-check"></i> SUBMIT SETORAN
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Loading Overlay -->
+        <div class="kas-loading-overlay" id="kasLoadingOverlay" style="display: none;">
+            <div class="kas-loading-spinner"></div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="kas-footer">
+            <p>Data diperbarui: <span id="lastUpdateKasTime">-</span></p>
+        </div>
+    `;
+    
+    document.body.appendChild(kasPage);
+    
+    // Setup event listeners
+    setupKasPageEvents();
+    
+    // Setup tanggal default
+    setupTanggalDefault();
+}
+
+// [3] Setup event listeners untuk halaman Kas
+function setupKasPageEvents() {
+    // Tombol kembali
+    document.getElementById('backToMainFromKas').addEventListener('click', () => {
+        document.getElementById('kasPage').remove();
+        document.getElementById('appScreen').style.display = 'block';
+    });
+    
+    // Tombol refresh
+    document.getElementById('refreshKas').addEventListener('click', async () => {
+        await loadKasData();
+    });
+    
+    // Filter untuk owner
+    if (isOwnerKas) {
+        // Load dropdown outlet
+        loadOutletDropdownKas();
+        
+        // Event listener untuk outlet change
+        document.getElementById('selectOutletKas').addEventListener('change', async () => {
+            await loadKasirDropdownKas();
+            await loadKasData();
+        });
+        
+        // Event listener untuk kasir change
+        document.getElementById('selectKasirKas').addEventListener('change', async () => {
+            await loadKasData();
+        });
+    }
+    
+    // Filter tanggal
+    document.getElementById('filterTanggalKas').addEventListener('change', async function() {
+        const selectedDate = new Date(this.value);
+        updateTanggalDisplayKas(selectedDate);
+        await loadKasData();
+    });
+    
+    // Tombol setor
+    document.getElementById('setorBtnKas').addEventListener('click', openSetoranModalKas);
+    
+    // Tombol verifikasi (owner only)
+    document.getElementById('verifikasiSetoranBtnKas').addEventListener('click', verifikasiSetoranKas);
+    
+    // Tombol submit data
+    document.getElementById('submitBtnKas').addEventListener('click', submitDataKas);
+    
+    // Modal events
+    document.getElementById('closeModalKas').addEventListener('click', closeSetoranModalKas);
+    document.getElementById('submitSetoranBtnKas').addEventListener('click', submitSetoranKas);
+}
+
+// [4] Setup tanggal default
+function setupTanggalDefault() {
+    const filterTanggal = document.getElementById('filterTanggalKas');
+    const today = new Date();
+    const todayStr = formatDateForInput(today);
+    
+    // Set default ke hari ini
+    filterTanggal.value = todayStr;
+    filterTanggal.max = todayStr; // Tidak boleh lebih dari hari ini
+    
+    // Update display tanggal
+    updateTanggalDisplayKas(today);
+}
+
+// Format tanggal untuk input date (YYYY-MM-DD)
+function formatDateForInput(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// Format tanggal untuk display
+function updateTanggalDisplayKas(date) {
+    const displayElement = document.getElementById('displayTanggalKas');
+    const dayName = date.toLocaleDateString('id-ID', { weekday: 'long' });
+    const dateStr = formatDateDisplayKas(date);
+    displayElement.textContent = `${dayName}, ${dateStr}`;
+}
+
+function formatDateDisplayKas(date) {
+    const day = date.getDate();
+    const month = date.toLocaleDateString('id-ID', { month: 'long' });
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+}
+
+// [5] Load dropdown outlet untuk owner
+async function loadOutletDropdownKas() {
+    const select = document.getElementById('selectOutletKas');
+    
+    try {
+        const { data: outlets, error } = await supabase
+            .from('outlet')
+            .select('outlet')
+            .order('outlet');
+        
+        if (error) throw error;
+        
+        select.innerHTML = `
+            <option value="all">Semua Outlet</option>
+            ${outlets.map(outlet => 
+                `<option value="${outlet.outlet}">${outlet.outlet}</option>`
+            ).join('')}
+        `;
+        
+        // Set outlet user saat ini sebagai default jika bukan owner semua outlet
+        if (currentOutletKas) {
+            select.value = currentOutletKas;
+        }
+        
+        // Setelah outlet di-load, load kasir dropdown
+        await loadKasirDropdownKas();
+        
+    } catch (error) {
+        console.error('Error loading outlets for Kas:', error);
+        select.innerHTML = '<option value="all">Semua Outlet</option>';
+    }
+}
+
+// [6] Load dropdown kasir untuk owner
+async function loadKasirDropdownKas() {
+    const select = document.getElementById('selectKasirKas');
+    const outletSelect = document.getElementById('selectOutletKas');
+    const selectedOutlet = outletSelect ? outletSelect.value : null;
+    
+    try {
+        let query = supabase
+            .from('karyawan')
+            .select('nama_karyawan')
+            .eq('posisi', 'Kasir')
+            .order('nama_karyawan');
+        
+        // Filter berdasarkan outlet jika dipilih
+        if (selectedOutlet && selectedOutlet !== 'all') {
+            query = query.eq('outlet', selectedOutlet);
+        }
+        
+        const { data: kasirList, error } = await query;
+        
+        if (error) throw error;
+        
+        select.innerHTML = `
+            <option value="">Semua Kasir</option>
+            ${kasirList.map(k => 
+                `<option value="${k.nama_karyawan}">${k.nama_karyawan}</option>`
+            ).join('')}
+        `;
+        
+    } catch (error) {
+        console.error('Error loading kasir list for Kas:', error);
+        select.innerHTML = '<option value="">Error loading data</option>';
+    }
+}
+
+// [7] Fungsi utama untuk load data Kas
+async function loadKasData() {
+    try {
+        showKasLoading(true);
+        
+        // Tampilkan semua loading state
+        document.querySelectorAll('#loadingRingkasan, #loadingSetoran, #loadingPemasukan, #loadingPengeluaran')
+            .forEach(el => el.style.display = 'block');
+        document.querySelectorAll('#ringkasanContent, #setoranStatusContent, #pemasukanContent, #pengeluaranContent')
+            .forEach(el => el.style.display = 'none');
+        
+        // Tentukan filter parameters
+        const filterParams = getKasFilterParams();
+        
+        // Load semua data secara paralel
+        await Promise.all([
+            loadRingkasanKas(filterParams),
+            loadSetoranStatus(filterParams),
+            loadPemasukanData(filterParams),
+            loadPengeluaranData(filterParams)
+        ]);
+        
+        // Update waktu terakhir update
+        const updateTime = new Date().toLocaleTimeString('id-ID');
+        document.getElementById('lastUpdateKasTime').textContent = updateTime;
+        
+    } catch (error) {
+        console.error('Error loading Kas data:', error);
+        showNotificationKas('Gagal memuat data Kas', 'error');
+    } finally {
+        showKasLoading(false);
+    }
+}
+
+// [8] Get filter parameters untuk Kas
+function getKasFilterParams() {
+    const params = {
+        outlet: currentOutletKas,
+        kasir: currentKasUser?.nama_karyawan,
+        tanggal: document.getElementById('filterTanggalKas').value,
+        isOwner: isOwnerKas
+    };
+    
+    if (isOwnerKas) {
+        const selectOutlet = document.getElementById('selectOutletKas');
+        const selectKasir = document.getElementById('selectKasirKas');
+        
+        // Untuk owner: gunakan filter dari dropdown
+        if (selectOutlet && selectOutlet.value !== 'all') {
+            params.outlet = selectOutlet.value;
+        } else {
+            params.outlet = null; // Semua outlet
+        }
+        
+        if (selectKasir && selectKasir.value) {
+            params.kasir = selectKasir.value;
+            params.filterByKasir = true;
+        } else {
+            params.kasir = null;
+            params.filterByKasir = false;
+        }
+    } else {
+        // Untuk non-owner: selalu filter berdasarkan kasir sendiri
+        params.filterByKasir = true;
+    }
+    
+    console.log('Kas Filter params:', params);
+    return params;
+}
+
+// [9] Load data ringkasan KAS
+async function loadRingkasanKas(filterParams) {
+    try {
+        // Hitung periode (Selasa - Senin)
+        const selectedDate = new Date(filterParams.tanggal);
+        const periode = calculatePeriodForDate(selectedDate);
+        
+        // Query data KAS untuk periode tersebut
+        let query = supabase
+            .from('kas')
+            .select('*')
+            .gte('tanggal', periode.start)
+            .lte('tanggal', periode.end);
+        
+        // Filter berdasarkan outlet
+        if (filterParams.outlet) {
+            query = query.eq('outlet', filterParams.outlet);
+        }
+        
+        // Filter berdasarkan kasir
+        if (filterParams.filterByKasir && filterParams.kasir) {
+            query = query.eq('kasir', filterParams.kasir);
+        }
+        
+        const { data: kasData, error } = await query;
+        
+        if (error) throw error;
+        
+        // Tampilkan ringkasan
+        displayRingkasanKas(kasData || [], periode);
+        
+    } catch (error) {
+        console.error('Error loading ringkasan KAS:', error);
+        document.getElementById('loadingRingkasan').style.display = 'none';
+        document.getElementById('ringkasanContent').innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #ff4757;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Gagal memuat ringkasan KAS</p>
+            </div>
+        `;
+        document.getElementById('ringkasanContent').style.display = 'block';
+    }
+}
+
+// [10] Hitung periode (Selasa - Senin)
+function calculatePeriodForDate(date) {
+    const currentDate = new Date(date);
+    const dayOfWeek = currentDate.getDay(); // 0=Minggu, 1=Senin, ..., 6=Sabtu
+    
+    // Cari Selasa terdekat (mundur)
+    let tuesday = new Date(currentDate);
+    let daysToTuesday = (dayOfWeek + 5) % 7;
+    tuesday.setDate(currentDate.getDate() - daysToTuesday);
+    
+    // Cari Senin terdekat (maju)
+    let monday = new Date(tuesday);
+    monday.setDate(tuesday.getDate() + 6);
+    
+    return {
+        start: formatDateForDatabase(tuesday),
+        end: formatDateForDatabase(monday),
+        display: `${formatDateID(tuesday)} - ${formatDateID(monday)}`
+    };
+}
+
+function formatDateForDatabase(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function formatDateID(date) {
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    
+    const dayName = days[date.getDay()];
+    return `${dayName} ${date.getDate()}/${months[date.getMonth()]}/${date.getFullYear()}`;
+}
+
+// [11] Display ringkasan KAS
+function displayRingkasanKas(kasData, periode) {
+    const content = document.getElementById('ringkasanContent');
+    
+    if (kasData.length === 0) {
+        content.innerHTML = `
+            <div style="text-align: center; padding: 20px;">
+                <i class="fas fa-chart-bar" style="font-size: 2rem; color: #ccc; margin-bottom: 10px;"></i>
+                <p style="color: #666;">Tidak ada data KAS untuk periode ini</p>
+                <p style="font-size: 0.9rem; color: #888;">${periode.display}</p>
+            </div>
+        `;
+    } else {
+        // Hitung total
+        const totalPemasukan = kasData.reduce((sum, item) => sum + (parseInt(item.pemasukan) || 0), 0);
+        const totalPengeluaran = kasData.reduce((sum, item) => sum + (parseInt(item.pengeluaran) || 0), 0);
+        const totalSaldo = totalPemasukan - totalPengeluaran;
+        
+        content.innerHTML = `
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                    <i class="fas fa-calendar-alt" style="color: #8A2BE2;"></i>
+                    <span style="font-weight: 600; color: #333;">${periode.display}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; color: #666; font-size: 0.9rem;">
+                    <i class="fas fa-calendar-day"></i>
+                    <span>${periode.start} sampai ${periode.end}</span>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                <div style="background: linear-gradient(135deg, #f0f9ff, #e6f7ff); padding: 15px; border-radius: 12px; border: 1px solid rgba(14, 165, 233, 0.1);">
+                    <div style="font-size: 0.85rem; color: #0369a1; margin-bottom: 8px; font-weight: 600;">Total Pemasukan</div>
+                    <div style="font-size: 1.3rem; font-weight: 700; color: #10b981;">${formatRupiah(totalPemasukan)}</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #fff5f5, #ffeaea); padding: 15px; border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.1);">
+                    <div style="font-size: 0.85rem; color: #dc2626; margin-bottom: 8px; font-weight: 600;">Total Pengeluaran</div>
+                    <div style="font-size: 1.3rem; font-weight: 700; color: #ef4444;">${formatRupiah(totalPengeluaran)}</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); padding: 15px; border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.1);">
+                    <div style="font-size: 0.85rem; color: #059669; margin-bottom: 8px; font-weight: 600;">Total Saldo</div>
+                    <div style="font-size: 1.3rem; font-weight: 700; color: ${totalSaldo >= 0 ? '#059669' : '#ef4444'};">${formatRupiah(totalSaldo)}</div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; font-size: 0.9rem; color: #666;">
+                <i class="fas fa-info-circle" style="margin-right: 5px;"></i>
+                ${kasData.length} hari tercatat dalam periode ini
+            </div>
+        `;
+    }
+    
+    // Sembunyikan loading, tampilkan content
+    document.getElementById('loadingRingkasan').style.display = 'none';
+    content.style.display = 'block';
+}
+
+// [12] Load status setoran
+async function loadSetoranStatus(filterParams) {
+    try {
+        // Hitung periode
+        const selectedDate = new Date(filterParams.tanggal);
+        const periode = calculatePeriodForDate(selectedDate);
+        
+        // Query data setoran
+        let query = supabase
+            .from('setoran')
+            .select('*')
+            .eq('periode', periode.display);
+        
+        // Filter berdasarkan outlet
+        if (filterParams.outlet) {
+            query = query.eq('outlet', filterParams.outlet);
+        }
+        
+        // Filter berdasarkan kasir
+        if (filterParams.filterByKasir && filterParams.kasir) {
+            query = query.eq('kasir', filterParams.kasir);
+        }
+        
+        const { data: setoranData, error } = await query;
+        
+        if (error) throw error;
+        
+        // Tampilkan status setoran
+        displaySetoranStatus(setoranData?.[0] || null, periode);
+        
+    } catch (error) {
+        console.error('Error loading setoran status:', error);
+        document.getElementById('loadingSetoran').style.display = 'none';
+        document.getElementById('setoranStatusContent').innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #ff4757;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Gagal memuat status setoran</p>
+            </div>
+        `;
+        document.getElementById('setoranStatusContent').style.display = 'block';
+    }
+}
+
+// [13] Display status setoran
+function displaySetoranStatus(setoranData, periode) {
+    const content = document.getElementById('setoranStatusContent');
+    
+    if (!setoranData) {
+        content.innerHTML = `
+            <div style="text-align: center; padding: 20px;">
+                <i class="fas fa-money-bill-wave" style="font-size: 2rem; color: #fbbf24; margin-bottom: 10px;"></i>
+                <p style="color: #92400e; font-weight: 600;">Belum ada setoran untuk periode ini</p>
+                <p style="font-size: 0.9rem; color: #888; margin-top: 10px;">${periode.display}</p>
+            </div>
+        `;
+    } else {
+        const statusClass = {
+            'Belum Setor': 'status-belum',
+            'In Process': 'status-process',
+            'Verified': 'status-verified'
+        }[setoranData.status_setoran] || 'status-belum';
+        
+        // Format tanggal setoran
+        let tanggalSetoranDisplay = '-';
+        if (setoranData.tanggal_setoran) {
+            const date = new Date(setoranData.tanggal_setoran);
+            tanggalSetoranDisplay = date.toLocaleDateString('id-ID', { 
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+        
+        content.innerHTML = `
+            <h4 style="color: #0369a1; margin-bottom: 16px; font-size: 1rem;">Periode: ${setoranData.periode}</h4>
+            
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-label">Metode Setoran</div>
+                    <div class="status-value">${setoranData.metode_setoran || '-'}</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Tanggal Setoran</div>
+                    <div class="status-value">${tanggalSetoranDisplay}</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Total Setoran</div>
+                    <div class="status-value">${formatRupiah(setoranData.total_setoran || 0)}</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Sisa Setoran</div>
+                    <div class="status-value">${formatRupiah(setoranData.sisa_setoran || 0)}</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Status</div>
+                    <div class="status-value ${statusClass}" style="padding: 6px 12px; border-radius: 20px; display: inline-block;">
+                        ${setoranData.status_setoran}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Update tombol verifikasi
+        updateVerifikasiButton(setoranData);
+    }
+    
+    // Sembunyikan loading, tampilkan content
+    document.getElementById('loadingSetoran').style.display = 'none';
+    content.style.display = 'block';
+}
+
+// [14] Update tombol verifikasi berdasarkan status setoran
+function updateVerifikasiButton(setoranData) {
+    const verifikasiBtn = document.getElementById('verifikasiSetoranBtnKas');
+    
+    if (isOwnerKas && setoranData && setoranData.status_setoran === 'In Process') {
+        verifikasiBtn.disabled = false;
+        verifikasiBtn.title = 'Verifikasi setoran ini';
+    } else {
+        verifikasiBtn.disabled = true;
+        if (setoranData && setoranData.status_setoran === 'Verified') {
+            verifikasiBtn.title = 'Setoran sudah diverifikasi';
+        } else {
+            verifikasiBtn.title = 'Tidak ada setoran yang bisa diverifikasi';
+        }
+    }
+}
+
+// [15] Load data pemasukan (auto-generate)
+async function loadPemasukanData(filterParams) {
+    try {
+        const tanggal = filterParams.tanggal;
+        const outlet = filterParams.outlet || currentOutletKas;
+        
+        if (!tanggal || !outlet) {
+            throw new Error('Tanggal dan outlet diperlukan');
+        }
+        
+        // Array untuk menyimpan data pemasukan
+        const pemasukanItems = [];
+        
+        // 1. SISA SETORAN (dari tabel setoran)
+        const sisaSetoran = await getSisaSetoran(outlet, tanggal);
+        if (sisaSetoran > 0) {
+            pemasukanItems.push({
+                jenis: 'Sisa Setoran',
+                jumlah: sisaSetoran,
+                note: 'Auto-generate dari setoran sebelumnya',
+                icon: 'fa-money-bill-wave',
+                color: '#10b981'
+            });
+        }
+        
+        // 2. OMSET CASH (dari tabel transaksi_order)
+        const omsetCash = await getOmsetCash(outlet, tanggal);
+        if (omsetCash > 0) {
+            pemasukanItems.push({
+                jenis: 'Omset Cash',
+                jumlah: omsetCash,
+                note: 'Auto-generate dari transaksi cash',
+                icon: 'fa-cash-register',
+                color: '#059669'
+            });
+        }
+        
+        // 3. TOP UP KAS (dari tabel kas sebelumnya atau default 0)
+        pemasukanItems.push({
+            jenis: 'Top Up Kas',
+            jumlah: 0,
+            note: 'Manual input',
+            icon: 'fa-wallet',
+            color: '#3b82f6'
+        });
+        
+        // 4. HUTANG KOMISI (dari tabel komisi yang belum dibayar)
+        const hutangKomisi = await getHutangKomisi(outlet, tanggal);
+        if (hutangKomisi > 0) {
+            pemasukanItems.push({
+                jenis: 'Hutang Komisi',
+                jumlah: hutangKomisi,
+                note: 'Auto-generate dari hutang komisi',
+                icon: 'fa-hand-holding-usd',
+                color: '#8b5cf6'
+            });
+        }
+        
+        // 5. PEMASUKAN LAIN-LAIN (default 0)
+        pemasukanItems.push({
+            jenis: 'Pemasukan Lain Lain',
+            jumlah: 0,
+            note: 'Manual input',
+            icon: 'fa-plus-circle',
+            color: '#ec4899'
+        });
+        
+        // Tampilkan data pemasukan
+        displayPemasukanData(pemasukanItems);
+        
+    } catch (error) {
+        console.error('Error loading pemasukan data:', error);
+        document.getElementById('loadingPemasukan').style.display = 'none';
+        document.getElementById('pemasukanContent').innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #ff4757;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Gagal memuat data pemasukan</p>
+            </div>
+        `;
+        document.getElementById('pemasukanContent').style.display = 'block';
+    }
+}
+
+// [16] Fungsi helper: Get Sisa Setoran
+async function getSisaSetoran(outlet, tanggal) {
+    try {
+        // Cari setoran sebelumnya yang memiliki sisa
+        const { data: setoranData, error } = await supabase
+            .from('setoran')
+            .select('sisa_setoran, tanggal_setoran')
+            .eq('outlet', outlet)
+            .gt('sisa_setoran', 0)
+            .order('tanggal_setoran', { ascending: false })
+            .limit(1);
+        
+        if (error) throw error;
+        
+        return setoranData?.[0]?.sisa_setoran || 0;
+        
+    } catch (error) {
+        console.error('Error getting sisa setoran:', error);
+        return 0;
+    }
+}
+
+// [17] Fungsi helper: Get Omset Cash
+async function getOmsetCash(outlet, tanggal) {
+    try {
+        const { data: transaksiData, error } = await supabase
+            .from('transaksi_order')
+            .select('total_amount')
+            .eq('outlet', outlet)
+            .eq('order_date', tanggal)
+            .eq('payment_type', 'cash')
+            .eq('status', 'completed');
+        
+        if (error) throw error;
+        
+        // Hitung total omset cash
+        const totalOmset = transaksiData?.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0) || 0;
+        return Math.round(totalOmset);
+        
+    } catch (error) {
+        console.error('Error getting omset cash:', error);
+        return 0;
+    }
+}
+
+// [18] Fungsi helper: Get Hutang Komisi
+async function getHutangKomisi(outlet, tanggal) {
+    try {
+        // Logika untuk menghitung hutang komisi
+        // Ini bisa dari tabel hutang atau komisi yang belum dibayar
+        // Untuk sekarang return 0 dulu
+        return 0;
+        
+    } catch (error) {
+        console.error('Error getting hutang komisi:', error);
+        return 0;
+    }
+}
+
+// [19] Display data pemasukan
+function displayPemasukanData(pemasukanItems) {
+    const content = document.getElementById('pemasukanContent');
+    
+    if (pemasukanItems.length === 0) {
+        content.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #666;">
+                <i class="fas fa-arrow-down" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.3;"></i>
+                <p>Tidak ada data pemasukan</p>
+            </div>
+        `;
+    } else {
+        let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+        
+        pemasukanItems.forEach((item, index) => {
+            const isAuto = item.note.includes('Auto-generate');
+            
+            html += `
+                <div class="auto-item ${isAuto ? '' : 'disabled'}">
+                    <div class="auto-item-label">
+                        <div class="auto-item-icon pemasukan" style="background: ${item.color};">
+                            <i class="fas ${item.icon}"></i>
+                        </div>
+                        <div>
+                            <div class="auto-item-text">${item.jenis}</div>
+                            <div class="auto-item-note">${item.note}</div>
+                        </div>
+                    </div>
+                    <div class="auto-item-value pemasukan">${formatRupiah(item.jumlah)}</div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        content.innerHTML = html;
+        
+        // Hitung total pemasukan
+        const totalPemasukan = pemasukanItems.reduce((sum, item) => sum + item.jumlah, 0);
+        document.getElementById('totalPemasukanDisplay').textContent = formatRupiah(totalPemasukan);
+    }
+    
+    // Sembunyikan loading, tampilkan content
+    document.getElementById('loadingPemasukan').style.display = 'none';
+    content.style.display = 'block';
+}
+
+// [20] Load data pengeluaran (auto-generate)
+async function loadPengeluaranData(filterParams) {
+    try {
+        const tanggal = filterParams.tanggal;
+        const outlet = filterParams.outlet || currentOutletKas;
+        
+        if (!tanggal || !outlet) {
+            throw new Error('Tanggal dan outlet diperlukan');
+        }
+        
+        // Array untuk menyimpan data pengeluaran
+        const pengeluaranItems = [];
+        
+        // 1. KOMISI (dari tabel komisi)
+        const komisiData = await getKomisiData(outlet, tanggal);
+        if (komisiData.komisi > 0) {
+            pengeluaranItems.push({
+                jenis: 'Komisi',
+                jumlah: komisiData.komisi,
+                note: 'Auto-generate dari data komisi',
+                icon: 'fa-money-bill-wave',
+                color: '#ef4444'
+            });
+        }
+        
+        // 2. UOP (dari tabel komisi)
+        if (komisiData.uop > 0) {
+            pengeluaranItems.push({
+                jenis: 'UOP',
+                jumlah: komisiData.uop,
+                note: 'Auto-generate dari data komisi',
+                icon: 'fa-tools',
+                color: '#f59e0b'
+            });
+        }
+        
+        // 3. TIPS QRIS (dari tabel komisi)
+        if (komisiData.tips_qris > 0) {
+            pengeluaranItems.push({
+                jenis: 'Tips QRIS',
+                jumlah: komisiData.tips_qris,
+                note: 'Auto-generate dari data komisi',
+                icon: 'fa-qrcode',
+                color: '#8b5cf6'
+            });
+        }
+        
+        // 4. BAYAR HUTANG KOMISI (default 0)
+        pengeluaranItems.push({
+            jenis: 'Bayar Hutang Komisi',
+            jumlah: 0,
+            note: 'Manual input',
+            icon: 'fa-hand-holding-usd',
+            color: '#dc2626'
+        });
+        
+        // 5. PENGELUARAN LAIN-LAIN (default 0)
+        pengeluaranItems.push({
+            jenis: 'Pengeluaran Lain Lain',
+            jumlah: 0,
+            note: 'Manual input',
+            icon: 'fa-minus-circle',
+            color: '#9333ea'
+        });
+        
+        // Tampilkan data pengeluaran
+        displayPengeluaranData(pengeluaranItems);
+        
+    } catch (error) {
+        console.error('Error loading pengeluaran data:', error);
+        document.getElementById('loadingPengeluaran').style.display = 'none';
+        document.getElementById('pengeluaranContent').innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #ff4757;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Gagal memuat data pengeluaran</p>
+            </div>
+        `;
+        document.getElementById('pengeluaranContent').style.display = 'block';
+    }
+}
+
+// [21] Fungsi helper: Get Komisi Data
+async function getKomisiData(outlet, tanggal) {
+    try {
+        const { data: komisiData, error } = await supabase
+            .from('komisi')
+            .select('komisi, uop, tips_qris')
+            .eq('outlet', outlet)
+            .eq('tanggal', tanggal)
+            .eq('status', 'complete');
+        
+        if (error) throw error;
+        
+        // Hitung total untuk semua data komisi hari itu
+        const totals = {
+            komisi: 0,
+            uop: 0,
+            tips_qris: 0
+        };
+        
+        if (komisiData && komisiData.length > 0) {
+            komisiData.forEach(item => {
+                totals.komisi += parseFloat(item.komisi) || 0;
+                totals.uop += parseFloat(item.uop) || 0;
+                totals.tips_qris += parseFloat(item.tips_qris) || 0;
+            });
+        }
+        
+        // Round to integer
+        totals.komisi = Math.round(totals.komisi);
+        totals.uop = Math.round(totals.uop);
+        totals.tips_qris = Math.round(totals.tips_qris);
+        
+        return totals;
+        
+    } catch (error) {
+        console.error('Error getting komisi data:', error);
+        return { komisi: 0, uop: 0, tips_qris: 0 };
+    }
+}
+
+// [22] Display data pengeluaran
+function displayPengeluaranData(pengeluaranItems) {
+    const content = document.getElementById('pengeluaranContent');
+    
+    if (pengeluaranItems.length === 0) {
+        content.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #666;">
+                <i class="fas fa-arrow-up" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.3;"></i>
+                <p>Tidak ada data pengeluaran</p>
+            </div>
+        `;
+    } else {
+        let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+        
+        pengeluaranItems.forEach((item, index) => {
+            const isAuto = item.note.includes('Auto-generate');
+            
+            html += `
+                <div class="auto-item ${isAuto ? '' : 'disabled'}">
+                    <div class="auto-item-label">
+                        <div class="auto-item-icon pengeluaran" style="background: ${item.color};">
+                            <i class="fas ${item.icon}"></i>
+                        </div>
+                        <div>
+                            <div class="auto-item-text">${item.jenis}</div>
+                            <div class="auto-item-note">${item.note}</div>
+                        </div>
+                    </div>
+                    <div class="auto-item-value pengeluaran">${formatRupiah(item.jumlah)}</div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        content.innerHTML = html;
+        
+        // Hitung total pengeluaran
+        const totalPengeluaran = pengeluaranItems.reduce((sum, item) => sum + item.jumlah, 0);
+        document.getElementById('totalPengeluaranDisplay').textContent = formatRupiah(totalPengeluaran);
+    }
+    
+    // Sembunyikan loading, tampilkan content
+    document.getElementById('loadingPengeluaran').style.display = 'none';
+    content.style.display = 'block';
+}
+
+// [23] Buka modal setoran
+async function openSetoranModalKas() {
+    try {
+        // Hitung total kewajiban (saldo dari ringkasan)
+        const filterParams = getKasFilterParams();
+        const selectedDate = new Date(filterParams.tanggal);
+        const periode = calculatePeriodForDate(selectedDate);
+        
+        // Query total saldo untuk periode ini
+        let query = supabase
+            .from('kas')
+            .select('saldo')
+            .gte('tanggal', periode.start)
+            .lte('tanggal', periode.end);
+        
+        if (filterParams.outlet) {
+            query = query.eq('outlet', filterParams.outlet);
+        }
+        
+        if (filterParams.filterByKasir && filterParams.kasir) {
+            query = query.eq('kasir', filterParams.kasir);
+        }
+        
+        const { data: kasData, error } = await query;
+        
+        if (error) throw error;
+        
+        // Hitung total kewajiban
+        const totalKewajiban = kasData?.reduce((sum, item) => sum + (parseInt(item.saldo) || 0), 0) || 0;
+        
+        // Update modal content
+        document.getElementById('modalOutletKas').textContent = filterParams.outlet || currentOutletKas || '-';
+        document.getElementById('modalKasirKas').textContent = filterParams.kasir || currentKasUser?.nama_karyawan || '-';
+        document.getElementById('modalPeriodeKas').textContent = periode.display;
+        document.getElementById('modalKewajibanKas').textContent = formatRupiah(totalKewajiban);
+        document.getElementById('totalSetoranInputKas').value = totalKewajiban;
+        
+        // Tampilkan modal
+        document.getElementById('setoranModalKas').style.display = 'flex';
+        
+    } catch (error) {
+        console.error('Error opening setoran modal:', error);
+        showNotificationKas('Gagal membuka form setoran', 'error');
+    }
+}
+
+// [24] Tutup modal setoran
+function closeSetoranModalKas() {
+    document.getElementById('setoranModalKas').style.display = 'none';
+}
+
+// [25] Submit setoran
+async function submitSetoranKas() {
+    try {
+        const totalSetoran = parseInt(document.getElementById('totalSetoranInputKas').value) || 0;
+        const metodeSetoran = document.getElementById('metodeSetoranKas').value;
+        
+        if (!totalSetoran || !metodeSetoran) {
+            showNotificationKas('Harap isi total setoran dan pilih metode setoran', 'error');
+            return;
+        }
+        
+        const filterParams = getKasFilterParams();
+        const selectedDate = new Date(filterParams.tanggal);
+        const periode = calculatePeriodForDate(selectedDate);
+        
+        // Validasi: Cek apakah sudah ada setoran untuk periode ini
+        let query = supabase
+            .from('setoran')
+            .select('id')
+            .eq('periode', periode.display);
+        
+        if (filterParams.outlet) {
+            query = query.eq('outlet', filterParams.outlet);
+        }
+        
+        if (filterParams.filterByKasir && filterParams.kasir) {
+            query = query.eq('kasir', filterParams.kasir);
+        }
+        
+        const { data: existingSetoran } = await query;
+        
+        if (existingSetoran && existingSetoran.length > 0) {
+            showNotificationKas('Setoran untuk periode ini sudah ada. Tidak bisa submit lagi.', 'error');
+            closeSetoranModalKas();
+            return;
+        }
+        
+        showKasLoading(true);
+        
+        const now = new Date();
+        const today = formatDateForDatabase(now);
+        
+        // Hitung sisa setoran (total kewajiban - total setoran)
+        const totalKewajibanElement = document.getElementById('modalKewajibanKas');
+        const totalKewajibanText = totalKewajibanElement.textContent.replace(/[^0-9]/g, '');
+        const totalKewajiban = parseInt(totalKewajibanText) || 0;
+        const sisaSetoran = Math.max(0, totalKewajiban - totalSetoran);
+        
+        // Data setoran
+        const setoranData = {
+            outlet: filterParams.outlet || currentOutletKas,
+            periode: periode.display,
+            kasir: filterParams.kasir || currentKasUser?.nama_karyawan,
+            total_kewajiban: totalKewajiban,
+            total_setoran: totalSetoran,
+            sisa_setoran: sisaSetoran, // TAMBAHKAN SISA SETORAN
+            tanggal_setoran: today,
+            metode_setoran: metodeSetoran,
+            status_setoran: 'In Process'
+        };
+        
+        console.log('Data setoran yang akan disimpan:', setoranData);
+        
+        // Insert data setoran
+        const { error } = await supabase
+            .from('setoran')
+            .insert([setoranData]);
+        
+        if (error) throw error;
+        
+        // Kirim notifikasi WhatsApp
+        await sendWhatsAppNotificationKas(setoranData);
+        
+        showNotificationKas('Setoran berhasil disimpan', 'success');
+        closeSetoranModalKas();
+        
+        // Refresh data
+        await loadKasData();
+        
+    } catch (error) {
+        console.error('Error submitting setoran:', error);
+        showNotificationKas('Gagal menyimpan setoran: ' + error.message, 'error');
+    } finally {
+        showKasLoading(false);
+    }
+}
+
+// [26] Verifikasi setoran (hanya untuk owner)
+async function verifikasiSetoranKas() {
+    try {
+        const filterParams = getKasFilterParams();
+        const selectedDate = new Date(filterParams.tanggal);
+        const periode = calculatePeriodForDate(selectedDate);
+        
+        // Cari setoran yang akan diverifikasi
+        let query = supabase
+            .from('setoran')
+            .select('*')
+            .eq('periode', periode.display)
+            .eq('status_setoran', 'In Process');
+        
+        if (filterParams.outlet) {
+            query = query.eq('outlet', filterParams.outlet);
+        }
+        
+        if (filterParams.filterByKasir && filterParams.kasir) {
+            query = query.eq('kasir', filterParams.kasir);
+        }
+        
+        const { data: setoranData, error } = await query;
+        
+        if (error) throw error;
+        
+        if (!setoranData || setoranData.length === 0) {
+            showNotificationKas('Tidak ada setoran untuk diverifikasi', 'warning');
+            return;
+        }
+        
+        showKasLoading(true);
+        
+        // Update status menjadi Verified
+        const { error: updateError } = await supabase
+            .from('setoran')
+            .update({ status_setoran: 'Verified' })
+            .eq('id', setoranData[0].id);
+        
+        if (updateError) throw updateError;
+        
+        showNotificationKas('Setoran telah diverifikasi', 'success');
+        
+        // Refresh data
+        await loadKasData();
+        
+    } catch (error) {
+        console.error('Error verifying setoran:', error);
+        showNotificationKas('Gagal memverifikasi setoran: ' + error.message, 'error');
+    } finally {
+        showKasLoading(false);
+    }
+}
+
+// [27] Submit data KAS
+async function submitDataKas() {
+    try {
+        const filterParams = getKasFilterParams();
+        
+        // Validasi: Cek apakah sudah ada data untuk tanggal ini
+        let query = supabase
+            .from('kas')
+            .select('id')
+            .eq('tanggal', filterParams.tanggal);
+        
+        if (filterParams.outlet) {
+            query = query.eq('outlet', filterParams.outlet);
+        }
+        
+        if (filterParams.filterByKasir && filterParams.kasir) {
+            query = query.eq('kasir', filterParams.kasir);
+        }
+        
+        const { data: existingData } = await query;
+        
+        if (existingData && existingData.length > 0) {
+            showNotificationKas('Data untuk tanggal ini sudah ada. Tidak bisa submit lagi.', 'error');
+            return;
+        }
+        
+        showKasLoading(true);
+        
+        // Hitung total pemasukan dan pengeluaran dari auto-generated data
+        const totalPemasukan = await calculateTotalPemasukan(filterParams);
+        const totalPengeluaran = await calculateTotalPengeluaran(filterParams);
+        const saldo = totalPemasukan - totalPengeluaran;
+        
+        // Data untuk tabel kas
+        const kasData = {
+            tanggal: filterParams.tanggal,
+            hari: new Date(filterParams.tanggal).toLocaleDateString('id-ID', { weekday: 'long' }),
+            outlet: filterParams.outlet || currentOutletKas,
+            kasir: filterParams.kasir || currentKasUser?.nama_karyawan,
+            pemasukan: totalPemasukan,
+            pengeluaran: totalPengeluaran,
+            saldo: saldo,
+            // Tambahkan field detail jika diperlukan
+            omset_cash: await getOmsetCash(filterParams.outlet, filterParams.tanggal),
+            sisa_setoran: await getSisaSetoran(filterParams.outlet, filterParams.tanggal),
+            komisi: await getKomisiField(filterParams.outlet, filterParams.tanggal, 'komisi'),
+            uop: await getKomisiField(filterParams.outlet, filterParams.tanggal, 'uop'),
+            tips_qris: await getKomisiField(filterParams.outlet, filterParams.tanggal, 'tips_qris')
+        };
+        
+        console.log('Data KAS yang akan disimpan:', kasData);
+        
+        // Insert new record
+        const { error } = await supabase
+            .from('kas')
+            .insert([kasData]);
+        
+        if (error) throw error;
+        
+        // Kirim notifikasi WhatsApp
+        await sendWhatsAppNotificationKas(kasData, 'kas');
+        
+        showNotificationKas('Data KAS berhasil disimpan', 'success');
+        
+        // Refresh data
+        await loadKasData();
+        
+    } catch (error) {
+        console.error('Error submitting KAS data:', error);
+        showNotificationKas('Gagal menyimpan data: ' + error.message, 'error');
+    } finally {
+        showKasLoading(false);
+    }
+}
+
+// [28] Helper: Calculate total pemasukan
+async function calculateTotalPemasukan(filterParams) {
+    const sisaSetoran = await getSisaSetoran(filterParams.outlet, filterParams.tanggal);
+    const omsetCash = await getOmsetCash(filterParams.outlet, filterParams.tanggal);
+    const hutangKomisi = await getHutangKomisi(filterParams.outlet, filterParams.tanggal);
+    
+    // Untuk sekarang, kita anggap top up kas dan pemasukan lain-lain = 0
+    // Nanti bisa ditambahkan input manual
+    return sisaSetoran + omsetCash + hutangKomisi;
+}
+
+// [29] Helper: Calculate total pengeluaran
+async function calculateTotalPengeluaran(filterParams) {
+    const komisiData = await getKomisiData(filterParams.outlet, filterParams.tanggal);
+    
+    // Untuk sekarang, kita anggap bayar hutang komisi dan pengeluaran lain-lain = 0
+    // Nanti bisa ditambahkan input manual
+    return komisiData.komisi + komisiData.uop + komisiData.tips_qris;
+}
+
+// [30] Helper: Get komisi field
+async function getKomisiField(outlet, tanggal, field) {
+    try {
+        const { data: komisiData, error } = await supabase
+            .from('komisi')
+            .select(field)
+            .eq('outlet', outlet)
+            .eq('tanggal', tanggal)
+            .eq('status', 'complete');
+        
+        if (error) throw error;
+        
+        const total = komisiData?.reduce((sum, item) => sum + (parseFloat(item[field]) || 0), 0) || 0;
+        return Math.round(total);
+        
+    } catch (error) {
+        console.error(`Error getting ${field}:`, error);
+        return 0;
+    }
+}
+
+// [31] Fungsi untuk mengirim notifikasi WhatsApp
+async function sendWhatsAppNotificationKas(data, type = 'setoran') {
+    try {
+        if (!navigator.onLine) {
+            console.log('Tidak ada koneksi internet, notifikasi ditunda');
+            return false;
+        }
+        
+        let message = '';
+        
+        if (type === 'setoran') {
+            message = formatSetoranNotificationKas(data);
+        } else if (type === 'kas') {
+            message = formatKasNotificationKas(data);
+        }
+        
+        const response = await fetch(WA_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Api-Key': WA_API_KEY
+            },
+            body: JSON.stringify({
+                session: 'Session1',
+                chatId: WA_CHAT_ID,
+                text: message
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        console.log('Notifikasi WhatsApp berhasil dikirim');
+        return true;
+        
+    } catch (error) {
+        console.error('Gagal mengirim notifikasi WhatsApp:', error);
+        return false;
+    }
+}
+
+// [32] Format notifikasi untuk setoran
+function formatSetoranNotificationKas(setoranData) {
+    const now = new Date();
+    const hariTanggal = now.toLocaleDateString('id-ID', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+    });
+    
+    return `*SETORAN KAS BABEH BARBERSHOP*
+=============================
+💈 Outlet : ${setoranData.outlet}
+📅 Hari/Tanggal : ${hariTanggal}
+📊 Periode : ${setoranData.periode}
+👩‍💼 Kasir : ${setoranData.kasir}
+=============================
+💰 Total Setoran : Rp. ${formatCurrencyForWA(setoranData.total_setoran)}
+🏦 Metode Setoran : ${setoranData.metode_setoran}
+💸 Sisa Setoran : Rp. ${formatCurrencyForWA(setoranData.sisa_setoran)}
+=============================
+⏳ Status : Menunggu Verifikasi`;
+}
+
+// [33] Format notifikasi untuk KAS
+function formatKasNotificationKas(kasData) {
+    const hariTanggal = new Date(kasData.tanggal).toLocaleDateString('id-ID', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+    });
+    
+    return `*LAPORAN KAS BABEH BARBERSHOP*
+=============================
+💈 Outlet : ${kasData.outlet}
+📅 Tanggal : ${hariTanggal}
+👩‍💼 Kasir : ${kasData.kasir}
+=============================
+💰 Pemasukan : Rp. ${formatCurrencyForWA(kasData.pemasukan)}
+💸 Pengeluaran: Rp. ${formatCurrencyForWA(kasData.pengeluaran)}
+💎 Saldo    : Rp. ${formatCurrencyForWA(kasData.saldo)}
+=============================
+✅ Status: Berhasil disimpan`;
+}
+
+// [34] Format currency untuk WhatsApp
+function formatCurrencyForWA(amount) {
+    return new Intl.NumberFormat('id-ID').format(amount).replace(/\./g, ',');
+}
+
+// [35] Show/hide loading
+function showKasLoading(show) {
+    const overlay = document.getElementById('kasLoadingOverlay');
+    if (overlay) {
+        overlay.style.display = show ? 'flex' : 'none';
+    }
+}
+
+// [36] Show notification
+function showNotificationKas(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 10px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        animation: slideIn 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        max-width: 300px;
+    `;
+    
+    // Set color based on type
+    if (type === 'success') {
+        notification.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+    } else if (type === 'error') {
+        notification.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+    } else if (type === 'warning') {
+        notification.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+    } else {
+        notification.style.background = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
+    }
+    
+    notification.textContent = message;
+    
+    // Add to body
+    document.body.appendChild(notification);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+    
+    // Add CSS for animations if not exists
+    if (!document.getElementById('notification-animations')) {
+        const style = document.createElement('style');
+        style.id = 'notification-animations';
+        style.textContent = `
+            @keyframes slideIn {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            @keyframes slideOut {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+// [37] Format Rupiah helper
+function formatRupiah(amount) {
+    if (amount === 0 || !amount) return 'Rp 0';
+    return 'Rp ' + amount.toLocaleString('id-ID');
+}
+
+// [38] Modifikasi handleMenuClick untuk menambahkan Kas & Setoran
+// Tambahkan di switch case di fungsi handleMenuClick (yang sudah ada):
+// GANTI bagian ini:
+function handleMenuClick(menuId) {
+    switch(menuId) {
+        case 'komisi':
+            showKomisiPage();
+            break;
+        case 'absensi':
+            showAbsensiPage();
+            break;
+        case 'kas':
+            showKasPage(); // TAMBAHKAN INI
+            break;
+        case 'slip':
+        case 'libur':
+        case 'top':
+        case 'request':
+        case 'stok':
+        case 'sertifikasi':
+            const menuTitles = {
+                'slip': 'Slip Penghasilan',
+                'libur': 'Libur & Izin',
+                'top': 'TOP (Tools Ownership Program)',
+                'request': 'Request',
+                'stok': 'Tambah Stok',
+                'sertifikasi': 'Sertifikasi'
+            };
+            alert(`Menu "${menuTitles[menuId]}" akan diimplementasikan nanti.`);
+            break;
+        default:
+            console.log('Menu tidak dikenali:', menuId);
+    }
+}
 // ========== END OF FILE ==========
