@@ -2745,7 +2745,13 @@ let currentKasUser = null;
 let isOwnerKas = false;
 let currentOutletKas = null;
 
-// Konfigurasi WhatsApp API (sama seperti di index.html)
+// State untuk data manual
+let manualPemasukanItems = [];
+let manualPengeluaranItems = [];
+let isAddingPemasukan = false;
+let isAddingPengeluaran = false;
+
+// Konfigurasi WhatsApp API
 const WA_API_URL = 'https://waha-yetv8qi4e3zk.anakit.sumopod.my.id/api/sendText';
 const WA_API_KEY = 'sfcoGbpdLDkGZhKw2rx8sbb14vf4d8V6';
 const WA_CHAT_ID = '62811159429-1533260196@g.us';
@@ -2783,6 +2789,12 @@ async function showKasPage() {
         currentOutletKas = karyawanData.outlet;
         isOwnerKas = karyawanData.role === 'owner';
         
+        // Reset state manual
+        manualPemasukanItems = [];
+        manualPengeluaranItems = [];
+        isAddingPemasukan = false;
+        isAddingPengeluaran = false;
+        
         // Sembunyikan main app, tampilkan halaman Kas
         document.getElementById('appScreen').style.display = 'none';
         
@@ -2810,8 +2822,9 @@ function createKasPage() {
     const kasPage = document.createElement('div');
     kasPage.id = 'kasPage';
     kasPage.className = 'kas-page';
-    kasPage.innerHTML = `
-        <!-- Header -->
+    
+    // Buat header dengan back button
+    const headerHTML = `
         <header class="kas-header">
             <button class="back-btn" id="backToMainFromKas">
                 <i class="fas fa-arrow-left"></i>
@@ -2823,201 +2836,295 @@ function createKasPage() {
                 </button>
             </div>
         </header>
-        
-        <!-- User Info -->
-        <div class="kas-user-info">
-            <div class="kas-user-info-grid">
-                <div class="kas-user-item">
-                    <i class="fas fa-store"></i>
-                    <div>
-                        <div class="kas-user-label">Outlet</div>
-                        <div class="kas-user-value" id="kasOutletDisplay">${currentOutletKas || '-'}</div>
-                    </div>
-                </div>
-                <div class="kas-user-item">
-                    <i class="fas fa-user"></i>
-                    <div>
-                        <div class="kas-user-label">Kasir</div>
-                        <div class="kas-user-value" id="kasKasirDisplay">${currentKasUser?.nama_karyawan || '-'}</div>
-                    </div>
-                </div>
-                <div class="kas-user-item">
-                    <i class="fas fa-user-tag"></i>
-                    <div>
-                        <div class="kas-user-label">Role</div>
-                        <div class="kas-user-value" id="kasRoleDisplay">${currentKasUser?.role || '-'}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Filter untuk Owner -->
-        <div id="ownerKasFilterSection" class="owner-filter" style="display: ${isOwnerKas ? 'block' : 'none'};">
-            <div class="filter-row first-row">
-                <div class="filter-group">
-                    <label for="selectOutletKas">Outlet:</label>
-                    <select id="selectOutletKas" class="outlet-select">
-                        <option value="all">Semua Outlet</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="selectKasirKas">Pilih Kasir:</label>
-                    <select id="selectKasirKas" class="karyawan-select">
-                        <option value="">Semua Kasir</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Filter Tanggal -->
-        <div class="date-filter-section">
-            <div class="date-filter-group">
-                <label for="filterTanggalKas">Pilih Tanggal:</label>
-                <input type="date" id="filterTanggalKas" class="date-input">
-            </div>
-            <div class="tanggal-display">
-                <i class="fas fa-calendar-alt"></i>
-                <span id="displayTanggalKas">Hari ini: -</span>
-            </div>
-        </div>
-        
-        <!-- Ringkasan KAS -->
-        <section class="ringkasan-kas-section">
-            <h3><i class="fas fa-chart-bar"></i> Ringkasan KAS</h3>
-            <div class="ringkasan-card">
-                <div class="loading" id="loadingRingkasan">Loading ringkasan...</div>
-                <div id="ringkasanContent" style="display: none;">
-                    <!-- Data akan diisi oleh JavaScript -->
-                </div>
-            </div>
-        </section>
-        
-        <!-- Status Setoran -->
-        <section class="ringkasan-kas-section">
-            <h3><i class="fas fa-money-bill-wave"></i> Status Setoran</h3>
-            <div class="status-setoran-card">
-                <div class="loading" id="loadingSetoran">Loading status setoran...</div>
-                <div id="setoranStatusContent" style="display: none;">
-                    <!-- Data akan diisi oleh JavaScript -->
-                </div>
-            </div>
-        </section>
-        
-        <!-- Pemasukan -->
-        <section class="pemasukan-pengeluaran-section">
-            <h3 class="section-title-kas"><i class="fas fa-arrow-down"></i> Pemasukan</h3>
-            <div class="pemasukan-card">
-                <div class="loading" id="loadingPemasukan">Loading data pemasukan...</div>
-                <div id="pemasukanContent" style="display: none;">
-                    <!-- Data auto-generate akan ditampilkan di sini -->
-                </div>
-                <div class="total-section">
-                    <div class="total-label">TOTAL PEMASUKAN</div>
-                    <div class="total-amount pemasukan" id="totalPemasukanDisplay">Rp 0</div>
-                </div>
-            </div>
-        </section>
-        
-        <!-- Pengeluaran -->
-        <section class="pemasukan-pengeluaran-section">
-            <h3 class="section-title-kas"><i class="fas fa-arrow-up"></i> Pengeluaran</h3>
-            <div class="pengeluaran-card">
-                <div class="loading" id="loadingPengeluaran">Loading data pengeluaran...</div>
-                <div id="pengeluaranContent" style="display: none;">
-                    <!-- Data auto-generate akan ditampilkan di sini -->
-                </div>
-                <div class="total-section">
-                    <div class="total-label">TOTAL PENGELUARAN</div>
-                    <div class="total-amount pengeluaran" id="totalPengeluaranDisplay">Rp 0</div>
-                </div>
-            </div>
-        </section>
-        
-        <!-- Action Buttons -->
-        <div class="kas-action-buttons">
-            <button class="kas-btn setor" id="setorBtnKas">
-                <i class="fas fa-money-bill-wave"></i> SETOR
-            </button>
-            <button class="kas-btn verifikasi" id="verifikasiSetoranBtnKas" style="display: ${isOwnerKas ? 'flex' : 'none'};">
-                <i class="fas fa-check-circle"></i> VERIFIKASI
-            </button>
-        </div>
-        
-        <!-- Submit Button -->
-        <div class="kas-action-buttons">
-            <button class="kas-btn submit" id="submitBtnKas">
-                <i class="fas fa-paper-plane"></i> SUBMIT DATA KAS
-            </button>
-        </div>
-        
-        <!-- Modal Setoran -->
-        <div class="setoran-modal-overlay" id="setoranModalKas" style="display: none;">
-            <div class="setoran-modal">
-                <div class="setoran-modal-header">
-                    <h3><i class="fas fa-money-bill-wave"></i> Form Setoran</h3>
-                    <button class="close-modal-btn" id="closeModalKas">&times;</button>
-                </div>
-                <div class="setoran-modal-body">
-                    <div class="modal-info-grid">
-                        <div class="modal-info-item">
-                            <div class="modal-info-label">Outlet</div>
-                            <div class="modal-info-value" id="modalOutletKas">${currentOutletKas || '-'}</div>
-                        </div>
-                        <div class="modal-info-item">
-                            <div class="modal-info-label">Kasir</div>
-                            <div class="modal-info-value" id="modalKasirKas">${currentKasUser?.nama_karyawan || '-'}</div>
-                        </div>
-                        <div class="modal-info-item">
-                            <div class="modal-info-label">Periode</div>
-                            <div class="modal-info-value" id="modalPeriodeKas">-</div>
-                        </div>
-                        <div class="modal-info-item">
-                            <div class="modal-info-label">Total Kewajiban</div>
-                            <div class="modal-info-value" id="modalKewajibanKas">Rp 0</div>
-                        </div>
-                    </div>
+    `;
+    
+    // Buat konten utama
+    const mainContentHTML = `
+        <div class="kas-main-container">
+            <!-- Header dengan tanggal -->
+            <div class="kas-main-header">
+                <h1>Laporan KAS & Setoran Babeh Barbershop</h1>
+                <div class="kas-header-grid">
+                    <div class="kas-date-box" id="currentDateKas">Memuat...</div>
                     
-                    <div class="modal-form-group">
-                        <label for="totalSetoranInputKas">Total Setoran *</label>
-                        <input type="number" id="totalSetoranInputKas" placeholder="Masukkan jumlah setoran">
+                    <!-- Filter untuk Owner -->
+                    <div id="ownerKasFilterSection" style="display: ${isOwnerKas ? 'block' : 'none'};">
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <select id="selectOutletKas" class="period-select">
+                                <option value="all">Semua Outlet</option>
+                            </select>
+                            <select id="selectKasirKas" class="period-select">
+                                <option value="">Semua Kasir</option>
+                            </select>
+                        </div>
                     </div>
-                    
-                    <div class="modal-form-group">
-                        <label for="metodeSetoranKas">Metode Setoran *</label>
-                        <select id="metodeSetoranKas">
-                            <option value="">Pilih Metode</option>
-                            <option value="Transfer BSI">Transfer BSI</option>
-                            <option value="Transfer DANA">Transfer DANA</option>
-                            <option value="Cash">Cash</option>
+                </div>
+            </div>
+            
+            <!-- Ringkasan KAS -->
+            <section class="kas-ringkasan-section">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Ringkasan KAS</h2>
+                        <select id="periodeSelectKas" class="period-select period-select-container">
+                            <!-- Options akan diisi oleh JavaScript -->
                         </select>
                     </div>
+                    
+                    <div class="action-buttons-row">
+                        <button class="kas-action-btn setor" id="setorBtnKas">
+                            <i class="fas fa-money-bill-wave"></i> SETOR
+                        </button>
+                        <button class="kas-action-btn verifikasi" id="verifikasiSetoranBtnKas" style="display: ${isOwnerKas ? 'flex' : 'none'};">
+                            <i class="fas fa-check-circle"></i> VERIFIKASI SETORAN
+                        </button>
+                    </div>
                 </div>
-                <div class="setoran-modal-footer">
-                    <button class="kas-btn submit" id="submitSetoranBtnKas">
-                        <i class="fas fa-check"></i> SUBMIT SETORAN
-                    </button>
+                
+                <div id="ringkasanContainer">
+                    <div class="loading" id="loadingRingkasan">Pilih outlet dan periode untuk melihat ringkasan KAS</div>
+                    <div id="ringkasanContent" style="display: none;"></div>
+                </div>
+                
+                <!-- Status Setoran -->
+                <div class="status-setoran-card" id="statusSetoranCard" style="display: none;">
+                    <h3><i class="fas fa-info-circle"></i> Status Setoran</h3>
+                    <div class="status-grid" id="statusSetoranContent">
+                        <!-- Data akan diisi oleh JavaScript -->
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Filter Tanggal untuk Input Data -->
+            <section class="filter-tanggal-section">
+                <h3><i class="fas fa-filter"></i> Filter Tanggal Input Data</h3>
+                <div class="date-input-group">
+                    <input type="date" id="filterTanggalKas" class="date-input">
+                </div>
+                <div class="tanggal-display-info" id="tanggalDisplayKas">
+                    <i class="fas fa-calendar-alt"></i>
+                    Hari ini: <span id="displayTanggalKas">-</span>
+                </div>
+            </section>
+            
+            <!-- Grid Pemasukan & Pengeluaran -->
+            <div class="pemasukan-pengeluaran-grid">
+                <!-- Pemasukan -->
+                <div class="data-card pemasukan">
+                    <div class="card-header">
+                        <h2><i class="fas fa-arrow-down"></i> Pemasukan</h2>
+                        <button class="tambah-btn" id="tambahPemasukanBtn">
+                            <i class="fas fa-plus"></i> Tambah
+                        </button>
+                    </div>
+                    
+                    <div class="data-items-container" id="pemasukanContainer">
+                        <div class="loading" id="loadingPemasukan">Loading data pemasukan...</div>
+                    </div>
+                    
+                    <!-- Form Tambah Pemasukan Manual (hidden by default) -->
+                    <div class="manual-input-form" id="formTambahPemasukan" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="jenisPemasukan">Jenis Pemasukan</label>
+                                <select id="jenisPemasukan" class="form-select">
+                                    <option value="Top Up Kas">Top Up Kas</option>
+                                    <option value="Pemasukan Lain Lain">Pemasukan Lain Lain</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="jumlahPemasukan">Jumlah</label>
+                                <input type="number" id="jumlahPemasukan" class="form-input" placeholder="Masukkan jumlah">
+                            </div>
+                        </div>
+                        <div class="form-row" id="notePemasukanRow" style="display: none;">
+                            <div class="form-group" style="flex: 1;">
+                                <label for="notePemasukan">Keterangan</label>
+                                <input type="text" id="notePemasukan" class="form-input" placeholder="Keterangan pemasukan lain-lain">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button class="save-btn" id="simpanPemasukanBtn">Simpan</button>
+                            <button class="cancel-btn" id="batalPemasukanBtn">Batal</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Manual Items Container -->
+                    <div id="manualPemasukanContainer"></div>
+                    
+                    <!-- Total Section -->
+                    <div class="total-with-manual pemasukan" id="totalPemasukanSection">
+                        <div class="total-breakdown">
+                            <div class="total-breakdown-item">
+                                <span class="breakdown-label">Total Auto-generate</span>
+                                <span class="breakdown-value auto" id="totalAutoPemasukan">0</span>
+                            </div>
+                            <div class="total-breakdown-item">
+                                <span class="breakdown-label">Total Manual</span>
+                                <span class="breakdown-value manual" id="totalManualPemasukan">0</span>
+                            </div>
+                        </div>
+                        <div class="grand-total">
+                            <span class="grand-total-label">TOTAL PEMASUKAN</span>
+                            <span class="grand-total-value pemasukan" id="totalPemasukanDisplay">0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pengeluaran -->
+                <div class="data-card pengeluaran">
+                    <div class="card-header">
+                        <h2><i class="fas fa-arrow-up"></i> Pengeluaran</h2>
+                        <button class="tambah-btn" id="tambahPengeluaranBtn">
+                            <i class="fas fa-plus"></i> Tambah
+                        </button>
+                    </div>
+                    
+                    <div class="data-items-container" id="pengeluaranContainer">
+                        <div class="loading" id="loadingPengeluaran">Loading data pengeluaran...</div>
+                    </div>
+                    
+                    <!-- Form Tambah Pengeluaran Manual (hidden by default) -->
+                    <div class="manual-input-form" id="formTambahPengeluaran" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="jenisPengeluaran">Jenis Pengeluaran</label>
+                                <select id="jenisPengeluaran" class="form-select">
+                                    <option value="Bayar Hutang Komisi">Bayar Hutang Komisi</option>
+                                    <option value="Iuran RT">Iuran RT</option>
+                                    <option value="Sumbangan">Sumbangan</option>
+                                    <option value="Iuran Sampah">Iuran Sampah</option>
+                                    <option value="Galon">Galon</option>
+                                    <option value="Biaya Admin Setoran">Biaya Admin Setoran</option>
+                                    <option value="Yakult">Yakult</option>
+                                    <option value="Pengeluaran Lain Lain">Pengeluaran Lain Lain</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="jumlahPengeluaran">Jumlah</label>
+                                <input type="number" id="jumlahPengeluaran" class="form-input" placeholder="Masukkan jumlah">
+                            </div>
+                        </div>
+                        <div class="form-row" id="notePengeluaranRow" style="display: none;">
+                            <div class="form-group" style="flex: 1;">
+                                <label for="notePengeluaran">Keterangan</label>
+                                <input type="text" id="notePengeluaran" class="form-input" placeholder="Keterangan pengeluaran lain-lain">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button class="save-btn" id="simpanPengeluaranBtn">Simpan</button>
+                            <button class="cancel-btn" id="batalPengeluaranBtn">Batal</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Manual Items Container -->
+                    <div id="manualPengeluaranContainer"></div>
+                    
+                    <!-- Total Section -->
+                    <div class="total-with-manual pengeluaran" id="totalPengeluaranSection">
+                        <div class="total-breakdown">
+                            <div class="total-breakdown-item">
+                                <span class="breakdown-label">Total Auto-generate</span>
+                                <span class="breakdown-value pengeluaran-auto" id="totalAutoPengeluaran">0</span>
+                            </div>
+                            <div class="total-breakdown-item">
+                                <span class="breakdown-label">Total Manual</span>
+                                <span class="breakdown-value pengeluaran-manual" id="totalManualPengeluaran">0</span>
+                            </div>
+                        </div>
+                        <div class="grand-total pengeluaran">
+                            <span class="grand-total-label">TOTAL PENGELUARAN</span>
+                            <span class="grand-total-value pengeluaran" id="totalPengeluaranDisplay">0</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- Loading Overlay -->
-        <div class="kas-loading-overlay" id="kasLoadingOverlay" style="display: none;">
-            <div class="kas-loading-spinner"></div>
+            
+            <!-- Submit Button -->
+            <div class="submit-section">
+                <button class="submit-btn" id="submitBtnKas">
+                    <i class="fas fa-paper-plane"></i> SUBMIT
+                </button>
+            </div>
+            
+            <!-- Modal Setoran -->
+            <div class="modal-overlay" id="setoranModalKas">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-money-bill-wave"></i> Form Setoran</h3>
+                        <button class="close-modal" id="closeModalKas">&times;</button>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <div class="modal-info-item">
+                            <div class="modal-label">Outlet</div>
+                            <div class="modal-value" id="modalOutletKas">${currentOutletKas || '-'}</div>
+                        </div>
+                        
+                        <div class="modal-info-item">
+                            <div class="modal-label">Kasir</div>
+                            <div class="modal-value" id="modalKasirKas">${currentKasUser?.nama_karyawan || '-'}</div>
+                        </div>
+                        
+                        <div class="modal-info-item">
+                            <div class="modal-label">Periode</div>
+                            <div class="modal-value" id="modalPeriodeKas">-</div>
+                        </div>
+                        
+                        <div class="modal-info-item">
+                            <div class="modal-label">Total Kewajiban</div>
+                            <div class="modal-value" id="modalKewajibanKas">-</div>
+                        </div>
+                        
+                        <div class="modal-form-group">
+                            <label for="totalSetoranInputKas">Total Setoran *</label>
+                            <input type="number" id="totalSetoranInputKas" placeholder="Masukkan jumlah setoran">
+                        </div>
+                        
+                        <div class="modal-form-group">
+                            <label for="metodeSetoranKas">Metode Setoran *</label>
+                            <select id="metodeSetoranKas">
+                                <option value="">Pilih Metode</option>
+                                <option value="Transfer BSI">Transfer BSI</option>
+                                <option value="Transfer DANA">Transfer DANA</option>
+                                <option value="Cash">Cash</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button class="modal-submit-btn" id="submitSetoranBtnKas">
+                            <i class="fas fa-check"></i> SUBMIT SETORAN
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Loading Overlay -->
+            <div class="kas-loading-overlay" id="kasLoadingOverlay" style="display: none;">
+                <div class="kas-loading-spinner"></div>
+            </div>
         </div>
         
         <!-- Footer -->
-        <div class="kas-footer">
+        <div class="kas-footer" style="text-align: center; padding: 20px; color: #718096; font-size: 0.9rem;">
             <p>Data diperbarui: <span id="lastUpdateKasTime">-</span></p>
         </div>
     `;
     
+    kasPage.innerHTML = headerHTML + mainContentHTML;
     document.body.appendChild(kasPage);
     
     // Setup event listeners
     setupKasPageEvents();
     
-    // Setup tanggal default
+    // Setup tanggal default dan periode
     setupTanggalDefault();
+    generatePeriodOptionsKas();
+    
+    // Update waktu real-time
+    updateDateTimeKas();
+    setInterval(updateDateTimeKas, 1000);
 }
 
 // [3] Setup event listeners untuk halaman Kas
@@ -3050,6 +3157,11 @@ function setupKasPageEvents() {
         });
     }
     
+    // Periode change
+    document.getElementById('periodeSelectKas').addEventListener('change', async function() {
+        await loadKasData();
+    });
+    
     // Filter tanggal
     document.getElementById('filterTanggalKas').addEventListener('change', async function() {
         const selectedDate = new Date(this.value);
@@ -3069,6 +3181,34 @@ function setupKasPageEvents() {
     // Modal events
     document.getElementById('closeModalKas').addEventListener('click', closeSetoranModalKas);
     document.getElementById('submitSetoranBtnKas').addEventListener('click', submitSetoranKas);
+    
+    // ===== EVENT LISTENERS UNTUK INPUT MANUAL =====
+    
+    // Pemasukan
+    document.getElementById('tambahPemasukanBtn').addEventListener('click', () => {
+        showTambahPemasukanForm();
+    });
+    
+    document.getElementById('jenisPemasukan').addEventListener('change', function() {
+        const noteRow = document.getElementById('notePemasukanRow');
+        noteRow.style.display = this.value === 'Pemasukan Lain Lain' ? 'block' : 'none';
+    });
+    
+    document.getElementById('simpanPemasukanBtn').addEventListener('click', tambahPemasukanManual);
+    document.getElementById('batalPemasukanBtn').addEventListener('click', batalTambahPemasukan);
+    
+    // Pengeluaran
+    document.getElementById('tambahPengeluaranBtn').addEventListener('click', () => {
+        showTambahPengeluaranForm();
+    });
+    
+    document.getElementById('jenisPengeluaran').addEventListener('change', function() {
+        const noteRow = document.getElementById('notePengeluaranRow');
+        noteRow.style.display = this.value === 'Pengeluaran Lain Lain' ? 'block' : 'none';
+    });
+    
+    document.getElementById('simpanPengeluaranBtn').addEventListener('click', tambahPengeluaranManual);
+    document.getElementById('batalPengeluaranBtn').addEventListener('click', batalTambahPengeluaran);
 }
 
 // [4] Setup tanggal default
@@ -3085,7 +3225,7 @@ function setupTanggalDefault() {
     updateTanggalDisplayKas(today);
 }
 
-// Format tanggal untuk input date (YYYY-MM-DD)
+// [5] Format tanggal untuk input date (YYYY-MM-DD)
 function formatDateForInput(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -3093,7 +3233,7 @@ function formatDateForInput(date) {
     return `${year}-${month}-${day}`;
 }
 
-// Format tanggal untuk display
+// [6] Format tanggal untuk display
 function updateTanggalDisplayKas(date) {
     const displayElement = document.getElementById('displayTanggalKas');
     const dayName = date.toLocaleDateString('id-ID', { weekday: 'long' });
@@ -3103,195 +3243,60 @@ function updateTanggalDisplayKas(date) {
 
 function formatDateDisplayKas(date) {
     const day = date.getDate();
-    const month = date.toLocaleDateString('id-ID', { month: 'long' });
+    const month = date.toLocaleDateString('id-ID', { month: 'short' });
     const year = date.getFullYear();
-    return `${day} ${month} ${year}`;
+    return `${day}/${month}/${year}`;
 }
 
-// [5] Load dropdown outlet untuk owner
-async function loadOutletDropdownKas() {
-    const select = document.getElementById('selectOutletKas');
+// [7] Fungsi untuk generate periode options
+function generatePeriodOptionsKas() {
+    const periodeSelect = document.getElementById('periodeSelectKas');
     
-    try {
-        const { data: outlets, error } = await supabase
-            .from('outlet')
-            .select('outlet')
-            .order('outlet');
-        
-        if (error) throw error;
-        
-        select.innerHTML = `
-            <option value="all">Semua Outlet</option>
-            ${outlets.map(outlet => 
-                `<option value="${outlet.outlet}">${outlet.outlet}</option>`
-            ).join('')}
-        `;
-        
-        // Set outlet user saat ini sebagai default jika bukan owner semua outlet
-        if (currentOutletKas) {
-            select.value = currentOutletKas;
-        }
-        
-        // Setelah outlet di-load, load kasir dropdown
-        await loadKasirDropdownKas();
-        
-    } catch (error) {
-        console.error('Error loading outlets for Kas:', error);
-        select.innerHTML = '<option value="all">Semua Outlet</option>';
-    }
-}
-
-// [6] Load dropdown kasir untuk owner
-async function loadKasirDropdownKas() {
-    const select = document.getElementById('selectKasirKas');
-    const outletSelect = document.getElementById('selectOutletKas');
-    const selectedOutlet = outletSelect ? outletSelect.value : null;
+    // Generate 5 periode terakhir (sekarang + 4 sebelumnya)
+    const periods = [];
+    const today = new Date();
     
-    try {
-        let query = supabase
-            .from('karyawan')
-            .select('nama_karyawan')
-            .eq('posisi', 'Kasir')
-            .order('nama_karyawan');
+    for (let i = 0; i < 5; i++) {
+        const period = getPeriodByOffsetKas(i);
+        periods.push(period);
         
-        // Filter berdasarkan outlet jika dipilih
-        if (selectedOutlet && selectedOutlet !== 'all') {
-            query = query.eq('outlet', selectedOutlet);
-        }
-        
-        const { data: kasirList, error } = await query;
-        
-        if (error) throw error;
-        
-        select.innerHTML = `
-            <option value="">Semua Kasir</option>
-            ${kasirList.map(k => 
-                `<option value="${k.nama_karyawan}">${k.nama_karyawan}</option>`
-            ).join('')}
-        `;
-        
-    } catch (error) {
-        console.error('Error loading kasir list for Kas:', error);
-        select.innerHTML = '<option value="">Error loading data</option>';
-    }
-}
-
-// [7] Fungsi utama untuk load data Kas
-async function loadKasData() {
-    try {
-        showKasLoading(true);
-        
-        // Tampilkan semua loading state
-        document.querySelectorAll('#loadingRingkasan, #loadingSetoran, #loadingPemasukan, #loadingPengeluaran')
-            .forEach(el => el.style.display = 'block');
-        document.querySelectorAll('#ringkasanContent, #setoranStatusContent, #pemasukanContent, #pengeluaranContent')
-            .forEach(el => el.style.display = 'none');
-        
-        // Tentukan filter parameters
-        const filterParams = getKasFilterParams();
-        
-        // Load semua data secara paralel
-        await Promise.all([
-            loadRingkasanKas(filterParams),
-            loadSetoranStatus(filterParams),
-            loadPemasukanData(filterParams),
-            loadPengeluaranData(filterParams)
-        ]);
-        
-        // Update waktu terakhir update
-        const updateTime = new Date().toLocaleTimeString('id-ID');
-        document.getElementById('lastUpdateKasTime').textContent = updateTime;
-        
-    } catch (error) {
-        console.error('Error loading Kas data:', error);
-        showNotificationKas('Gagal memuat data Kas', 'error');
-    } finally {
-        showKasLoading(false);
-    }
-}
-
-// [8] Get filter parameters untuk Kas
-function getKasFilterParams() {
-    const params = {
-        outlet: currentOutletKas,
-        kasir: currentKasUser?.nama_karyawan,
-        tanggal: document.getElementById('filterTanggalKas').value,
-        isOwner: isOwnerKas
-    };
-    
-    if (isOwnerKas) {
-        const selectOutlet = document.getElementById('selectOutletKas');
-        const selectKasir = document.getElementById('selectKasirKas');
-        
-        // Untuk owner: gunakan filter dari dropdown
-        if (selectOutlet && selectOutlet.value !== 'all') {
-            params.outlet = selectOutlet.value;
-        } else {
-            params.outlet = null; // Semua outlet
-        }
-        
-        if (selectKasir && selectKasir.value) {
-            params.kasir = selectKasir.value;
-            params.filterByKasir = true;
-        } else {
-            params.kasir = null;
-            params.filterByKasir = false;
-        }
-    } else {
-        // Untuk non-owner: selalu filter berdasarkan kasir sendiri
-        params.filterByKasir = true;
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = `${formatPeriodDisplayFull(period)}`;
+        option.dataset.start = period.start;
+        option.dataset.end = period.end;
+        option.dataset.display = period.display;
+        periodeSelect.appendChild(option);
     }
     
-    console.log('Kas Filter params:', params);
-    return params;
+    // Set default ke periode pertama
+    periodeSelect.value = "0";
 }
 
-// [9] Load data ringkasan KAS
-async function loadRingkasanKas(filterParams) {
-    try {
-        // Hitung periode (Selasa - Senin)
-        const selectedDate = new Date(filterParams.tanggal);
-        const periode = calculatePeriodForDate(selectedDate);
-        
-        // Query data KAS untuk periode tersebut
-        let query = supabase
-            .from('kas')
-            .select('*')
-            .gte('tanggal', periode.start)
-            .lte('tanggal', periode.end);
-        
-        // Filter berdasarkan outlet
-        if (filterParams.outlet) {
-            query = query.eq('outlet', filterParams.outlet);
-        }
-        
-        // Filter berdasarkan kasir
-        if (filterParams.filterByKasir && filterParams.kasir) {
-            query = query.eq('kasir', filterParams.kasir);
-        }
-        
-        const { data: kasData, error } = await query;
-        
-        if (error) throw error;
-        
-        // Tampilkan ringkasan
-        displayRingkasanKas(kasData || [], periode);
-        
-    } catch (error) {
-        console.error('Error loading ringkasan KAS:', error);
-        document.getElementById('loadingRingkasan').style.display = 'none';
-        document.getElementById('ringkasanContent').innerHTML = `
-            <div style="text-align: center; padding: 20px; color: #ff4757;">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>Gagal memuat ringkasan KAS</p>
-            </div>
-        `;
-        document.getElementById('ringkasanContent').style.display = 'block';
-    }
+// [8] Format tampilan periode lengkap
+function formatPeriodDisplayFull(period) {
+    const startDate = new Date(period.start);
+    const endDate = new Date(period.end);
+    
+    const startDay = startDate.toLocaleDateString('id-ID', { weekday: 'long' });
+    const startDateStr = formatDateDisplayKas(startDate);
+    const endDay = endDate.toLocaleDateString('id-ID', { weekday: 'long' });
+    const endDateStr = formatDateDisplayKas(endDate);
+    
+    return `${startDay} ${startDateStr} - ${endDay} ${endDateStr}`;
 }
 
-// [10] Hitung periode (Selasa - Senin)
-function calculatePeriodForDate(date) {
+// [9] Get periode berdasarkan offset
+function getPeriodByOffsetKas(offset) {
+    const today = new Date();
+    const targetDate = new Date();
+    targetDate.setDate(today.getDate() - (offset * 7)); // Mundur per minggu
+    
+    return calculatePeriodForDateKas(targetDate);
+}
+
+// [10] Hitung periode untuk tanggal tertentu
+function calculatePeriodForDateKas(date) {
     const currentDate = new Date(date);
     const dayOfWeek = currentDate.getDay(); // 0=Minggu, 1=Senin, ..., 6=Sabtu
     
@@ -3326,70 +3331,309 @@ function formatDateID(date) {
     return `${dayName} ${date.getDate()}/${months[date.getMonth()]}/${date.getFullYear()}`;
 }
 
-// [11] Display ringkasan KAS
-function displayRingkasanKas(kasData, periode) {
-    const content = document.getElementById('ringkasanContent');
+// [11] Update tanggal dan waktu
+function updateDateTimeKas() {
+    const now = new Date();
+    const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
+    const dateStr = now.toLocaleDateString('id-ID', options);
+    const timeStr = now.toLocaleTimeString('id-ID');
     
-    if (kasData.length === 0) {
-        content.innerHTML = `
-            <div style="text-align: center; padding: 20px;">
-                <i class="fas fa-chart-bar" style="font-size: 2rem; color: #ccc; margin-bottom: 10px;"></i>
-                <p style="color: #666;">Tidak ada data KAS untuk periode ini</p>
-                <p style="font-size: 0.9rem; color: #888;">${periode.display}</p>
-            </div>
-        `;
-    } else {
-        // Hitung total
-        const totalPemasukan = kasData.reduce((sum, item) => sum + (parseInt(item.pemasukan) || 0), 0);
-        const totalPengeluaran = kasData.reduce((sum, item) => sum + (parseInt(item.pengeluaran) || 0), 0);
-        const totalSaldo = totalPemasukan - totalPengeluaran;
+    const element = document.getElementById('currentDateKas');
+    if (element) {
+        element.textContent = `${dateStr} | ${timeStr}`;
+    }
+}
+
+// [12] Load dropdown outlet untuk owner
+async function loadOutletDropdownKas() {
+    const select = document.getElementById('selectOutletKas');
+    
+    try {
+        const { data: outlets, error } = await supabase
+            .from('outlet')
+            .select('outlet')
+            .order('outlet');
         
-        content.innerHTML = `
-            <div style="margin-bottom: 20px;">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                    <i class="fas fa-calendar-alt" style="color: #8A2BE2;"></i>
-                    <span style="font-weight: 600; color: #333;">${periode.display}</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px; color: #666; font-size: 0.9rem;">
-                    <i class="fas fa-calendar-day"></i>
-                    <span>${periode.start} sampai ${periode.end}</span>
-                </div>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
-                <div style="background: linear-gradient(135deg, #f0f9ff, #e6f7ff); padding: 15px; border-radius: 12px; border: 1px solid rgba(14, 165, 233, 0.1);">
-                    <div style="font-size: 0.85rem; color: #0369a1; margin-bottom: 8px; font-weight: 600;">Total Pemasukan</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: #10b981;">${formatRupiah(totalPemasukan)}</div>
-                </div>
-                <div style="background: linear-gradient(135deg, #fff5f5, #ffeaea); padding: 15px; border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.1);">
-                    <div style="font-size: 0.85rem; color: #dc2626; margin-bottom: 8px; font-weight: 600;">Total Pengeluaran</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: #ef4444;">${formatRupiah(totalPengeluaran)}</div>
-                </div>
-                <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); padding: 15px; border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.1);">
-                    <div style="font-size: 0.85rem; color: #059669; margin-bottom: 8px; font-weight: 600;">Total Saldo</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: ${totalSaldo >= 0 ? '#059669' : '#ef4444'};">${formatRupiah(totalSaldo)}</div>
-                </div>
-            </div>
-            
-            <div style="margin-top: 20px; font-size: 0.9rem; color: #666;">
-                <i class="fas fa-info-circle" style="margin-right: 5px;"></i>
-                ${kasData.length} hari tercatat dalam periode ini
+        if (error) throw error;
+        
+        select.innerHTML = `
+            <option value="all">Semua Outlet</option>
+            ${outlets.map(outlet => 
+                `<option value="${outlet.outlet}">${outlet.outlet}</option>`
+            ).join('')}
+        `;
+        
+        // Set outlet user saat ini sebagai default jika bukan owner semua outlet
+        if (currentOutletKas) {
+            select.value = currentOutletKas;
+        }
+        
+        // Setelah outlet di-load, load kasir dropdown
+        await loadKasirDropdownKas();
+        
+    } catch (error) {
+        console.error('Error loading outlets for Kas:', error);
+        select.innerHTML = '<option value="all">Semua Outlet</option>';
+    }
+}
+
+// [13] Load dropdown kasir untuk owner
+async function loadKasirDropdownKas() {
+    const select = document.getElementById('selectKasirKas');
+    const outletSelect = document.getElementById('selectOutletKas');
+    const selectedOutlet = outletSelect ? outletSelect.value : null;
+    
+    try {
+        let query = supabase
+            .from('karyawan')
+            .select('nama_karyawan')
+            .eq('posisi', 'Kasir')
+            .order('nama_karyawan');
+        
+        // Filter berdasarkan outlet jika dipilih
+        if (selectedOutlet && selectedOutlet !== 'all') {
+            query = query.eq('outlet', selectedOutlet);
+        }
+        
+        const { data: kasirList, error } = await query;
+        
+        if (error) throw error;
+        
+        select.innerHTML = `
+            <option value="">Semua Kasir</option>
+            ${kasirList.map(k => 
+                `<option value="${k.nama_karyawan}">${k.nama_karyawan}</option>`
+            ).join('')}
+        `;
+        
+    } catch (error) {
+        console.error('Error loading kasir list for Kas:', error);
+        select.innerHTML = '<option value="">Error loading data</option>';
+    }
+}
+
+// [14] Fungsi utama untuk load data Kas
+async function loadKasData() {
+    try {
+        showKasLoading(true);
+        
+        // Reset state manual setiap load data baru
+        manualPemasukanItems = [];
+        manualPengeluaranItems = [];
+        
+        // Tampilkan loading state
+        document.getElementById('loadingRingkasan').style.display = 'block';
+        document.getElementById('ringkasanContent').style.display = 'none';
+        document.getElementById('loadingPemasukan').style.display = 'block';
+        document.getElementById('loadingPengeluaran').style.display = 'block';
+        
+        // Tentukan filter parameters
+        const filterParams = getKasFilterParams();
+        
+        // 1. Load ringkasan KAS berdasarkan periode yang dipilih
+        const periodeIndex = document.getElementById('periodeSelectKas').value;
+        const periods = [];
+        for (let i = 0; i < 5; i++) {
+            periods.push(getPeriodByOffsetKas(i));
+        }
+        const selectedPeriod = periods[periodeIndex];
+        
+        // Load data ringkasan untuk periode tersebut
+        await loadRingkasanKasByPeriod(filterParams, selectedPeriod);
+        
+        // 2. Load data pemasukan dan pengeluaran untuk tanggal yang dipilih
+        await Promise.all([
+            loadPemasukanData(filterParams),
+            loadPengeluaranData(filterParams)
+        ]);
+        
+        // 3. Render data manual
+        renderManualPemasukanItems();
+        renderManualPengeluaranItems();
+        
+        // 4. Update total
+        updateTotalPemasukan();
+        updateTotalPengeluaran();
+        
+        // 5. Cek apakah data sudah ada untuk tanggal ini
+        await checkExistingData(filterParams);
+        
+        // Update waktu terakhir update
+        const updateTime = new Date().toLocaleTimeString('id-ID');
+        document.getElementById('lastUpdateKasTime').textContent = updateTime;
+        
+    } catch (error) {
+        console.error('Error loading Kas data:', error);
+        showNotificationKas('Gagal memuat data Kas', 'error');
+    } finally {
+        showKasLoading(false);
+    }
+}
+
+// [15] Get filter parameters untuk Kas
+function getKasFilterParams() {
+    const params = {
+        outlet: currentOutletKas,
+        kasir: currentKasUser?.nama_karyawan,
+        tanggal: document.getElementById('filterTanggalKas').value,
+        isOwner: isOwnerKas
+    };
+    
+    if (isOwnerKas) {
+        const selectOutlet = document.getElementById('selectOutletKas');
+        const selectKasir = document.getElementById('selectKasirKas');
+        
+        // Untuk owner: gunakan filter dari dropdown
+        if (selectOutlet && selectOutlet.value !== 'all') {
+            params.outlet = selectOutlet.value;
+        } else {
+            params.outlet = null; // Semua outlet
+        }
+        
+        if (selectKasir && selectKasir.value) {
+            params.kasir = selectKasir.value;
+            params.filterByKasir = true;
+        } else {
+            params.kasir = null;
+            params.filterByKasir = false;
+        }
+    } else {
+        // Untuk non-owner: selalu filter berdasarkan kasir sendiri
+        params.filterByKasir = true;
+    }
+    
+    return params;
+}
+
+// [16] Load ringkasan KAS berdasarkan periode
+async function loadRingkasanKasByPeriod(filterParams, periode) {
+    try {
+        // Query data KAS untuk periode tersebut
+        let query = supabase
+            .from('kas')
+            .select('*')
+            .gte('tanggal', periode.start)
+            .lte('tanggal', periode.end);
+        
+        // Filter berdasarkan outlet
+        if (filterParams.outlet) {
+            query = query.eq('outlet', filterParams.outlet);
+        }
+        
+        // Filter berdasarkan kasir
+        if (filterParams.filterByKasir && filterParams.kasir) {
+            query = query.eq('kasir', filterParams.kasir);
+        }
+        
+        query = query.order('tanggal', { ascending: true });
+        
+        const { data: kasData, error } = await query;
+        
+        if (error) throw error;
+        
+        // Tampilkan ringkasan dengan tabel
+        displayRingkasanKas(kasData || [], periode);
+        
+        // Load status setoran untuk periode ini
+        await loadSetoranStatus(filterParams, periode);
+        
+    } catch (error) {
+        console.error('Error loading ringkasan KAS:', error);
+        document.getElementById('ringkasanContainer').innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #e53e3e;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Gagal memuat ringkasan KAS</p>
             </div>
         `;
     }
-    
-    // Sembunyikan loading, tampilkan content
-    document.getElementById('loadingRingkasan').style.display = 'none';
-    content.style.display = 'block';
 }
 
-// [12] Load status setoran
-async function loadSetoranStatus(filterParams) {
-    try {
-        // Hitung periode
-        const selectedDate = new Date(filterParams.tanggal);
-        const periode = calculatePeriodForDate(selectedDate);
+// [17] Display ringkasan KAS dengan tabel
+function displayRingkasanKas(kasData, periode) {
+    const container = document.getElementById('ringkasanContainer');
+    
+    if (kasData.length === 0) {
+        container.innerHTML = `
+            <div style="padding: 20px; text-align: center; color: #718096;">
+                <i class="fas fa-chart-bar" style="font-size: 2rem; opacity: 0.3; margin-bottom: 10px;"></i>
+                <p>Tidak ada data KAS untuk periode ini</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = `
+        <div style="margin-bottom: 15px; padding: 15px; background: #f0fff4; border-radius: 10px;">
+            <p style="font-weight: 600; color: #2d3748;">Periode: ${periode.display}</p>
+            <p style="font-size: 0.9rem; color: #718096;">Tanggal: ${periode.start} sampai ${periode.end}</p>
+        </div>
         
+        <div class="table-container">
+            <table class="ringkasan-table">
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Hari</th>
+                        <th>Outlet</th>
+                        <th>Kasir</th>
+                        <th>Pemasukan</th>
+                        <th>Pengeluaran</th>
+                        <th>Saldo</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    let totalPemasukan = 0;
+    let totalPengeluaran = 0;
+    let totalSaldo = 0;
+    
+    kasData.forEach(row => {
+        const pemasukan = parseInt(row.pemasukan) || 0;
+        const pengeluaran = parseInt(row.pengeluaran) || 0;
+        const saldo = parseInt(row.saldo) || 0;
+        
+        totalPemasukan += pemasukan;
+        totalPengeluaran += pengeluaran;
+        totalSaldo += saldo;
+        
+        const saldoClass = saldo < 0 ? 'text-red' : 'text-green';
+        
+        html += `
+            <tr>
+                <td>${formatDisplayDate(row.tanggal)}</td>
+                <td>${row.hari}</td>
+                <td>${row.outlet}</td>
+                <td style="min-width: 180px;">${row.kasir}</td>
+                <td style="text-align: right;">${formatNumber(pemasukan)}</td>
+                <td style="text-align: right;">${formatNumber(pengeluaran)}</td>
+                <td style="text-align: right;" class="${saldoClass}">${formatNumber(saldo)}</td>
+            </tr>
+        `;
+    });
+    
+    const totalSaldoClass = totalSaldo < 0 ? 'text-red' : 'text-green';
+    
+    html += `
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" style="text-align: right; font-weight: 600;">TOTAL</td>
+                        <td style="text-align: right; font-weight: 600;">${formatNumber(totalPemasukan)}</td>
+                        <td style="text-align: right; font-weight: 600;">${formatNumber(totalPengeluaran)}</td>
+                        <td style="text-align: right; font-weight: 600;" class="${totalSaldoClass}">${formatNumber(totalSaldo)}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// [18] Load status setoran
+async function loadSetoranStatus(filterParams, periode) {
+    try {
         // Query data setoran
         let query = supabase
             .from('setoran')
@@ -3411,91 +3655,71 @@ async function loadSetoranStatus(filterParams) {
         if (error) throw error;
         
         // Tampilkan status setoran
-        displaySetoranStatus(setoranData?.[0] || null, periode);
+        displaySetoranStatus(setoranData?.[0] || null);
         
     } catch (error) {
         console.error('Error loading setoran status:', error);
-        document.getElementById('loadingSetoran').style.display = 'none';
-        document.getElementById('setoranStatusContent').innerHTML = `
-            <div style="text-align: center; padding: 20px; color: #ff4757;">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>Gagal memuat status setoran</p>
-            </div>
-        `;
-        document.getElementById('setoranStatusContent').style.display = 'block';
     }
 }
 
-// [13] Display status setoran
-function displaySetoranStatus(setoranData, periode) {
-    const content = document.getElementById('setoranStatusContent');
+// [19] Display status setoran
+function displaySetoranStatus(setoranData) {
+    const card = document.getElementById('statusSetoranCard');
+    const content = document.getElementById('statusSetoranContent');
     
     if (!setoranData) {
-        content.innerHTML = `
-            <div style="text-align: center; padding: 20px;">
-                <i class="fas fa-money-bill-wave" style="font-size: 2rem; color: #fbbf24; margin-bottom: 10px;"></i>
-                <p style="color: #92400e; font-weight: 600;">Belum ada setoran untuk periode ini</p>
-                <p style="font-size: 0.9rem; color: #888; margin-top: 10px;">${periode.display}</p>
-            </div>
-        `;
-    } else {
-        const statusClass = {
-            'Belum Setor': 'status-belum',
-            'In Process': 'status-process',
-            'Verified': 'status-verified'
-        }[setoranData.status_setoran] || 'status-belum';
-        
-        // Format tanggal setoran
-        let tanggalSetoranDisplay = '-';
-        if (setoranData.tanggal_setoran) {
-            const date = new Date(setoranData.tanggal_setoran);
-            tanggalSetoranDisplay = date.toLocaleDateString('id-ID', { 
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        }
-        
-        content.innerHTML = `
-            <h4 style="color: #0369a1; margin-bottom: 16px; font-size: 1rem;">Periode: ${setoranData.periode}</h4>
-            
-            <div class="status-grid">
-                <div class="status-item">
-                    <div class="status-label">Metode Setoran</div>
-                    <div class="status-value">${setoranData.metode_setoran || '-'}</div>
-                </div>
-                <div class="status-item">
-                    <div class="status-label">Tanggal Setoran</div>
-                    <div class="status-value">${tanggalSetoranDisplay}</div>
-                </div>
-                <div class="status-item">
-                    <div class="status-label">Total Setoran</div>
-                    <div class="status-value">${formatRupiah(setoranData.total_setoran || 0)}</div>
-                </div>
-                <div class="status-item">
-                    <div class="status-label">Sisa Setoran</div>
-                    <div class="status-value">${formatRupiah(setoranData.sisa_setoran || 0)}</div>
-                </div>
-                <div class="status-item">
-                    <div class="status-label">Status</div>
-                    <div class="status-value ${statusClass}" style="padding: 6px 12px; border-radius: 20px; display: inline-block;">
-                        ${setoranData.status_setoran}
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Update tombol verifikasi
-        updateVerifikasiButton(setoranData);
+        card.style.display = 'none';
+        return;
     }
     
-    // Sembunyikan loading, tampilkan content
-    document.getElementById('loadingSetoran').style.display = 'none';
-    content.style.display = 'block';
+    card.style.display = 'block';
+    
+    // Format hari setoran
+    let hariSetoran = '-';
+    if (setoranData.tanggal_setoran) {
+        const date = new Date(setoranData.tanggal_setoran);
+        hariSetoran = date.toLocaleDateString('id-ID', { weekday: 'long' });
+    }
+    
+    // Status class
+    const statusClass = {
+        'Belum Setor': 'status-belum',
+        'In Process': 'status-in-process',
+        'Verified': 'status-verified'
+    }[setoranData.status_setoran] || 'status-belum';
+    
+    content.innerHTML = `
+        <div class="status-item">
+            <span class="status-label">Metode:</span>
+            <span class="status-value">${setoranData.metode_setoran || '-'}</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Hari Setoran:</span>
+            <span class="status-value">${hariSetoran}</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Tanggal Setoran:</span>
+            <span class="status-value">${setoranData.tanggal_setoran ? formatDisplayDate(setoranData.tanggal_setoran) : '-'}</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Total Setoran:</span>
+            <span class="status-value">${formatNumber(setoranData.total_setoran || 0)}</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Sisa Setoran:</span>
+            <span class="status-value">${formatNumber(setoranData.sisa_setoran || 0)}</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Status:</span>
+            <span class="status-value ${statusClass}">${setoranData.status_setoran}</span>
+        </div>
+    `;
+    
+    // Update tombol verifikasi
+    updateVerifikasiButton(setoranData);
 }
 
-// [14] Update tombol verifikasi berdasarkan status setoran
+// [20] Update tombol verifikasi berdasarkan status setoran
 function updateVerifikasiButton(setoranData) {
     const verifikasiBtn = document.getElementById('verifikasiSetoranBtnKas');
     
@@ -3512,7 +3736,7 @@ function updateVerifikasiButton(setoranData) {
     }
 }
 
-// [15] Load data pemasukan (auto-generate)
+// [21] Load data pemasukan (auto-generate)
 async function loadPemasukanData(filterParams) {
     try {
         const tanggal = filterParams.tanggal;
@@ -3532,8 +3756,7 @@ async function loadPemasukanData(filterParams) {
                 jenis: 'Sisa Setoran',
                 jumlah: sisaSetoran,
                 note: 'Auto-generate dari setoran sebelumnya',
-                icon: 'fa-money-bill-wave',
-                color: '#10b981'
+                type: 'auto'
             });
         }
         
@@ -3544,58 +3767,37 @@ async function loadPemasukanData(filterParams) {
                 jenis: 'Omset Cash',
                 jumlah: omsetCash,
                 note: 'Auto-generate dari transaksi cash',
-                icon: 'fa-cash-register',
-                color: '#059669'
+                type: 'auto'
             });
         }
         
-        // 3. TOP UP KAS (dari tabel kas sebelumnya atau default 0)
-        pemasukanItems.push({
-            jenis: 'Top Up Kas',
-            jumlah: 0,
-            note: 'Manual input',
-            icon: 'fa-wallet',
-            color: '#3b82f6'
-        });
-        
-        // 4. HUTANG KOMISI (dari tabel komisi yang belum dibayar)
+        // 3. HUTANG KOMISI (dari tabel komisi yang belum dibayar)
         const hutangKomisi = await getHutangKomisi(outlet, tanggal);
         if (hutangKomisi > 0) {
             pemasukanItems.push({
                 jenis: 'Hutang Komisi',
                 jumlah: hutangKomisi,
                 note: 'Auto-generate dari hutang komisi',
-                icon: 'fa-hand-holding-usd',
-                color: '#8b5cf6'
+                type: 'auto'
             });
         }
         
-        // 5. PEMASUKAN LAIN-LAIN (default 0)
-        pemasukanItems.push({
-            jenis: 'Pemasukan Lain Lain',
-            jumlah: 0,
-            note: 'Manual input',
-            icon: 'fa-plus-circle',
-            color: '#ec4899'
-        });
-        
-        // Tampilkan data pemasukan
-        displayPemasukanData(pemasukanItems);
+        // Tampilkan data pemasukan auto-generate
+        displayPemasukanAutoData(pemasukanItems);
         
     } catch (error) {
         console.error('Error loading pemasukan data:', error);
         document.getElementById('loadingPemasukan').style.display = 'none';
-        document.getElementById('pemasukanContent').innerHTML = `
-            <div style="text-align: center; padding: 20px; color: #ff4757;">
+        document.getElementById('pemasukanContainer').innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #e53e3e;">
                 <i class="fas fa-exclamation-triangle"></i>
                 <p>Gagal memuat data pemasukan</p>
             </div>
         `;
-        document.getElementById('pemasukanContent').style.display = 'block';
     }
 }
 
-// [16] Fungsi helper: Get Sisa Setoran
+// [22] Fungsi helper: Get Sisa Setoran
 async function getSisaSetoran(outlet, tanggal) {
     try {
         // Cari setoran sebelumnya yang memiliki sisa
@@ -3617,7 +3819,7 @@ async function getSisaSetoran(outlet, tanggal) {
     }
 }
 
-// [17] Fungsi helper: Get Omset Cash
+// [23] Fungsi helper: Get Omset Cash
 async function getOmsetCash(outlet, tanggal) {
     try {
         const { data: transaksiData, error } = await supabase
@@ -3640,11 +3842,10 @@ async function getOmsetCash(outlet, tanggal) {
     }
 }
 
-// [18] Fungsi helper: Get Hutang Komisi
+// [24] Fungsi helper: Get Hutang Komisi
 async function getHutangKomisi(outlet, tanggal) {
     try {
         // Logika untuk menghitung hutang komisi
-        // Ini bisa dari tabel hutang atau komisi yang belum dibayar
         // Untuk sekarang return 0 dulu
         return 0;
         
@@ -3654,53 +3855,44 @@ async function getHutangKomisi(outlet, tanggal) {
     }
 }
 
-// [19] Display data pemasukan
-function displayPemasukanData(pemasukanItems) {
-    const content = document.getElementById('pemasukanContent');
+// [25] Display data pemasukan auto-generate
+function displayPemasukanAutoData(pemasukanItems) {
+    const container = document.getElementById('pemasukanContainer');
     
     if (pemasukanItems.length === 0) {
-        content.innerHTML = `
-            <div style="text-align: center; padding: 20px; color: #666;">
-                <i class="fas fa-arrow-down" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.3;"></i>
-                <p>Tidak ada data pemasukan</p>
+        container.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #718096;">
+                <i class="fas fa-arrow-down" style="font-size: 1.5rem; opacity: 0.3;"></i>
+                <p>Tidak ada data pemasukan auto-generate</p>
             </div>
         `;
     } else {
-        let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+        let html = '';
         
         pemasukanItems.forEach((item, index) => {
-            const isAuto = item.note.includes('Auto-generate');
-            
             html += `
-                <div class="auto-item ${isAuto ? '' : 'disabled'}">
-                    <div class="auto-item-label">
-                        <div class="auto-item-icon pemasukan" style="background: ${item.color};">
-                            <i class="fas ${item.icon}"></i>
-                        </div>
-                        <div>
-                            <div class="auto-item-text">${item.jenis}</div>
-                            <div class="auto-item-note">${item.note}</div>
-                        </div>
+                <div class="data-item pemasukan">
+                    <div class="data-item-header">
+                        <span class="data-item-label">${item.jenis}</span>
+                        <span class="data-item-value">${formatNumber(item.jumlah)}</span>
                     </div>
-                    <div class="auto-item-value pemasukan">${formatRupiah(item.jumlah)}</div>
+                    <div class="data-item-note">${item.note}</div>
                 </div>
             `;
         });
         
-        html += '</div>';
-        content.innerHTML = html;
+        container.innerHTML = html;
         
-        // Hitung total pemasukan
-        const totalPemasukan = pemasukanItems.reduce((sum, item) => sum + item.jumlah, 0);
-        document.getElementById('totalPemasukanDisplay').textContent = formatRupiah(totalPemasukan);
+        // Hitung total pemasukan auto-generate
+        const totalAutoPemasukan = pemasukanItems.reduce((sum, item) => sum + item.jumlah, 0);
+        document.getElementById('totalAutoPemasukan').textContent = formatNumber(totalAutoPemasukan);
     }
     
-    // Sembunyikan loading, tampilkan content
+    // Sembunyikan loading
     document.getElementById('loadingPemasukan').style.display = 'none';
-    content.style.display = 'block';
 }
 
-// [20] Load data pengeluaran (auto-generate)
+// [26] Load data pengeluaran (auto-generate)
 async function loadPengeluaranData(filterParams) {
     try {
         const tanggal = filterParams.tanggal;
@@ -3720,8 +3912,7 @@ async function loadPengeluaranData(filterParams) {
                 jenis: 'Komisi',
                 jumlah: komisiData.komisi,
                 note: 'Auto-generate dari data komisi',
-                icon: 'fa-money-bill-wave',
-                color: '#ef4444'
+                type: 'auto'
             });
         }
         
@@ -3731,8 +3922,7 @@ async function loadPengeluaranData(filterParams) {
                 jenis: 'UOP',
                 jumlah: komisiData.uop,
                 note: 'Auto-generate dari data komisi',
-                icon: 'fa-tools',
-                color: '#f59e0b'
+                type: 'auto'
             });
         }
         
@@ -3742,46 +3932,26 @@ async function loadPengeluaranData(filterParams) {
                 jenis: 'Tips QRIS',
                 jumlah: komisiData.tips_qris,
                 note: 'Auto-generate dari data komisi',
-                icon: 'fa-qrcode',
-                color: '#8b5cf6'
+                type: 'auto'
             });
         }
         
-        // 4. BAYAR HUTANG KOMISI (default 0)
-        pengeluaranItems.push({
-            jenis: 'Bayar Hutang Komisi',
-            jumlah: 0,
-            note: 'Manual input',
-            icon: 'fa-hand-holding-usd',
-            color: '#dc2626'
-        });
-        
-        // 5. PENGELUARAN LAIN-LAIN (default 0)
-        pengeluaranItems.push({
-            jenis: 'Pengeluaran Lain Lain',
-            jumlah: 0,
-            note: 'Manual input',
-            icon: 'fa-minus-circle',
-            color: '#9333ea'
-        });
-        
-        // Tampilkan data pengeluaran
-        displayPengeluaranData(pengeluaranItems);
+        // Tampilkan data pengeluaran auto-generate
+        displayPengeluaranAutoData(pengeluaranItems);
         
     } catch (error) {
         console.error('Error loading pengeluaran data:', error);
         document.getElementById('loadingPengeluaran').style.display = 'none';
-        document.getElementById('pengeluaranContent').innerHTML = `
-            <div style="text-align: center; padding: 20px; color: #ff4757;">
+        document.getElementById('pengeluaranContainer').innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #e53e3e;">
                 <i class="fas fa-exclamation-triangle"></i>
                 <p>Gagal memuat data pengeluaran</p>
             </div>
         `;
-        document.getElementById('pengeluaranContent').style.display = 'block';
     }
 }
 
-// [21] Fungsi helper: Get Komisi Data
+// [27] Fungsi helper: Get Komisi Data
 async function getKomisiData(outlet, tanggal) {
     try {
         const { data: komisiData, error } = await supabase
@@ -3821,59 +3991,370 @@ async function getKomisiData(outlet, tanggal) {
     }
 }
 
-// [22] Display data pengeluaran
-function displayPengeluaranData(pengeluaranItems) {
-    const content = document.getElementById('pengeluaranContent');
+// [28] Display data pengeluaran auto-generate
+function displayPengeluaranAutoData(pengeluaranItems) {
+    const container = document.getElementById('pengeluaranContainer');
     
     if (pengeluaranItems.length === 0) {
-        content.innerHTML = `
-            <div style="text-align: center; padding: 20px; color: #666;">
-                <i class="fas fa-arrow-up" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.3;"></i>
-                <p>Tidak ada data pengeluaran</p>
+        container.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #718096;">
+                <i class="fas fa-arrow-up" style="font-size: 1.5rem; opacity: 0.3;"></i>
+                <p>Tidak ada data pengeluaran auto-generate</p>
             </div>
         `;
     } else {
-        let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+        let html = '';
         
         pengeluaranItems.forEach((item, index) => {
-            const isAuto = item.note.includes('Auto-generate');
-            
             html += `
-                <div class="auto-item ${isAuto ? '' : 'disabled'}">
-                    <div class="auto-item-label">
-                        <div class="auto-item-icon pengeluaran" style="background: ${item.color};">
-                            <i class="fas ${item.icon}"></i>
-                        </div>
-                        <div>
-                            <div class="auto-item-text">${item.jenis}</div>
-                            <div class="auto-item-note">${item.note}</div>
-                        </div>
+                <div class="data-item pengeluaran">
+                    <div class="data-item-header">
+                        <span class="data-item-label">${item.jenis}</span>
+                        <span class="data-item-value">${formatNumber(item.jumlah)}</span>
                     </div>
-                    <div class="auto-item-value pengeluaran">${formatRupiah(item.jumlah)}</div>
+                    <div class="data-item-note">${item.note}</div>
                 </div>
             `;
         });
         
-        html += '</div>';
-        content.innerHTML = html;
+        container.innerHTML = html;
         
-        // Hitung total pengeluaran
-        const totalPengeluaran = pengeluaranItems.reduce((sum, item) => sum + item.jumlah, 0);
-        document.getElementById('totalPengeluaranDisplay').textContent = formatRupiah(totalPengeluaran);
+        // Hitung total pengeluaran auto-generate
+        const totalAutoPengeluaran = pengeluaranItems.reduce((sum, item) => sum + item.jumlah, 0);
+        document.getElementById('totalAutoPengeluaran').textContent = formatNumber(totalAutoPengeluaran);
     }
     
-    // Sembunyikan loading, tampilkan content
+    // Sembunyikan loading
     document.getElementById('loadingPengeluaran').style.display = 'none';
-    content.style.display = 'block';
 }
 
-// [23] Buka modal setoran
+// ===== FUNGSI UNTUK INPUT MANUAL =====
+
+// [29] Show form tambah pemasukan manual
+function showTambahPemasukanForm() {
+    if (isAddingPemasukan) return;
+    
+    isAddingPemasukan = true;
+    const form = document.getElementById('formTambahPemasukan');
+    const button = document.getElementById('tambahPemasukanBtn');
+    
+    form.style.display = 'block';
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-plus"></i> Menambah...';
+    
+    // Reset form
+    document.getElementById('jenisPemasukan').value = 'Top Up Kas';
+    document.getElementById('jumlahPemasukan').value = '';
+    document.getElementById('notePemasukan').value = '';
+    document.getElementById('notePemasukanRow').style.display = 'none';
+    
+    // Focus ke input jumlah
+    setTimeout(() => {
+        document.getElementById('jumlahPemasukan').focus();
+    }, 100);
+}
+
+// [30] Tambah pemasukan manual
+function tambahPemasukanManual() {
+    const jenis = document.getElementById('jenisPemasukan').value;
+    const jumlah = parseInt(document.getElementById('jumlahPemasukan').value) || 0;
+    const note = document.getElementById('notePemasukan').value;
+    
+    if (!jenis || jumlah <= 0) {
+        showNotificationKas('Harap isi jenis dan jumlah pemasukan', 'error');
+        return;
+    }
+    
+    // Tambah ke array
+    manualPemasukanItems.push({
+        jenis: jenis,
+        jumlah: jumlah,
+        note: jenis === 'Pemasukan Lain Lain' ? note : '',
+        type: 'manual'
+    });
+    
+    // Reset form
+    batalTambahPemasukan();
+    
+    // Render ulang items
+    renderManualPemasukanItems();
+    
+    // Update total
+    updateTotalPemasukan();
+    
+    showNotificationKas('Pemasukan manual berhasil ditambahkan', 'success');
+}
+
+// [31] Batal tambah pemasukan
+function batalTambahPemasukan() {
+    isAddingPemasukan = false;
+    const form = document.getElementById('formTambahPemasukan');
+    const button = document.getElementById('tambahPemasukanBtn');
+    
+    form.style.display = 'none';
+    button.disabled = false;
+    button.innerHTML = '<i class="fas fa-plus"></i> Tambah';
+}
+
+// [32] Render manual pemasukan items
+function renderManualPemasukanItems() {
+    const container = document.getElementById('manualPemasukanContainer');
+    
+    if (manualPemasukanItems.length === 0) {
+        container.innerHTML = `
+            <div class="manual-empty">
+                <i class="fas fa-edit"></i>
+                <p>Belum ada pemasukan manual</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '<div class="data-divider"><span>Pemasukan Manual</span></div>';
+    
+    manualPemasukanItems.forEach((item, index) => {
+        html += `
+            <div class="manual-item" data-index="${index}">
+                <button class="delete-btn" onclick="hapusPemasukanManual(${index})">
+                    <i class="fas fa-trash"></i>
+                </button>
+                <div class="manual-item-header">
+                    <span class="manual-item-label">${item.jenis}</span>
+                    <span class="manual-item-value">${formatNumber(item.jumlah)}</span>
+                </div>
+                ${item.note ? `<div class="manual-item-note">${item.note}</div>` : ''}
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// [33] Hapus pemasukan manual
+function hapusPemasukanManual(index) {
+    if (confirm('Hapus pemasukan manual ini?')) {
+        manualPemasukanItems.splice(index, 1);
+        renderManualPemasukanItems();
+        updateTotalPemasukan();
+        showNotificationKas('Pemasukan manual berhasil dihapus', 'success');
+    }
+}
+
+// [34] Show form tambah pengeluaran manual
+function showTambahPengeluaranForm() {
+    if (isAddingPengeluaran) return;
+    
+    isAddingPengeluaran = true;
+    const form = document.getElementById('formTambahPengeluaran');
+    const button = document.getElementById('tambahPengeluaranBtn');
+    
+    form.style.display = 'block';
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-plus"></i> Menambah...';
+    
+    // Reset form
+    document.getElementById('jenisPengeluaran').value = 'Bayar Hutang Komisi';
+    document.getElementById('jumlahPengeluaran').value = '';
+    document.getElementById('notePengeluaran').value = '';
+    document.getElementById('notePengeluaranRow').style.display = 'none';
+    
+    // Focus ke input jumlah
+    setTimeout(() => {
+        document.getElementById('jumlahPengeluaran').focus();
+    }, 100);
+}
+
+// [35] Tambah pengeluaran manual
+function tambahPengeluaranManual() {
+    const jenis = document.getElementById('jenisPengeluaran').value;
+    const jumlah = parseInt(document.getElementById('jumlahPengeluaran').value) || 0;
+    const note = document.getElementById('notePengeluaran').value;
+    
+    if (!jenis || jumlah <= 0) {
+        showNotificationKas('Harap isi jenis dan jumlah pengeluaran', 'error');
+        return;
+    }
+    
+    // Tambah ke array
+    manualPengeluaranItems.push({
+        jenis: jenis,
+        jumlah: jumlah,
+        note: jenis === 'Pengeluaran Lain Lain' ? note : '',
+        type: 'manual'
+    });
+    
+    // Reset form
+    batalTambahPengeluaran();
+    
+    // Render ulang items
+    renderManualPengeluaranItems();
+    
+    // Update total
+    updateTotalPengeluaran();
+    
+    showNotificationKas('Pengeluaran manual berhasil ditambahkan', 'success');
+}
+
+// [36] Batal tambah pengeluaran
+function batalTambahPengeluaran() {
+    isAddingPengeluaran = false;
+    const form = document.getElementById('formTambahPengeluaran');
+    const button = document.getElementById('tambahPengeluaranBtn');
+    
+    form.style.display = 'none';
+    button.disabled = false;
+    button.innerHTML = '<i class="fas fa-plus"></i> Tambah';
+}
+
+// [37] Render manual pengeluaran items
+function renderManualPengeluaranItems() {
+    const container = document.getElementById('manualPengeluaranContainer');
+    
+    if (manualPengeluaranItems.length === 0) {
+        container.innerHTML = `
+            <div class="manual-empty">
+                <i class="fas fa-edit"></i>
+                <p>Belum ada pengeluaran manual</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '<div class="data-divider"><span>Pengeluaran Manual</span></div>';
+    
+    manualPengeluaranItems.forEach((item, index) => {
+        html += `
+            <div class="manual-item" data-index="${index}">
+                <button class="delete-btn" onclick="hapusPengeluaranManual(${index})">
+                    <i class="fas fa-trash"></i>
+                </button>
+                <div class="manual-item-header">
+                    <span class="manual-item-label">${item.jenis}</span>
+                    <span class="manual-item-value">${formatNumber(item.jumlah)}</span>
+                </div>
+                ${item.note ? `<div class="manual-item-note">${item.note}</div>` : ''}
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// [38] Hapus pengeluaran manual
+function hapusPengeluaranManual(index) {
+    if (confirm('Hapus pengeluaran manual ini?')) {
+        manualPengeluaranItems.splice(index, 1);
+        renderManualPengeluaranItems();
+        updateTotalPengeluaran();
+        showNotificationKas('Pengeluaran manual berhasil dihapus', 'success');
+    }
+}
+
+// [39] Update total pemasukan
+function updateTotalPemasukan() {
+    // Hitung total auto
+    const autoItems = document.querySelectorAll('#pemasukanContainer .data-item.pemasukan');
+    let totalAuto = 0;
+    autoItems.forEach(item => {
+        const valueElement = item.querySelector('.data-item-value');
+        if (valueElement) {
+            const valueText = valueElement.textContent.replace(/[^0-9]/g, '');
+            totalAuto += parseInt(valueText) || 0;
+        }
+    });
+    
+    // Hitung total manual
+    const totalManual = manualPemasukanItems.reduce((sum, item) => sum + item.jumlah, 0);
+    
+    // Update display
+    document.getElementById('totalAutoPemasukan').textContent = formatNumber(totalAuto);
+    document.getElementById('totalManualPemasukan').textContent = formatNumber(totalManual);
+    
+    const totalPemasukan = totalAuto + totalManual;
+    document.getElementById('totalPemasukanDisplay').textContent = formatNumber(totalPemasukan);
+}
+
+// [40] Update total pengeluaran
+function updateTotalPengeluaran() {
+    // Hitung total auto
+    const autoItems = document.querySelectorAll('#pengeluaranContainer .data-item.pengeluaran');
+    let totalAuto = 0;
+    autoItems.forEach(item => {
+        const valueElement = item.querySelector('.data-item-value');
+        if (valueElement) {
+            const valueText = valueElement.textContent.replace(/[^0-9]/g, '');
+            totalAuto += parseInt(valueText) || 0;
+        }
+    });
+    
+    // Hitung total manual
+    const totalManual = manualPengeluaranItems.reduce((sum, item) => sum + item.jumlah, 0);
+    
+    // Update display
+    document.getElementById('totalAutoPengeluaran').textContent = formatNumber(totalAuto);
+    document.getElementById('totalManualPengeluaran').textContent = formatNumber(totalManual);
+    
+    const totalPengeluaran = totalAuto + totalManual;
+    document.getElementById('totalPengeluaranDisplay').textContent = formatNumber(totalPengeluaran);
+}
+
+// ===== FUNGSI UTAMA KAS & SETORAN =====
+
+// [41] Cek apakah data sudah ada untuk tanggal ini
+async function checkExistingData(filterParams) {
+    try {
+        let query = supabase
+            .from('kas')
+            .select('id')
+            .eq('tanggal', filterParams.tanggal);
+        
+        if (filterParams.outlet) {
+            query = query.eq('outlet', filterParams.outlet);
+        }
+        
+        if (filterParams.filterByKasir && filterParams.kasir) {
+            query = query.eq('kasir', filterParams.kasir);
+        }
+        
+        const { data: existingData } = await query;
+        
+        const submitBtn = document.getElementById('submitBtnKas');
+        if (existingData && existingData.length > 0) {
+            // Data sudah ada
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-check"></i> DATA SUDAH ADA';
+            submitBtn.style.background = 'linear-gradient(to right, #38a169, #2f855a)';
+            
+            // Disable tombol tambah
+            document.getElementById('tambahPemasukanBtn').disabled = true;
+            document.getElementById('tambahPengeluaranBtn').disabled = true;
+        } else {
+            // Data belum ada
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> SUBMIT';
+            submitBtn.style.background = 'linear-gradient(to right, #805ad5, #6b46c1)';
+            
+            // Enable tombol tambah
+            document.getElementById('tambahPemasukanBtn').disabled = false;
+            document.getElementById('tambahPengeluaranBtn').disabled = false;
+        }
+        
+    } catch (error) {
+        console.error('Error checking existing data:', error);
+    }
+}
+
+// [42] Buka modal setoran
 async function openSetoranModalKas() {
     try {
         // Hitung total kewajiban (saldo dari ringkasan)
         const filterParams = getKasFilterParams();
-        const selectedDate = new Date(filterParams.tanggal);
-        const periode = calculatePeriodForDate(selectedDate);
+        const periodeIndex = document.getElementById('periodeSelectKas').value;
+        const periods = [];
+        for (let i = 0; i < 5; i++) {
+            periods.push(getPeriodByOffsetKas(i));
+        }
+        const periode = periods[periodeIndex];
         
         // Query total saldo untuk periode ini
         let query = supabase
@@ -3901,7 +4382,7 @@ async function openSetoranModalKas() {
         document.getElementById('modalOutletKas').textContent = filterParams.outlet || currentOutletKas || '-';
         document.getElementById('modalKasirKas').textContent = filterParams.kasir || currentKasUser?.nama_karyawan || '-';
         document.getElementById('modalPeriodeKas').textContent = periode.display;
-        document.getElementById('modalKewajibanKas').textContent = formatRupiah(totalKewajiban);
+        document.getElementById('modalKewajibanKas').textContent = formatNumber(totalKewajiban);
         document.getElementById('totalSetoranInputKas').value = totalKewajiban;
         
         // Tampilkan modal
@@ -3913,12 +4394,12 @@ async function openSetoranModalKas() {
     }
 }
 
-// [24] Tutup modal setoran
+// [43] Tutup modal setoran
 function closeSetoranModalKas() {
     document.getElementById('setoranModalKas').style.display = 'none';
 }
 
-// [25] Submit setoran
+// [44] Submit setoran
 async function submitSetoranKas() {
     try {
         const totalSetoran = parseInt(document.getElementById('totalSetoranInputKas').value) || 0;
@@ -3930,8 +4411,12 @@ async function submitSetoranKas() {
         }
         
         const filterParams = getKasFilterParams();
-        const selectedDate = new Date(filterParams.tanggal);
-        const periode = calculatePeriodForDate(selectedDate);
+        const periodeIndex = document.getElementById('periodeSelectKas').value;
+        const periods = [];
+        for (let i = 0; i < 5; i++) {
+            periods.push(getPeriodByOffsetKas(i));
+        }
+        const periode = periods[periodeIndex];
         
         // Validasi: Cek apakah sudah ada setoran untuk periode ini
         let query = supabase
@@ -3973,7 +4458,7 @@ async function submitSetoranKas() {
             kasir: filterParams.kasir || currentKasUser?.nama_karyawan,
             total_kewajiban: totalKewajiban,
             total_setoran: totalSetoran,
-            sisa_setoran: sisaSetoran, // TAMBAHKAN SISA SETORAN
+            sisa_setoran: sisaSetoran,
             tanggal_setoran: today,
             metode_setoran: metodeSetoran,
             status_setoran: 'In Process'
@@ -3989,7 +4474,7 @@ async function submitSetoranKas() {
         if (error) throw error;
         
         // Kirim notifikasi WhatsApp
-        await sendWhatsAppNotificationKas(setoranData);
+        await sendWhatsAppNotificationKas(setoranData, 'setoran');
         
         showNotificationKas('Setoran berhasil disimpan', 'success');
         closeSetoranModalKas();
@@ -4005,12 +4490,16 @@ async function submitSetoranKas() {
     }
 }
 
-// [26] Verifikasi setoran (hanya untuk owner)
+// [45] Verifikasi setoran (hanya untuk owner)
 async function verifikasiSetoranKas() {
     try {
         const filterParams = getKasFilterParams();
-        const selectedDate = new Date(filterParams.tanggal);
-        const periode = calculatePeriodForDate(selectedDate);
+        const periodeIndex = document.getElementById('periodeSelectKas').value;
+        const periods = [];
+        for (let i = 0; i < 5; i++) {
+            periods.push(getPeriodByOffsetKas(i));
+        }
+        const periode = periods[periodeIndex];
         
         // Cari setoran yang akan diverifikasi
         let query = supabase
@@ -4059,7 +4548,7 @@ async function verifikasiSetoranKas() {
     }
 }
 
-// [27] Submit data KAS
+// [46] Submit data KAS
 async function submitDataKas() {
     try {
         const filterParams = getKasFilterParams();
@@ -4087,10 +4576,34 @@ async function submitDataKas() {
         
         showKasLoading(true);
         
-        // Hitung total pemasukan dan pengeluaran dari auto-generated data
+        // Hitung total pemasukan dan pengeluaran
         const totalPemasukan = await calculateTotalPemasukan(filterParams);
         const totalPengeluaran = await calculateTotalPengeluaran(filterParams);
         const saldo = totalPemasukan - totalPengeluaran;
+        
+        // Get data auto-generate
+        const omsetCash = await getOmsetCash(filterParams.outlet, filterParams.tanggal);
+        const sisaSetoran = await getSisaSetoran(filterParams.outlet, filterParams.tanggal);
+        const komisiData = await getKomisiData(filterParams.outlet, filterParams.tanggal);
+        
+        // Hitung total manual
+        const totalManualPemasukan = manualPemasukanItems.reduce((sum, item) => sum + item.jumlah, 0);
+        const totalManualPengeluaran = manualPengeluaranItems.reduce((sum, item) => sum + item.jumlah, 0);
+        
+        // Pisahkan manual items berdasarkan jenis
+        const topUpKas = manualPemasukanItems.find(item => item.jenis === 'Top Up Kas')?.jumlah || 0;
+        const pemasukanLainLain = manualPemasukanItems.find(item => item.jenis === 'Pemasukan Lain Lain')?.jumlah || 0;
+        const notePemasukanLain = manualPemasukanItems.find(item => item.jenis === 'Pemasukan Lain Lain')?.note || '';
+        
+        const bayarHutangKomisi = manualPengeluaranItems.find(item => item.jenis === 'Bayar Hutang Komisi')?.jumlah || 0;
+        const iuranRt = manualPengeluaranItems.find(item => item.jenis === 'Iuran RT')?.jumlah || 0;
+        const sumbangan = manualPengeluaranItems.find(item => item.jenis === 'Sumbangan')?.jumlah || 0;
+        const iuranSampah = manualPengeluaranItems.find(item => item.jenis === 'Iuran Sampah')?.jumlah || 0;
+        const galon = manualPengeluaranItems.find(item => item.jenis === 'Galon')?.jumlah || 0;
+        const biayaAdminSetoran = manualPengeluaranItems.find(item => item.jenis === 'Biaya Admin Setoran')?.jumlah || 0;
+        const yakult = manualPengeluaranItems.find(item => item.jenis === 'Yakult')?.jumlah || 0;
+        const pengeluaranLainLain = manualPengeluaranItems.find(item => item.jenis === 'Pengeluaran Lain Lain')?.jumlah || 0;
+        const notePengeluaranLain = manualPengeluaranItems.find(item => item.jenis === 'Pengeluaran Lain Lain')?.note || '';
         
         // Data untuk tabel kas
         const kasData = {
@@ -4101,12 +4614,28 @@ async function submitDataKas() {
             pemasukan: totalPemasukan,
             pengeluaran: totalPengeluaran,
             saldo: saldo,
-            // Tambahkan field detail jika diperlukan
-            omset_cash: await getOmsetCash(filterParams.outlet, filterParams.tanggal),
-            sisa_setoran: await getSisaSetoran(filterParams.outlet, filterParams.tanggal),
-            komisi: await getKomisiField(filterParams.outlet, filterParams.tanggal, 'komisi'),
-            uop: await getKomisiField(filterParams.outlet, filterParams.tanggal, 'uop'),
-            tips_qris: await getKomisiField(filterParams.outlet, filterParams.tanggal, 'tips_qris')
+            
+            // Auto-generate fields
+            omset_cash: omsetCash,
+            sisa_setoran: sisaSetoran,
+            hutang_komisi: await getHutangKomisi(filterParams.outlet, filterParams.tanggal),
+            komisi: komisiData.komisi,
+            uop: komisiData.uop,
+            tips_qris: komisiData.tips_qris,
+            
+            // Manual fields
+            top_up_kas: topUpKas,
+            pemasukan_lain_lain: pemasukanLainLain,
+            note_pemasukan_lain: notePemasukanLain,
+            bayar_hutang_komisi: bayarHutangKomisi,
+            iuran_rt: iuranRt,
+            sumbangan: sumbangan,
+            iuran_sampah: iuranSampah,
+            galon: galon,
+            biaya_admin_setoran: biayaAdminSetoran,
+            yakult: yakult,
+            pengeluaran_lain_lain: pengeluaranLainLain,
+            note_pengeluaran_lain: notePengeluaranLain
         };
         
         console.log('Data KAS yang akan disimpan:', kasData);
@@ -4123,7 +4652,9 @@ async function submitDataKas() {
         
         showNotificationKas('Data KAS berhasil disimpan', 'success');
         
-        // Refresh data
+        // Reset form dan refresh data
+        manualPemasukanItems = [];
+        manualPengeluaranItems = [];
         await loadKasData();
         
     } catch (error) {
@@ -4134,48 +4665,25 @@ async function submitDataKas() {
     }
 }
 
-// [28] Helper: Calculate total pemasukan
+// [47] Helper: Calculate total pemasukan
 async function calculateTotalPemasukan(filterParams) {
     const sisaSetoran = await getSisaSetoran(filterParams.outlet, filterParams.tanggal);
     const omsetCash = await getOmsetCash(filterParams.outlet, filterParams.tanggal);
     const hutangKomisi = await getHutangKomisi(filterParams.outlet, filterParams.tanggal);
+    const totalManual = manualPemasukanItems.reduce((sum, item) => sum + item.jumlah, 0);
     
-    // Untuk sekarang, kita anggap top up kas dan pemasukan lain-lain = 0
-    // Nanti bisa ditambahkan input manual
-    return sisaSetoran + omsetCash + hutangKomisi;
+    return sisaSetoran + omsetCash + hutangKomisi + totalManual;
 }
 
-// [29] Helper: Calculate total pengeluaran
+// [48] Helper: Calculate total pengeluaran
 async function calculateTotalPengeluaran(filterParams) {
     const komisiData = await getKomisiData(filterParams.outlet, filterParams.tanggal);
+    const totalManual = manualPengeluaranItems.reduce((sum, item) => sum + item.jumlah, 0);
     
-    // Untuk sekarang, kita anggap bayar hutang komisi dan pengeluaran lain-lain = 0
-    // Nanti bisa ditambahkan input manual
-    return komisiData.komisi + komisiData.uop + komisiData.tips_qris;
+    return komisiData.komisi + komisiData.uop + komisiData.tips_qris + totalManual;
 }
 
-// [30] Helper: Get komisi field
-async function getKomisiField(outlet, tanggal, field) {
-    try {
-        const { data: komisiData, error } = await supabase
-            .from('komisi')
-            .select(field)
-            .eq('outlet', outlet)
-            .eq('tanggal', tanggal)
-            .eq('status', 'complete');
-        
-        if (error) throw error;
-        
-        const total = komisiData?.reduce((sum, item) => sum + (parseFloat(item[field]) || 0), 0) || 0;
-        return Math.round(total);
-        
-    } catch (error) {
-        console.error(`Error getting ${field}:`, error);
-        return 0;
-    }
-}
-
-// [31] Fungsi untuk mengirim notifikasi WhatsApp
+// [49] Fungsi untuk mengirim notifikasi WhatsApp
 async function sendWhatsAppNotificationKas(data, type = 'setoran') {
     try {
         if (!navigator.onLine) {
@@ -4217,7 +4725,7 @@ async function sendWhatsAppNotificationKas(data, type = 'setoran') {
     }
 }
 
-// [32] Format notifikasi untuk setoran
+// [50] Format notifikasi untuk setoran
 function formatSetoranNotificationKas(setoranData) {
     const now = new Date();
     const hariTanggal = now.toLocaleDateString('id-ID', { 
@@ -4241,7 +4749,7 @@ function formatSetoranNotificationKas(setoranData) {
 ⏳ Status : Menunggu Verifikasi`;
 }
 
-// [33] Format notifikasi untuk KAS
+// [51] Format notifikasi untuk KAS
 function formatKasNotificationKas(kasData) {
     const hariTanggal = new Date(kasData.tanggal).toLocaleDateString('id-ID', { 
         weekday: 'long', 
@@ -4263,12 +4771,12 @@ function formatKasNotificationKas(kasData) {
 ✅ Status: Berhasil disimpan`;
 }
 
-// [34] Format currency untuk WhatsApp
+// [52] Format currency untuk WhatsApp
 function formatCurrencyForWA(amount) {
     return new Intl.NumberFormat('id-ID').format(amount).replace(/\./g, ',');
 }
 
-// [35] Show/hide loading
+// [53] Show/hide loading
 function showKasLoading(show) {
     const overlay = document.getElementById('kasLoadingOverlay');
     if (overlay) {
@@ -4276,7 +4784,7 @@ function showKasLoading(show) {
     }
 }
 
-// [36] Show notification
+// [54] Show notification
 function showNotificationKas(message, type = 'info') {
     // Create notification element
     const notification = document.createElement('div');
@@ -4350,44 +4858,35 @@ function showNotificationKas(message, type = 'info') {
     }
 }
 
-// [37] Format Rupiah helper
-function formatRupiah(amount) {
-    if (amount === 0 || !amount) return 'Rp 0';
-    return 'Rp ' + amount.toLocaleString('id-ID');
+// [55] Helper functions
+function formatNumber(amount) {
+    return new Intl.NumberFormat('id-ID').format(amount);
 }
 
-// [38] Modifikasi handleMenuClick untuk menambahkan Kas & Setoran
-// Tambahkan di switch case di fungsi handleMenuClick (yang sudah ada):
-// GANTI bagian ini:
-function handleMenuClick(menuId) {
-    switch(menuId) {
-        case 'komisi':
-            showKomisiPage();
-            break;
-        case 'absensi':
-            showAbsensiPage();
-            break;
-        case 'kas':
-            showKasPage(); // TAMBAHKAN INI
-            break;
-        case 'slip':
-        case 'libur':
-        case 'top':
-        case 'request':
-        case 'stok':
-        case 'sertifikasi':
-            const menuTitles = {
-                'slip': 'Slip Penghasilan',
-                'libur': 'Libur & Izin',
-                'top': 'TOP (Tools Ownership Program)',
-                'request': 'Request',
-                'stok': 'Tambah Stok',
-                'sertifikasi': 'Sertifikasi'
-            };
-            alert(`Menu "${menuTitles[menuId]}" akan diimplementasikan nanti.`);
-            break;
-        default:
-            console.log('Menu tidak dikenali:', menuId);
-    }
+function formatDisplayDate(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '-';
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
 }
+
+// [56] Update handleMenuClick untuk menambahkan Kas & Setoran
+// Pastikan fungsi ini ada di file utama app.js
+// function handleMenuClick(menuId) {
+//     switch(menuId) {
+//         case 'komisi':
+//             showKomisiPage();
+//             break;
+//         case 'absensi':
+//             showAbsensiPage();
+//             break;
+//         case 'kas':
+//             showKasPage(); // INI YANG DITAMBAHKAN
+//             break;
+//         // ... menu lainnya
+//     }
+// }
 // ========== END OF FILE ==========
