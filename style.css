@@ -3334,3 +3334,579 @@ marquee {
         max-height: calc(100vh - 20px);
     }
 }
+/* ========== PERBAIKAN RESPONSIVE MOBILE ========== */
+
+/* [1] Hilangkan Info Card untuk Mobile */
+@media (max-width: 768px) {
+    .user-info-section {
+        display: none; /* Info sudah ada di halaman utama */
+    }
+    
+    .ringkasan-section {
+        padding: 15px 12px;
+        margin-top: -10px; /* Kompensasi hilangnya user-info */
+    }
+}
+
+/* [2] Perbaikan Tabel Ringkasan KAS untuk Mobile */
+@media (max-width: 768px) {
+    .ringkasan-container {
+        padding: 10px;
+        margin: 0 -12px 15px;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    .table-container {
+        margin: 0;
+        padding: 0;
+    }
+    
+    .ringkasan-table {
+        min-width: 100%;
+        font-size: 0.75rem; /* Perkecil font */
+    }
+    
+    .ringkasan-table th {
+        padding: 8px 6px;
+        font-size: 0.7rem;
+        white-space: nowrap;
+    }
+    
+    .ringkasan-table td {
+        padding: 6px 4px;
+        font-size: 0.75rem;
+        line-height: 1.2; /* Kurangi tinggi baris */
+    }
+    
+    /* Perkecil kolom kasir */
+    .ringkasan-table td.kasir-column {
+        max-width: 80px;
+        min-width: 60px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    /* Perbaikan header tabel */
+    .ringkasan-table th:nth-child(1) { /* Tanggal */
+        width: 60px;
+        min-width: 60px;
+    }
+    
+    .ringkasan-table th:nth-child(2) { /* Hari */
+        width: 50px;
+        min-width: 50px;
+    }
+    
+    .ringkasan-table th:nth-child(3) { /* Outlet */
+        width: 60px;
+        min-width: 60px;
+    }
+    
+    .ringkasan-table th:nth-child(4) { /* Kasir */
+        width: 70px;
+        min-width: 70px;
+    }
+    
+    .ringkasan-table th:nth-child(5), /* Pemasukan */
+    .ringkasan-table th:nth-child(6), /* Pengeluaran */
+    .ringkasan-table th:nth-child(7) { /* Saldo */
+        width: 80px;
+        min-width: 80px;
+    }
+    
+    /* Total row lebih kecil */
+    .total-row td {
+        padding: 6px 4px;
+        font-size: 0.8rem;
+    }
+    
+    /* Perbaikan periode info */
+    .periode-info {
+        padding: 8px 0 10px;
+        margin-bottom: 10px;
+    }
+    
+    .periode-title {
+        font-size: 0.85rem;
+        margin-bottom: 3px;
+    }
+    
+    .periode-dates {
+        font-size: 0.75rem;
+    }
+}
+
+/* Extra small devices (phones, 480px and down) */
+@media (max-width: 480px) {
+    .ringkasan-table {
+        font-size: 0.7rem;
+    }
+    
+    .ringkasan-table th {
+        font-size: 0.65rem;
+        padding: 6px 3px;
+    }
+    
+    .ringkasan-table td {
+        font-size: 0.7rem;
+        padding: 5px 2px;
+    }
+    
+    /* Perkecil kolom */
+    .ringkasan-table th:nth-child(1), /* Tanggal */
+    .ringkasan-table th:nth-child(2), /* Hari */
+    .ringkasan-table th:nth-child(3) { /* Outlet */
+        width: 50px;
+        min-width: 50px;
+    }
+    
+    .ringkasan-table th:nth-child(4) { /* Kasir */
+        width: 60px;
+        min-width: 60px;
+    }
+    
+    .ringkasan-table th:nth-child(5), /* Pemasukan */
+    .ringkasan-table th:nth-child(6), /* Pengeluaran */
+    .ringkasan-table th:nth-child(7) { /* Saldo */
+        width: 70px;
+        min-width: 70px;
+    }
+    
+    .ringkasan-table td.kasir-column {
+        max-width: 60px;
+        min-width: 50px;
+    }
+}
+
+/* [3] Perbaikan Status Setoran untuk Mobile */
+@media (max-width: 768px) {
+    .status-setoran-card {
+        padding: 12px 10px;
+        margin-bottom: 15px;
+    }
+    
+    .status-header {
+        margin-bottom: 10px;
+    }
+    
+    .status-header h4 {
+        font-size: 0.9rem;
+    }
+    
+    .status-badge {
+        padding: 4px 8px;
+        font-size: 0.7rem;
+    }
+    
+    .status-grid {
+        gap: 8px; /* Kurangi jarak antar baris */
+    }
+    
+    .status-item {
+        margin-bottom: 0;
+    }
+    
+    .status-label {
+        font-size: 0.7rem;
+        margin-bottom: 3px;
+    }
+    
+    .status-value {
+        font-size: 0.85rem;
+        line-height: 1.2;
+    }
+    
+    /* Grid 2 kolom untuk mobile */
+    .status-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .status-setoran-card {
+        padding: 10px 8px;
+    }
+    
+    .status-grid {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+    
+    .status-item {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .status-item:last-child {
+        border-bottom: none;
+    }
+    
+    .status-label {
+        font-size: 0.65rem;
+        margin-bottom: 0;
+        flex: 1;
+    }
+    
+    .status-value {
+        font-size: 0.8rem;
+        text-align: right;
+        flex: 1;
+    }
+}
+
+/* [4] Perbaikan Filter Tanggal Input untuk Mobile */
+@media (max-width: 768px) {
+    .filter-section {
+        padding: 15px 12px;
+        margin-bottom: 15px;
+    }
+    
+    .filter-section h3 {
+        font-size: 1rem;
+        margin-bottom: 12px;
+    }
+    
+    .filter-content {
+        flex-direction: row; /* Filter sebelah kiri, hasil sebelah kanan */
+        align-items: center;
+        gap: 10px;
+        flex-wrap: nowrap;
+    }
+    
+    .date-input-group {
+        flex-direction: row;
+        align-items: center;
+        flex: 1;
+        gap: 8px;
+    }
+    
+    .date-input-group label {
+        font-size: 0.8rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+        margin-bottom: 0;
+        width: 60px; /* Lebar fixed untuk label */
+    }
+    
+    .date-input {
+        flex: 1;
+        padding: 10px;
+        font-size: 0.85rem;
+        min-width: 0; /* Allow shrinking */
+    }
+    
+    .date-display {
+        flex-shrink: 0;
+        padding: 10px 12px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        text-align: center;
+        min-width: 120px; /* Fixed width untuk tanggal display */
+        background: #f0fdf4;
+        border-color: #bbf7d0;
+    }
+}
+
+/* Extra small mobile optimization */
+@media (max-width: 480px) {
+    .filter-content {
+        flex-wrap: wrap; /* Allow wrapping if really small */
+    }
+    
+    .date-input-group {
+        flex: 1 0 100%;
+        margin-bottom: 8px;
+    }
+    
+    .date-display {
+        flex: 1 0 100%;
+        text-align: left;
+    }
+    
+    /* Perbaikan input tanggal */
+    .date-input {
+        font-size: 0.8rem;
+        padding: 8px 10px;
+    }
+    
+    .date-input-group label {
+        width: 50px;
+        font-size: 0.75rem;
+    }
+}
+
+/* [5] Perbaikan Umum Layout Mobile */
+@media (max-width: 768px) {
+    .kas-content {
+        padding: 12px 10px;
+    }
+    
+    .section-header {
+        margin-bottom: 15px;
+    }
+    
+    .section-header h3 {
+        font-size: 1.1rem;
+    }
+    
+    .periode-select {
+        font-size: 0.85rem;
+        padding: 8px 12px;
+        min-width: 200px;
+    }
+    
+    /* Tombol lebih kecil */
+    .btn-setor, .btn-verifikasi {
+        padding: 10px 16px;
+        font-size: 0.85rem;
+        min-width: 150px;
+    }
+    
+    .btn-tambah {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+    
+    /* Input Pemasukan/Pengeluaran */
+    .pemasukan-section, .pengeluaran-section {
+        padding: 15px 12px;
+    }
+    
+    .input-item {
+        padding: 12px 10px;
+    }
+    
+    .item-select, .item-input, .note-input {
+        font-size: 0.85rem;
+        padding: 8px 10px;
+    }
+    
+    .item-input {
+        width: 100px;
+    }
+    
+    /* Total section */
+    .total-section {
+        padding: 12px;
+    }
+    
+    .total-label {
+        font-size: 0.9rem;
+    }
+    
+    .total-value {
+        font-size: 1.1rem;
+    }
+    
+    /* Submit button */
+    .btn-submit {
+        padding: 14px 30px;
+        font-size: 1rem;
+        min-width: 180px;
+    }
+}
+
+@media (max-width: 480px) {
+    .kas-content {
+        padding: 10px 8px;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .periode-select {
+        width: 100%;
+        min-width: 100%;
+    }
+    
+    /* Grid input pemasukan/pengeluaran jadi 1 kolom */
+    .input-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    /* Setoran actions jadi kolom */
+    .setoran-actions {
+        flex-direction: column;
+    }
+    
+    .btn-setor, .btn-verifikasi {
+        width: 100%;
+        min-width: 100%;
+    }
+    
+    /* Modal lebih kecil */
+    .modal-content {
+        margin: 10px;
+        max-height: calc(100vh - 20px);
+    }
+    
+    .modal-header h3 {
+        font-size: 1.1rem;
+    }
+    
+    .modal-body {
+        padding: 15px;
+    }
+    
+    .modal-info-grid {
+        padding: 12px;
+        gap: 10px;
+    }
+    
+    .btn-modal-submit {
+        padding: 12px 20px;
+        font-size: 0.9rem;
+    }
+}
+
+/* [6] Perbaikan Header Mobile */
+@media (max-width: 768px) {
+    .kas-header {
+        padding: 15px 12px;
+    }
+    
+    .kas-header h2 {
+        font-size: 1.1rem;
+    }
+    
+    .kas-header .back-btn,
+    .kas-header .refresh-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1.1rem;
+    }
+}
+
+/* [7] Auto-badge positioning untuk mobile */
+@media (max-width: 768px) {
+    .auto-badge {
+        font-size: 0.6rem;
+        padding: 3px 8px;
+        top: -6px;
+        right: 8px;
+    }
+}
+
+/* [8] Scrollbar tipis untuk mobile */
+@media (max-width: 768px) {
+    .table-container::-webkit-scrollbar {
+        height: 4px;
+    }
+    
+    .table-container::-webkit-scrollbar-thumb {
+        background: #10b981;
+        border-radius: 2px;
+    }
+}
+
+/* [9] Perbaikan tanggal display format */
+@media (max-width: 480px) {
+    .date-display {
+        font-size: 0.75rem;
+        min-width: 110px;
+        padding: 8px 10px;
+    }
+    
+    /* Format tanggal lebih singkat untuk mobile */
+    #kasTanggalDisplay {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+/* [10] Perbaikan untuk landscape mode */
+@media (max-height: 500px) and (orientation: landscape) {
+    .kas-content {
+        padding: 10px 8px;
+    }
+    
+    .ringkasan-table {
+        font-size: 0.7rem;
+    }
+    
+    .ringkasan-table th,
+    .ringkasan-table td {
+        padding: 4px 3px;
+    }
+    
+    .status-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .filter-content {
+        flex-wrap: nowrap;
+    }
+}
+
+/* [11] Perbaikan loading overlay mobile */
+@media (max-width: 768px) {
+    .loading-content {
+        padding: 20px;
+        gap: 10px;
+    }
+    
+    .spinner {
+        width: 24px;
+        height: 24px;
+        border-width: 2px;
+    }
+    
+    .loading-content p {
+        font-size: 0.9rem;
+    }
+}
+
+/* [12] Perbaikan notification mobile */
+@media (max-width: 768px) {
+    .kas-notification {
+        left: 10px;
+        right: 10px;
+        max-width: calc(100% - 20px);
+        top: 10px;
+    }
+}
+
+/* [13] Touch-friendly improvements */
+@media (max-width: 768px) {
+    .item-delete {
+        width: 36px;
+        height: 36px;
+    }
+    
+    button:not(:disabled) {
+        cursor: pointer;
+    }
+    
+    button:not(:disabled):active {
+        transform: scale(0.98);
+    }
+    
+    /* Increase touch target size */
+    .item-select,
+    .item-input,
+    .note-input,
+    .date-input,
+    .form-input,
+    .form-select {
+        min-height: 44px; /* Minimum touch target size */
+    }
+    
+    .btn-setor,
+    .btn-verifikasi,
+    .btn-tambah,
+    .btn-submit,
+    .btn-modal-submit {
+        min-height: 44px;
+    }
+}
