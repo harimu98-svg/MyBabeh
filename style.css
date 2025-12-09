@@ -3910,3 +3910,133 @@ marquee {
         min-height: 44px;
     }
 }
+/* ========== FIXED WIDTH OPTIMIZATION ========== */
+
+/* [4.7] Fixed width system untuk layout yang lebih predictable */
+@media (max-width: 768px) {
+    .filter-section {
+        padding: 12px 10px;
+    }
+    
+    /* Grid layout dengan fixed widths */
+    .date-input-group {
+        display: grid;
+        grid-template-columns: 50px 1fr 100px;
+        gap: 6px;
+        align-items: center;
+    }
+    
+    .date-input-group label {
+        grid-column: 1;
+        width: 100%;
+        text-align: right;
+        padding-right: 4px;
+    }
+    
+    .date-input {
+        grid-column: 2;
+        width: 100%;
+        max-width: none;
+    }
+    
+    .date-display {
+        grid-column: 3;
+        width: 100px; /* FIXED WIDTH */
+        min-width: 100px;
+        max-width: 100px;
+    }
+}
+
+/* [4.8] Adjust untuk layar medium */
+@media (max-width: 480px) and (min-width: 376px) {
+    .date-input-group {
+        grid-template-columns: 50px 1fr 90px;
+        gap: 5px;
+    }
+    
+    .date-display {
+        width: 90px;
+        min-width: 90px;
+        max-width: 90px;
+        font-size: 0.7rem;
+        padding: 7px 8px;
+    }
+}
+
+/* [4.9] Adjust untuk layar small */
+@media (max-width: 375px) and (min-width: 321px) {
+    .date-input-group {
+        grid-template-columns: 45px 1fr 85px;
+        gap: 4px;
+    }
+    
+    .date-display {
+        width: 85px;
+        min-width: 85px;
+        max-width: 85px;
+        font-size: 0.68rem;
+        padding: 6px 7px;
+    }
+    
+    .date-input-group label {
+        font-size: 0.68rem;
+    }
+    
+    .date-input {
+        font-size: 0.68rem;
+        padding: 6px 8px;
+    }
+}
+
+/* [4.10] Adjust untuk layar sangat kecil */
+@media (max-width: 320px) {
+    .date-input-group {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+    
+    .date-input-group label {
+        display: block;
+        text-align: left;
+        width: auto;
+        grid-column: 1;
+    }
+    
+    .date-input {
+        grid-column: 1;
+        width: 100%;
+    }
+    
+    .date-display {
+        grid-column: 1;
+        width: 100%;
+        min-width: 100%;
+        max-width: 100%;
+        text-align: left;
+    }
+}
+
+/* [4.11] Font optimization untuk readability */
+.date-display {
+    font-family: 'Segoe UI', 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+}
+
+/* [4.12] High contrast untuk accessibility */
+@media (prefers-contrast: high) {
+    .date-display {
+        background: #10b981;
+        color: white;
+        border-color: #059669;
+    }
+}
+
+/* [4.13] Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .date-display {
+        background: #064e3b;
+        color: #a7f3d0;
+        border-color: #10b981;
+    }
+}
