@@ -4252,29 +4252,44 @@ function getKasPengeluaranKey(jenis) {
 // [30] Load status setoran
 async function loadSetoranStatus() {
     try {
-        const outlet = currentUserOutletKas; // Sudah ada dari auth
+        const outlet = currentUserOutletKas;
         if (!outlet) return;
         
-        // Periode dari state kita (sama seperti di index.html)
+        // Periode dari state kita
         const periodeDisplay = kasState.selectedPeriod.display;
         
-        console.log('🔍 Cari setoran:', { outlet, periode: periodeDisplay });
+        console.log('🔍 Cari setoran:', { 
+            outlet, 
+            periode: periodeDisplay,
+            periodeEncoded: encodeURIComponent(periodeDisplay) // TAMBAH INI
+        });
 
-        // Query SAMA PERSIS dengan index.html
+        // Query dengan encodeURIComponent
         const { data, error } = await supabase
             .from('setoran')
             .select('*')
             .eq('outlet', outlet)
-            .eq('periode', periodeDisplay)
+            .eq('periode', encodeURIComponent(periodeDisplay)) // ENCODE DISINI
             .single();
         
-        if (error && error.code !== 'PGRST116') {
-            console.error('Error loading setoran:', error);
-            return;
+        console.log('📊 Hasil query setoran:', { data, error });
+        
+        if (error) {
+            if (error.code === 'PGRST116') {
+                console.log('ℹ️ Tidak ada setoran ditemukan');
+                kasState.currentSetoran = null;
+            } else {
+                console.error('Error loading setoran:', error);
+                
+                // Coba alternatif tanpa encode jika encode error
+                await tryAlternativeSetoranQuery(outlet, periodeDisplay);
+                return;
+            }
+        } else {
+            kasState.currentSetoran = data;
+            console.log('✅ Setoran ditemukan:', data);
         }
         
-        console.log('📊 Data setoran ditemukan:', data);
-        kasState.currentSetoran = data;
         renderSetoranStatus();
         
     } catch (error) {
