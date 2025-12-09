@@ -3515,24 +3515,66 @@ async function loadExistingKasData() {
             .select('*')
             .eq('outlet', currentUserOutletKas)
             .eq('tanggal', kasState.selectedTanggal)
-            .single();
+            .maybeSingle(); // Ganti dari .single()
 
-        if (error && error.code !== 'PGRST116') throw error;
+        if (error && error.code !== 'PGRST116') {
+            console.warn('⚠️ Error loading kas data:', error);
+            // Coba query alternatif
+            await tryAlternativeKasQuery();
+            return;
+        }
 
         kasState.existingKasData = data || null;
         
         if (data) {
+            console.log('✅ Existing KAS data ditemukan:', data);
             showExistingKasData(data);
             document.getElementById('kasSubmitBtn').disabled = true;
             document.getElementById('kasSubmitBtn').innerHTML = '<i class="fas fa-check"></i> DATA SUDAH ADA';
         } else {
+            console.log('ℹ️ Tidak ada existing KAS data');
             resetKasInputForms();
             document.getElementById('kasSubmitBtn').disabled = !isFormValidKas();
             document.getElementById('kasSubmitBtn').innerHTML = '<i class="fas fa-paper-plane"></i> SUBMIT';
         }
 
     } catch (error) {
-        console.error('Error loading existing kas data:', error);
+        console.error('❌ Exception loading existing kas data:', error);
+        kasState.existingKasData = null;
+        resetKasInputForms();
+    }
+}
+
+// [FUNGSI BARU] Coba query alternatif untuk KAS
+async function tryAlternativeKasQuery() {
+    try {
+        // Cari data KAS tanpa filter tanggal exact
+        const { data, error } = await supabase
+            .from('kas')
+            .select('*')
+            .eq('outlet', currentUserOutletKas)
+            .order('tanggal', { ascending: false })
+            .limit(5);
+        
+        if (!error && data && data.length > 0) {
+            console.log('📋 Data KAS terbaru:', data);
+            // Cari yang mendekati tanggal
+            const targetDate = new Date(kasState.selectedTanggal);
+            const matched = data.find(item => {
+                const itemDate = new Date(item.tanggal);
+                return itemDate.toDateString() === targetDate.toDateString();
+            });
+            
+            if (matched) {
+                console.log('✅ KAS data matching ditemukan:', matched);
+                kasState.existingKasData = matched;
+                showExistingKasData(matched);
+                document.getElementById('kasSubmitBtn').disabled = true;
+                document.getElementById('kasSubmitBtn').innerHTML = '<i class="fas fa-check"></i> DATA SUDAH ADA';
+            }
+        }
+    } catch (e) {
+        console.error('Error dalam alternative KAS query:', e);
     }
 }
 
