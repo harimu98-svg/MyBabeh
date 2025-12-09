@@ -3140,27 +3140,57 @@ function generateKasPeriodOptions() {
     const periods = [];
     const today = new Date();
     
-    // Generate 5 periode terakhir
+    // LOGIKA SAMA PERSIS dengan index.html
     for (let i = 0; i < 5; i++) {
         const period = getKasPeriodByOffset(i);
         periods.push(period);
         
         const option = document.createElement('option');
         option.value = i;
-        // Format: Selasa 9/Des/2025 - Senin 15/Des/2025
+        
+        // FORMAT SAMA dengan index.html: "Selasa 9/Des/2025 - Senin 15/Des/2025"
         const label = formatKasPeriodDisplay(period);
         option.textContent = label;
+        
+        // Data attributes SAMA dengan index.html
         option.dataset.start = period.start;
         option.dataset.end = period.end;
         option.dataset.display = period.display;
+        
         periodeSelect.appendChild(option);
     }
     
     kasState.availablePeriods = periods;
     
-    // Default pilih periode pertama
+    // Default pilih periode pertama SAMA dengan index.html
     kasState.selectedPeriod = periods[0];
     periodeSelect.value = "0";
+    
+    console.log('📅 Periode options generated:', periods);
+}
+
+// [COPY DARI index.html] - Format display periode
+function formatKasPeriodDisplay(period) {
+    // FORMAT SAMA dengan index.html: "Selasa 9/Des/2025 - Senin 15/Des/2025"
+    const startDate = new Date(period.start);
+    const endDate = new Date(period.end);
+    
+    const startDay = startDate.toLocaleDateString('id-ID', { weekday: 'long' });
+    const startDateStr = formatKasDateDisplay(startDate);
+    const endDay = endDate.toLocaleDateString('id-ID', { weekday: 'long' });
+    const endDateStr = formatKasDateDisplay(endDate);
+    
+    return `${startDay} ${startDateStr} - ${endDay} ${endDateStr}`;
+}
+
+// [COPY DARI index.html] - Format tanggal display
+function formatKasDateDisplay(date) {
+    // FORMAT SAMA dengan index.html: "9/Des/2025"
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
 }
 
 // [5] Helper: Get periode berdasarkan offset
@@ -4220,93 +4250,72 @@ function getKasPengeluaranKey(jenis) {
 // [30] Load status setoran
 async function loadSetoranStatus() {
     try {
-        if (!currentUserOutletKas || !kasState.selectedPeriod) {
-            console.log('❌ Outlet atau periode kosong');
-            return;
-        }
+        const outlet = currentUserOutletKas; // Sudah ada dari auth
+        if (!outlet) return;
         
+        // Periode dari state kita (sama seperti di index.html)
         const periodeDisplay = kasState.selectedPeriod.display;
-        console.log('🔍 Mencari setoran untuk periode:', periodeDisplay);
         
-        // Query langsung tanpa encoding kompleks
+        console.log('🔍 Cari setoran:', { outlet, periode: periodeDisplay });
+
+        // Query SAMA PERSIS dengan index.html
         const { data, error } = await supabase
             .from('setoran')
             .select('*')
-            .eq('outlet', currentUserOutletKas)
-            .eq('periode', periodeDisplay) // Format: "Selasa 14/Okt/2025 - Senin 20/Okt/2025"
-            .maybeSingle();
+            .eq('outlet', outlet)
+            .eq('periode', periodeDisplay)
+            .single();
         
-        if (error) {
-            console.log('⚠️ Error query setoran:', error.message);
-            
-            // Coba query semua setoran untuk debug
-            const { data: allSetoran, error: allError } = await supabase
-                .from('setoran')
-                .select('periode, tanggal_setoran, status_setoran')
-                .eq('outlet', currentUserOutletKas)
-                .order('tanggal_setoran', { ascending: false })
-                .limit(5);
-            
-            if (!allError && allSetoran) {
-                console.log('📋 Data setoran terbaru:', allSetoran);
-                
-                // Cari dengan matching parsial
-                const partialMatch = allSetoran.find(item => {
-                    if (!item.periode) return false;
-                    // Cari kesamaan substring (misal: "Okt/2025")
-                    return item.periode.includes(periodeDisplay.substring(10, 20)) ||
-                           periodeDisplay.includes(item.periode.substring(10, 20));
-                });
-                
-                if (partialMatch) {
-                    console.log('✅ Setoran partial match ditemukan');
-                    // Ambil data lengkap
-                    const { data: fullData } = await supabase
-                        .from('setoran')
-                        .select('*')
-                        .eq('outlet', currentUserOutletKas)
-                        .eq('periode', partialMatch.periode)
-                        .single();
-                    
-                    kasState.currentSetoran = fullData || partialMatch;
-                }
-            }
-        } else if (data) {
-            console.log('✅ Data setoran ditemukan:', data);
-            kasState.currentSetoran = data;
-        } else {
-            console.log('ℹ️ Tidak ada data setoran untuk periode ini');
-            kasState.currentSetoran = null;
+        if (error && error.code !== 'PGRST116') {
+            console.error('Error loading setoran:', error);
+            return;
         }
         
-        // Render status
+        console.log('📊 Data setoran ditemukan:', data);
+        kasState.currentSetoran = data;
         renderSetoranStatus();
         
     } catch (error) {
-        console.error('❌ Exception loading setoran status:', error);
-        kasState.currentSetoran = null;
-        renderSetoranStatus();
+        console.error('Error in loadSetoranStatus:', error);
     }
 }
-
 // [31] Render status setoran
 function renderSetoranStatus() {
     const container = document.getElementById('statusSetoran');
-    const statusBadge = document.getElementById('statusBadge');
-    const setorBtn = document.getElementById('setorBtn');
     
     if (!kasState.currentSetoran) {
-        // Belum ada setoran
-        document.getElementById('statusMetode').textContent = '-';
-        document.getElementById('statusTanggalSetoran').textContent = '-';
-        document.getElementById('statusTotalSetoran').textContent = '-';
-        document.getElementById('statusSisaSetoran').textContent = '-';
+        // Status "Belum Setor" - SAMA dengan index.html
+        container.innerHTML = `
+            <div class="status-header">
+                <h4><i class="fas fa-info-circle"></i> Status Setoran</h4>
+                <div class="status-badge status-pending">Belum Setor</div>
+            </div>
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-label">Metode</div>
+                    <div class="status-value" id="statusMetode">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Tanggal Setoran</div>
+                    <div class="status-value" id="statusTanggalSetoran">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Total Setoran</div>
+                    <div class="status-value" id="statusTotalSetoran">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Sisa Setoran</div>
+                    <div class="status-value" id="statusSisaSetoran">-</div>
+                </div>
+            </div>
+        `;
         
-        statusBadge.textContent = 'Belum Setor';
-        statusBadge.className = 'status-badge status-pending';
+        // Enable/disable setor button SAMA dengan index.html
+        const totalSaldo = kasState.currentKasData.reduce((sum, row) => {
+            return sum + (parseInt(row.saldo) || 0);
+        }, 0);
         
-        // Enable setor button jika ada saldo
-        const totalSaldo = kasState.currentKasData.reduce((sum, row) => sum + (parseInt(row.saldo) || 0), 0);
+        const setorBtn = document.getElementById('setorBtn');
         setorBtn.disabled = totalSaldo <= 0 || !isFormValidKas();
         
         return;
@@ -4314,44 +4323,59 @@ function renderSetoranStatus() {
     
     const setoran = kasState.currentSetoran;
     
-    // Update status fields
-    document.getElementById('statusMetode').textContent = setoran.metode_setoran || '-';
-    document.getElementById('statusTanggalSetoran').textContent = setoran.tanggal_setoran ? formatKasDisplayDate(setoran.tanggal_setoran) : '-';
-    document.getElementById('statusTotalSetoran').textContent = formatKasCurrency(setoran.total_setoran || 0);
-    document.getElementById('statusSisaSetoran').textContent = formatKasCurrency(setoran.sisa_setoran || 0);
-    
-    // Update status badge
-    let statusClass = 'status-pending';
-    if (setoran.status_setoran === 'Verified') {
-        statusClass = 'status-verified';
-    } else if (setoran.status_setoran === 'In Process') {
-        statusClass = 'status-process';
+    // Format hari setoran SAMA dengan index.html
+    let hariSetoran = '-';
+    if (setoran.tanggal_setoran) {
+        const date = new Date(setoran.tanggal_setoran);
+        hariSetoran = date.toLocaleDateString('id-ID', { weekday: 'long' });
     }
     
-    statusBadge.textContent = setoran.status_setoran || 'Belum Setor';
-    statusBadge.className = `status-badge ${statusClass}`;
+    // Status class SAMA dengan index.html
+    const statusClass = {
+        'Belum Setor': 'status-pending',
+        'In Process': 'status-process',
+        'Verified': 'status-verified'
+    }[setoran.status_setoran] || 'status-pending';
     
-    // Update setor button
+    container.innerHTML = `
+        <div class="status-header">
+            <h4><i class="fas fa-info-circle"></i> Status Setoran</h4>
+            <div class="status-badge ${statusClass}">${setoran.status_setoran}</div>
+        </div>
+        <div class="status-grid">
+            <div class="status-item">
+                <div class="status-label">Metode</div>
+                <div class="status-value" id="statusMetode">${setoran.metode_setoran || '-'}</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Tanggal Setoran</div>
+                <div class="status-value" id="statusTanggalSetoran">
+                    ${setoran.tanggal_setoran ? formatKasDisplayDate(setoran.tanggal_setoran) : '-'}
+                </div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Total Setoran</div>
+                <div class="status-value" id="statusTotalSetoran">
+                    ${formatKasCurrency(setoran.total_setoran || 0)}
+                </div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Sisa Setoran</div>
+                <div class="status-value" id="statusSisaSetoran">
+                    ${formatKasCurrency(setoran.sisa_setoran || 0)}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Update setor button SAMA dengan index.html
+    const setorBtn = document.getElementById('setorBtn');
     if (setoran.status_setoran === 'Verified') {
         setorBtn.disabled = true;
         setorBtn.innerHTML = '<i class="fas fa-check-circle"></i> SUDAH DISETOR';
     } else if (setoran.status_setoran === 'In Process') {
         setorBtn.disabled = true;
         setorBtn.innerHTML = '<i class="fas fa-clock"></i> MENUNGGU VERIFIKASI';
-    }
-    
-    // Update verifikasi button (owner only)
-    const verifikasiBtn = document.getElementById('verifikasiSetoranBtn');
-    if (verifikasiBtn && isOwnerKas) {
-        if (setoran.status_setoran === 'In Process') {
-            verifikasiBtn.disabled = false;
-            verifikasiBtn.style.display = 'inline-flex';
-        } else {
-            verifikasiBtn.disabled = true;
-            if (setoran.status_setoran === 'Verified') {
-                verifikasiBtn.innerHTML = '<i class="fas fa-check-double"></i> SUDAH DIVERIFIKASI';
-            }
-        }
     }
 }
 
