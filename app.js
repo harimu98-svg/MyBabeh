@@ -4255,24 +4255,27 @@ async function loadSetoranStatus() {
         const outlet = currentUserOutletKas;
         if (!outlet) return;
         
-        // Periode dari state kita
         const periodeDisplay = kasState.selectedPeriod.display;
         
         console.log('🔍 Cari setoran:', { 
             outlet, 
             periode: periodeDisplay,
-            periodeEncoded: encodeURIComponent(periodeDisplay) // TAMBAH INI
+            // HAPUS encoded dari sini
         });
 
-        // Query dengan encodeURIComponent
+        // JANGAN gunakan encodeURIComponent() - Supabase sudah handle
         const { data, error } = await supabase
             .from('setoran')
             .select('*')
             .eq('outlet', outlet)
-            .eq('periode', encodeURIComponent(periodeDisplay)) // ENCODE DISINI
+            .eq('periode', periodeDisplay) // <- PAKAI STRING LANGSUNG
             .single();
         
-        console.log('📊 Hasil query setoran:', { data, error });
+        console.log('📊 Hasil query setoran:', { 
+            data, 
+            error: error?.message,
+            code: error?.code 
+        });
         
         if (error) {
             if (error.code === 'PGRST116') {
@@ -4281,8 +4284,8 @@ async function loadSetoranStatus() {
             } else {
                 console.error('Error loading setoran:', error);
                 
-                // Coba alternatif tanpa encode jika encode error
-                await tryAlternativeSetoranQuery(outlet, periodeDisplay);
+                // Coba alternatif: query semua lalu filter manual
+                await queryAllSetoranAndFilter(outlet, periodeDisplay);
                 return;
             }
         } else {
