@@ -2672,6 +2672,8 @@ function handleMenuClick(menuId) {
         case 'slip':
         case 'libur':
         case 'kas':
+            showKasPage();
+            break;
         case 'top':
         case 'request':
         case 'stok':
@@ -4873,20 +4875,5 @@ function formatDisplayDate(dateString) {
     return `${day}/${month}/${year}`;
 }
 
-// [56] Update handleMenuClick untuk menambahkan Kas & Setoran
-// Pastikan fungsi ini ada di file utama app.js
-// function handleMenuClick(menuId) {
-//     switch(menuId) {
-//         case 'komisi':
-//             showKomisiPage();
-//             break;
-//         case 'absensi':
-//             showAbsensiPage();
-//             break;
-//         case 'kas':
-//             showKasPage(); // INI YANG DITAMBAHKAN
-//             break;
-//         // ... menu lainnya
-//     }
-// }
+
 // ========== END OF FILE ==========
