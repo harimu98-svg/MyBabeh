@@ -3224,18 +3224,20 @@ function calculateKasPeriodForDate(date) {
     };
 }
 
-// [7] Format periode untuk display
-function formatKasPeriodDisplay(period) {
-    const startDate = new Date(period.start);
-    const endDate = new Date(period.end);
-    
-    const startDay = startDate.toLocaleDateString('id-ID', { weekday: 'short' });
-    const startDateStr = formatKasDateDisplay(startDate);
-    const endDay = endDate.toLocaleDateString('id-ID', { weekday: 'short' });
-    const endDateStr = formatKasDateDisplay(endDate);
-    
-    return `${startDay} ${startDateStr} - ${endDay} ${endDateStr}`;
-}
+// HAPUS fungsi kedua (line 267-277) atau komentari:
+
+// [7] Format periode untuk display - KOMENTARI/HAPUS INI
+// function formatKasPeriodDisplay(period) {
+//     const startDate = new Date(period.start);
+//     const endDate = new Date(period.end);
+//     
+//     const startDay = startDate.toLocaleDateString('id-ID', { weekday: 'short' });
+//     const startDateStr = formatKasDateDisplay(startDate);
+//     const endDay = endDate.toLocaleDateString('id-ID', { weekday: 'short' });
+//     const endDateStr = formatKasDateDisplay(endDate);
+//     
+//     return `${startDay} ${startDateStr} - ${endDay} ${endDateStr}`;
+// }
 
 // [8] Setup tanggal input
 function setupKasTanggalInput() {
