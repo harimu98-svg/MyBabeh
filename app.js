@@ -6750,36 +6750,18 @@ function showAdjustmentModal(adjustmentData) {
                 </div>
                 
                 <div class="modal-body">
-                <div class="form-group">
-        <label for="adjustmentDate" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-        <span style="display: flex; align-items: center; gap: 6px;">
-            <i class="fas fa-calendar-alt"></i> 
-            <span>Tanggal Adjustment</span>
-        </span>
-        <span style="font-size: 0.75rem; color: #4CAF50; font-weight: 500; background: #e8f5e9; padding: 3px 8px; border-radius: 12px;">
-            Periode ${bulan}/${tahun}
-        </span>
-        </label>
+               <div class="form-group">
+    <label for="adjustmentDate">
+        <i class="fas fa-calendar-alt"></i> Tanggal Adjustment
+    </label>
     
-    <div class="date-input-group" style="position: relative; margin-bottom: 8px;">
-        <i class="fas fa-calendar" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #4CAF50; z-index: 1;"></i>
-        <input type="date" 
-               id="adjustmentDate" 
-               class="form-input date-input"
-               value="${defaultDate}"
-               min="${tahun}-${bulan.toString().padStart(2, '0')}-01"
-               max="${tahun}-${bulan.toString().padStart(2, '0')}-${daysInMonth.toString().padStart(2, '0')}"
-               style="width: 100%; padding-left: 40px; padding-right: 10px; height: 42px; font-size: 0.95rem;">
-    </div>
-    
-    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #666; padding: 0 5px;">
-        <span style="background: #f5f5f5; padding: 4px 8px; border-radius: 4px; flex: 1; margin-right: 5px; text-align: center;">
-            <i class="fas fa-calendar-check"></i> Awal: ${firstDay}
-        </span>
-        <span style="background: #f5f5f5; padding: 4px 8px; border-radius: 4px; flex: 1; margin-left: 5px; text-align: center;">
-            <i class="fas fa-calendar-times"></i> Akhir: ${lastDay}
-        </span>
-    </div>
+    <input type="date" 
+           id="adjustmentDate" 
+           class="form-input date-input"
+           value="${defaultDate}"
+           min="${tahun}-${bulan.toString().padStart(2, '0')}-01"
+           max="${tahun}-${bulan.toString().padStart(2, '0')}-${daysInMonth.toString().padStart(2, '0')}"
+           style="width: 100%; padding: 12px; font-size: 1rem;">
 </div>
                     
                     <div class="form-group">
