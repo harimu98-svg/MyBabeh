@@ -4635,10 +4635,10 @@ marquee {
     font-weight: 800;
 }
 
-/* ========== DETAIL SECTION ========== */
+/* ========== DETAIL SECTION - FIXED ========== */
 .detail-section {
     margin: 20px 0 15px;
-    display: none;
+    /* JANGAN display: none di sini */
 }
 
 .detail-header {
@@ -4651,6 +4651,7 @@ marquee {
     background: #f5f5f5;
     border-radius: 8px;
     transition: all 0.2s ease;
+    user-select: none;
 }
 
 .detail-header:hover {
@@ -4670,54 +4671,38 @@ marquee {
     font-size: 0.9rem;
     color: #4CAF50;
     transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
 .detail-toggle.rotated {
     transform: rotate(180deg);
 }
 
+/* Detail content HIDDEN by default */
 .detail-content {
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.5s ease;
+    opacity: 0;
 }
 
 .detail-content.expanded {
-    max-height: 500px;
+    max-height: 800px; /* Sesuaikan dengan jumlah baris */
+    opacity: 1;
+    margin-top: 10px;
 }
 
-.detail-table-container {
-    overflow-x: auto;
-    border-radius: 8px;
-    border: 1px solid #e0e0e0;
-    margin-top: 8px;
-    font-size: 0.8rem;
+/* Animasi untuk icon */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-.detail-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
+.detail-content.expanded * {
+    animation: fadeIn 0.3s ease;
 }
-
-.detail-table th {
-    background: #f5f5f5;
-    padding: 8px 10px;
-    text-align: left;
-    font-weight: 600;
-    color: #333;
-    border-bottom: 2px solid #4CAF50;
-    font-size: 0.8rem;
-    white-space: nowrap;
-}
-
-.detail-table td {
-    padding: 6px 10px;
-    border-bottom: 1px solid #e0e0e0;
-    line-height: 1.3;
-    vertical-align: middle;
-}
-
 /* ========== SAVE SECTION ========== */
 .save-section {
     text-align: center;
