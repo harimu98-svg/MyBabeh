@@ -6125,17 +6125,22 @@ function renderKasirSlip(data, dataSource) {
                 </div>
             </section>
             
-            <!-- Detail Harian (Toggle) -->
+            <!-- Detail Harian (Toggle) - HEADER SELALU TAMPIL -->
             <section class="detail-section" id="detailSection">
                 <div class="detail-header" id="toggleDetail">
                     <h4>
                         <i class="fas fa-calendar-alt"></i> DETAIL HARIAN
+                        <span class="badge-count" style="background: #4CAF50; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; margin-left: 8px;">
+                            ${data.detail_harian?.length || 0} hari
+                        </span>
                     </h4>
                     <span class="detail-toggle">
                         <i class="fas fa-chevron-down"></i>
+                        <span class="toggle-text" style="font-size: 0.8rem; color: #666;">Klik untuk lihat</span>
                     </span>
                 </div>
                 <div class="detail-content" id="detailContent">
+                    ${data.detail_harian && data.detail_harian.length > 0 ? `
                     <div class="detail-table-container">
                         <table class="detail-table">
                             <thead>
@@ -6153,30 +6158,41 @@ function renderKasirSlip(data, dataSource) {
                                 </tr>
                             </thead>
                             <tbody>
-                                ${data.detail_harian && data.detail_harian.length > 0 ? 
-                                    data.detail_harian.map(day => `
-                                    <tr>
-                                        <td class="text-xs">${day.tanggal}</td>
-                                        <td class="text-xs">${day.hari?.substring(0, 3) || '-'}</td>
-                                        <td class="text-xs">${formatRupiahShort(day.gaji)}</td>
-                                        <td class="text-xs">${formatRupiahShort(day.uop)}</td>
-                                        <td class="text-xs">${formatRupiahShort(day.komisi_produk)}</td>
-                                        <td class="text-xs">${formatRupiahShort(day.komisi_membercard)}</td>
-                                        <td class="text-xs">${formatRupiahShort(day.overtime)}</td>
-                                        <td class="text-xs">${formatRupiahShort(day.fee_trf)}</td>
-                                        <td class="text-xs">${formatRupiahShort(day.tips_qris)}</td>
-                                        <td class="text-xs">${formatRupiahShort(day.total)}</td>
-                                    </tr>
-                                    `).join('') 
-                                    : `
-                                    <tr>
-                                        <td colspan="10" class="text-center text-small">Tidak ada data harian</td>
-                                    </tr>
-                                    `
-                                }
+                                ${data.detail_harian.map(day => `
+                                <tr>
+                                    <td class="text-xs">${day.tanggal || '-'}</td>
+                                    <td class="text-xs">${day.hari?.substring(0, 3) || '-'}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.gaji || 0)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.uop || 0)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.komisi_produk || 0)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.komisi_membercard || 0)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.overtime || 0)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.fee_trf || 0)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.tips_qris || 0)}</td>
+                                    <td class="text-xs" style="font-weight: 600; color: #4CAF50;">
+                                        ${formatRupiahShort(day.total || 0)}
+                                    </td>
+                                </tr>
+                                `).join('')}
                             </tbody>
+                            <tfoot>
+                                <tr style="background: #f8f9ff;">
+                                    <td colspan="9" class="text-right text-small" style="font-weight: 600;">
+                                        Total Harian:
+                                    </td>
+                                    <td class="text-xs" style="font-weight: 700; color: #2E7D32;">
+                                        ${formatRupiahShort(data.detail_harian.reduce((sum, day) => sum + (day.total || 0), 0))}
+                                    </td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
+                    ` : `
+                    <div class="no-data" style="text-align: center; padding: 20px; color: #999; background: #f9f9f9; border-radius: 8px;">
+                        <i class="fas fa-calendar-times" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                        <p style="font-size: 0.9rem;">Tidak ada data harian untuk periode ini</p>
+                    </div>
+                    `}
                 </div>
             </section>
             
@@ -6189,7 +6205,6 @@ function renderKasirSlip(data, dataSource) {
         </div>
     `;
 }
-
 // [19] Render slip untuk BARBERMAN
 function renderBarbermanSlip(data, dataSource) {
     const isFinal = dataSource === 'final';
@@ -6379,29 +6394,72 @@ function renderBarbermanSlip(data, dataSource) {
     `;
 }
 
-// [20] Setup UI events
+// [20] Setup UI events - DIPERBAIKI
 function setupSlipUIEvents() {
     // Toggle Detail Harian
     const toggleDetail = document.getElementById('toggleDetail');
-    const detailSection = document.getElementById('detailSection');
     const detailContent = document.getElementById('detailContent');
     
-    if (toggleDetail && detailSection && detailContent) {
+    if (toggleDetail && detailContent) {
+        // Reset state setiap render
+        detailContent.classList.remove('expanded');
+        toggleDetail.querySelector('.detail-toggle').classList.remove('rotated');
+        const toggleIcon = toggleDetail.querySelector('.detail-toggle i');
+        const toggleText = toggleDetail.querySelector('.toggle-text');
+        
+        if (toggleIcon) {
+            toggleIcon.className = 'fas fa-chevron-down';
+        }
+        if (toggleText) {
+            toggleText.textContent = 'Klik untuk lihat';
+        }
+        
         toggleDetail.addEventListener('click', () => {
             const isExpanded = detailContent.classList.contains('expanded');
-            const toggleIcon = toggleDetail.querySelector('.detail-toggle i');
             
             if (isExpanded) {
                 // Collapse
                 detailContent.classList.remove('expanded');
                 toggleDetail.querySelector('.detail-toggle').classList.remove('rotated');
-                toggleIcon.className = 'fas fa-chevron-down';
+                
+                if (toggleIcon) {
+                    toggleIcon.className = 'fas fa-chevron-down';
+                }
+                if (toggleText) {
+                    toggleText.textContent = 'Klik untuk lihat';
+                    toggleText.style.color = '#666';
+                }
+                
+                // Scroll ke section detail
+                toggleDetail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             } else {
                 // Expand
                 detailContent.classList.add('expanded');
-                detailSection.style.display = 'block';
                 toggleDetail.querySelector('.detail-toggle').classList.add('rotated');
-                toggleIcon.className = 'fas fa-chevron-up';
+                
+                if (toggleIcon) {
+                    toggleIcon.className = 'fas fa-chevron-up';
+                }
+                if (toggleText) {
+                    toggleText.textContent = 'Klik untuk sembunyikan';
+                    toggleText.style.color = '#4CAF50';
+                }
+                
+                // Scroll ke tabel
+                setTimeout(() => {
+                    detailContent.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 300);
+            }
+        });
+        
+        // Tambah hover effect
+        toggleDetail.addEventListener('mouseenter', () => {
+            toggleDetail.style.background = '#e8f5e9';
+        });
+        
+        toggleDetail.addEventListener('mouseleave', () => {
+            if (!detailContent.classList.contains('expanded')) {
+                toggleDetail.style.background = '#f5f5f5';
             }
         });
     }
@@ -6410,6 +6468,11 @@ function setupSlipUIEvents() {
     const saveBtn = document.getElementById('saveSlipBtn');
     if (saveBtn) {
         saveBtn.addEventListener('click', saveSlipCapture);
+    }
+    
+    // Setup adjustment buttons jika ada
+    if (isOwnerSlip && dataSource === 'realtime') {
+        setupAdjustmentButtons();
     }
 }
 
