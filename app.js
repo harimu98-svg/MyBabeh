@@ -6142,21 +6142,21 @@ function renderKasirSlip(data, dataSource) {
                 <div class="detail-content" id="detailContent">
                     ${data.detail_harian && data.detail_harian.length > 0 ? `
                     <div class="detail-table-container">
-                        <table class="detail-table">
-                            <thead>
-                                <tr>
-                                    <th>Tanggal</th>
-                                    <th>Hari</th>
-                                    <th>Gaji</th>
-                                    <th>UoP</th>
-                                    <th>Komisi</th>
-                                    <th>Member</th>
-                                    <th>O/T</th>
-                                    <th>Fee</th>
-                                    <th>Tips</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
+                <table class="detail-table">
+                <thead>
+               <tr>
+                <th>Tanggal</th>
+                <th>Hari</th>
+                <th>Gaji</th>
+                <th>UoP</th>
+                <th>Komisi</th>
+                <th>Member</th>
+                <th>O/T</th>
+                <th>Fee</th>
+                <th>Tips</th>
+                <th>Total</th>
+            </tr>
+        </thead>
                             <tbody>
                                 ${data.detail_harian.map(day => `
                                 <tr>
