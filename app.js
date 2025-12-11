@@ -6617,7 +6617,7 @@ function getStatusColor(percentage) {
     return 'status-failed';
 }
 
-// [25] Modal untuk tambah/edit adjustment
+// [25] Modal untuk tambah/edit adjustment - DIPERBAIKI
 function showAddAdjustmentModal() {
     showAdjustmentModal(null);
 }
@@ -6635,19 +6635,15 @@ function showEditAdjustmentModal(index) {
     // Parse amount dari string "Rp xxx.xxx"
     const amount = parseAmountFromRupiah(amountText);
     
-    showAdjustmentModal({ index, type, amount });
-}
-
-function parseAmountFromRupiah(rupiahText) {
-    if (!rupiahText || rupiahText === 'Rp 0') return 0;
+    // Untuk edit, kita butuh tanggal asli dari database
+    // Tapi karena tidak ada di UI, kita gunakan tanggal bulan berjalan
+    const bulan = parseInt(document.getElementById('selectBulan').value);
+    const tahun = parseInt(document.getElementById('selectTahun').value);
     
-    // Hapus "Rp " dan titik pemisah ribuan
-    const cleanText = rupiahText.replace('Rp ', '').replace(/\./g, '');
+    // Format tanggal: tanggal 1 bulan berjalan
+    const tanggal = `${tahun}-${bulan.toString().padStart(2, '0')}-01`;
     
-    // Ganti koma dengan titik untuk decimal
-    const numberText = cleanText.replace(',', '.');
-    
-    return parseFloat(numberText) || 0;
+    showAdjustmentModal({ index, type, amount, tanggal });
 }
 
 function showAdjustmentModal(adjustmentData) {
@@ -6658,8 +6654,18 @@ function showAdjustmentModal(adjustmentData) {
     }
     
     const isEditMode = adjustmentData !== null;
+    const bulan = parseInt(document.getElementById('selectBulan').value);
+    const tahun = parseInt(document.getElementById('selectTahun').value);
     
-    // Buat modal HTML
+    // Hitung tanggal range untuk info
+    const daysInMonth = new Date(tahun, bulan, 0).getDate();
+    const firstDay = `01/${bulan.toString().padStart(2, '0')}/${tahun}`;
+    const lastDay = `${daysInMonth.toString().padStart(2, '0')}/${bulan.toString().padStart(2, '0')}/${tahun}`;
+    
+    // Format tanggal default: YYYY-MM-DD
+    const defaultDate = adjustmentData?.tanggal || `${tahun}-${bulan.toString().padStart(2, '0')}-01`;
+    
+    // Buat modal HTML dengan input tanggal
     const modalHTML = `
         <div class="adjustment-modal ${isEditMode ? 'edit-mode' : 'add-mode'}" id="adjustmentModal">
             <div class="adjustment-modal-content">
@@ -6674,6 +6680,25 @@ function showAdjustmentModal(adjustmentData) {
                 </div>
                 
                 <div class="modal-body">
+                    <div class="form-group">
+                        <label for="adjustmentDate">
+                            <i class="fas fa-calendar-alt"></i> Tanggal
+                        </label>
+                        <div class="date-input-group">
+                            <i class="fas fa-calendar"></i>
+                            <input type="date" 
+                                   id="adjustmentDate" 
+                                   class="form-input date-input"
+                                   value="${defaultDate}"
+                                   min="${tahun}-${bulan.toString().padStart(2, '0')}-01"
+                                   max="${tahun}-${bulan.toString().padStart(2, '0')}-${daysInMonth.toString().padStart(2, '0')}">
+                        </div>
+                        <div class="date-range-info">
+                            <i class="fas fa-info-circle"></i>
+                            Periode: ${firstDay} - ${lastDay}
+                        </div>
+                    </div>
+                    
                     <div class="form-group">
                         <label for="adjustmentType">
                             <i class="fas fa-tag"></i> Jenis Adjustment
@@ -6717,6 +6742,16 @@ function showAdjustmentModal(adjustmentData) {
                             Gunakan nilai negatif untuk pengurangan (contoh: -50000)
                         </small>
                     </div>
+                    
+                    <div class="form-group">
+                        <label for="adjustmentNote">
+                            <i class="fas fa-sticky-note"></i> Catatan (Opsional)
+                        </label>
+                        <textarea id="adjustmentNote" 
+                                  class="form-input" 
+                                  rows="2"
+                                  placeholder="Tambahkan catatan jika diperlukan..."></textarea>
+                    </div>
                 </div>
                 
                 <div class="modal-footer">
@@ -6741,13 +6776,9 @@ function showAdjustmentModal(adjustmentData) {
         document.getElementById('adjustmentModal').classList.add('active');
     }, 10);
     
-    // Auto focus ke input
+    // Auto focus ke input tanggal
     setTimeout(() => {
-        if (adjustmentData?.type && !['Fee Trainer', 'Fee Backup', 'Denda', 'Bonus Khusus', 'Lainnya'].includes(adjustmentData.type)) {
-            document.getElementById('adjustmentCustomType').focus();
-        } else {
-            document.getElementById('adjustmentType').focus();
-        }
+        document.getElementById('adjustmentDate').focus();
     }, 100);
 }
 
@@ -6756,9 +6787,11 @@ function setupAdjustmentModalEvents(adjustmentData) {
     const closeBtn = document.getElementById('closeAdjustmentModal');
     const cancelBtn = document.getElementById('cancelAdjustment');
     const saveBtn = document.getElementById('saveAdjustment');
+    const dateInput = document.getElementById('adjustmentDate');
     const typeSelect = document.getElementById('adjustmentType');
     const customTypeInput = document.getElementById('adjustmentCustomType');
     const amountInput = document.getElementById('adjustmentAmount');
+    const noteInput = document.getElementById('adjustmentNote');
     
     if (!modal) return;
     
@@ -6828,16 +6861,51 @@ function setupAdjustmentModalEvents(adjustmentData) {
             saveAdjustment(adjustmentData?.index);
         }
     });
+    
+    // Tab navigation
+    setupTabNavigation([dateInput, typeSelect, customTypeInput, amountInput, noteInput, saveBtn]);
 }
 
-// [26] Fungsi untuk save adjustment
+// Helper untuk tab navigation
+function setupTabNavigation(elements) {
+    elements.forEach((element, index) => {
+        if (!element) return;
+        
+        element.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                
+                // Shift + Tab: ke elemen sebelumnya
+                if (e.shiftKey) {
+                    const prevIndex = index > 0 ? index - 1 : elements.length - 1;
+                    if (elements[prevIndex]) elements[prevIndex].focus();
+                } 
+                // Tab: ke elemen berikutnya
+                else {
+                    const nextIndex = index < elements.length - 1 ? index + 1 : 0;
+                    if (elements[nextIndex]) elements[nextIndex].focus();
+                }
+            }
+        });
+    });
+}
+
+// [26] Fungsi untuk save adjustment - DIPERBAIKI dengan tanggal
 async function saveAdjustment(index) {
     try {
+        const dateInput = document.getElementById('adjustmentDate');
         const typeSelect = document.getElementById('adjustmentType');
         const customTypeInput = document.getElementById('adjustmentCustomType');
         const amountInput = document.getElementById('adjustmentAmount');
+        const noteInput = document.getElementById('adjustmentNote');
         
         // Validasi input
+        if (!dateInput.value) {
+            alert('Pilih tanggal!');
+            dateInput.focus();
+            return;
+        }
+        
         let adjustmentType = '';
         
         if (typeSelect.value === 'Lainnya') {
@@ -6868,11 +6936,6 @@ async function saveAdjustment(index) {
         saveBtn.disabled = true;
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
         
-        // Dapatkan data periode
-        const bulan = parseInt(document.getElementById('selectBulan').value);
-        const tahun = parseInt(document.getElementById('selectTahun').value);
-        const periode = `${bulan.toString().padStart(2, '0')}/${tahun}`;
-        
         // Dapatkan nama karyawan
         let namaKaryawan = currentSlipKaryawan?.nama_karyawan;
         if (isOwnerSlip) {
@@ -6886,40 +6949,73 @@ async function saveAdjustment(index) {
             throw new Error('Nama karyawan tidak ditemukan');
         }
         
-        // Simpan ke Supabase
+        // Format tanggal dari input
+        const selectedDate = dateInput.value; // Format: YYYY-MM-DD
+        
+        // Cek apakah tanggal sesuai dengan periode yang dipilih
+        const selectedBulan = parseInt(document.getElementById('selectBulan').value);
+        const selectedTahun = parseInt(document.getElementById('selectTahun').value);
+        
+        const inputDate = new Date(selectedDate);
+        const inputMonth = inputDate.getMonth() + 1; // JavaScript month 0-11
+        const inputYear = inputDate.getFullYear();
+        
+        if (inputMonth !== selectedBulan || inputYear !== selectedTahun) {
+            const confirm = window.confirm(
+                `Tanggal yang dipilih (${selectedDate}) tidak sesuai dengan periode yang ditampilkan (${selectedBulan}/${selectedTahun}).\n\n` +
+                `Apakah Anda ingin tetap menyimpan?`
+            );
+            
+            if (!confirm) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+                dateInput.focus();
+                return;
+            }
+        }
+        
+        // Data untuk disimpan
         const adjustmentData = {
             adjustment: adjustmentType,
             adjustment_amount: amount,
             serve_by: namaKaryawan,
-            tanggal: new Date().toISOString().split('T')[0],
-            periode: periode
+            tanggal: selectedDate,
+            note: noteInput?.value?.trim() || null,
+            created_at: new Date().toISOString(),
+            created_by: (await supabase.auth.getUser()).data.user?.email || 'owner'
         };
         
-        console.log('Saving adjustment:', adjustmentData);
+        console.log('Saving adjustment with date:', adjustmentData);
         
         // Cek apakah edit atau tambah baru
         let result;
         if (index !== undefined && index !== null) {
-            // Edit existing adjustment - perlu query ID dulu
+            // EDIT MODE: Cari existing adjustment berdasarkan index
+            // Untuk edit, kita perlu ID asli dari database
+            // Karena kita tidak punya ID di UI, kita cari berdasarkan type, amount, tanggal dan nama
             const { data: existingAdjustments, error: queryError } = await supabase
                 .from('komisi')
-                .select('id')
+                .select('id, adjustment, adjustment_amount, tanggal')
                 .eq('serve_by', namaKaryawan)
+                .eq('tanggal', selectedDate)
                 .eq('adjustment', adjustmentType)
-                .order('created_at', { ascending: false })
-                .limit(1);
+                .order('created_at', { ascending: false });
             
             if (queryError) throw queryError;
             
             if (existingAdjustments && existingAdjustments.length > 0) {
-                // Update existing
+                // Update existing dengan ID yang ditemukan
                 const { error: updateError } = await supabase
                     .from('komisi')
-                    .update({ adjustment_amount: amount })
+                    .update({ 
+                        adjustment_amount: amount,
+                        note: noteInput?.value?.trim() || null,
+                        updated_at: new Date().toISOString()
+                    })
                     .eq('id', existingAdjustments[0].id);
                 
                 if (updateError) throw updateError;
-                result = { success: true, action: 'updated' };
+                result = { success: true, action: 'updated', id: existingAdjustments[0].id };
             } else {
                 // Insert new jika tidak ditemukan
                 const { error: insertError } = await supabase
@@ -6930,13 +7026,41 @@ async function saveAdjustment(index) {
                 result = { success: true, action: 'inserted' };
             }
         } else {
-            // Tambah baru
-            const { error: insertError } = await supabase
+            // ADD NEW MODE: Cek dulu apakah sudah ada data dengan tanggal dan type yang sama
+            const { data: existingData, error: checkError } = await supabase
                 .from('komisi')
-                .insert([adjustmentData]);
+                .select('id')
+                .eq('serve_by', namaKaryawan)
+                .eq('tanggal', selectedDate)
+                .eq('adjustment', adjustmentType)
+                .single();
             
-            if (insertError) throw insertError;
-            result = { success: true, action: 'inserted' };
+            if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+                throw checkError;
+            }
+            
+            if (existingData) {
+                // Sudah ada data, update saja
+                const { error: updateError } = await supabase
+                    .from('komisi')
+                    .update({ 
+                        adjustment_amount: amount,
+                        note: noteInput?.value?.trim() || null,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', existingData.id);
+                
+                if (updateError) throw updateError;
+                result = { success: true, action: 'updated', id: existingData.id };
+            } else {
+                // Insert new
+                const { error: insertError } = await supabase
+                    .from('komisi')
+                    .insert([adjustmentData]);
+                
+                if (insertError) throw insertError;
+                result = { success: true, action: 'inserted' };
+            }
         }
         
         // Tutup modal
@@ -6947,8 +7071,14 @@ async function saveAdjustment(index) {
         
         // Refresh data slip
         setTimeout(async () => {
-            await loadSlipData(bulan, tahun);
-            alert(`Adjustment berhasil ${result.action === 'updated' ? 'diperbarui' : 'disimpan'}!`);
+            await loadSlipData(selectedBulan, selectedTahun);
+            
+            // Show success message
+            const message = result.action === 'updated' 
+                ? `Adjustment berhasil diperbarui untuk tanggal ${formatDateDisplay(selectedDate)}!`
+                : `Adjustment berhasil ditambahkan untuk tanggal ${formatDateDisplay(selectedDate)}!`;
+            
+            alert(message);
         }, 500);
         
     } catch (error) {
@@ -6965,9 +7095,58 @@ async function saveAdjustment(index) {
     }
 }
 
-// [27] Fungsi untuk delete adjustment dengan konfirmasi
+// Helper function untuk format tanggal display
+function formatDateDisplay(dateStr) {
+    if (!dateStr) return '-';
+    
+    try {
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        return date.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+        });
+    } catch (e) {
+        return dateStr;
+    }
+}
+
+// [27] Fungsi untuk delete adjustment - DIPERBAIKI dengan tanggal
 async function deleteAdjustment(index) {
-    // Buat modal konfirmasi
+    // Ambil data dari UI untuk mendapatkan type
+    const adjustmentRows = document.querySelectorAll('tr[data-index]');
+    const row = adjustmentRows[index];
+    
+    if (!row) {
+        alert('Data adjustment tidak ditemukan!');
+        return false;
+    }
+    
+    const type = row.querySelector('td:nth-child(1)').textContent.trim();
+    const amountText = row.querySelector('td:nth-child(2)').textContent.trim();
+    const amount = parseAmountFromRupiah(amountText);
+    
+    // Dapatkan tanggal dari periode yang dipilih (default tanggal 1)
+    const bulan = parseInt(document.getElementById('selectBulan').value);
+    const tahun = parseInt(document.getElementById('selectTahun').value);
+    const tanggal = `${tahun}-${bulan.toString().padStart(2, '0')}-01`;
+    
+    // Dapatkan nama karyawan
+    let namaKaryawan = currentSlipKaryawan?.nama_karyawan;
+    if (isOwnerSlip) {
+        const selectKaryawan = document.getElementById('selectKaryawanSlip');
+        if (selectKaryawan && selectKaryawan.value) {
+            namaKaryawan = selectKaryawan.value;
+        }
+    }
+    
+    if (!namaKaryawan) {
+        alert('Nama karyawan tidak ditemukan!');
+        return false;
+    }
+    
+    // Buat modal konfirmasi dengan info detail
     const confirmHTML = `
         <div class="adjustment-modal delete-confirm-modal" id="deleteConfirmModal">
             <div class="adjustment-modal-content">
@@ -6982,9 +7161,25 @@ async function deleteAdjustment(index) {
                 </div>
                 
                 <div class="modal-body">
-                    <i class="fas fa-trash-alt"></i>
-                    <p>Apakah Anda yakin ingin menghapus adjustment ini?</p>
-                    <p style="font-size: 0.85rem; color: #999;">Data yang sudah dihapus tidak dapat dikembalikan.</p>
+                    <i class="fas fa-trash-alt" style="color: #ff4757;"></i>
+                    <p>Hapus adjustment ini?</p>
+                    
+                    <div style="background: #f8f9ff; border-radius: 8px; padding: 10px; margin: 15px 0; text-align: left;">
+                        <div style="margin-bottom: 5px;">
+                            <strong>Jenis:</strong> ${type}
+                        </div>
+                        <div style="margin-bottom: 5px;">
+                            <strong>Amount:</strong> ${amountText}
+                        </div>
+                        <div>
+                            <strong>Karyawan:</strong> ${namaKaryawan}
+                        </div>
+                    </div>
+                    
+                    <div class="date-range-info">
+                        <i class="fas fa-info-circle"></i>
+                        Data akan dihapus berdasarkan kombinasi: Nama + Jenis + Amount
+                    </div>
                 </div>
                 
                 <div class="modal-footer">
@@ -7006,7 +7201,7 @@ async function deleteAdjustment(index) {
         document.getElementById('deleteConfirmModal').classList.add('active');
     }, 10);
     
-    // Setup modal events
+    // Setup modal events dan eksekusi delete
     return new Promise((resolve) => {
         const modal = document.getElementById('deleteConfirmModal');
         const closeBtn = document.getElementById('closeDeleteModal');
@@ -7030,51 +7225,32 @@ async function deleteAdjustment(index) {
             confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghapus...';
             
             try {
-                // Ambil data adjustment dari UI untuk dihapus
-                const adjustmentRows = document.querySelectorAll('tr[data-index]');
-                const row = adjustmentRows[index];
+                // Hapus dari database berdasarkan nama, type, amount dan tanggal
+                // Karena kita tidak punya ID yang spesifik, hapus berdasarkan kombinasi ini
+                const { error, count } = await supabase
+                    .from('komisi')
+                    .delete()
+                    .eq('serve_by', namaKaryawan)
+                    .eq('adjustment', type)
+                    .eq('adjustment_amount', amount)
+                    .gte('tanggal', `${tahun}-${bulan.toString().padStart(2, '0')}-01`)
+                    .lte('tanggal', `${tahun}-${bulan.toString().padStart(2, '0')}-31`);
                 
-                if (row) {
-                    const type = row.querySelector('td:nth-child(1)').textContent.trim();
-                    const amountText = row.querySelector('td:nth-child(2)').textContent.trim();
-                    const amount = parseAmountFromRupiah(amountText);
-                    
-                    // Dapatkan data periode
-                    const bulan = parseInt(document.getElementById('selectBulan').value);
-                    const tahun = parseInt(document.getElementById('selectTahun').value);
-                    
-                    // Dapatkan nama karyawan
-                    let namaKaryawan = currentSlipKaryawan?.nama_karyawan;
-                    if (isOwnerSlip) {
-                        const selectKaryawan = document.getElementById('selectKaryawanSlip');
-                        if (selectKaryawan && selectKaryawan.value) {
-                            namaKaryawan = selectKaryawan.value;
-                        }
-                    }
-                    
-                    // Hapus dari database
-                    const { error } = await supabase
-                        .from('komisi')
-                        .delete()
-                        .eq('serve_by', namaKaryawan)
-                        .eq('adjustment', type)
-                        .eq('adjustment_amount', amount);
-                    
-                    if (error) throw error;
-                    
-                    // Tutup modal
-                    modal.classList.remove('active');
-                    setTimeout(() => {
-                        modal.remove();
-                    }, 300);
-                    
-                    // Refresh data
-                    setTimeout(async () => {
-                        await loadSlipData(bulan, tahun);
-                        alert('Adjustment berhasil dihapus!');
-                        resolve(true); // Success
-                    }, 500);
-                }
+                if (error) throw error;
+                
+                // Tutup modal
+                modal.classList.remove('active');
+                setTimeout(() => {
+                    modal.remove();
+                }, 300);
+                
+                // Refresh data
+                setTimeout(async () => {
+                    await loadSlipData(bulan, tahun);
+                    alert(`Adjustment berhasil dihapus! (${count} data terhapus)`);
+                    resolve(true); // Success
+                }, 500);
+                
             } catch (error) {
                 console.error('Error deleting adjustment:', error);
                 alert('Gagal menghapus adjustment: ' + error.message);
