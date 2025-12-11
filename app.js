@@ -4838,20 +4838,7 @@ function createSlipPage() {
         <section class="slip-filter-section">
             <div class="filter-container">
                 <!-- Untuk Owner: Filter Outlet & Karyawan -->
-                <div id="ownerSlipFilterSection" class="owner-filter" style="display: ${isOwnerSlip ? 'flex' : 'none'}; gap: 15px; margin-bottom: 15px;">
-                    <div class="filter-group">
-                        <label for="selectOutletSlip">Outlet:</label>
-                        <select id="selectOutletSlip" class="outlet-select">
-                            <option value="all">Semua Outlet</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label for="selectKaryawanSlip">Karyawan:</label>
-                        <select id="selectKaryawanSlip" class="karyawan-select">
-                            <option value="">Pilih Karyawan</option>
-                        </select>
-                    </div>
-                </div>
+               <div id="ownerSlipFilterSection"
                 
                 <!-- Periode Selection -->
                 <div class="periode-selection">
