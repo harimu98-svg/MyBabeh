@@ -5207,18 +5207,17 @@ async function loadFinalSlipData(namaKaryawan, bulan, tahun) {
     };
 }
 
-// [10] Hitung real-time slip gaji
+// [10] Hitung real-time slip gaji - PERBAIKI QUERY
 async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
     console.log('Calculating real-time slip for:', { namaKaryawan, outlet, bulan, tahun });
     
-    // Format bulan untuk query - DUA FORMAT BERBEDA!
     const monthStr = bulan.toString().padStart(2, '0');
     const yearStr = tahun.toString();
     
     // Query semua data secara paralel
     const [
         absenData,
-        komisiData,
+        komisiData,  // INI YANG DIPERBAIKI
         transaksiData,
         membercardData,
         kasData,
@@ -5228,19 +5227,18 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
         omsetData
     ] = await Promise.all([
         // 1. Data absensi
-        supabase
+         supabase
             .from('absen')
             .select('*')
             .eq('nama', namaKaryawan)
-            .like('tanggal', `%/${monthStr}/${yearStr}`),
+            .or(`tanggal.ilike.%/${monthStr}/${yearStr},tanggal.ilike.${yearStr}-${monthStr}-%`),
         
-        // 2. Data komisi - PERBAIKI QUERY UNTUK DUA FORMAT TANGGAL
+        // 2. Data komisi - GUNAKAN FORMAT YYYY-MM-DD
         supabase
-             .from('komisi')
+            .from('komisi')
             .select('*')
             .eq('serve_by', namaKaryawan)
-            .or(`tanggal.ilike.%/${monthStr}/${yearStr}`) // Hanya format DD/MM/YYYY
-            .order('tanggal', { ascending: true });
+            .like('tanggal', `${yearStr}-${monthStr}-%`),  // 2025-12-%
         
         // 3. Data transaksi produk
         supabase
@@ -5253,10 +5251,10 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
         
         // 4. Data membercard
         supabase
-            .from('membercard')
-            .select('id_member, tanggal_create, kasir_create')
-            .eq('kasir_create', namaKaryawan)
-            .like('tanggal_create', `%/${monthStr}/${yearStr}`),
+    .from('membercard')
+    .select('id_member, tanggal_create, kasir_create')
+    .eq('kasir_create', namaKaryawan)
+    .or(`tanggal_create.ilike.%/${monthStr}/${yearStr},tanggal_create.ilike.${yearStr}-${monthStr}-%`),
         
         // 5. Data kas (fee transfer)
         supabase
@@ -5280,13 +5278,13 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
             .single(),
         
         // 8. Data semua kasir di outlet (untuk proporsi bonus omset)
-        supabase
+          supabase
             .from('absen')
             .select('nama, tanggal')
             .eq('outlet', outlet)
             .not('status_kehadiran', 'is', null)
             .not('status_kehadiran', 'eq', '')
-            .like('tanggal', `%/${monthStr}/${yearStr}`),
+            .or(`tanggal.ilike.%/${monthStr}/${yearStr},tanggal.ilike.${yearStr}-${monthStr}-%`),
         
         // 9. Data omset
         supabase
@@ -6977,7 +6975,7 @@ function setupTabNavigation(elements) {
     });
 }
 
-// [26] Fungsi untuk save adjustment - PERBAIKI TANGGAL SECARA MANUAL
+// [26] Fungsi untuk save adjustment - GUNAKAN FORMAT YYYY-MM-DD
 async function saveAdjustment(index) {
     try {
         const dateInput = document.getElementById('adjustmentDate');
@@ -6993,30 +6991,11 @@ async function saveAdjustment(index) {
             return;
         }
         
-        // ========== PERBAIKI TANGGAL SECARA MANUAL ==========
-        // Input dari date picker: "2025-12-09" (9 Desember 2025)
+        // ========== GUNAKAN FORMAT YANG SUDAH BENAR ==========
+        // Input dari date picker sudah format: "2025-12-09" (YYYY-MM-DD)
         const selectedDate = dateInput.value; // Format: YYYY-MM-DD
         
-        console.log('DEBUG 1 - Input date:', selectedDate);
-        
-        // Split secara manual untuk hindari Date object confusion
-        const [inputYear, inputMonth, inputDay] = selectedDate.split('-').map(Number);
-        
-        console.log('DEBUG 2 - Parsed:', { 
-            year: inputYear, 
-            month: inputMonth, 
-            day: inputDay 
-        });
-        
-        // Validasi parsing
-        if (!inputYear || !inputMonth || !inputDay) {
-            throw new Error('Format tanggal tidak valid: ' + selectedDate);
-        }
-        
-        // Format untuk database: "DD/MM/YYYY"
-        const tanggalDB = `${inputDay.toString().padStart(2, '0')}/${inputMonth.toString().padStart(2, '0')}/${inputYear}`;
-        
-        console.log('DEBUG 3 - Tanggal untuk database:', tanggalDB);
+        console.log('DEBUG - Selected date:', selectedDate);
         // ========== END PERBAIKAN ==========
         
         let adjustmentType = '';
@@ -7068,7 +7047,9 @@ async function saveAdjustment(index) {
         const selectedBulan = parseInt(document.getElementById('selectBulan').value);
         const selectedTahun = parseInt(document.getElementById('selectTahun').value);
         
-        // Gunakan inputMonth yang sudah di-parse manual
+        // Parse tanggal untuk validasi
+        const [inputYear, inputMonth, inputDay] = selectedDate.split('-').map(Number);
+        
         if (inputMonth !== selectedBulan || inputYear !== selectedTahun) {
             const confirm = window.confirm(
                 `Tanggal yang dipilih (${inputDay}/${inputMonth}/${inputYear}) tidak sesuai dengan periode yang ditampilkan (${selectedBulan}/${selectedTahun}).\n\n` +
@@ -7097,11 +7078,11 @@ async function saveAdjustment(index) {
             .from('komisi')
             .select('id, tanggal, outlet, adjustment, adjustment_amount')
             .eq('serve_by', namaKaryawan)
-            .eq('tanggal', tanggalDB)  // GUNAKAN tanggalDB yang sudah diformat
+            .eq('tanggal', selectedDate)  // GUNAKAN selectedDate (YYYY-MM-DD)
             .maybeSingle();
             
-        console.log('DEBUG 4 - Query existing komisi:', {
-            tanggalDB,
+        console.log('DEBUG - Query result:', {
+            tanggal: selectedDate,
             existingKomisi,
             error: checkKomisiError
         });
@@ -7128,7 +7109,7 @@ async function saveAdjustment(index) {
                 updateData.outlet = karyawanOutlet;
             }
             
-            console.log('DEBUG 5 - Updating komisi:', updateData);
+            console.log('DEBUG - Updating:', updateData);
             
             const { error: updateError } = await supabase
                 .from('komisi')
@@ -7144,10 +7125,10 @@ async function saveAdjustment(index) {
             result = { success: true, action: 'updated', id: existingKomisi.id };
             
         } else {
-            // INSERT new line
+            // INSERT new line - GUNAKAN FORMAT YYYY-MM-DD
             const newKomisiData = {
                 serve_by: namaKaryawan,
-                tanggal: tanggalDB,  // "09/12/2025"
+                tanggal: selectedDate,  // YYYY-MM-DD
                 outlet: karyawanOutlet,
                 kasir: namaKaryawan,
                 adjustment: adjustmentType,
@@ -7162,7 +7143,7 @@ async function saveAdjustment(index) {
                 updated_at: new Date().toISOString()
             };
             
-            console.log('DEBUG 6 - Inserting new komisi:', newKomisiData);
+            console.log('DEBUG - Inserting:', newKomisiData);
             
             const { error: insertError } = await supabase
                 .from('komisi')
@@ -7177,7 +7158,7 @@ async function saveAdjustment(index) {
             result = { success: true, action: 'inserted' };
         }
         
-        // Tutup modal
+        // Tutup modal dan refresh
         const modal = document.getElementById('adjustmentModal');
         if (modal) {
             modal.classList.remove('active');
