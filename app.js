@@ -6617,6 +6617,495 @@ function getStatusColor(percentage) {
     return 'status-failed';
 }
 
+// [25] Modal untuk tambah/edit adjustment
+function showAddAdjustmentModal() {
+    showAdjustmentModal(null);
+}
+
+function showEditAdjustmentModal(index) {
+    // Ambil data adjustment dari UI
+    const adjustmentRows = document.querySelectorAll('tr[data-index]');
+    const row = adjustmentRows[index];
+    
+    if (!row) return;
+    
+    const type = row.querySelector('td:nth-child(1)').textContent.trim();
+    const amountText = row.querySelector('td:nth-child(2)').textContent.trim();
+    
+    // Parse amount dari string "Rp xxx.xxx"
+    const amount = parseAmountFromRupiah(amountText);
+    
+    showAdjustmentModal({ index, type, amount });
+}
+
+function parseAmountFromRupiah(rupiahText) {
+    if (!rupiahText || rupiahText === 'Rp 0') return 0;
+    
+    // Hapus "Rp " dan titik pemisah ribuan
+    const cleanText = rupiahText.replace('Rp ', '').replace(/\./g, '');
+    
+    // Ganti koma dengan titik untuk decimal
+    const numberText = cleanText.replace(',', '.');
+    
+    return parseFloat(numberText) || 0;
+}
+
+function showAdjustmentModal(adjustmentData) {
+    // Hapus modal sebelumnya jika ada
+    const existingModal = document.getElementById('adjustmentModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    const isEditMode = adjustmentData !== null;
+    
+    // Buat modal HTML
+    const modalHTML = `
+        <div class="adjustment-modal ${isEditMode ? 'edit-mode' : 'add-mode'}" id="adjustmentModal">
+            <div class="adjustment-modal-content">
+                <div class="modal-header">
+                    <h3>
+                        <i class="fas fa-${isEditMode ? 'edit' : 'plus'}"></i>
+                        ${isEditMode ? 'Edit Adjustment' : 'Tambah Adjustment'}
+                    </h3>
+                    <button class="close-modal" id="closeAdjustmentModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="adjustmentType">
+                            <i class="fas fa-tag"></i> Jenis Adjustment
+                        </label>
+                        <select id="adjustmentType" class="form-select">
+                            <option value="">Pilih Jenis</option>
+                            <option value="Fee Trainer" ${adjustmentData?.type === 'Fee Trainer' ? 'selected' : ''}>Fee Trainer</option>
+                            <option value="Fee Backup" ${adjustmentData?.type === 'Fee Backup' ? 'selected' : ''}>Fee Backup</option>
+                            <option value="Denda" ${adjustmentData?.type === 'Denda' ? 'selected' : ''}>Denda</option>
+                            <option value="Bonus Khusus" ${adjustmentData?.type === 'Bonus Khusus' ? 'selected' : ''}>Bonus Khusus</option>
+                            <option value="Lainnya" ${adjustmentData?.type === 'Lainnya' ? 'selected' : ''}>Lainnya</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="adjustmentCustomType" style="display: ${adjustmentData?.type && !['Fee Trainer', 'Fee Backup', 'Denda', 'Bonus Khusus', 'Lainnya'].includes(adjustmentData.type) ? 'block' : 'none'};">
+                            <i class="fas fa-pen"></i> Jenis Lainnya
+                        </label>
+                        <input type="text" 
+                               id="adjustmentCustomType" 
+                               class="form-input" 
+                               placeholder="Masukkan jenis adjustment..."
+                               value="${adjustmentData?.type && !['Fee Trainer', 'Fee Backup', 'Denda', 'Bonus Khusus', 'Lainnya'].includes(adjustmentData.type) ? adjustmentData.type : ''}"
+                               style="display: ${adjustmentData?.type && !['Fee Trainer', 'Fee Backup', 'Denda', 'Bonus Khusus', 'Lainnya'].includes(adjustmentData.type) ? 'block' : 'none'};">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="adjustmentAmount">
+                            <i class="fas fa-money-bill-wave"></i> Amount
+                        </label>
+                        <div class="amount-input-group">
+                            <span class="currency-prefix">Rp</span>
+                            <input type="number" 
+                                   id="adjustmentAmount" 
+                                   class="form-input currency-input"
+                                   placeholder="0"
+                                   value="${adjustmentData?.amount || ''}"
+                                   step="1000">
+                        </div>
+                        <small style="color: #666; font-size: 0.8rem; display: block; margin-top: 5px;">
+                            Gunakan nilai negatif untuk pengurangan (contoh: -50000)
+                        </small>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button class="btn-modal-cancel" id="cancelAdjustment">
+                        Batal
+                    </button>
+                    <button class="btn-modal-save" id="saveAdjustment">
+                        <i class="fas fa-save"></i> ${isEditMode ? 'Update' : 'Simpan'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Setup modal events
+    setupAdjustmentModalEvents(adjustmentData);
+    
+    // Tampilkan modal dengan animasi
+    setTimeout(() => {
+        document.getElementById('adjustmentModal').classList.add('active');
+    }, 10);
+    
+    // Auto focus ke input
+    setTimeout(() => {
+        if (adjustmentData?.type && !['Fee Trainer', 'Fee Backup', 'Denda', 'Bonus Khusus', 'Lainnya'].includes(adjustmentData.type)) {
+            document.getElementById('adjustmentCustomType').focus();
+        } else {
+            document.getElementById('adjustmentType').focus();
+        }
+    }, 100);
+}
+
+function setupAdjustmentModalEvents(adjustmentData) {
+    const modal = document.getElementById('adjustmentModal');
+    const closeBtn = document.getElementById('closeAdjustmentModal');
+    const cancelBtn = document.getElementById('cancelAdjustment');
+    const saveBtn = document.getElementById('saveAdjustment');
+    const typeSelect = document.getElementById('adjustmentType');
+    const customTypeInput = document.getElementById('adjustmentCustomType');
+    const amountInput = document.getElementById('adjustmentAmount');
+    
+    if (!modal) return;
+    
+    // Close modal
+    const closeModal = () => {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            modal.remove();
+        }, 300);
+    };
+    
+    // Close button
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    
+    // Close on escape key
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+    
+    // Close on outside click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+    
+    // Handle type selection change
+    typeSelect.addEventListener('change', (e) => {
+        const selectedValue = e.target.value;
+        const customTypeLabel = document.querySelector('label[for="adjustmentCustomType"]');
+        const customTypeInput = document.getElementById('adjustmentCustomType');
+        
+        if (selectedValue === 'Lainnya') {
+            customTypeLabel.style.display = 'block';
+            customTypeInput.style.display = 'block';
+            customTypeInput.focus();
+        } else if (selectedValue === '') {
+            customTypeLabel.style.display = 'none';
+            customTypeInput.style.display = 'none';
+        } else {
+            customTypeLabel.style.display = 'none';
+            customTypeInput.style.display = 'none';
+        }
+    });
+    
+    // Handle custom type input
+    customTypeInput.addEventListener('input', (e) => {
+        if (e.target.value.trim()) {
+            typeSelect.value = 'Lainnya';
+        }
+    });
+    
+    // Save button
+    saveBtn.addEventListener('click', async () => {
+        await saveAdjustment(adjustmentData?.index);
+    });
+    
+    // Enter key to save
+    amountInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveAdjustment(adjustmentData?.index);
+        }
+    });
+}
+
+// [26] Fungsi untuk save adjustment
+async function saveAdjustment(index) {
+    try {
+        const typeSelect = document.getElementById('adjustmentType');
+        const customTypeInput = document.getElementById('adjustmentCustomType');
+        const amountInput = document.getElementById('adjustmentAmount');
+        
+        // Validasi input
+        let adjustmentType = '';
+        
+        if (typeSelect.value === 'Lainnya') {
+            adjustmentType = customTypeInput.value.trim();
+            if (!adjustmentType) {
+                alert('Masukkan jenis adjustment!');
+                customTypeInput.focus();
+                return;
+            }
+        } else if (typeSelect.value) {
+            adjustmentType = typeSelect.value;
+        } else {
+            alert('Pilih jenis adjustment!');
+            typeSelect.focus();
+            return;
+        }
+        
+        const amount = parseFloat(amountInput.value);
+        if (isNaN(amount)) {
+            alert('Masukkan jumlah yang valid!');
+            amountInput.focus();
+            return;
+        }
+        
+        // Tampilkan loading
+        const saveBtn = document.getElementById('saveAdjustment');
+        const originalText = saveBtn.innerHTML;
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+        
+        // Dapatkan data periode
+        const bulan = parseInt(document.getElementById('selectBulan').value);
+        const tahun = parseInt(document.getElementById('selectTahun').value);
+        const periode = `${bulan.toString().padStart(2, '0')}/${tahun}`;
+        
+        // Dapatkan nama karyawan
+        let namaKaryawan = currentSlipKaryawan?.nama_karyawan;
+        if (isOwnerSlip) {
+            const selectKaryawan = document.getElementById('selectKaryawanSlip');
+            if (selectKaryawan && selectKaryawan.value) {
+                namaKaryawan = selectKaryawan.value;
+            }
+        }
+        
+        if (!namaKaryawan) {
+            throw new Error('Nama karyawan tidak ditemukan');
+        }
+        
+        // Simpan ke Supabase
+        const adjustmentData = {
+            adjustment: adjustmentType,
+            adjustment_amount: amount,
+            serve_by: namaKaryawan,
+            tanggal: new Date().toISOString().split('T')[0],
+            periode: periode
+        };
+        
+        console.log('Saving adjustment:', adjustmentData);
+        
+        // Cek apakah edit atau tambah baru
+        let result;
+        if (index !== undefined && index !== null) {
+            // Edit existing adjustment - perlu query ID dulu
+            const { data: existingAdjustments, error: queryError } = await supabase
+                .from('komisi')
+                .select('id')
+                .eq('serve_by', namaKaryawan)
+                .eq('adjustment', adjustmentType)
+                .order('created_at', { ascending: false })
+                .limit(1);
+            
+            if (queryError) throw queryError;
+            
+            if (existingAdjustments && existingAdjustments.length > 0) {
+                // Update existing
+                const { error: updateError } = await supabase
+                    .from('komisi')
+                    .update({ adjustment_amount: amount })
+                    .eq('id', existingAdjustments[0].id);
+                
+                if (updateError) throw updateError;
+                result = { success: true, action: 'updated' };
+            } else {
+                // Insert new jika tidak ditemukan
+                const { error: insertError } = await supabase
+                    .from('komisi')
+                    .insert([adjustmentData]);
+                
+                if (insertError) throw insertError;
+                result = { success: true, action: 'inserted' };
+            }
+        } else {
+            // Tambah baru
+            const { error: insertError } = await supabase
+                .from('komisi')
+                .insert([adjustmentData]);
+            
+            if (insertError) throw insertError;
+            result = { success: true, action: 'inserted' };
+        }
+        
+        // Tutup modal
+        document.getElementById('adjustmentModal').classList.remove('active');
+        setTimeout(() => {
+            document.getElementById('adjustmentModal')?.remove();
+        }, 300);
+        
+        // Refresh data slip
+        setTimeout(async () => {
+            await loadSlipData(bulan, tahun);
+            alert(`Adjustment berhasil ${result.action === 'updated' ? 'diperbarui' : 'disimpan'}!`);
+        }, 500);
+        
+    } catch (error) {
+        console.error('Error saving adjustment:', error);
+        
+        // Restore button
+        const saveBtn = document.getElementById('saveAdjustment');
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Simpan';
+        }
+        
+        alert('Gagal menyimpan adjustment: ' + error.message);
+    }
+}
+
+// [27] Fungsi untuk delete adjustment dengan konfirmasi
+async function deleteAdjustment(index) {
+    // Buat modal konfirmasi
+    const confirmHTML = `
+        <div class="adjustment-modal delete-confirm-modal" id="deleteConfirmModal">
+            <div class="adjustment-modal-content">
+                <div class="modal-header">
+                    <h3>
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Konfirmasi Hapus
+                    </h3>
+                    <button class="close-modal" id="closeDeleteModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="modal-body">
+                    <i class="fas fa-trash-alt"></i>
+                    <p>Apakah Anda yakin ingin menghapus adjustment ini?</p>
+                    <p style="font-size: 0.85rem; color: #999;">Data yang sudah dihapus tidak dapat dikembalikan.</p>
+                </div>
+                
+                <div class="modal-footer">
+                    <button class="btn-modal-cancel" id="cancelDelete">
+                        Batal
+                    </button>
+                    <button class="btn-modal-save" id="confirmDelete" style="background: linear-gradient(135deg, #ff4757, #ff3838);">
+                        <i class="fas fa-trash"></i> Hapus
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', confirmHTML);
+    
+    // Tampilkan modal
+    setTimeout(() => {
+        document.getElementById('deleteConfirmModal').classList.add('active');
+    }, 10);
+    
+    // Setup modal events
+    return new Promise((resolve) => {
+        const modal = document.getElementById('deleteConfirmModal');
+        const closeBtn = document.getElementById('closeDeleteModal');
+        const cancelBtn = document.getElementById('cancelDelete');
+        const confirmBtn = document.getElementById('confirmDelete');
+        
+        const closeModal = () => {
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.remove();
+                resolve(false); // User cancelled
+            }, 300);
+        };
+        
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+        
+        confirmBtn.addEventListener('click', async () => {
+            // Tampilkan loading
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghapus...';
+            
+            try {
+                // Ambil data adjustment dari UI untuk dihapus
+                const adjustmentRows = document.querySelectorAll('tr[data-index]');
+                const row = adjustmentRows[index];
+                
+                if (row) {
+                    const type = row.querySelector('td:nth-child(1)').textContent.trim();
+                    const amountText = row.querySelector('td:nth-child(2)').textContent.trim();
+                    const amount = parseAmountFromRupiah(amountText);
+                    
+                    // Dapatkan data periode
+                    const bulan = parseInt(document.getElementById('selectBulan').value);
+                    const tahun = parseInt(document.getElementById('selectTahun').value);
+                    
+                    // Dapatkan nama karyawan
+                    let namaKaryawan = currentSlipKaryawan?.nama_karyawan;
+                    if (isOwnerSlip) {
+                        const selectKaryawan = document.getElementById('selectKaryawanSlip');
+                        if (selectKaryawan && selectKaryawan.value) {
+                            namaKaryawan = selectKaryawan.value;
+                        }
+                    }
+                    
+                    // Hapus dari database
+                    const { error } = await supabase
+                        .from('komisi')
+                        .delete()
+                        .eq('serve_by', namaKaryawan)
+                        .eq('adjustment', type)
+                        .eq('adjustment_amount', amount);
+                    
+                    if (error) throw error;
+                    
+                    // Tutup modal
+                    modal.classList.remove('active');
+                    setTimeout(() => {
+                        modal.remove();
+                    }, 300);
+                    
+                    // Refresh data
+                    setTimeout(async () => {
+                        await loadSlipData(bulan, tahun);
+                        alert('Adjustment berhasil dihapus!');
+                        resolve(true); // Success
+                    }, 500);
+                }
+            } catch (error) {
+                console.error('Error deleting adjustment:', error);
+                alert('Gagal menghapus adjustment: ' + error.message);
+                
+                // Restore button
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="fas fa-trash"></i> Hapus';
+                
+                resolve(false); // Failed
+            }
+        });
+        
+        // ESC key untuk close
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+        
+        // Click outside to close
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+    });
+}
+
+// [28] Update fungsi setupAdjustmentButtons
 function setupAdjustmentButtons() {
     // Tambah adjustment
     const addBtn = document.getElementById('addAdjustmentBtn');
@@ -6627,34 +7116,24 @@ function setupAdjustmentButtons() {
     // Edit adjustment
     document.querySelectorAll('.btn-edit-adj').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const index = e.target.closest('button').dataset.index;
-            showEditAdjustmentModal(index);
+            const index = parseInt(e.target.closest('button').dataset.index);
+            if (!isNaN(index)) {
+                showEditAdjustmentModal(index);
+            }
         });
     });
     
     // Delete adjustment
     document.querySelectorAll('.btn-delete-adj').forEach(btn => {
         btn.addEventListener('click', async (e) => {
-            const index = e.target.closest('button').dataset.index;
-            await deleteAdjustment(index);
+            const index = parseInt(e.target.closest('button').dataset.index);
+            if (!isNaN(index)) {
+                const confirmed = await deleteAdjustment(index);
+                console.log('Delete confirmed:', confirmed);
+            }
         });
     });
 }
-
-function showAddAdjustmentModal() {
-    alert('Modal tambah adjustment akan diimplementasikan');
-}
-
-function showEditAdjustmentModal(index) {
-    alert(`Modal edit adjustment ${index} akan diimplementasikan`);
-}
-
-async function deleteAdjustment(index) {
-    if (confirm('Hapus adjustment ini?')) {
-        alert(`Delete adjustment ${index} akan diimplementasikan`);
-    }
-}
-
 
 
 // ========== END OF FILE ==========
