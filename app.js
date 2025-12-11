@@ -4717,17 +4717,19 @@ function showKasNotification(message, type = 'info') {
     }, 3000);
 }
 
-// ========== BAGIAN 7: SLIP PENGHASILAN ==========
-// ===============================================
+// ========== SLIP PENGHASILAN ==========
+// =====================================
 
 // Global variables untuk slip
 let currentSlipKaryawan = null;
 let isOwnerSlip = false;
 let currentUserOutletSlip = null;
 
-// [7.1] Fungsi untuk tampilkan halaman slip
+// [1] Fungsi untuk tampilkan halaman slip
 async function showSlipPage() {
     try {
+        console.log('showSlipPage called');
+        
         // Ambil data user
         const { data: { user } } = await supabase.auth.getUser();
         const namaKaryawan = user?.user_metadata?.nama_karyawan;
@@ -4738,15 +4740,19 @@ async function showSlipPage() {
         }
         
         // Ambil data karyawan lengkap
-        const { data: karyawanData } = await supabase
+        const { data: karyawanData, error } = await supabase
             .from('karyawan')
             .select('role, outlet, posisi, gaji')
             .eq('nama_karyawan', namaKaryawan)
             .single();
         
+        if (error) {
+            console.error('Error loading karyawan data:', error);
+            throw new Error('Data karyawan tidak ditemukan!');
+        }
+        
         if (!karyawanData) {
-            alert('Data karyawan tidak ditemukan!');
-            return;
+            throw new Error('Data karyawan tidak ditemukan!');
         }
         
         currentSlipKaryawan = {
@@ -4760,6 +4766,8 @@ async function showSlipPage() {
         currentUserOutletSlip = karyawanData.outlet;
         isOwnerSlip = karyawanData.role === 'owner';
         
+        console.log('Slip karyawan data:', currentSlipKaryawan);
+        
         // Sembunyikan main app, tampilkan halaman slip
         document.getElementById('appScreen').style.display = 'none';
         
@@ -4772,11 +4780,20 @@ async function showSlipPage() {
         
     } catch (error) {
         console.error('Error in showSlipPage:', error);
-        alert('Gagal memuat halaman slip gaji!');
+        alert('Gagal memuat halaman slip gaji: ' + error.message);
+        
+        // Kembali ke main app jika error
+        try {
+            document.getElementById('slipPage')?.remove();
+        } catch (e) {
+            // Ignore
+        }
+        
+        document.getElementById('appScreen').style.display = 'block';
     }
 }
 
-// [7.2] Fungsi untuk buat halaman slip
+// [2] Fungsi untuk buat halaman slip
 function createSlipPage() {
     // Hapus halaman slip sebelumnya jika ada
     const existingPage = document.getElementById('slipPage');
@@ -4799,19 +4816,18 @@ function createSlipPage() {
         return `<option value="${tahun}" ${tahun === tahunSekarang ? 'selected' : ''}>${tahun}</option>`;
     }).join('');
     
-   // Buat container halaman slip - HAPUS download button dari header
+    // Buat container halaman slip
     const slipPage = document.createElement('div');
     slipPage.id = 'slipPage';
     slipPage.className = 'slip-page';
     slipPage.innerHTML = `
-        <!-- Header Navigation - HAPUS DOWNLOAD BUTTON -->
+        <!-- Header Navigation -->
         <header class="slip-header">
             <button class="back-btn" id="backToMainFromSlip">
                 <i class="fas fa-arrow-left"></i>
             </button>
             <h2><i class="fas fa-file-invoice-dollar"></i> Slip Penghasilan</h2>
             <div class="header-actions">
-                <!-- HAPUS: <button class="download-btn" id="downloadSlip" title="Download Slip"> -->
                 <button class="refresh-btn" id="refreshSlip">
                     <i class="fas fa-sync-alt"></i>
                 </button>
@@ -4837,7 +4853,7 @@ function createSlipPage() {
                     </div>
                 </div>
                 
-                <!-- Periode Selection (Semua Role) -->
+                <!-- Periode Selection -->
                 <div class="periode-selection">
                     <div class="filter-group">
                         <label for="selectBulan"><i class="fas fa-calendar-alt"></i> Periode:</label>
@@ -4856,7 +4872,7 @@ function createSlipPage() {
                     
                     <div class="data-source-badge" id="dataSourceBadge">
                         <i class="fas fa-database"></i>
-                        <span id="sourceText">Loading data source...</span>
+                        <span id="sourceText">Loading...</span>
                     </div>
                 </div>
             </div>
@@ -4872,14 +4888,14 @@ function createSlipPage() {
                 <p>Memuat data slip gaji...</p>
             </div>
             
-            <!-- Content akan diisi berdasarkan role -->
+            <!-- Content -->
             <div id="slipContent" style="display: none;">
                 <!-- Konten akan diisi oleh JavaScript -->
             </div>
             
             <!-- Empty State -->
             <div class="empty-state" id="emptySlip" style="display: none;">
-                <i class="fas fa-file-invoice" style="font-size: 4rem; color: #ccc; margin-bottom: 20px;"></i>
+                <i class="fas fa-file-invoice"></i>
                 <h3>Data tidak ditemukan</h3>
                 <p>Tidak ada data slip gaji untuk periode yang dipilih.</p>
             </div>
@@ -4888,7 +4904,6 @@ function createSlipPage() {
         <!-- Footer -->
         <div class="slip-footer">
             <p><i class="fas fa-info-circle"></i> Data slip akan difinalkan setiap tanggal 1 jam 06:00</p>
-            <p class="footer-version">Versi: ${new Date().toLocaleDateString('id-ID')}</p>
         </div>
     `;
     
@@ -4898,7 +4913,7 @@ function createSlipPage() {
     setupSlipPageEvents();
 }
 
-// [7.3] Setup event listeners
+// [3] Setup event listeners
 function setupSlipPageEvents() {
     // Tombol kembali
     document.getElementById('backToMainFromSlip').addEventListener('click', () => {
@@ -4920,9 +4935,6 @@ function setupSlipPageEvents() {
         await loadSlipData(bulan, tahun);
     });
     
-    // Tombol download
-    document.getElementById('downloadSlip').addEventListener('click', downloadSlip);
-    
     // Filter untuk owner
     if (isOwnerSlip) {
         // Load dropdown outlet
@@ -4942,7 +4954,7 @@ function setupSlipPageEvents() {
     }
 }
 
-// [7.4] Load dropdown outlet (owner only)
+// [4] Load dropdown outlet (owner only)
 async function loadOutletDropdownSlip() {
     const select = document.getElementById('selectOutletSlip');
     
@@ -4979,7 +4991,7 @@ async function loadOutletDropdownSlip() {
     }
 }
 
-// [7.5] Load dropdown karyawan berdasarkan outlet (owner only)
+// [5] Load dropdown karyawan berdasarkan outlet (owner only)
 async function loadKaryawanDropdownSlip() {
     const select = document.getElementById('selectKaryawanSlip');
     const outletSelect = document.getElementById('selectOutletSlip');
@@ -5021,9 +5033,14 @@ async function loadKaryawanDropdownSlip() {
     }
 }
 
-// [7.6] Fungsi utama untuk load data slip
+// [6] Fungsi utama untuk load data slip
 async function loadSlipData(bulan, tahun) {
     try {
+        console.log('Loading slip data for:', { bulan, tahun });
+        
+        // Tampilkan loading
+        showLoadingSlip(true);
+        
         // Tentukan karyawan yang akan ditampilkan
         let namaKaryawan = currentSlipKaryawan?.nama_karyawan;
         let outlet = currentUserOutletSlip;
@@ -5037,20 +5054,27 @@ async function loadSlipData(bulan, tahun) {
                 namaKaryawan = selectKaryawan.value;
                 
                 // Ambil data karyawan yang dipilih
-                const { data: karyawanData } = await supabase
-                    .from('karyawan')
-                    .select('outlet, posisi, gaji')
-                    .eq('nama_karyawan', namaKaryawan)
-                    .single();
-                
-                if (karyawanData) {
-                    outlet = karyawanData.outlet;
-                    currentSlipKaryawan = {
-                        ...currentSlipKaryawan,
-                        outlet: outlet,
-                        posisi: karyawanData.posisi,
-                        gaji_harian: karyawanData.gaji || 0
-                    };
+                try {
+                    const { data: karyawanData, error } = await supabase
+                        .from('karyawan')
+                        .select('outlet, posisi, gaji, role')
+                        .eq('nama_karyawan', namaKaryawan)
+                        .single();
+                    
+                    if (error) throw error;
+                    
+                    if (karyawanData) {
+                        outlet = karyawanData.outlet;
+                        currentSlipKaryawan = {
+                            ...currentSlipKaryawan,
+                            outlet: outlet,
+                            posisi: karyawanData.posisi,
+                            gaji_harian: karyawanData.gaji || 0,
+                            role: karyawanData.role || currentSlipKaryawan?.role || 'kasir'
+                        };
+                    }
+                } catch (error) {
+                    console.error('Error loading karyawan data:', error);
                 }
             }
             
@@ -5060,12 +5084,8 @@ async function loadSlipData(bulan, tahun) {
         }
         
         if (!namaKaryawan) {
-            alert('Pilih karyawan terlebih dahulu!');
-            return;
+            throw new Error('Pilih karyawan terlebih dahulu!');
         }
-        
-        // Tampilkan loading
-        showLoadingSlip(true);
         
         // Cek sumber data
         const dataSource = await checkDataSource(namaKaryawan, bulan, tahun);
@@ -5088,7 +5108,7 @@ async function loadSlipData(bulan, tahun) {
     }
 }
 
-// [7.7] Cek sumber data (real-time vs final)
+// [7] Cek sumber data (real-time vs final)
 async function checkDataSource(namaKaryawan, bulan, tahun) {
     const periode = `${bulan.toString().padStart(2, '0')}/${tahun}`;
     
@@ -5114,7 +5134,6 @@ async function checkDataSource(namaKaryawan, bulan, tahun) {
         // Jika periode LAMPAU (bulan/tahun sebelumnya)
         if (tahun < currentYear || (tahun === currentYear && bulan < currentMonth)) {
             // Periode sudah lewat, seharusnya sudah ada data final
-            // Tapi kalau belum ada, tetap pakai real-time
             return 'realtime';
         }
         
@@ -5126,7 +5145,6 @@ async function checkDataSource(namaKaryawan, bulan, tahun) {
             
             if (today > 1 || (today === 1 && currentHour >= 6)) {
                 // Sudah lewat tanggal 1 jam 06:00
-                // Tapi belum ada data final (crown job mungkin belum jalan)
                 return 'realtime';
             }
         }
@@ -5136,11 +5154,11 @@ async function checkDataSource(namaKaryawan, bulan, tahun) {
         
     } catch (error) {
         console.error('Error checking data source:', error);
-        return 'realtime'; // Fallback
+        return 'realtime';
     }
 }
 
-// [7.8] Update badge sumber data
+// [8] Update badge sumber data
 function updateDataSourceBadge(source) {
     const badge = document.getElementById('dataSourceBadge');
     const sourceText = document.getElementById('sourceText');
@@ -5160,7 +5178,7 @@ function updateDataSourceBadge(source) {
     }
 }
 
-// [7.9] Load data final dari tabel penghasilan
+// [9] Load data final dari tabel penghasilan
 async function loadFinalSlipData(namaKaryawan, bulan, tahun) {
     const periode = `${bulan.toString().padStart(2, '0')}/${tahun}`;
     
@@ -5182,14 +5200,15 @@ async function loadFinalSlipData(namaKaryawan, bulan, tahun) {
     };
 }
 
-// [7.10] Hitung real-time slip gaji
+// [10] Hitung real-time slip gaji
 async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
     console.log('Calculating real-time slip for:', { namaKaryawan, outlet, bulan, tahun });
     
     // Format bulan untuk query (DD/MM/YYYY)
     const monthStr = bulan.toString().padStart(2, '0');
+    const yearStr = tahun.toString();
     
-    // [A] AMBIL DATA DARI BERBAGAI TABEL SECARA PARALEL
+    // Query semua data secara paralel
     const [
         absenData,
         komisiData,
@@ -5198,21 +5217,22 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
         kasData,
         outletTargetData,
         karyawanData,
-        semuaKasirAbsen
+        semuaKasirAbsen,
+        omsetData
     ] = await Promise.all([
         // 1. Data absensi
         supabase
             .from('absen')
             .select('*')
             .eq('nama', namaKaryawan)
-            .like('tanggal', `%/${monthStr}/${tahun}`),
+            .like('tanggal', `%/${monthStr}/${yearStr}`),
         
         // 2. Data komisi
         supabase
             .from('komisi')
             .select('*')
             .eq('serve_by', namaKaryawan)
-            .like('tanggal', `${tahun}-${monthStr}-%`),
+            .like('tanggal', `${yearStr}-${monthStr}-%`),
         
         // 3. Data transaksi produk
         supabase
@@ -5221,21 +5241,21 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
             .eq('serve_by', namaKaryawan)
             .eq('status', 'completed')
             .gte('comission', 5000)
-            .like('order_date', `${tahun}-${monthStr}-%`),
+            .like('order_date', `${yearStr}-${monthStr}-%`),
         
         // 4. Data membercard
         supabase
             .from('membercard')
             .select('id_member, tanggal_create, kasir_create')
             .eq('kasir_create', namaKaryawan)
-            .like('tanggal_create', `%/${monthStr}/${tahun}`),
+            .like('tanggal_create', `%/${monthStr}/${yearStr}`),
         
         // 5. Data kas (fee transfer)
         supabase
             .from('kas')
             .select('fee_trf_setoran, tanggal, kasir')
             .eq('kasir', namaKaryawan)
-            .like('tanggal', `${tahun}-${monthStr}-%`),
+            .like('tanggal', `${yearStr}-${monthStr}-%`),
         
         // 6. Data target outlet
         supabase
@@ -5258,10 +5278,18 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
             .eq('outlet', outlet)
             .not('status_kehadiran', 'is', null)
             .not('status_kehadiran', 'eq', '')
-            .like('tanggal', `%/${monthStr}/${tahun}`)
+            .like('tanggal', `%/${monthStr}/${yearStr}`),
+        
+        // 9. Data omset
+        supabase
+            .from('transaksi_order')
+            .select('total_amount, harga_beli, status')
+            .eq('outlet', outlet)
+            .eq('status', 'completed')
+            .like('order_date', `${yearStr}-${monthStr}-%`)
     ]);
     
-    // [B] PROSES DATA
+    // Proses data
     const absenList = absenData.data || [];
     const komisiList = komisiData.data || [];
     const transaksiList = transaksiData.data || [];
@@ -5270,10 +5298,11 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
     const target = outletTargetData.data || {};
     const karyawan = karyawanData.data || {};
     const semuaKasirList = semuaKasirAbsen.data || [];
+    const omsetList = omsetData.data || [];
     
     const role = karyawan.role || currentSlipKaryawan?.role || 'kasir';
     
-    // [C] HITUNG BERDASARKAN ROLE
+    // Hitung berdasarkan role
     if (role === 'kasir' || role === 'owner') {
         return await calculateKasirSlip({
             namaKaryawan,
@@ -5287,7 +5316,8 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
             kasList,
             target,
             karyawan,
-            semuaKasirList
+            semuaKasirList,
+            omsetList
         });
     } else if (role === 'barberman') {
         return await calculateBarbermanSlip({
@@ -5306,7 +5336,7 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
     }
 }
 
-// [7.11] Hitung slip untuk KASIR
+// [11] Hitung slip untuk KASIR
 async function calculateKasirSlip(params) {
     const {
         namaKaryawan,
@@ -5320,7 +5350,8 @@ async function calculateKasirSlip(params) {
         kasList,
         target,
         karyawan,
-        semuaKasirList
+        semuaKasirList,
+        omsetList
     } = params;
     
     // 1. HITUNG HARI KERJA & GAJI
@@ -5358,7 +5389,6 @@ async function calculateKasirSlip(params) {
     const totalFeeTransfer = kasList.reduce((sum, k) => sum + (k.fee_trf_setoran || 0), 0);
     
     // 6. TARGET & ACHIEVEMENT
-    // Hitung per hari untuk menentukan weekday/weekend
     const targetAchievement = await calculateTargetAchievement(
         namaKaryawan,
         outlet,
@@ -5368,7 +5398,8 @@ async function calculateKasirSlip(params) {
         transaksiList,
         target,
         semuaKasirList,
-        absenList.length
+        absenList.length,
+        omsetList
     );
     
     // 7. ADJUSTMENT
@@ -5382,7 +5413,7 @@ async function calculateKasirSlip(params) {
     const totalAdjustment = adjustments.reduce((sum, adj) => sum + (adj.amount || 0), 0);
     
     // 8. DETAIL HARIAN
-    const detailHarian = await calculateDetailHarian(
+    const detailHarian = calculateDetailHarian(
         absenList,
         komisiList,
         transaksiList,
@@ -5394,12 +5425,12 @@ async function calculateKasirSlip(params) {
     const subTotalPenghasilan = totalGaji + totalOvertimeRupiah + komisiProduk + 
                                komisiMembercard + totalUOP + totalFeeTransfer + totalTipsQRIS;
     
-    const subTotalTarget = targetAchievement.bonus_membercard_value + 
-                          targetAchievement.bonus_produk_value + 
-                          targetAchievement.bonus_omset;
+    const subTotalTarget = (targetAchievement.bonus_membercard_value || 0) + 
+                          (targetAchievement.bonus_produk_value || 0) + 
+                          (targetAchievement.bonus_omset || 0);
     
     const totalPenghasilan = subTotalPenghasilan + subTotalTarget + totalAdjustment;
-    const penghasilanDiambil = komisiProduk; // Komisi produk diambil di muka
+    const penghasilanDiambil = komisiProduk;
     const takeHomePay = totalPenghasilan - penghasilanDiambil;
     
     return {
@@ -5425,6 +5456,7 @@ async function calculateKasirSlip(params) {
             uop: totalUOP,
             fee_transfer: totalFeeTransfer,
             tips_qris: totalTipsQRIS,
+            sub_total_penghasilan: subTotalPenghasilan,
             
             // Target & Achievement
             target_membercard: targetAchievement.target_membercard,
@@ -5441,15 +5473,13 @@ async function calculateKasirSlip(params) {
             achievement_omset: targetAchievement.achievement_omset,
             status_omset: targetAchievement.status_omset,
             bonus_omset: targetAchievement.bonus_omset,
+            sub_total_target: subTotalTarget,
             
             // Adjustment
             adjustments: adjustments,
             total_adjustment: totalAdjustment,
             
             // Totals
-            sub_total_penghasilan: subTotalPenghasilan,
-            sub_total_target: subTotalTarget,
-            sub_total_adjustment: totalAdjustment,
             total_penghasilan: totalPenghasilan,
             penghasilan_diambil: penghasilanDiambil,
             take_home_pay: takeHomePay,
@@ -5460,7 +5490,7 @@ async function calculateKasirSlip(params) {
     };
 }
 
-// [7.12] Hitung slip untuk BARBERMAN
+// [12] Hitung slip untuk BARBERMAN
 async function calculateBarbermanSlip(params) {
     const {
         namaKaryawan,
@@ -5487,27 +5517,29 @@ async function calculateBarbermanSlip(params) {
     
     // 3. KOMISI & ITEM DETAIL
     const itemDetails = [];
-    const itemMap = {};
+    const komisiMap = {};
     
+    // Group by item_name (asumsi ada kolom item_name)
     transaksiList.forEach(t => {
-        const itemName = t.item_name || 'Unknown Item';
-        if (!itemMap[itemName]) {
-            itemMap[itemName] = {
+        const itemName = t.item_name || 'Layanan';
+        if (!komisiMap[itemName]) {
+            komisiMap[itemName] = {
                 item: itemName,
                 qty: 0,
                 komisi: 0
             };
         }
-        itemMap[itemName].qty += t.qty || 0;
-        itemMap[itemName].komisi += t.comission || 0;
+        komisiMap[itemName].qty += t.qty || 1;
+        komisiMap[itemName].komisi += t.comission || 0;
     });
     
     // Convert to array
-    Object.values(itemMap).forEach(item => {
+    Object.values(komisiMap).forEach(item => {
         itemDetails.push(item);
     });
     
     const totalKomisi = itemDetails.reduce((sum, item) => sum + (item.komisi || 0), 0);
+    const subTotal = totalUOP + totalTipsQRIS + totalKomisi;
     
     // 4. ADJUSTMENT
     const adjustments = komisiList
@@ -5520,7 +5552,6 @@ async function calculateBarbermanSlip(params) {
     const totalAdjustment = adjustments.reduce((sum, adj) => sum + (adj.amount || 0), 0);
     
     // 5. TOTAL
-    const subTotal = totalUOP + totalTipsQRIS + totalKomisi;
     const totalPenghasilan = subTotal + totalAdjustment;
     
     return {
@@ -5538,6 +5569,7 @@ async function calculateBarbermanSlip(params) {
             uop: totalUOP,
             tips_qris: totalTipsQRIS,
             komisi: totalKomisi,
+            sub_total: subTotal,
             
             // Item Details
             item_details: itemDetails,
@@ -5547,112 +5579,119 @@ async function calculateBarbermanSlip(params) {
             total_adjustment: totalAdjustment,
             
             // Totals
-            sub_total: subTotal,
             total_penghasilan: totalPenghasilan
         }
     };
 }
 
-// [7.13] Fungsi helper: Hitung Target & Achievement
+// [13] Fungsi helper: Hitung Target & Achievement
 async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun, 
                                          membercardList, transaksiList, target, 
-                                         semuaKasirList, hariKerjaKasir) {
+                                         semuaKasirList, hariKerjaKasir, omsetList) {
     
-    // 1. TARGET MEMBERCARD (per hari)
-    let totalTargetMembercard = 0;
-    let totalAchievementMembercard = membercardList.length;
-    
-    // Hitung target per hari (weekday vs weekend)
-    const daysInMonth = new Date(tahun, bulan, 0).getDate();
-    
-    for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(tahun, bulan - 1, day);
-        const dayOfWeek = date.getDay(); // 0 = Minggu, 1-6 = Senin-Sabtu
+    const result = {
+        target_membercard: 0,
+        achievement_membercard: membercardList.length,
+        status_membercard: 0,
+        bonus_membercard: '-',
+        bonus_membercard_value: 0,
         
-        // Sabtu (6) atau Minggu (0) = weekend
-        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        target_produk: target.target_weekdays || 0.5,
+        achievement_produk: transaksiList.reduce((sum, t) => sum + (t.qty || 0), 0),
+        status_produk: 0,
+        bonus_produk: '-',
+        bonus_produk_value: 0,
         
-        if (isWeekend) {
-            totalTargetMembercard += target.target_weekends || 1.5;
-        } else {
-            totalTargetMembercard += target.target_weekdays || 0.5;
+        target_omset: target.target_omset || 20000000,
+        achievement_omset: 0,
+        status_omset: 0,
+        bonus_omset: 0,
+        proporsi_kasir: 0
+    };
+    
+    // 1. TARGET MEMBERCARD
+    try {
+        // Hitung hari dalam bulan
+        const daysInMonth = new Date(tahun, bulan, 0).getDate();
+        let totalTargetMembercard = 0;
+        
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(tahun, bulan - 1, day);
+            const dayOfWeek = date.getDay(); // 0 = Minggu, 1-6 = Senin-Sabtu
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+            
+            if (isWeekend) {
+                totalTargetMembercard += target.target_weekends || 1.5;
+            } else {
+                totalTargetMembercard += target.target_weekdays || 0.5;
+            }
         }
+        
+        result.target_membercard = totalTargetMembercard;
+        result.status_membercard = totalTargetMembercard > 0 ? 
+            (result.achievement_membercard / totalTargetMembercard) * 100 : 0;
+        
+        if (result.status_membercard >= 100) {
+            result.bonus_membercard = 'Hadiah Menarik';
+            result.bonus_membercard_value = 50000; // Contoh
+        }
+    } catch (error) {
+        console.error('Error calculating membercard target:', error);
     }
     
-    const statusMembercard = totalTargetMembercard > 0 ? 
-        (totalAchievementMembercard / totalTargetMembercard) * 100 : 0;
-    
-    const bonusMembercard = statusMembercard >= 100 ? 'Hadiah Menarik' : '-';
-    const bonusMembercardValue = statusMembercard >= 100 ? 50000 : 0; // Contoh hadiah
-    
     // 2. TARGET PRODUK
-    const targetProduk = target.target_weekdays || 0.5; // Asumsi sama dengan membercard weekday
-    const achievementProduk = transaksiList.reduce((sum, t) => sum + (t.qty || 0), 0);
-    const statusProduk = targetProduk > 0 ? (achievementProduk / targetProduk) * 100 : 0;
-    const bonusProduk = statusProduk >= 100 ? 'Hadiah Menarik' : '-';
-    const bonusProdukValue = statusProduk >= 100 ? 50000 : 0;
+    try {
+        result.status_produk = result.target_produk > 0 ? 
+            (result.achievement_produk / result.target_produk) * 100 : 0;
+        
+        if (result.status_produk >= 100) {
+            result.bonus_produk = 'Hadiah Menarik';
+            result.bonus_produk_value = 50000; // Contoh
+        }
+    } catch (error) {
+        console.error('Error calculating produk target:', error);
+    }
     
     // 3. TARGET OMSET
-    // Ambil data omset dari transaksi_order
-    const { data: omsetData } = await supabase
-        .from('transaksi_order')
-        .select('total_amount, harga_beli')
-        .eq('outlet', outlet)
-        .eq('status', 'completed')
-        .like('order_date', `${tahun}-${bulan.toString().padStart(2, '0')}-%`);
-    
-    const totalOmsetKotor = omsetData?.reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0;
-    const totalHargaBeli = omsetData?.reduce((sum, o) => sum + (o.harga_beli || 0), 0) || 0;
-    const achievementOmset = totalOmsetKotor - totalHargaBeli; // Omset bersih
-    
-    const targetOmset = target.target_omset || 20000000;
-    const statusOmset = targetOmset > 0 ? (achievementOmset / targetOmset) * 100 : 0;
-    
-    // Hitung proporsi hari kerja kasir
-    const totalHariKerjaSemuaKasir = new Set(
-        semuaKasirList.map(a => `${a.nama}-${a.tanggal}`)
-    ).size;
-    
-    const proporsiKasir = totalHariKerjaSemuaKasir > 0 ? 
-        hariKerjaKasir / totalHariKerjaSemuaKasir : 0;
-    
-    // Bonus omset 1% dari omset bersih * proporsi
-    const bonusOmset = statusOmset >= 100 ? 
-        (achievementOmset * 0.01 * proporsiKasir) : 0;
-    
-    return {
-        target_membercard: totalTargetMembercard,
-        achievement_membercard: totalAchievementMembercard,
-        status_membercard: statusMembercard,
-        bonus_membercard: bonusMembercard,
-        bonus_membercard_value: bonusMembercardValue,
+    try {
+        // Hitung omset bersih
+        const totalOmsetKotor = omsetList.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+        const totalHargaBeli = omsetList.reduce((sum, o) => sum + (o.harga_beli || 0), 0);
+        result.achievement_omset = totalOmsetKotor - totalHargaBeli;
         
-        target_produk: targetProduk,
-        achievement_produk: achievementProduk,
-        status_produk: statusProduk,
-        bonus_produk: bonusProduk,
-        bonus_produk_value: bonusProdukValue,
+        result.status_omset = result.target_omset > 0 ? 
+            (result.achievement_omset / result.target_omset) * 100 : 0;
         
-        target_omset: targetOmset,
-        achievement_omset: achievementOmset,
-        status_omset: statusOmset,
-        bonus_omset: bonusOmset,
-        proporsi_kasir: proporsiKasir
-    };
+        // Hitung proporsi hari kerja kasir
+        const uniqueKasirDays = new Set(
+            semuaKasirList.map(a => `${a.nama}-${a.tanggal}`)
+        ).size;
+        
+        result.proporsi_kasir = uniqueKasirDays > 0 ? 
+            hariKerjaKasir / uniqueKasirDays : 0;
+        
+        // Bonus omset 1% dari omset bersih * proporsi
+        if (result.status_omset >= 100) {
+            result.bonus_omset = result.achievement_omset * 0.01 * result.proporsi_kasir;
+        }
+    } catch (error) {
+        console.error('Error calculating omset target:', error);
+    }
+    
+    return result;
 }
 
-// [7.14] Fungsi helper: Hitung Detail Harian
-async function calculateDetailHarian(absenList, komisiList, transaksiList, 
-                                   membercardList, kasList) {
+// [14] Fungsi helper: Hitung Detail Harian
+function calculateDetailHarian(absenList, komisiList, transaksiList, membercardList, kasList) {
     // Group by date
     const dateMap = {};
     
     // Process absen
     absenList.forEach(a => {
-        const dateKey = a.tanggal; // Format: DD/MM/YYYY
+        const dateKey = a.tanggal;
         if (!dateMap[dateKey]) {
             dateMap[dateKey] = {
-                tanggal: a.tanggal,
+                tanggal: dateKey,
                 hari: a.hari,
                 gaji: a.gaji_pokok || 0,
                 uop: 0,
@@ -5663,18 +5702,14 @@ async function calculateDetailHarian(absenList, komisiList, transaksiList,
                 tips_qris: 0,
                 total: 0
             };
-        } else {
-            dateMap[dateKey].gaji += a.gaji_pokok || 0;
-            dateMap[dateKey].overtime += a.over_time_rp || 0;
         }
     });
     
-    // Process komisi (perlu konversi tanggal)
+    // Process komisi
     komisiList.forEach(k => {
-        // Komisi.tanggal format: YYYY-MM-DD
-        // Konversi ke DD/MM/YYYY
-        const dateParts = k.tanggal.split('-');
-        if (dateParts.length === 3) {
+        // Convert YYYY-MM-DD to DD/MM/YYYY
+        const dateParts = k.tanggal?.split('-');
+        if (dateParts?.length === 3) {
             const dateKey = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
             
             if (!dateMap[dateKey]) {
@@ -5697,14 +5732,16 @@ async function calculateDetailHarian(absenList, komisiList, transaksiList,
         }
     });
     
-    // Process transaksi produk (group by date)
+    // Process transaksi produk
     const transaksiByDate = {};
     transaksiList.forEach(t => {
-        const dateStr = t.order_date; // Format: YYYY-MM-DD
-        if (!transaksiByDate[dateStr]) {
-            transaksiByDate[dateStr] = 0;
+        const dateStr = t.order_date;
+        if (dateStr) {
+            if (!transaksiByDate[dateStr]) {
+                transaksiByDate[dateStr] = 0;
+            }
+            transaksiByDate[dateStr] += t.comission || 0;
         }
-        transaksiByDate[dateStr] += t.comission || 0;
     });
     
     // Add produk komisi to dateMap
@@ -5732,19 +5769,10 @@ async function calculateDetailHarian(absenList, komisiList, transaksiList,
         }
     });
     
-    // Process membercard (group by date)
-    const membercardByDate = {};
+    // Process membercard
     membercardList.forEach(m => {
-        const dateKey = m.tanggal_create; // Format: DD/MM/YYYY
-        if (!membercardByDate[dateKey]) {
-            membercardByDate[dateKey] = 0;
-        }
-        membercardByDate[dateKey] += 500; // Rp 500 per membercard
-    });
-    
-    // Add membercard komisi to dateMap
-    Object.entries(membercardByDate).forEach(([dateKey, komisi]) => {
-        if (!dateMap[dateKey]) {
+        const dateKey = m.tanggal_create;
+        if (dateKey && !dateMap[dateKey]) {
             dateMap[dateKey] = {
                 tanggal: dateKey,
                 hari: getHariFromDateDDMMYYYY(dateKey),
@@ -5758,32 +5786,36 @@ async function calculateDetailHarian(absenList, komisiList, transaksiList,
                 total: 0
             };
         }
-        dateMap[dateKey].komisi_membercard += komisi;
+        if (dateMap[dateKey]) {
+            dateMap[dateKey].komisi_membercard += 500;
+        }
     });
     
     // Process kas (fee transfer)
     kasList.forEach(k => {
-        const dateStr = k.tanggal; // Format: YYYY-MM-DD
-        const dateParts = dateStr.split('-');
-        if (dateParts.length === 3) {
-            const dateKey = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-            
-            if (!dateMap[dateKey]) {
-                dateMap[dateKey] = {
-                    tanggal: dateKey,
-                    hari: getHariFromDate(dateStr),
-                    gaji: 0,
-                    uop: 0,
-                    komisi_produk: 0,
-                    komisi_membercard: 0,
-                    overtime: 0,
-                    fee_trf: 0,
-                    tips_qris: 0,
-                    total: 0
-                };
+        const dateStr = k.tanggal;
+        if (dateStr) {
+            const dateParts = dateStr.split('-');
+            if (dateParts.length === 3) {
+                const dateKey = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                
+                if (!dateMap[dateKey]) {
+                    dateMap[dateKey] = {
+                        tanggal: dateKey,
+                        hari: getHariFromDate(dateStr),
+                        gaji: 0,
+                        uop: 0,
+                        komisi_produk: 0,
+                        komisi_membercard: 0,
+                        overtime: 0,
+                        fee_trf: 0,
+                        tips_qris: 0,
+                        total: 0
+                    };
+                }
+                
+                dateMap[dateKey].fee_trf += k.fee_trf_setoran || 0;
             }
-            
-            dateMap[dateKey].fee_trf += k.fee_trf_setoran || 0;
         }
     });
     
@@ -5797,7 +5829,6 @@ async function calculateDetailHarian(absenList, komisiList, transaksiList,
     // Convert to array and sort by date
     return Object.values(dateMap)
         .sort((a, b) => {
-            // Sort by DD/MM/YYYY
             const [dayA, monthA, yearA] = a.tanggal.split('/').map(Number);
             const [dayB, monthB, yearB] = b.tanggal.split('/').map(Number);
             
@@ -5807,7 +5838,7 @@ async function calculateDetailHarian(absenList, komisiList, transaksiList,
         });
 }
 
-// [7.15] Helper: Get hari from YYYY-MM-DD
+// [15] Helper: Get hari from YYYY-MM-DD
 function getHariFromDate(dateStr) {
     try {
         const [year, month, day] = dateStr.split('-').map(Number);
@@ -5818,7 +5849,7 @@ function getHariFromDate(dateStr) {
     }
 }
 
-// [7.16] Helper: Get hari from DD/MM/YYYY
+// [16] Helper: Get hari from DD/MM/YYYY
 function getHariFromDateDDMMYYYY(dateStr) {
     try {
         const [day, month, year] = dateStr.split('/').map(Number);
@@ -5829,7 +5860,7 @@ function getHariFromDateDDMMYYYY(dateStr) {
     }
 }
 
-// [7.17] Tampilkan data slip ke UI
+// [17] Tampilkan data slip ke UI
 function displaySlipData(slipData, dataSource) {
     const content = document.getElementById('slipContent');
     const emptyState = document.getElementById('emptySlip');
@@ -5855,14 +5886,18 @@ function displaySlipData(slipData, dataSource) {
         setupAdjustmentButtons();
     }
     
+    // Setup UI events
+    setTimeout(() => {
+        setupSlipUIEvents();
+    }, 100);
+    
     content.style.display = 'block';
     emptyState.style.display = 'none';
 }
 
-// // [7.18] Render slip untuk KASIR - VERSI TABEL SUMMARY
+// [18] Render slip untuk KASIR
 function renderKasirSlip(data, dataSource) {
     const isFinal = dataSource === 'final';
-    const editDisabled = isFinal ? 'disabled' : '';
     
     return `
         <div class="slip-container">
@@ -5897,7 +5932,7 @@ function renderKasirSlip(data, dataSource) {
                 </div>
             </div>
             
-            <!-- Section 1: SUMMARY PENGHASILAN SEBAGAI TABEL -->
+            <!-- Summary Table -->
             <section class="summary-table-section">
                 <h4 class="section-title">
                     <i class="fas fa-calculator"></i> SUMMARY PENGHASILAN
@@ -5924,9 +5959,9 @@ function renderKasirSlip(data, dataSource) {
                                 <td class="summary-value-cell">${data.penjualan_produk} pcs</td>
                             </tr>
                             <tr>
-                                <td>Komisi Penjualan Produk</td>
+                                <td>Komisi Produk</td>
                                 <td class="summary-value-cell highlight">${formatRupiah(data.komisi_produk)}</td>
-                                <td>Pembuatan Membercard</td>
+                                <td>Membercard Created</td>
                                 <td class="summary-value-cell">${data.membercard_created} card</td>
                             </tr>
                             <tr>
@@ -5936,7 +5971,7 @@ function renderKasirSlip(data, dataSource) {
                                 <td class="summary-value-cell">${formatRupiah(data.uop)}</td>
                             </tr>
                             <tr>
-                                <td>Fee Transfer Setoran</td>
+                                <td>Fee Transfer</td>
                                 <td class="summary-value-cell">${formatRupiah(data.fee_transfer)}</td>
                                 <td>Tips QRIS</td>
                                 <td class="summary-value-cell">${formatRupiah(data.tips_qris)}</td>
@@ -5950,7 +5985,7 @@ function renderKasirSlip(data, dataSource) {
                 </div>
             </section>
             
-            <!-- Section 2: TARGET & ACHIEVEMENT - DENGAN SPACE DI ATAS -->
+            <!-- Target & Achievement -->
             <section class="target-section">
                 <h4 class="section-title">
                     <i class="fas fa-bullseye"></i> TARGET & ACHIEVEMENT
@@ -5976,7 +6011,6 @@ function renderKasirSlip(data, dataSource) {
                                 </td>
                                 <td class="text-small">
                                     ${data.bonus_membercard || '-'}
-                                    ${data.bonus_membercard_value ? `<br><small>(${formatRupiahShort(data.bonus_membercard_value)})</small>` : ''}
                                 </td>
                             </tr>
                             <tr>
@@ -5988,7 +6022,6 @@ function renderKasirSlip(data, dataSource) {
                                 </td>
                                 <td class="text-small">
                                     ${data.bonus_produk || '-'}
-                                    ${data.bonus_produk_value ? `<br><small>(${formatRupiahShort(data.bonus_produk_value)})</small>` : ''}
                                 </td>
                             </tr>
                             <tr>
@@ -6011,14 +6044,14 @@ function renderKasirSlip(data, dataSource) {
                 </div>
             </section>
             
-            <!-- Section 3: ADJUSTMENT -->
+            <!-- Adjustment -->
             <section class="adjustment-section">
                 <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <h4 class="section-title" style="margin: 0;">
                         <i class="fas fa-adjust"></i> ADJUSTMENT
                     </h4>
                     ${isOwnerSlip && !isFinal ? `
-                    <button class="btn-add-adjustment" id="addAdjustmentBtn" ${editDisabled} style="padding: 6px 12px; font-size: 0.8rem;">
+                    <button class="btn-add-adjustment" id="addAdjustmentBtn">
                         <i class="fas fa-plus"></i> Tambah
                     </button>
                     ` : ''}
@@ -6066,16 +6099,16 @@ function renderKasirSlip(data, dataSource) {
                         </tfoot>
                     </table>
                     ` : `
-                    <div class="no-adjustment" style="padding: 15px; text-align: center; color: #999;">
+                    <div class="no-adjustment">
                         <i class="fas fa-info-circle"></i>
-                        <p class="text-small" style="margin: 5px 0 0;">Tidak ada adjustment</p>
+                        <p class="text-small">Tidak ada adjustment</p>
                     </div>
                     `}
                 </div>
             </section>
             
-            <!-- Section 4: TOTAL PENGHASILAN -->
-            <section class="slip-section total-section">
+            <!-- Total Penghasilan -->
+            <section class="total-section">
                 <div class="total-compact-grid">
                     <div class="total-item-compact">
                         <span class="total-label">Total Penghasilan</span>
@@ -6092,7 +6125,7 @@ function renderKasirSlip(data, dataSource) {
                 </div>
             </section>
             
-            <!-- Section 5: DETAIL HARIAN (HIDDEN - TOGGLE) -->
+            <!-- Detail Harian (Toggle) -->
             <section class="detail-section" id="detailSection">
                 <div class="detail-header" id="toggleDetail">
                     <h4>
@@ -6124,7 +6157,7 @@ function renderKasirSlip(data, dataSource) {
                                     data.detail_harian.map(day => `
                                     <tr>
                                         <td class="text-xs">${day.tanggal}</td>
-                                        <td class="text-xs">${day.hari.substring(0, 3)}</td>
+                                        <td class="text-xs">${day.hari?.substring(0, 3) || '-'}</td>
                                         <td class="text-xs">${formatRupiahShort(day.gaji)}</td>
                                         <td class="text-xs">${formatRupiahShort(day.uop)}</td>
                                         <td class="text-xs">${formatRupiahShort(day.komisi_produk)}</td>
@@ -6132,7 +6165,7 @@ function renderKasirSlip(data, dataSource) {
                                         <td class="text-xs">${formatRupiahShort(day.overtime)}</td>
                                         <td class="text-xs">${formatRupiahShort(day.fee_trf)}</td>
                                         <td class="text-xs">${formatRupiahShort(day.tips_qris)}</td>
-                                        <td class="text-xs total-day">${formatRupiahShort(day.total)}</td>
+                                        <td class="text-xs">${formatRupiahShort(day.total)}</td>
                                     </tr>
                                     `).join('') 
                                     : `
@@ -6157,7 +6190,7 @@ function renderKasirSlip(data, dataSource) {
     `;
 }
 
-// [7.19] Render slip untuk BARBERMAN - VERSI TABEL SUMMARY
+// [19] Render slip untuk BARBERMAN
 function renderBarbermanSlip(data, dataSource) {
     const isFinal = dataSource === 'final';
     
@@ -6194,7 +6227,7 @@ function renderBarbermanSlip(data, dataSource) {
                 </div>
             </div>
             
-            <!-- Section 1: SUMMARY SEBAGAI TABEL -->
+            <!-- Summary Table -->
             <section class="summary-table-section">
                 <h4 class="section-title">
                     <i class="fas fa-calculator"></i> SUMMARY PENGHASILAN
@@ -6223,7 +6256,7 @@ function renderBarbermanSlip(data, dataSource) {
                 </div>
             </section>
             
-            <!-- Section 2: ITEM DETAILS -->
+            <!-- Item Details -->
             <section class="target-section">
                 <h4 class="section-title">
                     <i class="fas fa-list"></i> DETAIL ITEM
@@ -6255,22 +6288,22 @@ function renderBarbermanSlip(data, dataSource) {
                         </tfoot>
                     </table>
                     ` : `
-                    <div class="no-adjustment" style="padding: 15px; text-align: center; color: #999;">
+                    <div class="no-adjustment">
                         <i class="fas fa-box-open"></i>
-                        <p class="text-small" style="margin: 5px 0 0;">Tidak ada data item</p>
+                        <p class="text-small">Tidak ada data item</p>
                     </div>
                     `}
                 </div>
             </section>
             
-            <!-- Section 3: ADJUSTMENT -->
+            <!-- Adjustment -->
             <section class="adjustment-section">
                 <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <h4 class="section-title" style="margin: 0;">
                         <i class="fas fa-adjust"></i> ADJUSTMENT
                     </h4>
                     ${isOwnerSlip && !isFinal ? `
-                    <button class="btn-add-adjustment" id="addAdjustmentBtn" style="padding: 6px 12px; font-size: 0.8rem;">
+                    <button class="btn-add-adjustment" id="addAdjustmentBtn">
                         <i class="fas fa-plus"></i> Tambah
                     </button>
                     ` : ''}
@@ -6318,16 +6351,16 @@ function renderBarbermanSlip(data, dataSource) {
                         </tfoot>
                     </table>
                     ` : `
-                    <div class="no-adjustment" style="padding: 15px; text-align: center; color: #999;">
+                    <div class="no-adjustment">
                         <i class="fas fa-info-circle"></i>
-                        <p class="text-small" style="margin: 5px 0 0;">Tidak ada adjustment</p>
+                        <p class="text-small">Tidak ada adjustment</p>
                     </div>
                     `}
                 </div>
             </section>
             
-            <!-- Section 4: TOTAL -->
-            <section class="slip-section total-section">
+            <!-- Total -->
+            <section class="total-section">
                 <div class="total-compact-grid">
                     <div class="total-item-compact grand-total">
                         <span class="total-label">TOTAL PENGHASILAN</span>
@@ -6346,7 +6379,7 @@ function renderBarbermanSlip(data, dataSource) {
     `;
 }
 
-// [7.20] Setup event listeners untuk detail toggle dan save
+// [20] Setup UI events
 function setupSlipUIEvents() {
     // Toggle Detail Harian
     const toggleDetail = document.getElementById('toggleDetail');
@@ -6380,7 +6413,7 @@ function setupSlipUIEvents() {
     }
 }
 
-// [7.21] Fungsi untuk save screen capture
+// [21] Fungsi untuk save screen capture
 function saveSlipCapture() {
     try {
         // Hide elements yang tidak ingin di-capture
@@ -6410,7 +6443,6 @@ function saveSlipCapture() {
         
         // Gunakan html2canvas untuk capture
         if (typeof html2canvas === 'undefined') {
-            // Load html2canvas jika belum ada
             alert('Sedang memuat library capture...');
             loadHtml2CanvasLibrary().then(() => {
                 captureAndSave(slipContainer, originalDisplay);
@@ -6422,8 +6454,6 @@ function saveSlipCapture() {
     } catch (error) {
         console.error('Error capturing slip:', error);
         alert('Gagal menyimpan slip: ' + error.message);
-        
-        // Restore elements
         restoreHiddenElements(originalDisplay);
     }
 }
@@ -6438,7 +6468,7 @@ async function captureAndSave(slipContainer, originalDisplay) {
         
         // Capture menggunakan html2canvas
         const canvas = await html2canvas(slipContainer, {
-            scale: 2, // High resolution
+            scale: 2,
             useCORS: true,
             backgroundColor: '#ffffff',
             logging: false
@@ -6503,7 +6533,7 @@ function restoreHiddenElements(originalDisplay) {
     });
 }
 
-// [7.22] Load html2canvas library
+// [22] Load html2canvas library
 function loadHtml2CanvasLibrary() {
     return new Promise((resolve, reject) => {
         if (typeof html2canvas !== 'undefined') {
@@ -6521,82 +6551,110 @@ function loadHtml2CanvasLibrary() {
     });
 }
 
-// [7.23] Update fungsi displaySlipData untuk setup events
-function displaySlipData(slipData, dataSource) {
+// [23] Helper Functions
+function showLoadingSlip(show) {
+    const loading = document.getElementById('loadingSlip');
     const content = document.getElementById('slipContent');
-    const emptyState = document.getElementById('emptySlip');
+    const empty = document.getElementById('emptySlip');
     
-    // Hide loading
-    showLoadingSlip(false);
-    
-    if (!slipData || !slipData.data) {
+    if (show) {
+        loading.style.display = 'flex';
         content.style.display = 'none';
-        emptyState.style.display = 'block';
-        return;
+        empty.style.display = 'none';
+    } else {
+        loading.style.display = 'none';
     }
-    
-    // Tampilkan berdasarkan role
-    if (slipData.role === 'kasir' || slipData.role === 'owner') {
-        content.innerHTML = renderKasirSlip(slipData.data, dataSource);
-    } else if (slipData.role === 'barberman') {
-        content.innerHTML = renderBarbermanSlip(slipData.data, dataSource);
-    }
-    
-    // Setup edit buttons jika owner dan belum final
-    if (isOwnerSlip && dataSource === 'realtime') {
-        setupAdjustmentButtons();
-    }
-    
-    // Setup UI events (toggle detail dan save)
-    setTimeout(() => {
-        setupSlipUIEvents();
-    }, 100);
-    
-    content.style.display = 'block';
-    emptyState.style.display = 'none';
 }
 
-// [7.24] Update setupSlipPageEvents untuk HAPUS download button
-function setupSlipPageEvents() {
-    // Tombol kembali
-    document.getElementById('backToMainFromSlip').addEventListener('click', () => {
-        document.getElementById('slipPage').remove();
-        document.getElementById('appScreen').style.display = 'block';
-    });
+function showErrorSlip(message) {
+    const content = document.getElementById('slipContent');
+    content.innerHTML = `
+        <div class="error-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Terjadi Kesalahan</h3>
+            <p>${message}</p>
+            <button class="btn-retry" id="retrySlip" style="margin-top: 15px; padding: 8px 20px; background: #4CAF50; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                <i class="fas fa-redo"></i> Coba Lagi
+            </button>
+        </div>
+    `;
+    content.style.display = 'block';
     
-    // Tombol refresh
-    document.getElementById('refreshSlip').addEventListener('click', async () => {
+    document.getElementById('retrySlip').addEventListener('click', async () => {
         const bulan = parseInt(document.getElementById('selectBulan').value);
         const tahun = parseInt(document.getElementById('selectTahun').value);
         await loadSlipData(bulan, tahun);
     });
+}
+
+function formatRupiah(amount) {
+    if (amount === 0 || !amount) return 'Rp 0';
+    return 'Rp ' + amount.toLocaleString('id-ID');
+}
+
+function formatRupiahShort(amount) {
+    if (amount === 0 || !amount) return 'Rp 0';
     
-    // Tombol load data
-    document.getElementById('loadSlipData').addEventListener('click', async () => {
-        const bulan = parseInt(document.getElementById('selectBulan').value);
-        const tahun = parseInt(document.getElementById('selectTahun').value);
-        await loadSlipData(bulan, tahun);
+    if (Math.abs(amount) < 1000000) {
+        return 'Rp ' + amount.toLocaleString('id-ID');
+    }
+    
+    if (Math.abs(amount) >= 1000000000) {
+        return 'Rp ' + (amount / 1000000000).toFixed(1).replace('.', ',') + 'M';
+    }
+    
+    if (Math.abs(amount) >= 1000000) {
+        return 'Rp ' + (amount / 1000000).toFixed(1).replace('.', ',') + 'jt';
+    }
+    
+    return 'Rp ' + amount.toLocaleString('id-ID');
+}
+
+function getStatusColor(percentage) {
+    if (percentage >= 100) return 'status-achieved';
+    if (percentage >= 80) return 'status-good';
+    if (percentage >= 60) return 'status-warning';
+    return 'status-failed';
+}
+
+function setupAdjustmentButtons() {
+    // Tambah adjustment
+    const addBtn = document.getElementById('addAdjustmentBtn');
+    if (addBtn) {
+        addBtn.addEventListener('click', showAddAdjustmentModal);
+    }
+    
+    // Edit adjustment
+    document.querySelectorAll('.btn-edit-adj').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const index = e.target.closest('button').dataset.index;
+            showEditAdjustmentModal(index);
+        });
     });
     
-    // HAPUS: Download button event listener
-    
-    // Filter untuk owner
-    if (isOwnerSlip) {
-        // Load dropdown outlet
-        loadOutletDropdownSlip();
-        
-        // Event listener untuk outlet change
-        document.getElementById('selectOutletSlip').addEventListener('change', async () => {
-            await loadKaryawanDropdownSlip();
+    // Delete adjustment
+    document.querySelectorAll('.btn-delete-adj').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const index = e.target.closest('button').dataset.index;
+            await deleteAdjustment(index);
         });
-        
-        // Event listener untuk karyawan change
-        document.getElementById('selectKaryawanSlip').addEventListener('change', async () => {
-            const bulan = parseInt(document.getElementById('selectBulan').value);
-            const tahun = parseInt(document.getElementById('selectTahun').value);
-            await loadSlipData(bulan, tahun);
-        });
+    });
+}
+
+function showAddAdjustmentModal() {
+    alert('Modal tambah adjustment akan diimplementasikan');
+}
+
+function showEditAdjustmentModal(index) {
+    alert(`Modal edit adjustment ${index} akan diimplementasikan`);
+}
+
+async function deleteAdjustment(index) {
+    if (confirm('Hapus adjustment ini?')) {
+        alert(`Delete adjustment ${index} akan diimplementasikan`);
     }
 }
+
+
 
 // ========== END OF FILE ==========
