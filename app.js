@@ -6953,7 +6953,7 @@ function setupTabNavigation(elements) {
     });
 }
 
-// [26] Fungsi untuk save adjustment - DIPERBAIKI dengan tanggal
+// [26] Fungsi untuk save adjustment - HAPUS created_by & created_at
 async function saveAdjustment(index) {
     try {
         const dateInput = document.getElementById('adjustmentDate');
@@ -7037,32 +7037,30 @@ async function saveAdjustment(index) {
             }
         }
         
-        // Data untuk disimpan
+        // Data untuk disimpan - HAPUS created_by dan created_at
         const adjustmentData = {
             adjustment: adjustmentType,
             adjustment_amount: amount,
             serve_by: namaKaryawan,
             tanggal: selectedDate,
-            note: noteInput?.value?.trim() || null,
-            created_at: new Date().toISOString(),
-            created_by: (await supabase.auth.getUser()).data.user?.email || 'owner'
+            note: noteInput?.value?.trim() || null
+            // HAPUS: created_at: new Date().toISOString(),
+            // HAPUS: created_by: (await supabase.auth.getUser()).data.user?.email || 'owner'
         };
         
-        console.log('Saving adjustment with date:', adjustmentData);
+        console.log('Saving adjustment:', adjustmentData);
         
         // Cek apakah edit atau tambah baru
         let result;
         if (index !== undefined && index !== null) {
             // EDIT MODE: Cari existing adjustment berdasarkan index
-            // Untuk edit, kita perlu ID asli dari database
-            // Karena kita tidak punya ID di UI, kita cari berdasarkan type, amount, tanggal dan nama
             const { data: existingAdjustments, error: queryError } = await supabase
                 .from('komisi')
                 .select('id, adjustment, adjustment_amount, tanggal')
                 .eq('serve_by', namaKaryawan)
                 .eq('tanggal', selectedDate)
                 .eq('adjustment', adjustmentType)
-                .order('created_at', { ascending: false });
+                .order('tanggal', { ascending: false });
             
             if (queryError) throw queryError;
             
@@ -7072,8 +7070,8 @@ async function saveAdjustment(index) {
                     .from('komisi')
                     .update({ 
                         adjustment_amount: amount,
-                        note: noteInput?.value?.trim() || null,
-                        updated_at: new Date().toISOString()
+                        note: noteInput?.value?.trim() || null
+                        // HAPUS: updated_at: new Date().toISOString()
                     })
                     .eq('id', existingAdjustments[0].id);
                 
@@ -7108,8 +7106,8 @@ async function saveAdjustment(index) {
                     .from('komisi')
                     .update({ 
                         adjustment_amount: amount,
-                        note: noteInput?.value?.trim() || null,
-                        updated_at: new Date().toISOString()
+                        note: noteInput?.value?.trim() || null
+                        // HAPUS: updated_at: new Date().toISOString()
                     })
                     .eq('id', existingData.id);
                 
@@ -7157,7 +7155,6 @@ async function saveAdjustment(index) {
         alert('Gagal menyimpan adjustment: ' + error.message);
     }
 }
-
 // Helper function untuk format tanggal display
 function formatDateDisplay(dateStr) {
     if (!dateStr) return '-';
