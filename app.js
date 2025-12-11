@@ -5861,7 +5861,7 @@ function displaySlipData(slipData, dataSource) {
     emptyState.style.display = 'none';
 }
 
-// [7.18] Render slip untuk KASIR
+// [7.18] Render slip untuk KASIR - VERSI COMPACT
 function renderKasirSlip(data, dataSource) {
     const isFinal = dataSource === 'final';
     const editDisabled = isFinal ? 'disabled' : '';
@@ -5871,23 +5871,23 @@ function renderKasirSlip(data, dataSource) {
             <!-- Header Info -->
             <div class="slip-header-info">
                 <div class="header-left">
-                    <h3>SLIP PENGHASILAN</h3>
+                    <h3 class="margin-tight">SLIP PENGHASILAN</h3>
                     <div class="header-details">
                         <div class="detail-item">
                             <span class="detail-label">Nama:</span>
-                            <span class="detail-value">${data.nama_karyawan}</span>
+                            <span class="detail-value text-small">${data.nama_karyawan}</span>
                         </div>
                         <div class="detail-item">
                             <span class="detail-label">Posisi:</span>
-                            <span class="detail-value">${data.posisi}</span>
+                            <span class="detail-value text-small">${data.posisi}</span>
                         </div>
                         <div class="detail-item">
                             <span class="detail-label">Outlet:</span>
-                            <span class="detail-value">${data.outlet}</span>
+                            <span class="detail-value text-small">${data.outlet}</span>
                         </div>
                         <div class="detail-item">
                             <span class="detail-label">Periode:</span>
-                            <span class="detail-value">${data.periode}</span>
+                            <span class="detail-value text-small">${data.periode}</span>
                         </div>
                     </div>
                 </div>
@@ -5896,86 +5896,68 @@ function renderKasirSlip(data, dataSource) {
                         <i class="fas ${isFinal ? 'fa-lock' : 'fa-sync-alt'}"></i>
                         ${isFinal ? 'Data Final' : 'Data Real-time'}
                     </div>
-                    ${isFinal ? '<div class="final-note"><i class="fas fa-check-circle"></i> Sudah difinalkan</div>' : ''}
                 </div>
             </div>
             
-            <!-- Section 1: SUMMARY PENGHASILAN -->
+            <!-- Section 1: SUMMARY PENGHASILAN - 1 LINE COMPACT -->
             <section class="slip-section">
                 <h4 class="section-title">
                     <i class="fas fa-calculator"></i> SUMMARY PENGHASILAN
                 </h4>
-                <div class="summary-grid">
-                    <div class="summary-row">
-                        <div class="summary-item">
-                            <span class="summary-label">Hari Kerja</span>
-                            <span class="summary-value">${data.hari_kerja} hari</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="summary-label">Gaji per Hari</span>
-                            <span class="summary-value">${formatRupiah(data.gaji_per_hari)}</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="summary-label">Gaji</span>
-                            <span class="summary-value">${formatRupiah(data.total_gaji)}</span>
-                        </div>
+                <div class="summary-single-line">
+                    <div class="summary-item-compact">
+                        <span class="summary-label-compact">Hari Kerja</span>
+                        <span class="summary-value-compact">${data.hari_kerja} Hari</span>
+                    </div>
+                    <div class="summary-item-compact">
+                        <span class="summary-label-compact">Gaji/Hari</span>
+                        <span class="summary-value-compact">${formatRupiah(data.gaji_per_hari)}</span>
+                    </div>
+                    <div class="summary-item-compact">
+                        <span class="summary-label-compact">Total Gaji</span>
+                        <span class="summary-value-compact">${formatRupiah(data.total_gaji)}</span>
+                    </div>
+                    <div class="summary-item-compact">
+                        <span class="summary-label-compact">Over Time</span>
+                        <span class="summary-value-compact">${formatRupiah(data.overtime_rupiah)}</span>
+                    </div>
+                    <div class="summary-item-compact">
+                        <span class="summary-label-compact">Produk Terjual</span>
+                        <span class="summary-value-compact">${data.penjualan_produk} pcs</span>
+                    </div>
+                    <div class="summary-item-compact">
+                        <span class="summary-label-compact">Komisi Produk</span>
+                        <span class="summary-value-compact highlight">${formatRupiah(data.komisi_produk)}</span>
+                    </div>
+                    <div class="summary-item-compact">
+                        <span class="summary-label-compact">Membercard</span>
+                        <span class="summary-value-compact">${data.membercard_created} card</span>
+                    </div>
+                    <div class="summary-item-compact">
+                        <span class="summary-label-compact">Komisi Member</span>
+                        <span class="summary-value-compact">${formatRupiah(data.komisi_membercard)}</span>
+                    </div>
+                    <div class="summary-item-compact">
+                        <span class="summary-label-compact">UOP</span>
+                        <span class="summary-value-compact">${formatRupiah(data.uop)}</span>
+                    </div>
+                    <div class="summary-item-compact">
+                        <span class="summary-label-compact">Fee Transfer</span>
+                        <span class="summary-value-compact">${formatRupiah(data.fee_transfer)}</span>
+                    </div>
+                    <div class="summary-item-compact">
+                        <span class="summary-label-compact">Tips QRIS</span>
+                        <span class="summary-value-compact">${formatRupiah(data.tips_qris)}</span>
                     </div>
                     
-                    <div class="summary-row">
-                        <div class="summary-item">
-                            <span class="summary-label">Over Time (menit)</span>
-                            <span class="summary-value">${data.overtime_menit} menit</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="summary-label">Over Time Rupiah</span>
-                            <span class="summary-value">${formatRupiah(data.overtime_rupiah)}</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="summary-label">Penjualan Produk</span>
-                            <span class="summary-value">${data.penjualan_produk} pcs</span>
-                        </div>
-                    </div>
-                    
-                    <div class="summary-row">
-                        <div class="summary-item">
-                            <span class="summary-label">Komisi Penjualan Produk</span>
-                            <span class="summary-value highlight">${formatRupiah(data.komisi_produk)}</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="summary-label">Pembuatan Membercard</span>
-                            <span class="summary-value">${data.membercard_created} card</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="summary-label">Komisi Membercard</span>
-                            <span class="summary-value">${formatRupiah(data.komisi_membercard)}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="summary-row">
-                        <div class="summary-item">
-                            <span class="summary-label">UOP</span>
-                            <span class="summary-value">${formatRupiah(data.uop)}</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="summary-label">Fee Transfer Setoran</span>
-                            <span class="summary-value">${formatRupiah(data.fee_transfer)}</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="summary-label">Tips QRIS</span>
-                            <span class="summary-value">${formatRupiah(data.tips_qris)}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="summary-total-row">
-                        <div class="summary-total">
-                            <span class="total-label">Sub Total</span>
-                            <span class="total-value">${formatRupiah(data.sub_total_penghasilan)}</span>
-                        </div>
+                    <div class="summary-total-compact">
+                        <span class="total-label">Sub Total Penghasilan</span>
+                        <span class="total-value">${formatRupiah(data.sub_total_penghasilan)}</span>
                     </div>
                 </div>
             </section>
             
-            <!-- Section 2: TARGET & ACHIEVEMENT -->
+            <!-- Section 2: TARGET & ACHIEVEMENT - COMPACT -->
             <section class="slip-section">
                 <h4 class="section-title">
                     <i class="fas fa-bullseye"></i> TARGET & ACHIEVEMENT
@@ -5986,7 +5968,7 @@ function renderKasirSlip(data, dataSource) {
                             <tr>
                                 <th>KPI</th>
                                 <th>Target</th>
-                                <th>Achievement</th>
+                                <th>Actual</th>
                                 <th>Status</th>
                                 <th>Bonus</th>
                             </tr>
@@ -5994,58 +5976,55 @@ function renderKasirSlip(data, dataSource) {
                         <tbody>
                             <tr>
                                 <td>Membercard</td>
-                                <td>${data.target_membercard?.toFixed(1) || 0}</td>
-                                <td>${data.achievement_membercard || 0}</td>
-                                <td class="status-cell ${getStatusColor(data.status_membercard || 0)}">
+                                <td class="text-small">${data.target_membercard?.toFixed(1) || 0}</td>
+                                <td class="text-small">${data.achievement_membercard || 0}</td>
+                                <td class="status-cell ${getStatusColor(data.status_membercard || 0)} text-xs">
                                     ${(data.status_membercard || 0).toFixed(1)}%
                                 </td>
-                                <td>
+                                <td class="text-small">
                                     ${data.bonus_membercard || '-'}
-                                    ${data.bonus_membercard_value ? `<br><small>(${formatRupiah(data.bonus_membercard_value)})</small>` : ''}
                                 </td>
                             </tr>
                             <tr>
                                 <td>Produk</td>
-                                <td>${data.target_produk?.toFixed(1) || 0}</td>
-                                <td>${data.achievement_produk || 0}</td>
-                                <td class="status-cell ${getStatusColor(data.status_produk || 0)}">
+                                <td class="text-small">${data.target_produk?.toFixed(1) || 0}</td>
+                                <td class="text-small">${data.achievement_produk || 0}</td>
+                                <td class="status-cell ${getStatusColor(data.status_produk || 0)} text-xs">
                                     ${(data.status_produk || 0).toFixed(1)}%
                                 </td>
-                                <td>
+                                <td class="text-small">
                                     ${data.bonus_produk || '-'}
-                                    ${data.bonus_produk_value ? `<br><small>(${formatRupiah(data.bonus_produk_value)})</small>` : ''}
                                 </td>
                             </tr>
                             <tr>
                                 <td>Omset</td>
-                                <td>${formatRupiah(data.target_omset || 0)}</td>
-                                <td>${formatRupiah(data.achievement_omset || 0)}</td>
-                                <td class="status-cell ${getStatusColor(data.status_omset || 0)}">
+                                <td class="text-small">${formatRupiahShort(data.target_omset || 0)}</td>
+                                <td class="text-small">${formatRupiahShort(data.achievement_omset || 0)}</td>
+                                <td class="status-cell ${getStatusColor(data.status_omset || 0)} text-xs">
                                     ${(data.status_omset || 0).toFixed(1)}%
                                 </td>
-                                <td>${formatRupiah(data.bonus_omset || 0)}</td>
+                                <td class="text-small">${formatRupiahShort(data.bonus_omset || 0)}</td>
                             </tr>
                         </tbody>
                         <tfoot>
                             <tr>
-                                <td colspan="4" class="text-right"><strong>Sub Total Bonus:</strong></td>
-                                <td><strong>${formatRupiah(data.sub_total_target || 0)}</strong></td>
+                                <td colspan="4" class="text-right text-small"><strong>Sub Total Bonus:</strong></td>
+                                <td class="text-small"><strong>${formatRupiahShort(data.sub_total_target || 0)}</strong></td>
                             </tr>
                         </tfoot>
                     </table>
-                    ${data.proporsi_kasir ? `<div class="proporsi-info"><small>Proporsi hari kerja: ${(data.proporsi_kasir * 100).toFixed(1)}%</small></div>` : ''}
                 </div>
             </section>
             
-            <!-- Section 3: ADJUSTMENT -->
+            <!-- Section 3: ADJUSTMENT - COMPACT -->
             <section class="slip-section">
-                <div class="section-header">
-                    <h4 class="section-title">
+                <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4 class="section-title" style="margin: 0;">
                         <i class="fas fa-adjust"></i> ADJUSTMENT
                     </h4>
                     ${isOwnerSlip && !isFinal ? `
                     <button class="btn-add-adjustment" id="addAdjustmentBtn" ${editDisabled}>
-                        <i class="fas fa-plus"></i> Tambah Adjustment
+                        <i class="fas fa-plus"></i> Tambah
                     </button>
                     ` : ''}
                 </div>
@@ -6057,23 +6036,23 @@ function renderKasirSlip(data, dataSource) {
                             <tr>
                                 <th>Jenis</th>
                                 <th>Amount</th>
-                                ${isOwnerSlip && !isFinal ? '<th>Aksi</th>' : ''}
+                                ${isOwnerSlip && !isFinal ? '<th style="width: 70px;">Aksi</th>' : ''}
                             </tr>
                         </thead>
                         <tbody>
                             ${data.adjustments.map((adj, index) => `
                             <tr data-index="${index}">
-                                <td>${adj.type || '-'}</td>
-                                <td class="${adj.amount < 0 ? 'text-danger' : 'text-success'}">
-                                    ${formatRupiah(adj.amount || 0)}
+                                <td class="text-small">${adj.type || '-'}</td>
+                                <td class="text-small ${adj.amount < 0 ? 'text-danger' : 'text-success'}">
+                                    ${formatRupiahShort(adj.amount || 0)}
                                 </td>
                                 ${isOwnerSlip && !isFinal ? `
                                 <td>
-                                    <button class="btn-edit-adj" data-index="${index}">
-                                        <i class="fas fa-edit"></i>
+                                    <button class="btn-edit-adj" data-index="${index}" title="Edit">
+                                        <i class="fas fa-edit fa-sm"></i>
                                     </button>
-                                    <button class="btn-delete-adj" data-index="${index}">
-                                        <i class="fas fa-trash"></i>
+                                    <button class="btn-delete-adj" data-index="${index}" title="Hapus">
+                                        <i class="fas fa-trash fa-sm"></i>
                                     </button>
                                 </td>
                                 ` : ''}
@@ -6082,10 +6061,10 @@ function renderKasirSlip(data, dataSource) {
                         </tbody>
                         <tfoot>
                             <tr>
-                                <td><strong>Total Adjustment:</strong></td>
-                                <td colspan="${isOwnerSlip && !isFinal ? '2' : '1'}">
+                                <td class="text-small"><strong>Total:</strong></td>
+                                <td colspan="${isOwnerSlip && !isFinal ? '2' : '1'}" class="text-small">
                                     <strong class="${data.total_adjustment < 0 ? 'text-danger' : 'text-success'}">
-                                        ${formatRupiah(data.total_adjustment || 0)}
+                                        ${formatRupiahShort(data.total_adjustment || 0)}
                                     </strong>
                                 </td>
                             </tr>
@@ -6094,31 +6073,31 @@ function renderKasirSlip(data, dataSource) {
                     ` : `
                     <div class="no-adjustment">
                         <i class="fas fa-info-circle"></i>
-                        <p>Tidak ada adjustment</p>
+                        <p class="text-small">Tidak ada adjustment</p>
                     </div>
                     `}
                 </div>
             </section>
             
-            <!-- Section 4: TOTAL PENGHASILAN -->
+            <!-- Section 4: TOTAL PENGHASILAN - COMPACT -->
             <section class="slip-section total-section">
-                <div class="total-grid">
-                    <div class="total-item">
+                <div class="total-compact-grid">
+                    <div class="total-item-compact">
                         <span class="total-label">Total Penghasilan</span>
                         <span class="total-value highlight">${formatRupiah(data.total_penghasilan || 0)}</span>
                     </div>
-                    <div class="total-item">
-                        <span class="total-label">Penghasilan Diambil di Muka</span>
+                    <div class="total-item-compact">
+                        <span class="total-label">Penghasilan Diambil</span>
                         <span class="total-value text-danger">${formatRupiah(data.penghasilan_diambil || 0)}</span>
                     </div>
-                    <div class="total-item grand-total">
+                    <div class="total-item-compact grand-total">
                         <span class="total-label">TAKE HOME PAY</span>
-                        <span class="total-value grand-highlight">${formatRupiah(data.take_home_pay || 0)}</span>
+                        <span class="total-value">${formatRupiah(data.take_home_pay || 0)}</span>
                     </div>
                 </div>
             </section>
             
-            <!-- Section 5: DETAIL HARIAN -->
+            <!-- Section 5: DETAIL HARIAN - COMPACT -->
             <section class="slip-section">
                 <h4 class="section-title">
                     <i class="fas fa-calendar-alt"></i> DETAIL HARIAN
@@ -6131,11 +6110,11 @@ function renderKasirSlip(data, dataSource) {
                                 <th>Hari</th>
                                 <th>Gaji</th>
                                 <th>UoP</th>
-                                <th>Komisi Produk</th>
-                                <th>Komisi Membercard</th>
-                                <th>Over Time</th>
-                                <th>Fee TRF</th>
-                                <th>Tips QRIS</th>
+                                <th>Komisi</th>
+                                <th>Member</th>
+                                <th>O/T</th>
+                                <th>Fee</th>
+                                <th>Tips</th>
                                 <th>Total</th>
                             </tr>
                         </thead>
@@ -6143,21 +6122,21 @@ function renderKasirSlip(data, dataSource) {
                             ${data.detail_harian && data.detail_harian.length > 0 ? 
                                 data.detail_harian.map(day => `
                                 <tr>
-                                    <td>${day.tanggal}</td>
-                                    <td>${day.hari}</td>
-                                    <td>${formatRupiah(day.gaji)}</td>
-                                    <td>${formatRupiah(day.uop)}</td>
-                                    <td>${formatRupiah(day.komisi_produk)}</td>
-                                    <td>${formatRupiah(day.komisi_membercard)}</td>
-                                    <td>${formatRupiah(day.overtime)}</td>
-                                    <td>${formatRupiah(day.fee_trf)}</td>
-                                    <td>${formatRupiah(day.tips_qris)}</td>
-                                    <td class="total-day">${formatRupiah(day.total)}</td>
+                                    <td class="text-xs">${day.tanggal}</td>
+                                    <td class="text-xs">${day.hari.substring(0, 3)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.gaji)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.uop)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.komisi_produk)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.komisi_membercard)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.overtime)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.fee_trf)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.tips_qris)}</td>
+                                    <td class="text-xs total-day">${formatRupiahShort(day.total)}</td>
                                 </tr>
                                 `).join('') 
                                 : `
                                 <tr>
-                                    <td colspan="10" class="text-center">Tidak ada data harian</td>
+                                    <td colspan="10" class="text-center text-small">Tidak ada data harian</td>
                                 </tr>
                                 `
                             }
@@ -6172,16 +6151,230 @@ function renderKasirSlip(data, dataSource) {
                     <i class="fas fa-print"></i> Print
                 </button>
                 <button class="btn-download" id="downloadSlipBtn">
-                    <i class="fas fa-download"></i> Download PDF
+                    <i class="fas fa-download"></i> Download
                 </button>
                 ${isFinal ? `
                 <button class="btn-final" disabled>
-                    <i class="fas fa-lock"></i> Data Sudah Final
+                    <i class="fas fa-lock"></i> Final
                 </button>
                 ` : ''}
             </div>
         </div>
     `;
+}
+
+// [7.19] Render slip untuk BARBERMAN - VERSI COMPACT
+function renderBarbermanSlip(data, dataSource) {
+    const isFinal = dataSource === 'final';
+    
+    return `
+        <div class="slip-container barberman-slip">
+            <!-- Header Info -->
+            <div class="slip-header-info">
+                <div class="header-left">
+                    <h3 class="margin-tight">SLIP BARBERMAN</h3>
+                    <div class="header-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Nama:</span>
+                            <span class="detail-value text-small">${data.nama_karyawan}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Posisi:</span>
+                            <span class="detail-value text-small">${data.posisi}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Outlet:</span>
+                            <span class="detail-value text-small">${data.outlet}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Periode:</span>
+                            <span class="detail-value text-small">${data.periode}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="status-badge ${isFinal ? 'status-final' : 'status-realtime'}">
+                        <i class="fas ${isFinal ? 'fa-lock' : 'fa-sync-alt'}"></i>
+                        ${isFinal ? 'Final' : 'Real-time'}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Section 1: SUMMARY PENGHASILAN - COMPACT -->
+            <section class="slip-section">
+                <h4 class="section-title">
+                    <i class="fas fa-calculator"></i> SUMMARY
+                </h4>
+                <div class="summary-single-line">
+                    <div class="summary-item-compact">
+                        <span class="summary-label-compact">Hari Kerja</span>
+                        <span class="summary-value-compact">${data.hari_kerja} Hari</span>
+                    </div>
+                    <div class="summary-item-compact">
+                        <span class="summary-label-compact">UOP</span>
+                        <span class="summary-value-compact">${formatRupiah(data.uop)}</span>
+                    </div>
+                    <div class="summary-item-compact">
+                        <span class="summary-label-compact">Tips QRIS</span>
+                        <span class="summary-value-compact">${formatRupiah(data.tips_qris)}</span>
+                    </div>
+                    <div class="summary-item-compact">
+                        <span class="summary-label-compact">Komisi</span>
+                        <span class="summary-value-compact highlight">${formatRupiah(data.komisi)}</span>
+                    </div>
+                    
+                    <div class="summary-total-compact">
+                        <span class="total-label">Sub Total</span>
+                        <span class="total-value">${formatRupiah(data.sub_total || 0)}</span>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Section 2: ITEM DETAILS - COMPACT -->
+            <section class="slip-section">
+                <h4 class="section-title">
+                    <i class="fas fa-list"></i> DETAIL ITEM
+                </h4>
+                <div class="item-table-container">
+                    ${data.item_details && data.item_details.length > 0 ? `
+                    <table class="item-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Qty</th>
+                                <th>Komisi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.item_details.map(item => `
+                            <tr>
+                                <td class="text-small">${item.item}</td>
+                                <td class="text-small">${item.qty}</td>
+                                <td class="text-small">${formatRupiahShort(item.komisi)}</td>
+                            </tr>
+                            `).join('')}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="2" class="text-right text-small"><strong>Sub Total:</strong></td>
+                                <td class="text-small"><strong>${formatRupiahShort(data.sub_total || 0)}</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    ` : `
+                    <div class="no-items">
+                        <i class="fas fa-box-open"></i>
+                        <p class="text-small">Tidak ada data item</p>
+                    </div>
+                    `}
+                </div>
+            </section>
+            
+            <!-- Section 3: ADJUSTMENT - SAMA SEPERTI KASIR TAPI COMPACT -->
+            <section class="slip-section">
+                <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4 class="section-title" style="margin: 0;">
+                        <i class="fas fa-adjust"></i> ADJUSTMENT
+                    </h4>
+                    ${isOwnerSlip && !isFinal ? `
+                    <button class="btn-add-adjustment" id="addAdjustmentBtn">
+                        <i class="fas fa-plus"></i> Tambah
+                    </button>
+                    ` : ''}
+                </div>
+                
+                <div class="adjustment-container">
+                    ${data.adjustments && data.adjustments.length > 0 ? `
+                    <table class="adjustment-table">
+                        <thead>
+                            <tr>
+                                <th>Jenis</th>
+                                <th>Amount</th>
+                                ${isOwnerSlip && !isFinal ? '<th style="width: 70px;">Aksi</th>' : ''}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.adjustments.map((adj, index) => `
+                            <tr>
+                                <td class="text-small">${adj.type || '-'}</td>
+                                <td class="text-small ${adj.amount < 0 ? 'text-danger' : 'text-success'}">
+                                    ${formatRupiahShort(adj.amount || 0)}
+                                </td>
+                                ${isOwnerSlip && !isFinal ? `
+                                <td>
+                                    <button class="btn-edit-adj" data-index="${index}" title="Edit">
+                                        <i class="fas fa-edit fa-sm"></i>
+                                    </button>
+                                    <button class="btn-delete-adj" data-index="${index}" title="Hapus">
+                                        <i class="fas fa-trash fa-sm"></i>
+                                    </button>
+                                </td>
+                                ` : ''}
+                            </tr>
+                            `).join('')}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td class="text-small"><strong>Total:</strong></td>
+                                <td colspan="${isOwnerSlip && !isFinal ? '2' : '1'}" class="text-small">
+                                    <strong class="${data.total_adjustment < 0 ? 'text-danger' : 'text-success'}">
+                                        ${formatRupiahShort(data.total_adjustment || 0)}
+                                    </strong>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    ` : `
+                    <div class="no-adjustment">
+                        <i class="fas fa-info-circle"></i>
+                        <p class="text-small">Tidak ada adjustment</p>
+                    </div>
+                    `}
+                </div>
+            </section>
+            
+            <!-- Section 4: TOTAL - COMPACT -->
+            <section class="slip-section total-section">
+                <div class="total-compact-grid">
+                    <div class="total-item-compact grand-total">
+                        <span class="total-label">TOTAL PENGHASILAN</span>
+                        <span class="total-value">${formatRupiah(data.total_penghasilan || 0)}</span>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Action Buttons -->
+            <div class="slip-actions">
+                <button class="btn-print" onclick="window.print()">
+                    <i class="fas fa-print"></i> Print
+                </button>
+                <button class="btn-download" id="downloadSlipBtn">
+                    <i class="fas fa-download"></i> Download
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// [7.24] Tambahkan helper untuk format rupiah pendek
+function formatRupiahShort(amount) {
+    if (amount === 0 || !amount) return 'Rp 0';
+    
+    // Untuk angka kecil, tampilkan normal
+    if (Math.abs(amount) < 1000000) {
+        return 'Rp ' + amount.toLocaleString('id-ID');
+    }
+    
+    // Untuk angka besar, singkatkan: 1.5jt, 2.3M
+    if (Math.abs(amount) >= 1000000000) {
+        return 'Rp ' + (amount / 1000000000).toFixed(1).replace('.', ',') + 'M';
+    }
+    
+    if (Math.abs(amount) >= 1000000) {
+        return 'Rp ' + (amount / 1000000).toFixed(1).replace('.', ',') + 'jt';
+    }
+    
+    return 'Rp ' + amount.toLocaleString('id-ID');
 }
 
 // [7.19] Render slip untuk BARBERMAN
