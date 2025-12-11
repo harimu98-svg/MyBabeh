@@ -5207,12 +5207,16 @@ async function loadFinalSlipData(namaKaryawan, bulan, tahun) {
     };
 }
 
-// [10] Hitung real-time slip gaji - PERBAIKI QUERY
+// [10] Hitung real-time slip gaji - PERBAIKI UNTUK DATE TYPE
 async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
     console.log('Calculating real-time slip for:', { namaKaryawan, outlet, bulan, tahun });
     
     const monthStr = bulan.toString().padStart(2, '0');
     const yearStr = tahun.toString();
+    
+    // Untuk kolom DATE, gunakan range query (gte/lte)
+    const startDate = `${yearStr}-${monthStr}-01`;
+    const endDate = `${yearStr}-${monthStr}-31`;
     
     // Query semua data secara paralel
     const [
@@ -5226,42 +5230,45 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
         semuaKasirAbsen,
         omsetData
     ] = await Promise.all([
-        // 1. Data absensi
-         supabase
+        // 1. Data absensi (tanggal: TEXT)
+        supabase
             .from('absen')
             .select('*')
             .eq('nama', namaKaryawan)
-            .or(`tanggal.ilike.%/${monthStr}/${yearStr},tanggal.ilike.${yearStr}-${monthStr}-%`),
+            .like('tanggal', `%/${monthStr}/${yearStr}`),
         
-        // 2. Data komisi - GUNAKAN FORMAT YYYY-MM-DD
+        // 2. Data komisi (tanggal: DATE) - GUNAKAN GTE/LTE
         supabase
             .from('komisi')
             .select('*')
             .eq('serve_by', namaKaryawan)
-            .like('tanggal', `${yearStr}-${monthStr}-%`),  // 2025-12-%
+            .gte('tanggal', startDate)
+            .lte('tanggal', endDate),
         
-        // 3. Data transaksi produk
+        // 3. Data transaksi produk (order_date: mungkin DATE/TIMESTAMP)
         supabase
             .from('transaksi_detail')
             .select('*')
             .eq('serve_by', namaKaryawan)
             .eq('status', 'completed')
             .gte('comission', 5000)
-            .like('order_date', `${yearStr}-${monthStr}-%`),
+            .gte('order_date', startDate)
+            .lte('order_date', endDate),
         
-        // 4. Data membercard
+        // 4. Data membercard (tanggal_create: TEXT)
         supabase
-    .from('membercard')
-    .select('id_member, tanggal_create, kasir_create')
-    .eq('kasir_create', namaKaryawan)
-    .or(`tanggal_create.ilike.%/${monthStr}/${yearStr},tanggal_create.ilike.${yearStr}-${monthStr}-%`),
+            .from('membercard')
+            .select('id_member, tanggal_create, kasir_create')
+            .eq('kasir_create', namaKaryawan)
+            .like('tanggal_create', `%/${monthStr}/${yearStr}`),
         
-        // 5. Data kas (fee transfer)
+        // 5. Data kas (tanggal: DATE) - GUNAKAN GTE/LTE
         supabase
             .from('kas')
             .select('fee_trf_setoran, tanggal, kasir')
             .eq('kasir', namaKaryawan)
-            .like('tanggal', `${yearStr}-${monthStr}-%`),
+            .gte('tanggal', startDate)
+            .lte('tanggal', endDate),
         
         // 6. Data target outlet
         supabase
@@ -5277,22 +5284,23 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
             .eq('nama_karyawan', namaKaryawan)
             .single(),
         
-        // 8. Data semua kasir di outlet (untuk proporsi bonus omset)
-          supabase
+        // 8. Data semua kasir di outlet (tanggal: TEXT)
+        supabase
             .from('absen')
             .select('nama, tanggal')
             .eq('outlet', outlet)
             .not('status_kehadiran', 'is', null)
             .not('status_kehadiran', 'eq', '')
-            .or(`tanggal.ilike.%/${monthStr}/${yearStr},tanggal.ilike.${yearStr}-${monthStr}-%`),
+            .like('tanggal', `%/${monthStr}/${yearStr}`),
         
-        // 9. Data omset
+        // 9. Data omset (order_date: mungkin DATE/TIMESTAMP)
         supabase
             .from('transaksi_order')
             .select('total_amount, harga_beli, status')
             .eq('outlet', outlet)
             .eq('status', 'completed')
-            .like('order_date', `${yearStr}-${monthStr}-%`)
+            .gte('order_date', startDate)
+            .lte('order_date', endDate)
     ]);
     
     // Proses data
