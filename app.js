@@ -6751,23 +6751,26 @@ function showAdjustmentModal(adjustmentData) {
                 
                 <div class="modal-body">
                     <div class="form-group">
-                        <label for="adjustmentDate">
-                            <i class="fas fa-calendar-alt"></i> Tanggal
-                        </label>
-                        <div class="date-input-group">
-                            <i class="fas fa-calendar"></i>
-                            <input type="date" 
-                                   id="adjustmentDate" 
-                                   class="form-input date-input"
-                                   value="${defaultDate}"
-                                   min="${tahun}-${bulan.toString().padStart(2, '0')}-01"
-                                   max="${tahun}-${bulan.toString().padStart(2, '0')}-${daysInMonth.toString().padStart(2, '0')}">
-                        </div>
-                        <div class="date-range-info">
-                            <i class="fas fa-info-circle"></i>
-                            Periode: ${firstDay} - ${lastDay}
-                        </div>
-                    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <label for="adjustmentDate" style="margin: 0;">
+            <i class="fas fa-calendar-alt"></i> Tanggal
+        </label>
+        <div class="date-range-info" style="margin: 0; padding: 4px 8px; font-size: 0.75rem; border: 1px solid #e0e0e0;">
+            <i class="fas fa-info-circle"></i>
+            ${firstDay} - ${lastDay}
+        </div>
+    </div>
+    <div class="date-input-group">
+        <i class="fas fa-calendar"></i>
+        <input type="date" 
+               id="adjustmentDate" 
+               class="form-input date-input"
+               value="${defaultDate}"
+               min="${tahun}-${bulan.toString().padStart(2, '0')}-01"
+               max="${tahun}-${bulan.toString().padStart(2, '0')}-${daysInMonth.toString().padStart(2, '0')}"
+               style="width: 100%;">
+    </div>
+</div>
                     
                     <div class="form-group">
                         <label for="adjustmentType">
