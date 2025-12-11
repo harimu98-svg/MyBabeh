@@ -4799,21 +4799,19 @@ function createSlipPage() {
         return `<option value="${tahun}" ${tahun === tahunSekarang ? 'selected' : ''}>${tahun}</option>`;
     }).join('');
     
-    // Buat container halaman slip
+   // Buat container halaman slip - HAPUS download button dari header
     const slipPage = document.createElement('div');
     slipPage.id = 'slipPage';
     slipPage.className = 'slip-page';
     slipPage.innerHTML = `
-        <!-- Header Navigation -->
+        <!-- Header Navigation - HAPUS DOWNLOAD BUTTON -->
         <header class="slip-header">
             <button class="back-btn" id="backToMainFromSlip">
                 <i class="fas fa-arrow-left"></i>
             </button>
             <h2><i class="fas fa-file-invoice-dollar"></i> Slip Penghasilan</h2>
             <div class="header-actions">
-                <button class="download-btn" id="downloadSlip" title="Download Slip">
-                    <i class="fas fa-download"></i>
-                </button>
+                <!-- HAPUS: <button class="download-btn" id="downloadSlip" title="Download Slip"> -->
                 <button class="refresh-btn" id="refreshSlip">
                     <i class="fas fa-sync-alt"></i>
                 </button>
