@@ -6679,13 +6679,28 @@ function formatRupiahShort(amount) {
     
     return 'Rp ' + amount.toLocaleString('id-ID');
 }
-
+// Helper untuk mendapatkan outlet dari karyawan
+async function getOutletByKaryawan(namaKaryawan) {
+    try {
+        const { data, error } = await supabase
+            .from('karyawan')
+            .select('outlet')
+            .eq('nama_karyawan', namaKaryawan)
+            .single();
+            
+        return error ? null : data?.outlet;
+    } catch (error) {
+        console.error('Error getting outlet:', error);
+        return null;
+    }
+}
 function getStatusColor(percentage) {
     if (percentage >= 100) return 'status-achieved';
     if (percentage >= 80) return 'status-good';
     if (percentage >= 60) return 'status-warning';
     return 'status-failed';
 }
+
 
 // [25] Modal untuk tambah/edit adjustment - DIPERBAIKI
 function showAddAdjustmentModal() {
@@ -6955,7 +6970,7 @@ function setupTabNavigation(elements) {
     });
 }
 
-// [26] Fungsi untuk save adjustment - HAPUS created_by & created_at
+// [26] Fungsi untuk save adjustment - DIPERBAIKI dengan outlet
 async function saveAdjustment(index) {
     try {
         const dateInput = document.getElementById('adjustmentDate');
@@ -7027,7 +7042,7 @@ async function saveAdjustment(index) {
         
         if (inputMonth !== selectedBulan || inputYear !== selectedTahun) {
             const confirm = window.confirm(
-                `Tanggal yang dipilih (${selectedDate}) tidak sesuai dengan periode yang ditampilkan (${selectedBulan}/${selectedTahun}).\n\n` +
+                `Tanggal yang dipilih (${formatDateDisplay(selectedDate)}) tidak sesuai dengan periode yang ditampilkan (${selectedBulan}/${selectedTahun}).\n\n` +
                 `Apakah Anda ingin tetap menyimpan?`
             );
             
@@ -7039,91 +7054,71 @@ async function saveAdjustment(index) {
             }
         }
         
-        // Data untuk disimpan - HAPUS created_by dan created_at
+        // ========== TAMBAHKAN INI ==========
+        // Dapatkan outlet karyawan
+        const karyawanOutlet = await getOutletByKaryawan(namaKaryawan) || currentUserOutletSlip;
+        // ========== END TAMBAHAN ==========
+        
+        // Data untuk disimpan
         const adjustmentData = {
             adjustment: adjustmentType,
             adjustment_amount: amount,
             serve_by: namaKaryawan,
             tanggal: selectedDate,
-            note: noteInput?.value?.trim() || null
-            // HAPUS: created_at: new Date().toISOString(),
-            // HAPUS: created_by: (await supabase.auth.getUser()).data.user?.email || 'owner'
+            note: noteInput?.value?.trim() || null,
+            // ========== TAMBAHKAN INI ==========
+            outlet: karyawanOutlet  // Tambahkan outlet
+            // ========== END TAMBAHAN ==========
         };
         
         console.log('Saving adjustment:', adjustmentData);
         
-        // Cek apakah edit atau tambah baru
+        // Cek apakah sudah ada adjustment untuk tanggal, serve_by, dan type yang sama
+        const { data: existingAdjustments, error: checkError } = await supabase
+            .from('komisi')
+            .select('id, adjustment_amount, note')
+            .eq('serve_by', namaKaryawan)
+            .eq('tanggal', selectedDate)
+            .eq('adjustment', adjustmentType)
+            .maybeSingle();  // Gunakan maybeSingle() bukan single()
+            
         let result;
-        if (index !== undefined && index !== null) {
-            // EDIT MODE: Cari existing adjustment berdasarkan index
-            const { data: existingAdjustments, error: queryError } = await supabase
+        if (checkError && checkError.code !== 'PGRST116') {
+            throw checkError;
+        }
+
+        if (existingAdjustments) {
+            // UPDATE existing adjustment
+            const { error: updateError } = await supabase
                 .from('komisi')
-                .select('id, adjustment, adjustment_amount, tanggal')
-                .eq('serve_by', namaKaryawan)
-                .eq('tanggal', selectedDate)
-                .eq('adjustment', adjustmentType)
-                .order('tanggal', { ascending: false });
+                .update({ 
+                    adjustment_amount: amount,
+                    note: noteInput?.value?.trim() || null,
+                    updated_at: new Date().toISOString(),
+                    // ========== TAMBAHKAN INI ==========
+                    outlet: karyawanOutlet  // Update outlet juga
+                    // ========== END TAMBAHAN ==========
+                })
+                .eq('id', existingAdjustments.id);
             
-            if (queryError) throw queryError;
-            
-            if (existingAdjustments && existingAdjustments.length > 0) {
-                // Update existing dengan ID yang ditemukan
-                const { error: updateError } = await supabase
-                    .from('komisi')
-                    .update({ 
-                        adjustment_amount: amount,
-                        note: noteInput?.value?.trim() || null
-                        // HAPUS: updated_at: new Date().toISOString()
-                    })
-                    .eq('id', existingAdjustments[0].id);
-                
-                if (updateError) throw updateError;
-                result = { success: true, action: 'updated', id: existingAdjustments[0].id };
-            } else {
-                // Insert new jika tidak ditemukan
-                const { error: insertError } = await supabase
-                    .from('komisi')
-                    .insert([adjustmentData]);
-                
-                if (insertError) throw insertError;
-                result = { success: true, action: 'inserted' };
-            }
+            if (updateError) throw updateError;
+            result = { success: true, action: 'updated', id: existingAdjustments.id };
         } else {
-            // ADD NEW MODE: Cek dulu apakah sudah ada data dengan tanggal dan type yang sama
-            const { data: existingData, error: checkError } = await supabase
+            // INSERT new adjustment
+            // ========== TAMBAHKAN OUTLET ==========
+            const adjustmentDataWithOutlet = {
+                ...adjustmentData,
+                outlet: karyawanOutlet,
+                created_at: new Date().toISOString()
+            };
+            
+            const { error: insertError } = await supabase
                 .from('komisi')
-                .select('id')
-                .eq('serve_by', namaKaryawan)
-                .eq('tanggal', selectedDate)
-                .eq('adjustment', adjustmentType)
-                .single();
+                .insert([adjustmentDataWithOutlet]);
+            // ========== END TAMBAHAN ==========
             
-            if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
-                throw checkError;
-            }
-            
-            if (existingData) {
-                // Sudah ada data, update saja
-                const { error: updateError } = await supabase
-                    .from('komisi')
-                    .update({ 
-                        adjustment_amount: amount,
-                        note: noteInput?.value?.trim() || null
-                        // HAPUS: updated_at: new Date().toISOString()
-                    })
-                    .eq('id', existingData.id);
-                
-                if (updateError) throw updateError;
-                result = { success: true, action: 'updated', id: existingData.id };
-            } else {
-                // Insert new
-                const { error: insertError } = await supabase
-                    .from('komisi')
-                    .insert([adjustmentData]);
-                
-                if (insertError) throw insertError;
-                result = { success: true, action: 'inserted' };
-            }
+            if (insertError) throw insertError;
+            result = { success: true, action: 'inserted' };
         }
         
         // Tutup modal
