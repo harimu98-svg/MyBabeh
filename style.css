@@ -4040,3 +4040,607 @@ marquee {
         border-color: #10b981;
     }
 }
+/* ========== CSS UNTUK SLIP PENGHASILAN ========== */
+/* ============================================== */
+
+/* Slip Page Container */
+.slip-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+    z-index: 1000;
+    overflow-y: auto;
+    padding-bottom: 20px;
+}
+
+/* Header */
+.slip-header {
+    background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+    color: white;
+    padding: 18px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.slip-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+/* Header Buttons */
+.slip-header .back-btn,
+.slip-header .refresh-btn,
+.slip-header .download-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+.slip-header .back-btn:hover,
+.slip-header .refresh-btn:hover,
+.slip-header .download-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+/* Filter Section */
+.slip-filter-section {
+    background: white;
+    margin: 12px 16px;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.08);
+    border: 1px solid rgba(76, 175, 80, 0.1);
+}
+
+.periode-selection {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.periode-inputs {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.bulan-select,
+.tahun-select {
+    padding: 10px 14px;
+    border: 2px solid #e0e6ff;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    background: white;
+    color: #333;
+    outline: none;
+    transition: all 0.3s ease;
+    min-width: 120px;
+}
+
+.btn-load {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-load:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+}
+
+/* Data Source Badge */
+.data-source-badge {
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Main Content */
+.slip-main-content {
+    padding: 0 16px;
+}
+
+/* Loading State */
+.loading-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+}
+
+.loading-spinner {
+    font-size: 2.5rem;
+    color: #4CAF50;
+    margin-bottom: 15px;
+}
+
+/* Slip Container */
+.slip-container {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e0e0e0;
+}
+
+/* Header Info */
+.slip-header-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #4CAF50;
+}
+
+.header-left h3 {
+    color: #2E7D32;
+    margin-bottom: 10px;
+    font-size: 1.4rem;
+}
+
+.header-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.detail-item {
+    display: flex;
+    gap: 10px;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: #666;
+    min-width: 70px;
+}
+
+.detail-value {
+    color: #333;
+    font-weight: 500;
+}
+
+.status-badge {
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-final {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    color: white;
+}
+
+.status-realtime {
+    background: linear-gradient(135deg, #FF9800, #F57C00);
+    color: white;
+}
+
+/* Section Titles */
+.section-title {
+    color: #2E7D32;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+/* Summary Grid */
+.summary-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.summary-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.summary-item {
+    background: #f8f9ff;
+    padding: 15px;
+    border-radius: 10px;
+    border-left: 4px solid #4CAF50;
+}
+
+.summary-label {
+    display: block;
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.summary-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #333;
+}
+
+.summary-value.highlight {
+    color: #4CAF50;
+}
+
+.summary-total-row {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 2px solid #4CAF50;
+}
+
+.summary-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #e8f5e9;
+    border-radius: 10px;
+}
+
+.total-label {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2E7D32;
+}
+
+.total-value {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #2E7D32;
+}
+
+/* Tables */
+.target-table-container,
+.adjustment-container,
+.detail-table-container,
+.item-table-container {
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+}
+
+.target-table,
+.adjustment-table,
+.detail-table,
+.item-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.target-table th,
+.adjustment-table th,
+.detail-table th,
+.item-table th {
+    background: #f5f5f5;
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #4CAF50;
+}
+
+.target-table td,
+.adjustment-table td,
+.detail-table td,
+.item-table td {
+    padding: 10px 15px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.target-table tbody tr:hover,
+.adjustment-table tbody tr:hover,
+.detail-table tbody tr:hover,
+.item-table tbody tr:hover {
+    background: #f9f9f9;
+}
+
+/* Status Cells */
+.status-cell {
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 4px 8px !important;
+    text-align: center !important;
+}
+
+.status-achieved {
+    background: #e8f5e9;
+    color: #2E7D32;
+}
+
+.status-good {
+    background: #fff3e0;
+    color: #FF9800;
+}
+
+.status-warning {
+    background: #fff8e1;
+    color: #FFC107;
+}
+
+.status-failed {
+    background: #ffebee;
+    color: #f44336;
+}
+
+/* Adjustment Buttons */
+.btn-add-adjustment {
+    background: linear-gradient(135deg, #2196F3, #0D47A1);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-add-adjustment:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(33, 150, 243, 0.3);
+}
+
+.btn-add-adjustment:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-edit-adj,
+.btn-delete-adj {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.btn-edit-adj:hover {
+    background: #e3f2fd;
+    color: #2196F3;
+}
+
+.btn-delete-adj:hover {
+    background: #ffebee;
+    color: #f44336;
+}
+
+/* Total Section */
+.total-section {
+    background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+    border-radius: 15px;
+    padding: 20px;
+}
+
+.total-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.total-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+
+.total-item.grand-total {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    color: white;
+}
+
+.total-item.grand-total .total-label {
+    color: white;
+    font-size: 1.2rem;
+}
+
+.total-item.grand-total .total-value {
+    color: white;
+    font-size: 1.5rem;
+}
+
+.grand-highlight {
+    font-size: 1.8rem !important;
+    font-weight: 800 !important;
+}
+
+/* Text Colors */
+.text-danger {
+    color: #f44336 !important;
+}
+
+.text-success {
+    color: #4CAF50 !important;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Action Buttons */
+.slip-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.btn-print,
+.btn-download,
+.btn-final {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+}
+
+.btn-print {
+    background: #2196F3;
+    color: white;
+}
+
+.btn-download {
+    background: #FF9800;
+    color: white;
+}
+
+.btn-final {
+    background: #9E9E9E;
+    color: white;
+    cursor: not-allowed;
+}
+
+.btn-print:hover {
+    background: #1976D2;
+    transform: translateY(-2px);
+}
+
+.btn-download:hover {
+    background: #F57C00;
+    transform: translateY(-2px);
+}
+
+/* Empty States */
+.no-adjustment,
+.no-items,
+.empty-state {
+    text-align: center;
+    padding: 30px 20px;
+    color: #999;
+}
+
+.no-adjustment i,
+.no-items i,
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+/* Error State */
+.error-state {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.btn-retry {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 15px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Footer */
+.slip-footer {
+    text-align: center;
+    padding: 15px;
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 20px;
+}
+
+.slip-footer i {
+    color: #4CAF50;
+    margin-right: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .slip-header-info {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .header-details {
+        grid-template-columns: 1fr;
+    }
+    
+    .periode-selection {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .periode-inputs {
+        flex-wrap: wrap;
+    }
+    
+    .summary-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .slip-actions {
+        flex-direction: column;
+    }
+}
