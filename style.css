@@ -5020,3 +5020,36 @@ marquee {
     font-size: 0.95rem;
     line-height: 1.5;
 }
+/* ========== TANGGAL INPUT STYLING ========== */
+.date-input-group {
+    position: relative;
+}
+
+.date-input-group i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #4CAF50;
+    pointer-events: none;
+}
+
+.date-input {
+    padding-left: 40px !important;
+}
+
+/* Range tanggal info */
+.date-range-info {
+    background: #f8f9ff;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    border-left: 3px solid #4CAF50;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.date-range-info i {
+    color: #4CAF50;
+    margin-right: 6px;
+}
