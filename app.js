@@ -5211,7 +5211,7 @@ async function loadFinalSlipData(namaKaryawan, bulan, tahun) {
 async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
     console.log('Calculating real-time slip for:', { namaKaryawan, outlet, bulan, tahun });
     
-    // Format bulan untuk query (DD/MM/YYYY)
+    // Format bulan untuk query - DUA FORMAT BERBEDA!
     const monthStr = bulan.toString().padStart(2, '0');
     const yearStr = tahun.toString();
     
@@ -5234,12 +5234,12 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
             .eq('nama', namaKaryawan)
             .like('tanggal', `%/${monthStr}/${yearStr}`),
         
-        // 2. Data komisi
+        // 2. Data komisi - PERBAIKI QUERY UNTUK DUA FORMAT TANGGAL
         supabase
             .from('komisi')
             .select('*')
             .eq('serve_by', namaKaryawan)
-            .like('tanggal', `${yearStr}-${monthStr}-%`),
+            .or(`tanggal.like.%/${monthStr}/${yearStr},tanggal.like.${yearStr}-${monthStr}-%`),
         
         // 3. Data transaksi produk
         supabase
@@ -6688,10 +6688,16 @@ async function getOutletByKaryawan(namaKaryawan) {
             .eq('nama_karyawan', namaKaryawan)
             .single();
             
-        return error ? null : data?.outlet;
+        if (error) {
+            console.error('Error getting outlet for', namaKaryawan, ':', error);
+            // Return default outlet atau throw error
+            return currentUserOutletSlip || 'Outlet Tidak Diketahui';
+        }
+        
+        return data?.outlet || currentUserOutletSlip || 'Outlet Tidak Diketahui';
     } catch (error) {
         console.error('Error getting outlet:', error);
-        return null;
+        return currentUserOutletSlip || 'Outlet Tidak Diketahui';
     }
 }
 function getStatusColor(percentage) {
@@ -6970,7 +6976,7 @@ function setupTabNavigation(elements) {
     });
 }
 
-// [26] Fungsi untuk save adjustment - DIPERBAIKI dengan outlet
+// [26] Fungsi untuk save adjustment - FULL VERSION DIPERBAIKI
 async function saveAdjustment(index) {
     try {
         const dateInput = document.getElementById('adjustmentDate');
@@ -7026,11 +7032,22 @@ async function saveAdjustment(index) {
         }
         
         if (!namaKaryawan) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
             throw new Error('Nama karyawan tidak ditemukan');
         }
         
         // Format tanggal dari input
         const selectedDate = dateInput.value; // Format: YYYY-MM-DD
+        
+        // ========== PERBAIKI FORMAT TANGGAL ==========
+        // Format tanggal untuk query: DD/MM/YYYY (sesuai database)
+        const dateObj = new Date(selectedDate);
+        const day = dateObj.getDate().toString().padStart(2, '0');
+        const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+        const year = dateObj.getFullYear();
+        const tanggalDB = `${day}/${month}/${year}`; // "10/12/2025"
+        // ========== END PERBAIKAN ==========
         
         // Cek apakah tanggal sesuai dengan periode yang dipilih
         const selectedBulan = parseInt(document.getElementById('selectBulan').value);
@@ -7054,82 +7071,114 @@ async function saveAdjustment(index) {
             }
         }
         
-        // ========== TAMBAHKAN INI ==========
-        // Dapatkan outlet karyawan
-        const karyawanOutlet = await getOutletByKaryawan(namaKaryawan) || currentUserOutletSlip;
-        // ========== END TAMBAHAN ==========
-        
-        // Data untuk disimpan
-        const adjustmentData = {
-            adjustment: adjustmentType,
-            adjustment_amount: amount,
-            serve_by: namaKaryawan,
-            tanggal: selectedDate,
-            note: noteInput?.value?.trim() || null,
-            // ========== TAMBAHKAN INI ==========
-            outlet: karyawanOutlet  // Tambahkan outlet
-            // ========== END TAMBAHAN ==========
-        };
-        
-        console.log('Saving adjustment:', adjustmentData);
-        
-        // Cek apakah sudah ada adjustment untuk tanggal, serve_by, dan type yang sama
-        const { data: existingAdjustments, error: checkError } = await supabase
-            .from('komisi')
-            .select('id, adjustment_amount, note')
-            .eq('serve_by', namaKaryawan)
-            .eq('tanggal', selectedDate)
-            .eq('adjustment', adjustmentType)
-            .maybeSingle();  // Gunakan maybeSingle() bukan single()
-            
-        let result;
-        if (checkError && checkError.code !== 'PGRST116') {
-            throw checkError;
+        // Dapatkan outlet karyawan - PASTIKAN TIDAK NULL
+        const karyawanOutlet = await getOutletByKaryawan(namaKaryawan);
+        if (!karyawanOutlet) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+            alert('Error: Outlet karyawan tidak ditemukan!');
+            throw new Error('Outlet tidak ditemukan untuk karyawan: ' + namaKaryawan);
         }
-
-        if (existingAdjustments) {
-            // UPDATE existing adjustment
+        
+        // Cek apakah sudah ada data komisi untuk tanggal ini
+        // GUNAKAN FORMAT TANGGAL YANG BENAR (DD/MM/YYYY)
+        const { data: existingKomisi, error: checkKomisiError } = await supabase
+            .from('komisi')
+            .select('id, uop, tips_qris, outlet, adjustment, adjustment_amount, tanggal')
+            .eq('serve_by', namaKaryawan)
+            .eq('tanggal', tanggalDB)  // GUNAKAN tanggalDB, BUKAN selectedDate
+            .maybeSingle();
+            
+        if (checkKomisiError && checkKomisiError.code !== 'PGRST116') {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+            throw checkKomisiError;
+        }
+        
+        console.log('Existing komisi data:', existingKomisi);
+        console.log('Tanggal DB:', tanggalDB);
+        
+        let result;
+        
+        if (existingKomisi && existingKomisi.id) {
+            // UPDATE existing line dengan adjustment
+            const updateData = {
+                adjustment: adjustmentType,
+                adjustment_amount: amount,
+                note: noteInput?.value?.trim() || null,
+                updated_at: new Date().toISOString()
+            };
+            
+            // PASTIKAN outlet tidak null
+            if (!existingKomisi.outlet) {
+                updateData.outlet = karyawanOutlet;
+            }
+            
+            console.log('Updating komisi with data:', updateData);
+            
             const { error: updateError } = await supabase
                 .from('komisi')
-                .update({ 
-                    adjustment_amount: amount,
-                    note: noteInput?.value?.trim() || null,
-                    updated_at: new Date().toISOString(),
-                    // ========== TAMBAHKAN INI ==========
-                    outlet: karyawanOutlet  // Update outlet juga
-                    // ========== END TAMBAHAN ==========
-                })
-                .eq('id', existingAdjustments.id);
+                .update(updateData)
+                .eq('id', existingKomisi.id);
             
-            if (updateError) throw updateError;
-            result = { success: true, action: 'updated', id: existingAdjustments.id };
+            if (updateError) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+                throw updateError;
+            }
+            
+            result = { success: true, action: 'updated', id: existingKomisi.id };
+            
         } else {
-            // INSERT new adjustment
-            // ========== TAMBAHKAN OUTLET ==========
-            const adjustmentDataWithOutlet = {
-                ...adjustmentData,
-                outlet: karyawanOutlet,
-                created_at: new Date().toISOString()
+            // INSERT new line dengan SEMUA FIELD YANG DIPERLUKAN
+            const newKomisiData = {
+                serve_by: namaKaryawan,
+                tanggal: tanggalDB,  // GUNAKAN FORMAT DD/MM/YYYY
+                outlet: karyawanOutlet,  // PASTIKAN ADA OUTLET
+                kasir: namaKaryawan,  // Isi kasir dengan nama yang sama
+                adjustment: adjustmentType,
+                adjustment_amount: amount,
+                note: noteInput?.value?.trim() || null,
+                uop: 0,           // Default 0, bukan NULL
+                tips_qris: 0,     // Default 0, bukan NULL
+                komisi: 0,        // Default 0
+                total_transaksi: 0,
+                jumlah_transaksi: 0,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
             };
+            
+            console.log('INSERTING new komisi data:', newKomisiData);
             
             const { error: insertError } = await supabase
                 .from('komisi')
-                .insert([adjustmentDataWithOutlet]);
-            // ========== END TAMBAHAN ==========
+                .insert([newKomisiData]);
             
-            if (insertError) throw insertError;
+            if (insertError) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+                throw insertError;
+            }
+            
             result = { success: true, action: 'inserted' };
         }
         
         // Tutup modal
-        document.getElementById('adjustmentModal').classList.remove('active');
-        setTimeout(() => {
-            document.getElementById('adjustmentModal')?.remove();
-        }, 300);
+        const modal = document.getElementById('adjustmentModal');
+        if (modal) {
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.remove();
+            }, 300);
+        }
         
         // Refresh data slip
         setTimeout(async () => {
             await loadSlipData(selectedBulan, selectedTahun);
+            
+            // Restore button
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
             
             // Show success message
             const message = result.action === 'updated' 
