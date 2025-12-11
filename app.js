@@ -5120,51 +5120,58 @@ async function checkDataSource(namaKaryawan, bulan, tahun) {
     const periode = `${bulan.toString().padStart(2, '0')}/${tahun}`;
     
     try {
-        // Cek apakah sudah ada data final
-        const { data: finalData, error } = await supabase
-            .from('penghasilan')
-            .select('id')
-            .eq('nama_karyawan', namaKaryawan)
-            .eq('periode', periode)
-            .single();
-        
-        // Jika ada data final, gunakan itu
-        if (finalData && !error) {
-            return 'final';
-        }
-        
-        // Cek apakah periode sudah lewat
+        // Cek apakah sudah melewati tanggal 1 jam 06:00
         const now = new Date();
         const currentMonth = now.getMonth() + 1;
         const currentYear = now.getFullYear();
+        const currentDay = now.getDate();
+        const currentHour = now.getHours();
         
-        // Jika periode LAMPAU (bulan/tahun sebelumnya)
-        if (tahun < currentYear || (tahun === currentYear && bulan < currentMonth)) {
-            // Periode sudah lewat, seharusnya sudah ada data final
-            return 'realtime';
+        // Jika periode BULAN INI atau MASA DEPAN
+        if (tahun > currentYear || (tahun === currentYear && bulan > currentMonth)) {
+            return 'realtime'; // Belum bisa final
         }
         
         // Jika periode BULAN INI
         if (bulan === currentMonth && tahun === currentYear) {
             // Cek apakah sudah lewat tanggal 1 jam 06:00
-            const today = now.getDate();
-            const currentHour = now.getHours();
-            
-            if (today > 1 || (today === 1 && currentHour >= 6)) {
-                // Sudah lewat tanggal 1 jam 06:00
+            if (currentDay > 1 || (currentDay === 1 && currentHour >= 6)) {
+                // Sudah lewat tanggal 1 jam 06:00 bulan ini
+                // Tapi data final untuk bulan ini belum ada (masih diproses)
+                return 'realtime';
+            } else {
+                // Masih tanggal 1 sebelum jam 06:00
                 return 'realtime';
             }
         }
         
-        // Default ke real-time
-        return 'realtime';
+        // Jika periode SEBELUMNYA (sudah harus ada data final)
+        try {
+            const { data: finalData, error } = await supabase
+                .from('penghasilan')
+                .select('id, finalized_at')
+                .eq('nama_karyawan', namaKaryawan)
+                .eq('periode', periode)
+                .not('finalized_at', 'is', null)
+                .single();
+            
+            if (finalData && !error) {
+                return 'final';
+            } else {
+                // Data final belum ada, tapi periode sudah lewat
+                // Tampilkan real-time sebagai fallback
+                return 'realtime';
+            }
+        } catch (tableError) {
+            // Tabel penghasilan belum ada atau error
+            return 'realtime';
+        }
         
     } catch (error) {
         console.error('Error checking data source:', error);
         return 'realtime';
     }
 }
-
 // [8] Update badge sumber data
 function updateDataSourceBadge(source) {
     const badge = document.getElementById('dataSourceBadge');
@@ -5189,22 +5196,49 @@ function updateDataSourceBadge(source) {
 async function loadFinalSlipData(namaKaryawan, bulan, tahun) {
     const periode = `${bulan.toString().padStart(2, '0')}/${tahun}`;
     
-    const { data: finalData, error } = await supabase
-        .from('penghasilan')
-        .select('*')
-        .eq('nama_karyawan', namaKaryawan)
-        .eq('periode', periode)
-        .single();
-    
-    if (error) {
-        throw new Error(`Data final tidak ditemukan: ${error.message}`);
+    try {
+        const { data: finalData, error } = await supabase
+            .from('penghasilan')
+            .select('*')
+            .eq('nama_karyawan', namaKaryawan)
+            .eq('periode', periode)
+            .single();
+        
+        if (error) {
+            if (error.code === 'PGRST116') {
+                throw new Error('Data final tidak ditemukan untuk periode ini');
+            } else {
+                throw new Error(`Error loading final data: ${error.message}`);
+            }
+        }
+        
+        // Konversi JSONB fields
+        if (finalData.adjustments && typeof finalData.adjustments === 'string') {
+            try {
+                finalData.adjustments = JSON.parse(finalData.adjustments);
+            } catch (e) {
+                finalData.adjustments = [];
+            }
+        }
+        
+        if (finalData.detail_harian && typeof finalData.detail_harian === 'string') {
+            try {
+                finalData.detail_harian = JSON.parse(finalData.detail_harian);
+            } catch (e) {
+                finalData.detail_harian = [];
+            }
+        }
+        
+        return {
+            source: 'final',
+            data: finalData,
+            role: finalData.role || 'kasir'
+        };
+        
+    } catch (error) {
+        console.error('Error in loadFinalSlipData:', error);
+        throw error;
     }
-    
-    return {
-        source: 'final',
-        data: finalData,
-        role: currentSlipKaryawan?.role || 'kasir'
-    };
 }
 
 // [10] Hitung real-time slip gaji - PERBAIKI UNTUK DATE TYPE
@@ -5874,7 +5908,7 @@ function getHariFromDateDDMMYYYY(dateStr) {
     }
 }
 
-// [17] Tampilkan data slip ke UI
+// [17] Tampilkan data slip ke UI - DIPERBAIKI
 function displaySlipData(slipData, dataSource) {
     const content = document.getElementById('slipContent');
     const emptyState = document.getElementById('emptySlip');
@@ -5888,16 +5922,16 @@ function displaySlipData(slipData, dataSource) {
         return;
     }
     
-    // Tampilkan berdasarkan role
-    if (slipData.role === 'kasir' || slipData.role === 'owner') {
+    // Tampilkan berdasarkan role DAN source
+    if (dataSource === 'final') {
+        // Data dari tabel penghasilan (sudah final)
+        content.innerHTML = renderFinalSlip(slipData.data);
+    } else if (slipData.role === 'kasir' || slipData.role === 'owner') {
+        // Data real-time untuk kasir/owner
         content.innerHTML = renderKasirSlip(slipData.data, dataSource);
     } else if (slipData.role === 'barberman') {
+        // Data real-time untuk barberman
         content.innerHTML = renderBarbermanSlip(slipData.data, dataSource);
-    }
-    
-    // Setup edit buttons jika owner dan belum final
-    if (isOwnerSlip && dataSource === 'realtime') {
-        setupAdjustmentButtons();
     }
     
     // Setup UI events
@@ -5907,6 +5941,42 @@ function displaySlipData(slipData, dataSource) {
     
     content.style.display = 'block';
     emptyState.style.display = 'none';
+}
+
+// Fungsi render untuk data final
+function renderFinalSlip(data) {
+    const isFinal = true;
+    
+    return `
+        <div class="slip-container final-slip">
+            <div class="final-banner">
+                <i class="fas fa-lock"></i>
+                <span>DATA FINAL - Tidak dapat diubah</span>
+                <small>Difinalisasi pada: ${formatDateTime(data.finalized_at)}</small>
+            </div>
+            
+            <!-- Gunakan renderKasirSlip dengan parameter final -->
+            ${renderKasirSlip(data, 'final')}
+        </div>
+    `;
+}
+
+// Helper untuk format datetime
+function formatDateTime(datetimeStr) {
+    if (!datetimeStr) return '-';
+    
+    try {
+        const date = new Date(datetimeStr);
+        return date.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (e) {
+        return datetimeStr;
+    }
 }
 
 // [18] Render slip untuk KASIR
