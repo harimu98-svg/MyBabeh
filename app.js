@@ -4838,8 +4838,28 @@ function createSlipPage() {
         <section class="slip-filter-section">
             <div class="filter-container">
                 <!-- Untuk Owner: Filter Outlet & Karyawan -->
-               <div id="ownerSlipFilterSection"
-                
+              <div id="ownerSlipFilterSection" class="owner-filter" style="display: ${isOwnerSlip ? 'flex' : 'none'}; flex-direction: column; gap: 10px; margin-bottom: 15px; background: #f8f9ff; padding: 12px; border-radius: 8px;">
+    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+        <div class="filter-group" style="flex: 1; min-width: 200px;">
+            <label for="selectOutletSlip" style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 0.9rem;">
+                <i class="fas fa-store"></i> Outlet:
+            </label>
+            <select id="selectOutletSlip" class="outlet-select" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+                <option value="all">Semua Outlet</option>
+            </select>
+        </div>
+    </div>
+    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+        <div class="filter-group" style="flex: 1; min-width: 200px;">
+            <label for="selectKaryawanSlip" style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 0.9rem;">
+                <i class="fas fa-user"></i> Karyawan:
+            </label>
+            <select id="selectKaryawanSlip" class="karyawan-select" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+                <option value="">Pilih Karyawan</option>
+            </select>
+        </div>
+    </div>
+</div>
                 <!-- Periode Selection -->
                 <div class="periode-selection">
                     <div class="filter-group">
