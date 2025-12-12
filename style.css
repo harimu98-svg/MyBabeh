@@ -5082,3 +5082,21 @@ marquee {
 .detail-table tbody tr:hover {
     background: #e8f5e9;
 }
+.slip-footer {
+    text-align: center;
+    margin-top: 20px;
+    padding: 8px 0;
+}
+
+.footer-note {
+    font-size: 12px; /* Lebih kecil */
+    color: #2196F3; /* Biru */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background-color: #E3F2FD; /* Biru muda transparan */
+    padding: 6px 15px;
+    border-radius: 15px;
+    margin: 0 auto;
+}
