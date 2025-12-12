@@ -4909,10 +4909,12 @@ function createSlipPage() {
         </main>
         
         <!-- Footer -->
-        <div class="slip-footer">
-            <p><i class="fas fa-info-circle"></i> Data slip akan difinalkan setiap tanggal 1 jam 06:00</p>
-        </div>
-    `;
+<div class="slip-footer">
+    <p class="footer-note">
+        <i class="fas fa-info-circle"></i> 
+        Data slip akan difinalkan setiap tanggal 1 jam 06:00
+    </p>
+</div>
     
     document.body.appendChild(slipPage);
     
