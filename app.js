@@ -1937,7 +1937,7 @@ async function showAbsensiPage() {
     }
 }
 
-// [2] Fungsi untuk buat halaman absensi - TAMBAHKAN KOLOM JADWAL
+// [2] Fungsi untuk buat halaman absensi
 function createAbsensiPage() {
     // Hapus halaman absensi sebelumnya jika ada
     const existingPage = document.getElementById('absensiPage');
@@ -1963,7 +1963,7 @@ function createAbsensiPage() {
             </div>
         </header>
         
-        <!-- Filter untuk Owner - SAMAKAN DENGAN KOMISI -->
+        <!-- Filter untuk Owner -->
         <div id="ownerAbsensiFilterSection" class="owner-filter" style="display: ${isOwnerAbsensi ? 'block' : 'none'};">
             <!-- BARIS PERTAMA: Outlet dan Periode -->
             <div class="filter-row first-row">
@@ -2048,7 +2048,6 @@ function createAbsensiPage() {
     setupAbsensiPageEvents();
 }
 
-
 // [3] Setup event listeners untuk halaman absensi
 function setupAbsensiPageEvents() {
     // Tombol kembali
@@ -2069,7 +2068,7 @@ function setupAbsensiPageEvents() {
         
         // Event listener untuk outlet change
         document.getElementById('selectOutletAbsensi').addEventListener('change', async () => {
-            await loadKaryawanDropdownAbsensi(); // Reload karyawan berdasarkan outlet
+            await loadKaryawanDropdownAbsensi();
             await loadAbsensiData();
         });
         
@@ -2184,7 +2183,7 @@ function getAbsensiFilterParams() {
     return params;
 }
 
-// [6] Fungsi untuk load absensi hari ini - DENGAN JADWAL
+// [6] Fungsi untuk load absensi hari ini
 async function loadTodayAbsensi(filterParams) {
     // Format tanggal DD/MM/YYYY
     const today = new Date();
@@ -2235,7 +2234,7 @@ async function loadTodayAbsensi(filterParams) {
     displayTodayAbsensi(displayData, today, jadwal);
 }
 
-// [7] Fungsi untuk load absensi 7 hari terakhir - DENGAN JADWAL
+// [7] Fungsi untuk load absensi 7 hari terakhir
 async function loadWeeklyAbsensi(filterParams) {
     // Tanggal range: 7 hari sebelum hari ini
     const endDate = new Date();
@@ -2296,7 +2295,7 @@ async function loadWeeklyAbsensi(filterParams) {
     displayWeeklyAbsensi(displayData);
 }
 
-// [8] Helper: Process data untuk owner (semua karyawan) - DENGAN JADWAL
+// [8] Helper: Process data untuk owner (semua karyawan)
 function processOwnerWeeklyData(absensiData, dateRange, jadwalDefault) {
     const result = [];
     
@@ -2308,7 +2307,7 @@ function processOwnerWeeklyData(absensiData, dateRange, jadwalDefault) {
             const firstData = dataForDate[0];
             result.push({
                 tanggal: dateStr,
-                tanggal_display: formatDateDisplay(dateStr),
+                tanggal_display: formatAbsensiDateDisplay(dateStr),  // GANTI DI SINI
                 outlet: 'Multiple',
                 nama: `${dataForDate.length} Karyawan`,
                 jadwal_masuk: jadwalDefault?.jadwal_masuk || '09:00',
@@ -2322,7 +2321,7 @@ function processOwnerWeeklyData(absensiData, dateRange, jadwalDefault) {
             // Tidak ada data untuk tanggal ini
             result.push({
                 tanggal: dateStr,
-                tanggal_display: formatDateDisplay(dateStr),
+                tanggal_display: formatAbsensiDateDisplay(dateStr),  // GANTI DI SINI
                 outlet: '-',
                 nama: '-',
                 jadwal_masuk: jadwalDefault?.jadwal_masuk || '09:00',
@@ -2338,7 +2337,7 @@ function processOwnerWeeklyData(absensiData, dateRange, jadwalDefault) {
     return result;
 }
 
-// [9] Helper: Process data untuk karyawan tertentu - DENGAN JADWAL
+// [9] Helper: Process data untuk karyawan tertentu
 function processKaryawanWeeklyData(absensiData, dateRange, namaKaryawan, jadwal) {
     const result = [];
     
@@ -2351,7 +2350,7 @@ function processKaryawanWeeklyData(absensiData, dateRange, namaKaryawan, jadwal)
         if (dataForKaryawan) {
             result.push({
                 tanggal: dateStr,
-                tanggal_display: formatDateDisplay(dateStr),
+                tanggal_display: formatAbsensiDateDisplay(dateStr),  // GANTI DI SINI
                 outlet: dataForKaryawan.outlet || '-',
                 nama: dataForKaryawan.nama || '-',
                 jadwal_masuk: jadwal?.jadwal_masuk || '09:00',
@@ -2365,7 +2364,7 @@ function processKaryawanWeeklyData(absensiData, dateRange, namaKaryawan, jadwal)
             // Tidak ada data untuk tanggal ini
             result.push({
                 tanggal: dateStr,
-                tanggal_display: formatDateDisplay(dateStr),
+                tanggal_display: formatAbsensiDateDisplay(dateStr),  // GANTI DI SINI
                 outlet: '-',
                 nama: namaKaryawan || '-',
                 jadwal_masuk: jadwal?.jadwal_masuk || '09:00',
@@ -2381,7 +2380,7 @@ function processKaryawanWeeklyData(absensiData, dateRange, namaKaryawan, jadwal)
     return result;
 }
 
-// [10] Fungsi untuk tampilkan absensi hari ini - DENGAN JADWAL & ABSENSI
+// [10] Fungsi untuk tampilkan absensi hari ini
 function displayTodayAbsensi(absensiData, date, jadwal) {
     const content = document.getElementById('todayAbsensiContent');
     
@@ -2515,7 +2514,7 @@ function displayTodayAbsensi(absensiData, date, jadwal) {
     content.style.display = 'block';
 }
 
-// [11] Fungsi untuk tampilkan absensi 7 hari - DENGAN KOLOM JADWAL
+// [11] Fungsi untuk tampilkan absensi 7 hari
 function displayWeeklyAbsensi(weeklyData) {
     const tbody = document.getElementById('weeklyAbsensiBody');
     tbody.innerHTML = '';
@@ -2534,10 +2533,10 @@ function displayWeeklyAbsensi(weeklyData) {
             <td>${item.clockout || '-'}</td>
             <td>${item.jamkerja || '-'}</td>
             <td class="status-cell">
-    <span class="status-pill ${getStatusClass(item.status_kehadiran)}">
-        ${item.status_kehadiran || '-'}
-    </span>
-</td>
+                <span class="status-pill ${getStatusClass(item.status_kehadiran)}">
+                    ${item.status_kehadiran || '-'}
+                </span>
+            </td>
         `;
         tbody.appendChild(row);
         
@@ -2554,15 +2553,13 @@ function displayWeeklyAbsensi(weeklyData) {
     document.getElementById('weeklyAbsensiTable').style.display = 'table';
 }
 
-
-
-// [12] Fungsi untuk load dropdown outlet (owner only) - DARI KARYAWAN
+// [12] Fungsi untuk load dropdown outlet (owner only)
 async function loadOutletDropdownAbsensi() {
     const select = document.getElementById('selectOutletAbsensi');
     
     try {
         const { data: outlets, error } = await supabase
-            .from('karyawan')  // AMBIL DARI KARYAWAN
+            .from('karyawan')
             .select('outlet')
             .not('outlet', 'is', null)
             .order('outlet');
@@ -2634,9 +2631,8 @@ async function loadKaryawanDropdownAbsensi() {
         `;
     }
 }
-// ========== FUNGSI BARU/REVISI ==========
 
-// [14] Fungsi untuk ambil jadwal dari tabel karyawan - DIHIDUPKAN KEMBALI
+// [14] Fungsi untuk ambil jadwal dari tabel karyawan
 async function getJadwalKaryawan(namaKaryawan) {
     if (!namaKaryawan) {
         return { jadwal_masuk: '09:00', jadwal_pulang: '21:00' };
@@ -2673,15 +2669,39 @@ function formatDateDDMMYYYY(date) {
     return `${day}/${month}/${year}`;
 }
 
-// [16] Helper: Format tanggal untuk display
-function formatDateDisplay(dateStr) {
-    if (!dateStr) return '-';
-    const [day, month, year] = dateStr.split('/');
-    return `${day}/${month}/${year}`;
-}
-// ========== HELPER FUNCTIONS YANG DIPERTAHANKAN ==========
+// ========== HELPER FUNCTIONS KHUSUS ABSENSI ==========
 
-// Format tanggal untuk display
+// Format tanggal untuk display (khusus absensi)
+function formatAbsensiDateDisplay(dateStr) {
+    if (!dateStr) return '-';
+    
+    // Jika sudah format DD/MM/YYYY, tampilkan dengan format yang lebih baik
+    if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+        const [day, month, year] = dateStr.split('/');
+        
+        try {
+            const date = new Date(year, month - 1, day);
+            if (!isNaN(date.getTime())) {
+                return date.toLocaleDateString('id-ID', {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                }).replace(/\./g, '');
+            }
+        } catch (e) {
+            console.warn('Error formatting date:', e);
+        }
+        
+        // Fallback: tampilkan format asli
+        return dateStr;
+    }
+    
+    // Jika bukan format yang diharapkan, return as-is
+    return dateStr;
+}
+
+// Format tanggal untuk display (dalam halaman absensi)
 function formatDateLocal(date) {
     return date.toLocaleDateString('id-ID', { 
         weekday: 'long', 
@@ -2689,13 +2709,6 @@ function formatDateLocal(date) {
         month: 'long', 
         day: 'numeric' 
     });
-}
-
-// Format tanggal DD/MM/YYYY ke tampilan
-function formatDateDisplay(dateStr) {
-    if (!dateStr) return '-';
-    const [day, month, year] = dateStr.split('/');
-    return `${day}/${month}/${year}`;
 }
 
 // Format waktu simple
@@ -2738,7 +2751,6 @@ function getStatusClass(status) {
     
     return 'tidak-absen';
 }
-
 
 // ========== FUNGSI MENU KOMPONEN - KAS & SETORAN ==========
 // =========================================================
