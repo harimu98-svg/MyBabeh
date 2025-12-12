@@ -4915,7 +4915,7 @@ function createSlipPage() {
         Data slip akan difinalkan setiap tanggal 1 jam 06:00
     </p>
 </div>
-    
+     `;
     document.body.appendChild(slipPage);
     
     // Setup event listeners
