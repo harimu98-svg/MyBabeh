@@ -4035,10 +4035,19 @@ marquee {
 /* [4.13] Dark mode support */
 @media (prefers-color-scheme: dark) {
     .date-display {
-        background: #064e3b;
-        color: #a7f3d0;
-        border-color: #10b981;
-    }
+    background: #064e3b;
+    color: #a7f3d0;
+    border-color: #10b981;
+    
+    /* TAMBAHKAN INI: */
+    min-width: 160px;        /* Perbesar lebar */
+    padding: 10px 12px;      /* Jaga tinggi sama */
+    white-space: nowrap;
+    text-align: center;
+    border-radius: 8px;
+    border: 1px solid;       /* Pastikan ada border */
+    box-sizing: border-box;
+}
 }
 
 /* ========== CSS UNTUK SLIP PENGHASILAN ========== */
