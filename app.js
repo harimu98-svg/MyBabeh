@@ -5421,62 +5421,73 @@ function showKasNotification(message, type = 'info') {
 // ========== FUNGSI CEK CLOCK OUT ==========
 // ==========================================
 
-// [42] Fungsi untuk cek karyawan yang belum clock out
+// [42] Fungsi untuk cek karyawan yang belum clock out - VERSI OPTIMIZED
 async function checkClockOutStatus() {
     try {
         const outlet = kasState.selectedOutlet || currentUserOutletKas;
-        const tanggal = kasState.selectedTanggal;
+        let tanggal = kasState.selectedTanggal; // Format: YYYY-MM-DD
+        
+        console.log('🔍 Checking clock out status:', { outlet, tanggal });
         
         if (!outlet || !tanggal) {
             return { semuaClockOut: true, karyawanBelumClockOut: [] };
         }
         
-        console.log('🔍 Checking clock out status untuk:', { outlet, tanggal });
+        // 1. Konversi format tanggal
+        const tanggalParts = tanggal.split('-');
+        const tanggalAbsenFormat = `${tanggalParts[2]}/${tanggalParts[1]}/${tanggalParts[0]}`;
         
-        // 1. Ambil semua karyawan di outlet ini
-        const { data: karyawanData, error: karyawanError } = await supabase
-            .from('karyawan')
-            .select('nama_karyawan, role, posisi')
-            .eq('outlet', outlet);
+        console.log(`📅 Tanggal format: ${tanggal} → ${tanggalAbsenFormat}`);
         
-        if (karyawanError) {
-            console.error('Error loading karyawan:', karyawanError);
+        // 2. Query langsung ke tabel absen untuk outlet dan tanggal ini
+        const { data: absenData, error } = await supabase
+            .from('absen')
+            .select('nama, clockin, clockout, role') // tambah role jika ada di tabel absen
+            .eq('outlet', outlet)
+            .eq('tanggal', tanggalAbsenFormat)
+            .not('clockin', 'is', null)  // hanya yang sudah clock in
+            .is('clockout', null);       // dan belum clock out
+        
+        if (error) {
+            console.error('❌ Error query absen:', error);
             return { semuaClockOut: true, karyawanBelumClockOut: [] };
         }
         
-        if (!karyawanData || karyawanData.length === 0) {
+        console.log(`📊 Data absen ditemukan: ${absenData?.length || 0} karyawan belum clock out`);
+        
+        if (!absenData || absenData.length === 0) {
             return { semuaClockOut: true, karyawanBelumClockOut: [] };
         }
         
-        // 2. Cek absensi untuk tanggal ini
+        // 3. Ambil data karyawan lengkap untuk yang belum clock out
         const karyawanBelumClockOut = [];
+        const namaKaryawanList = absenData.map(item => item.nama);
         
-        for (const karyawan of karyawanData) {
-            const { data: absensiData, error: absensiError } = await supabase
-                .from('absen')
-                .select('clock_in, clock_out, tanggal')
-                .eq('nama', karyawan.nama_karyawan)
-                .eq('tanggal', tanggal)
-                .single();
+        if (namaKaryawanList.length > 0) {
+            const { data: karyawanData } = await supabase
+                .from('karyawan')
+                .select('nama_karyawan, role, posisi')
+                .eq('outlet', outlet)
+                .in('nama_karyawan', namaKaryawanList);
             
-            if (absensiError && absensiError.code !== 'PGRST116') {
-                console.warn(`Error checking absensi for ${karyawan.nama_karyawan}:`, absensiError);
-                continue;
-            }
-            
-            // Jika ada clock_in tapi tidak ada clock_out
-            if (absensiData && absensiData.clock_in && !absensiData.clock_out) {
-                karyawanBelumClockOut.push({
-                    nama: karyawan.nama_karyawan,
-                    role: karyawan.role,
-                    posisi: karyawan.posisi,
-                    clock_in: absensiData.clock_in
+            if (karyawanData) {
+                // Gabungkan data
+                absenData.forEach(absen => {
+                    const karyawan = karyawanData.find(k => k.nama_karyawan === absen.nama);
+                    if (karyawan) {
+                        karyawanBelumClockOut.push({
+                            nama: absen.nama,
+                            role: karyawan.role,
+                            posisi: karyawan.posisi,
+                            clock_in: absen.clockin,
+                            clock_out: absen.clockout || 'BELUM'
+                        });
+                    }
                 });
             }
         }
         
-        console.log('📊 Hasil cek clock out:', {
-            totalKaryawan: karyawanData.length,
+        console.log('✅ Check clock out selesai:', {
             belumClockOut: karyawanBelumClockOut.length,
             detail: karyawanBelumClockOut
         });
@@ -5487,7 +5498,7 @@ async function checkClockOutStatus() {
         };
         
     } catch (error) {
-        console.error('Error in checkClockOutStatus:', error);
+        console.error('❌ Error in checkClockOutStatus:', error);
         return { semuaClockOut: true, karyawanBelumClockOut: [] };
     }
 }
