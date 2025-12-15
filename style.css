@@ -3607,7 +3607,7 @@ marquee {
         font-size: 0.8rem;
         white-space: nowrap;
         text-align: center;
-        min-width: 120px; /* Fixed width untuk tanggal display */
+        min-width: 160px; /* Fixed width untuk tanggal display */
         background: #f0fdf4;
         border-color: #bbf7d0;
     }
@@ -4040,21 +4040,7 @@ marquee {
         border-color: #10b981;
     }
 }
-/* FIX untuk date-display hijau gelap di Android */
-.date-display {
-    min-width: 160px !important;      /* Force lebih lebar */
-    padding: 12px 16px !important;    /* Force padding lebih besar */
-    font-size: 0.9rem !important;     /* Force font size */
-    box-sizing: border-box !important;
-}
 
-/* Untuk tampilan mobile */
-@media (max-width: 480px) {
-    .date-display {
-        min-width: 170px !important;
-        padding: 14px 18px !important;
-    }
-}
 /* ========== CSS UNTUK SLIP PENGHASILAN ========== */
 /* ============================================== */
 
