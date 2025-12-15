@@ -6520,15 +6520,16 @@ async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun,
         const date = new Date(year, month - 1, day);
         const isWeekend = date.getDay() === 0 || date.getDay() === 6;
         
-        // Target membercard
-        totalTargetMembercard += isWeekend ? 
+        // TARGET PRODUK = dari outlet (target_weekdays/weekends)
+        const targetProdukHarian = isWeekend ? 
             (target.target_weekends || 1.5) : 
             (target.target_weekdays || 0.5);
             
-        // Target produk (SEMENTARA pakai target yang sama)
-        totalTargetProduk += isWeekend ? 
-            (target.target_weekends || 1.5) : 
-            (target.target_weekdays || 0.5);
+        // TARGET MEMBERCARD = 2 × target produk
+        const targetMembercardHarian = targetProdukHarian * 2;
+        
+        totalTargetProduk += targetProdukHarian;
+        totalTargetMembercard += targetMembercardHarian;
     });
     
     // 3. HITUNG ACHIEVEMENT
