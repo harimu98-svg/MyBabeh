@@ -577,7 +577,11 @@ marquee {
 .today-komisi-section {
     padding: 16px;
 }
-
+.today-komisi-section .date-display {
+    margin-bottom: 10px !important;
+    display: block !important;           /* Agar margin bekerja */
+    width: fit-content !important;       /* Lebar sesuai konten */
+}
 .today-komisi-section h3 {
     color: #2d3748;
     margin-bottom: 16px;
