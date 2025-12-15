@@ -5114,3 +5114,131 @@ marquee {
     border-radius: 15px;
     margin: 0 auto;
 }
+
+/* Tambahkan di CSS file Anda */
+.warning-modal {
+    max-width: 500px;
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+}
+
+.warning-header {
+    background: #ffc107;
+    color: #856404;
+}
+
+.warning-header h3 {
+    color: #856404;
+}
+
+.warning-icon {
+    text-align: center;
+    font-size: 48px;
+    color: #ffc107;
+    margin: 15px 0;
+}
+
+.warning-message {
+    background: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    border-left: 4px solid #ffc107;
+}
+
+.warning-message h4 {
+    color: #856404;
+    margin-bottom: 10px;
+}
+
+.karyawan-warning-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 15px 0;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.karyawan-warning-item {
+    padding: 12px 15px;
+    border-bottom: 1px solid #f1f1f1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.karyawan-warning-item:last-child {
+    border-bottom: none;
+}
+
+.karyawan-info {
+    flex: 1;
+}
+
+.karyawan-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.karyawan-details {
+    display: flex;
+    gap: 8px;
+}
+
+.role-badge {
+    background: #6c757d;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.posisi-badge {
+    background: #17a2b8;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.clock-in-time {
+    color: #666;
+    font-size: 14px;
+    background: #f8f9fa;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.warning-instruction {
+    background: #e2f3ff;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 15px;
+    border-left: 4px solid #17a2b8;
+}
+
+.warning-instruction p {
+    margin: 0;
+    color: #0c5460;
+    font-size: 14px;
+}
+
+.btn-modal-close {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.3s;
+}
+
+.btn-modal-close:hover {
+    background: #545b62;
+}
