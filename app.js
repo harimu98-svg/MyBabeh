@@ -5453,7 +5453,7 @@ async function checkClockOutStatus() {
         
         for (const karyawan of karyawanData) {
             const { data: absensiData, error: absensiError } = await supabase
-                .from('absensi')
+                .from('absen')
                 .select('clock_in, clock_out, tanggal')
                 .eq('nama_karyawan', karyawan.nama_karyawan)
                 .eq('tanggal', tanggal)
