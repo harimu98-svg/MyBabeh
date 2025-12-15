@@ -3152,7 +3152,7 @@ function createKasPage() {
     setupKasPageEvents();
 }
 
-// [3] Setup event listeners untuk halaman kas
+// [3] Setup event listeners untuk halaman kas - DITAMBAHKAN EVENT DELEGATION
 function setupKasPageEvents() {
     // Tombol kembali
     document.getElementById('backToMainFromKas').addEventListener('click', () => {
@@ -3228,8 +3228,190 @@ function setupKasPageEvents() {
             }
         });
     }
+    
+    // ========== ✅ EVENT DELEGATION UNTUK PEMASUKAN ==========
+    
+    // Event delegation untuk change (select dan text input)
+    document.addEventListener('change', function(e) {
+        // Cek jika event berasal dari container pemasukan
+        if (e.target.closest('#pemasukanItemsList')) {
+            const target = e.target;
+            const indexAttr = target.getAttribute('data-index');
+            const typeAttr = target.getAttribute('data-type');
+            
+            if (!indexAttr || !typeAttr) return;
+            
+            const index = parseInt(indexAttr);
+            
+            // Cegah update untuk auto-generate
+            if (kasState.pemasukanItems[index]?.isAutoGenerate) {
+                return;
+            }
+            
+            let value;
+            if (typeAttr === 'jumlah') {
+                value = parseInt(target.value) || 0;
+            } else if (typeAttr === 'jenis') {
+                value = target.value;
+                // Jika jenis berubah, reset note jika bukan pemasukan lain-lain
+                if (value !== 'Pemasukan Lain Lain') {
+                    kasState.pemasukanItems[index].note = '';
+                }
+            } else {
+                value = target.value;
+            }
+            
+            kasState.pemasukanItems[index][typeAttr] = value;
+            
+            // Re-render jika jenis berubah untuk menampilkan/sembunyikan note
+            if (typeAttr === 'jenis') {
+                renderPemasukanItems();
+            }
+            
+            updateKasTotals();
+            updateKasButtonStates();
+        }
+        
+        // Cek jika event berasal dari container pengeluaran
+        if (e.target.closest('#pengeluaranItemsList')) {
+            const target = e.target;
+            const indexAttr = target.getAttribute('data-index');
+            const typeAttr = target.getAttribute('data-type');
+            
+            if (!indexAttr || !typeAttr) return;
+            
+            const index = parseInt(indexAttr);
+            
+            // Cegah update untuk auto-generate
+            if (kasState.pengeluaranItems[index]?.isAutoGenerate) {
+                return;
+            }
+            
+            let value;
+            if (typeAttr === 'jumlah') {
+                value = parseInt(target.value) || 0;
+            } else if (typeAttr === 'jenis') {
+                value = target.value;
+                // Jika jenis berubah, reset note jika bukan pengeluaran lain-lain
+                if (value !== 'Pengeluaran Lain Lain') {
+                    kasState.pengeluaranItems[index].note = '';
+                }
+            } else {
+                value = target.value;
+            }
+            
+            kasState.pengeluaranItems[index][typeAttr] = value;
+            
+            // Re-render jika jenis berubah untuk menampilkan/sembunyikan note
+            if (typeAttr === 'jenis') {
+                renderPengeluaranItems();
+            }
+            
+            updateKasTotals();
+            updateKasButtonStates();
+        }
+    });
+    
+    // Event delegation untuk input real-time (hanya number input)
+    document.addEventListener('input', function(e) {
+        // Untuk pemasukan
+        if (e.target.closest('#pemasukanItemsList') && 
+            e.target.classList.contains('item-input') && 
+            e.target.type === 'number') {
+            
+            const target = e.target;
+            const indexAttr = target.getAttribute('data-index');
+            const typeAttr = target.getAttribute('data-type');
+            
+            if (!indexAttr || !typeAttr) return;
+            
+            const index = parseInt(indexAttr);
+            
+            if (kasState.pemasukanItems[index]?.isAutoGenerate) {
+                return;
+            }
+            
+            const value = parseInt(target.value) || 0;
+            kasState.pemasukanItems[index][typeAttr] = value;
+            
+            updateKasTotals();
+            updateKasButtonStates();
+        }
+        
+        // Untuk pengeluaran
+        if (e.target.closest('#pengeluaranItemsList') && 
+            e.target.classList.contains('item-input') && 
+            e.target.type === 'number') {
+            
+            const target = e.target;
+            const indexAttr = target.getAttribute('data-index');
+            const typeAttr = target.getAttribute('data-type');
+            
+            if (!indexAttr || !typeAttr) return;
+            
+            const index = parseInt(indexAttr);
+            
+            if (kasState.pengeluaranItems[index]?.isAutoGenerate) {
+                return;
+            }
+            
+            const value = parseInt(target.value) || 0;
+            kasState.pengeluaranItems[index][typeAttr] = value;
+            
+            updateKasTotals();
+            updateKasButtonStates();
+        }
+    });
+    
+    // Event delegation untuk tombol delete
+    document.addEventListener('click', function(e) {
+        // Untuk delete pemasukan
+        if (e.target.closest('#pemasukanItemsList')) {
+            const deleteBtn = e.target.classList.contains('item-delete') ? 
+                e.target : e.target.closest('.item-delete');
+            
+            if (deleteBtn && deleteBtn.classList.contains('item-delete')) {
+                e.preventDefault();
+                
+                const index = parseInt(deleteBtn.getAttribute('data-index'));
+                
+                // Validasi index dan cegah hapus auto-generate
+                if (isNaN(index) || kasState.pemasukanItems[index]?.isAutoGenerate) {
+                    return;
+                }
+                
+                // Hapus item
+                kasState.pemasukanItems.splice(index, 1);
+                renderPemasukanItems();
+                updateKasTotals();
+                updateKasButtonStates();
+            }
+        }
+        
+        // Untuk delete pengeluaran
+        if (e.target.closest('#pengeluaranItemsList')) {
+            const deleteBtn = e.target.classList.contains('item-delete') ? 
+                e.target : e.target.closest('.item-delete');
+            
+            if (deleteBtn && deleteBtn.classList.contains('item-delete')) {
+                e.preventDefault();
+                
+                const index = parseInt(deleteBtn.getAttribute('data-index'));
+                
+                // Validasi index dan cegah hapus auto-generate
+                if (isNaN(index) || kasState.pengeluaranItems[index]?.isAutoGenerate) {
+                    return;
+                }
+                
+                // Hapus item
+                kasState.pengeluaranItems.splice(index, 1);
+                renderPengeluaranItems();
+                updateKasTotals();
+                updateKasButtonStates();
+            }
+        }
+    });
 }
-
 // [4] Generate periode options (Selasa-Senin)
 function generateKasPeriodOptions() {
     const periodeSelect = document.getElementById('kasPeriodeSelect');
@@ -4045,7 +4227,7 @@ function resetKasInputForms() {
     updateKasButtonStates();
 }
 
-// [17] Render items pemasukan
+// [17] Render items pemasukan - VERSI DIPERBAIKI dengan Event Delegation
 function renderPemasukanItems() {
     const container = document.getElementById('pemasukanContainer');
     
@@ -4054,7 +4236,7 @@ function renderPemasukanItems() {
         return;
     }
     
-    let html = '<div class="items-list">';
+    let html = '<div class="items-list" id="pemasukanItemsList">'; // ✅ TAMBAH ID untuk delegasi
     
     kasState.pemasukanItems.forEach((item, index) => {
         const showNote = item.jenis === 'Pemasukan Lain Lain';
@@ -4103,28 +4285,29 @@ function renderPemasukanItems() {
     html += '</div>';
     container.innerHTML = html;
     
-    if (!kasState.existingKasData) {
-        // Add event listeners
-        container.querySelectorAll('.item-select, .item-input, .note-input').forEach(element => {
-            element.addEventListener('change', handlePemasukanChange);
-            element.addEventListener('input', handlePemasukanChange);
-        });
-        
-        container.querySelectorAll('.item-delete').forEach(button => {
-            button.addEventListener('click', function() {
-                const index = parseInt(this.getAttribute('data-index'));
-                // Jangan hapus jika auto-generate
-                if (!kasState.pemasukanItems[index]?.isAutoGenerate) {
-                    kasState.pemasukanItems.splice(index, 1);
-                    renderPemasukanItems();
-                    updateKasTotals();
-                }
-            });
-        });
-    }
+    // ❌ HAPUS SELURUH BLOK INI (event listener per elemen):
+    // if (!kasState.existingKasData) {
+    //     // Add event listeners
+    //     container.querySelectorAll('.item-select, .item-input, .note-input').forEach(element => {
+    //         element.addEventListener('change', handlePemasukanChange);
+    //         element.addEventListener('input', handlePemasukanChange);
+    //     });
+    //     
+    //     container.querySelectorAll('.item-delete').forEach(button => {
+    //         button.addEventListener('click', function() {
+    //             const index = parseInt(this.getAttribute('data-index'));
+    //             // Jangan hapus jika auto-generate
+    //             if (!kasState.pemasukanItems[index]?.isAutoGenerate) {
+    //                 kasState.pemasukanItems.splice(index, 1);
+    //                 renderPemasukanItems();
+    //                 updateKasTotals();
+    //             }
+    //         });
+    //     });
+    // }
 }
 
-// [18] Render items pengeluaran
+// [18] Render items pengeluaran - VERSI DIPERBAIKI dengan Event Delegation
 function renderPengeluaranItems() {
     const container = document.getElementById('pengeluaranContainer');
     
@@ -4133,7 +4316,7 @@ function renderPengeluaranItems() {
         return;
     }
     
-    let html = '<div class="items-list">';
+    let html = '<div class="items-list" id="pengeluaranItemsList">'; // ✅ TAMBAH ID untuk delegasi
     
     kasState.pengeluaranItems.forEach((item, index) => {
         const showNote = item.jenis === 'Pengeluaran Lain Lain';
@@ -4188,25 +4371,26 @@ function renderPengeluaranItems() {
     html += '</div>';
     container.innerHTML = html;
     
-    if (!kasState.existingKasData) {
-        // Add event listeners
-        container.querySelectorAll('.item-select, .item-input, .note-input').forEach(element => {
-            element.addEventListener('change', handlePengeluaranChange);
-            element.addEventListener('input', handlePengeluaranChange);
-        });
-        
-        container.querySelectorAll('.item-delete').forEach(button => {
-            button.addEventListener('click', function() {
-                const index = parseInt(this.getAttribute('data-index'));
-                // Jangan hapus jika auto-generate
-                if (!kasState.pengeluaranItems[index]?.isAutoGenerate) {
-                    kasState.pengeluaranItems.splice(index, 1);
-                    renderPengeluaranItems();
-                    updateKasTotals();
-                }
-            });
-        });
-    }
+    // ❌ HAPUS SELURUH BLOK INI:
+    // if (!kasState.existingKasData) {
+    //     // Add event listeners
+    //     container.querySelectorAll('.item-select, .item-input, .note-input').forEach(element => {
+    //         element.addEventListener('change', handlePengeluaranChange);
+    //         element.addEventListener('input', handlePengeluaranChange);
+    //     });
+    //     
+    //     container.querySelectorAll('.item-delete').forEach(button => {
+    //         button.addEventListener('click', function() {
+    //             const index = parseInt(this.getAttribute('data-index'));
+    //             // Jangan hapus jika auto-generate
+    //             if (!kasState.pengeluaranItems[index]?.isAutoGenerate) {
+    //                 kasState.pengeluaranItems.splice(index, 1);
+    //                 renderPengeluaranItems();
+    //                 updateKasTotals();
+    //             }
+    //         });
+    //     });
+    // }
 }
 
 // [19] Tambah item pemasukan
@@ -4233,38 +4417,38 @@ function addPengeluaranItem() {
     updateKasButtonStates();
 }
 
-// [21] Handle perubahan pemasukan
-function handlePemasukanChange(e) {
-    const index = parseInt(e.target.getAttribute('data-index'));
-    const type = e.target.getAttribute('data-type');
-    
-    if (kasState.pemasukanItems[index]?.isAutoGenerate) {
-        return; // Jangan update jika auto-generate
-    }
-    
-    let value;
-    if (type === 'jumlah') {
-        value = parseInt(e.target.value) || 0;
-    } else if (type === 'jenis') {
-        value = e.target.value;
-        // Jika jenis berubah, reset note jika bukan pemasukan lain-lain
-        if (value !== 'Pemasukan Lain Lain') {
-            kasState.pemasukanItems[index].note = '';
-        }
-    } else {
-        value = e.target.value;
-    }
-    
-    kasState.pemasukanItems[index][type] = value;
-    
-    // Re-render jika jenis berubah untuk menampilkan/sembunyikan note
-    if (type === 'jenis') {
-        renderPemasukanItems();
-    }
-    
-    updateKasTotals();
-    updateKasButtonStates();
-}
+// [21] ❌ HAPUS fungsi handlePemasukanChange yang lama:
+// function handlePemasukanChange(e) {
+//     const index = parseInt(e.target.getAttribute('data-index'));
+//     const type = e.target.getAttribute('data-type');
+//     
+//     if (kasState.pemasukanItems[index]?.isAutoGenerate) {
+//         return; // Jangan update jika auto-generate
+//     }
+//     
+//     let value;
+//     if (type === 'jumlah') {
+//         value = parseInt(e.target.value) || 0;
+//     } else if (type === 'jenis') {
+//         value = e.target.value;
+//         // Jika jenis berubah, reset note jika bukan pemasukan lain-lain
+//         if (value !== 'Pemasukan Lain Lain') {
+//             kasState.pemasukanItems[index].note = '';
+//         }
+//     } else {
+//         value = e.target.value;
+//     }
+//     
+//     kasState.pemasukanItems[index][type] = value;
+//     
+//     // Re-render jika jenis berubah untuk menampilkan/sembunyikan note
+//     if (type === 'jenis') {
+//         renderPemasukanItems();
+//     }
+//     
+//     updateKasTotals();
+//     updateKasButtonStates();
+// }
 
 // [22] Handle perubahan pengeluaran
 function handlePengeluaranChange(e) {
