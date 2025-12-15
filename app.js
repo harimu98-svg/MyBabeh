@@ -6264,20 +6264,17 @@ async function calculateKasirSlip(params) {
     } = params;
     
     // 1. HITUNG HARI KERJA & GAJI
-   const hariKerja = absenList.filter(a => {
-    if (!a.status_kehadiran) return false;
+    const hariKerja = absenList.filter(a => {
+        if (!a.status_kehadiran) return false;
+        
+        const status = a.status_kehadiran.trim();
+        const bukanHariKerja = ['Belum absen', 'Izin', 'Libur'];
+        return !bukanHariKerja.includes(status);
+    }).length;
     
-    const status = a.status_kehadiran.trim();
-    
-    // HANYA 3 STATUS YANG BUKAN HARI KERJA:
-    // 1. "Belum absen"
-    // 2. "Izin"  
-    // 3. "Libur"
-    const bukanHariKerja = ['Belum absen', 'Izin', 'Libur'];
-    
-    // SELAIN 3 STATUS DI ATAS = HARI KERJA
-    return !bukanHariKerja.includes(status);
-}).length;
+    // TAMBAH 2 BARIS INI:
+    const gajiPerHari = karyawan.gaji || 0;
+    const totalGaji = absenList.reduce((sum, a) => sum + (a.gaji_pokok || 0), 0);
     
     // 2. OVERTIME
     const totalOvertimeMenit = absenList.reduce((sum, a) => {
