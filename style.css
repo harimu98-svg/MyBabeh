@@ -4040,8 +4040,8 @@ marquee {
     border-color: #10b981;
     
     /* TAMBAHKAN INI: */
-    min-width: 160px;        /* Perbesar lebar */
-    padding: 10px 12px;      /* Jaga tinggi sama */
+    min-width: 180px;        /* Perbesar lebar */
+    padding: 8px 12px;      /* Jaga tinggi sama */
     white-space: nowrap;
     text-align: center;
     border-radius: 8px;
