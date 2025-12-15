@@ -3980,6 +3980,7 @@ try {
 } catch (e) {
     console.warn('⚠️ Gagal load UOP data:', e.message);
 }
+    }
 // [14] Load existing data untuk tanggal terpilih
 async function loadExistingKasData() {
     const outlet = kasState.selectedOutlet || currentUserOutletKas;
