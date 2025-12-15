@@ -5421,7 +5421,7 @@ function showKasNotification(message, type = 'info') {
 // ========== FUNGSI CEK CLOCK OUT ==========
 // ==========================================
 
-// [42] Fungsi untuk cek karyawan yang belum clock out - VERSI OPTIMIZED
+// [42] Fungsi untuk cek karyawan yang belum clock out - VERSI FINAL FIXED
 async function checkClockOutStatus() {
     try {
         const outlet = kasState.selectedOutlet || currentUserOutletKas;
@@ -5439,10 +5439,10 @@ async function checkClockOutStatus() {
         
         console.log(`📅 Tanggal format: ${tanggal} → ${tanggalAbsenFormat}`);
         
-        // 2. Query langsung ke tabel absen untuk outlet dan tanggal ini
+        // 2. Query langsung ke tabel absen (HANYA ambil kolom yang ada: nama, clockin, clockout)
         const { data: absenData, error } = await supabase
             .from('absen')
-            .select('nama, clockin, clockout, role') // tambah role jika ada di tabel absen
+            .select('nama, clockin, clockout') // ✅ HAPUS 'role' dari select
             .eq('outlet', outlet)
             .eq('tanggal', tanggalAbsenFormat)
             .not('clockin', 'is', null)  // hanya yang sudah clock in
@@ -5502,7 +5502,6 @@ async function checkClockOutStatus() {
         return { semuaClockOut: true, karyawanBelumClockOut: [] };
     }
 }
-
 // [43] Fungsi untuk tampilkan popup clock out warning
 function showClockOutWarningPopup(karyawanList) {
     // Hapus popup sebelumnya jika ada
