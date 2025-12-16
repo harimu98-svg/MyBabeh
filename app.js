@@ -6122,98 +6122,99 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
     // Query semua data secara paralel
     const [
         absenData,
-        komisiData,  // INI YANG DIPERBAIKI
-        transaksiData,
+        komisiData,
+        transaksiData,  // ← Tanpa filter comission >= 5000
         membercardData,
         kasData,
         outletTargetData,
         karyawanData,
         semuaKasirAbsen,
-        omsetData
+        omsetData,
+        produkData  // ← DATA BARU: ambil semua produk
     ] = await Promise.all([
         // 1. Data absensi (tanggal: TEXT)
-        supabase
-            .from('absen')
-            .select('*')
-            .eq('nama', namaKaryawan)
-            .like('tanggal', `%/${monthStr}/${yearStr}`),
+        supabase.from('absen').select('*').eq('nama', namaKaryawan).like('tanggal', `%/${monthStr}/${yearStr}`),
         
-        // 2. Data komisi (tanggal: DATE) - GUNAKAN GTE/LTE
-        supabase
-            .from('komisi')
-            .select('*')
-            .eq('serve_by', namaKaryawan)
-            .gte('tanggal', startDate)
-            .lte('tanggal', endDate),
+        // 2. Data komisi (tanggal: DATE)
+        supabase.from('komisi').select('*').eq('serve_by', namaKaryawan).gte('tanggal', startDate).lte('tanggal', endDate),
         
-        // 3. Data transaksi produk (order_date: mungkin DATE/TIMESTAMP)
-        supabase
-            .from('transaksi_detail')
-            .select('*')
+        // 3. Data transaksi produk - HAPUS filter .gte('comission', 5000)
+        supabase.from('transaksi_detail').select('*')
             .eq('serve_by', namaKaryawan)
             .eq('status', 'completed')
-            .gte('comission', 5000)
             .gte('order_date', startDate)
             .lte('order_date', endDate),
         
         // 4. Data membercard (tanggal_create: TEXT)
-        supabase
-            .from('membercard')
-            .select('id_member, tanggal_create, kasir_create')
+        supabase.from('membercard').select('id_member, tanggal_create, kasir_create')
             .eq('kasir_create', namaKaryawan)
             .like('tanggal_create', `%/${monthStr}/${yearStr}`),
         
-        // 5. Data kas (tanggal: DATE) - GUNAKAN GTE/LTE
-        supabase
-            .from('kas')
-            .select('fee_trf_setoran, tanggal, kasir')
+        // 5. Data kas (tanggal: DATE)
+        supabase.from('kas').select('fee_trf_setoran, tanggal, kasir')
             .eq('kasir', namaKaryawan)
             .gte('tanggal', startDate)
             .lte('tanggal', endDate),
         
         // 6. Data target outlet
-        supabase
-            .from('outlet')
-            .select('target_weekdays, target_weekends, target_omset')
+        supabase.from('outlet').select('target_weekdays, target_weekends, target_omset')
             .eq('outlet', outlet)
             .single(),
         
         // 7. Data karyawan lengkap
-        supabase
-            .from('karyawan')
-            .select('gaji, posisi, role')
+        supabase.from('karyawan').select('gaji, posisi, role')
             .eq('nama_karyawan', namaKaryawan)
             .single(),
         
         // 8. Data semua kasir di outlet (tanggal: TEXT)
-        supabase
-            .from('absen')
-            .select('nama, tanggal')
+        supabase.from('absen').select('nama, tanggal')
             .eq('outlet', outlet)
             .not('status_kehadiran', 'is', null)
             .not('status_kehadiran', 'eq', '')
             .like('tanggal', `%/${monthStr}/${yearStr}`),
         
         // 9. Data omset (order_date: mungkin DATE/TIMESTAMP)
-        supabase
-            .from('transaksi_order')
-            .select('total_amount, harga_beli, status')
+        supabase.from('transaksi_order').select('total_amount, harga_beli, status')
             .eq('outlet', outlet)
             .eq('status', 'completed')
             .gte('order_date', startDate)
-            .lte('order_date', endDate)
+            .lte('order_date', endDate),
+        
+        // 10. DATA PRODUK UNTUK MAPPING (BARU)
+        supabase.from('produk').select('nama_produk, komisi')
     ]);
     
     // Proses data
     const absenList = absenData.data || [];
     const komisiList = komisiData.data || [];
-    const transaksiList = transaksiData.data || [];
+    const transaksiRawList = transaksiData.data || [];  // Semua transaksi
     const membercardList = membercardData.data || [];
     const kasList = kasData.data || [];
     const target = outletTargetData.data || {};
     const karyawan = karyawanData.data || {};
     const semuaKasirList = semuaKasirAbsen.data || [];
     const omsetList = omsetData.data || [];
+    const produkList = produkData.data || [];  // Data produk
+    
+    // BUAT MAPPING produk.nama_produk -> produk.komisi
+    const produkKomisiMap = {};
+    produkList.forEach(p => {
+        const key = (p.nama_produk || '').toLowerCase().trim();
+        produkKomisiMap[key] = p.komisi || 0;
+    });
+    
+    // FILTER transaksi berdasarkan produk.komisi >= 5000
+    const transaksiList = transaksiRawList.filter(t => {
+        const itemName = (t.item_name || '').toLowerCase().trim();
+        const produkKomisi = produkKomisiMap[itemName] || 0;
+        return produkKomisi >= 5000;
+    });
+    
+    console.log('Filtered transactions:', {
+        totalTransaksi: transaksiRawList.length,
+        filteredTransaksi: transaksiList.length,
+        produkCount: produkList.length
+    });
     
     const role = karyawan.role || currentSlipKaryawan?.role || 'kasir';
     
@@ -6226,7 +6227,7 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
             tahun,
             absenList,
             komisiList,
-            transaksiList,
+            transaksiList,  // ← transaksiList YANG SUDAH DIFILTER
             membercardList,
             kasList,
             target,
@@ -6242,7 +6243,7 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
             tahun,
             absenList,
             komisiList,
-            transaksiList,
+            transaksiList,  // ← transaksiList YANG SUDAH DIFILTER
             target,
             karyawan
         });
