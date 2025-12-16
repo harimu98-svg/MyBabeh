@@ -139,7 +139,14 @@ body {
     height: 60px;
     width: auto;
 }
-
+.app-logo {
+    height: 60px;
+    width: auto;
+    background: #4CAF50;
+    border-radius: 10px; /* Sudut melengkung */
+    /* atau */
+    border-radius: 50%; /* Lingkaran */
+}
 .user-info {
     display: flex;
     align-items: center;
