@@ -150,8 +150,8 @@ body {
 .app-logo {
     height: 65px;
     width: auto;
-    border-radius: 10px;
-    padding: 10px;
+    border-radius: 8px;
+    padding: 5px;
     animation: colorChange 5s linear infinite;
 }
 .user-info {
