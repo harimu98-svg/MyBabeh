@@ -6983,48 +6983,61 @@ function renderKasirSlip(data, dataSource) {
                 </h4>
                 <div class="summary-table-container">
                     <table class="summary-table">
-                        <tbody>
-                            <tr>
-                                <td>Hari Kerja</td>
-                                <td class="summary-value-cell">${data.hari_kerja} Hari</td>
-                                <td>Gaji per Hari</td>
-                                <td class="summary-value-cell">${formatRupiah(data.gaji_per_hari)}</td>
-                            </tr>
-                            <tr>
-                                <td>Total Gaji</td>
-                                <td class="summary-value-cell">${formatRupiah(data.total_gaji)}</td>
-                                <td>Over Time (menit)</td>
-                                <td class="summary-value-cell">${data.overtime_menit} menit</td>
-                            </tr>
-                            <tr>
-                                <td>Over Time Rupiah</td>
-                                <td class="summary-value-cell">${formatRupiah(data.overtime_rupiah)}</td>
-                                <td>Penjualan Produk</td>
-                                <td class="summary-value-cell">${data.penjualan_produk} pcs</td>
-                            </tr>
-                            <tr>
-                                <td>Komisi Produk</td>
-                                <td class="summary-value-cell highlight">${formatRupiah(data.komisi_produk)}</td>
-                                <td>Membercard Created</td>
-                                <td class="summary-value-cell">${data.membercard_created} card</td>
-                            </tr>
-                            <tr>
-                                <td>Komisi Membercard</td>
-                                <td class="summary-value-cell">${formatRupiah(data.komisi_membercard)}</td>
-                                <td>UOP</td>
-                                <td class="summary-value-cell">${formatRupiah(data.uop)}</td>
-                            </tr>
-                            <tr>
-                                <td>Fee Transfer</td>
-                                <td class="summary-value-cell">${formatRupiah(data.fee_transfer)}</td>
-                                <td>Tips QRIS</td>
-                                <td class="summary-value-cell">${formatRupiah(data.tips_qris)}</td>
-                            </tr>
-                            <tr class="summary-total-row">
-                                <td colspan="3"><strong>Sub Total Penghasilan</strong></td>
-                                <td class="summary-value-cell"><strong>${formatRupiah(data.sub_total_penghasilan)}</strong></td>
-                            </tr>
-                        </tbody>
+                       <tbody>
+    <!-- BARIS 1: Kiri=Hari Kerja, Kanan=Penjualan Produk -->
+    <tr>
+        <td>Hari Kerja</td>
+        <td class="summary-value-cell">${data.hari_kerja} Hari</td>
+        <td>Penjualan Produk</td>
+        <td class="summary-value-cell">${data.penjualan_produk} pcs</td>
+    </tr>
+    
+    <!-- BARIS 2: Kiri=Gaji per Hari, Kanan=Komisi Produk -->
+    <tr>
+        <td>Gaji per Hari</td>
+        <td class="summary-value-cell">${formatRupiah(data.gaji_per_hari)}</td>
+        <td>Komisi Produk</td>
+        <td class="summary-value-cell highlight">${formatRupiah(data.komisi_produk)}</td>
+    </tr>
+    
+    <!-- BARIS 3: Kiri=Total Gaji, Kanan=Membercard Created -->
+    <tr>
+        <td>Total Gaji</td>
+        <td class="summary-value-cell">${formatRupiah(data.total_gaji)}</td>
+        <td>Membercard Created</td>
+        <td class="summary-value-cell">${data.membercard_created} card</td>
+    </tr>
+    
+    <!-- BARIS 4: Kiri=Over Time (menit), Kanan=Komisi Membercard -->
+    <tr>
+        <td>Over Time (menit)</td>
+        <td class="summary-value-cell">${data.overtime_menit} menit</td>
+        <td>Komisi Membercard</td>
+        <td class="summary-value-cell">${formatRupiah(data.komisi_membercard)}</td>
+    </tr>
+    
+    <!-- BARIS 5: Kiri=Over Time Rupiah, Kanan=Fee Transfer -->
+    <tr>
+        <td>Over Time Rupiah</td>
+        <td class="summary-value-cell">${formatRupiah(data.overtime_rupiah)}</td>
+        <td>Fee Transfer</td>
+        <td class="summary-value-cell">${formatRupiah(data.fee_transfer)}</td>
+    </tr>
+    
+    <!-- BARIS 6: Kiri=UOP, Kanan=Tips QRIS -->
+    <tr>
+        <td>UOP</td>
+        <td class="summary-value-cell">${formatRupiah(data.uop)}</td>
+        <td>Tips QRIS</td>
+        <td class="summary-value-cell">${formatRupiah(data.tips_qris)}</td>
+    </tr>
+    
+    <!-- BARIS 7: Sub Total (full width) -->
+    <tr class="summary-total-row">
+        <td colspan="3"><strong>Sub Total Penghasilan</strong></td>
+        <td class="summary-value-cell"><strong>${formatRupiah(data.sub_total_penghasilan)}</strong></td>
+    </tr>
+</tbody>
                     </table>
                 </div>
             </section>
