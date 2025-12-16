@@ -3356,9 +3356,6 @@ marquee {
 
 /* [1] Hilangkan Info Card untuk Mobile */
 @media (max-width: 768px) {
-    .user-info-section {
-        display: none; /* Info sudah ada di halaman utama */
-    }
     
     .ringkasan-section {
         padding: 15px 12px;
@@ -3930,7 +3927,7 @@ marquee {
 }
 /* ========== FIXED WIDTH OPTIMIZATION ========== */
 
-/* [4.7] Fixed width system untuk layout yang lebih predictable */
+/* [4.7] PERBAIKI Fixed width system untuk layout yang lebih predictable */
 @media (max-width: 768px) {
     .filter-section {
         padding: 12px 10px;
@@ -3939,29 +3936,43 @@ marquee {
     /* Grid layout dengan fixed widths */
     .date-input-group {
         display: grid;
-        grid-template-columns: 50px 1fr 100px;
-        gap: 6px;
+        grid-template-columns: auto 1fr minmax(120px, auto); /* PERBAIKAN: minmax untuk fleksibilitas */
+        gap: 8px; /* Tambah gap sedikit */
         align-items: center;
     }
     
     .date-input-group label {
         grid-column: 1;
-        width: 100%;
+        width: auto;
         text-align: right;
-        padding-right: 4px;
+        padding-right: 6px;
+        white-space: nowrap;
+        font-size: 0.8rem;
     }
     
     .date-input {
         grid-column: 2;
         width: 100%;
         max-width: none;
+        padding: 8px 10px;
+        font-size: 0.85rem;
     }
     
     .date-display {
         grid-column: 3;
-        width: 100px; /* FIXED WIDTH */
-        min-width: 100px;
-        max-width: 100px;
+        width: auto; /* GANTI dari fixed width ke auto */
+        min-width: 0; /* Izinkan shrink */
+        max-width: 150px; /* Maksimum width */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis; /* Tambah ellipsis jika terlalu panjang */
+        padding: 8px 10px;
+        font-size: 0.8rem;
+        text-align: center;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 6px;
+        box-sizing: border-box;
     }
 }
 
