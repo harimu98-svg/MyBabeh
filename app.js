@@ -6269,15 +6269,29 @@ async function calculateKasirSlip(params) {
         omsetList
     } = params;
     
-    // 1. HITUNG HARI KERJA & GAJI
-    const hariKerja = absenList.filter(a => 
-        a.status_kehadiran && 
-        a.status_kehadiran !== 'Belum absen' &&
-        a.status_kehadiran.trim() !== ''
-    ).length;
+    // 1. HITUNG HARI KERJA & GAJI (DIPERBAIKI)
+    const hariKerja = absenList.filter(a => {
+        const status = (a.status_kehadiran || '').trim().toLowerCase();
+        return status !== '' && 
+               status !== 'belum absen' && 
+               status !== 'izin' && 
+               status !== 'libur';
+    }).length;
     
     const gajiPerHari = karyawan.gaji || 0;
-    const totalGaji = absenList.reduce((sum, a) => sum + (a.gaji_pokok || 0), 0);
+    
+    // PERBAIKAN: Total gaji hanya dari hari kerja yang valid
+    const totalGaji = absenList.reduce((sum, a) => {
+        const status = (a.status_kehadiran || '').trim().toLowerCase();
+        // Hanya tambahkan gaji jika status valid untuk hari kerja
+        if (status !== '' && 
+            status !== 'belum absen' && 
+            status !== 'izin' && 
+            status !== 'libur') {
+            return sum + (a.gaji_pokok || 0);
+        }
+        return sum;
+    }, 0);
     
     // 2. OVERTIME
     const totalOvertimeMenit = absenList.reduce((sum, a) => {
@@ -6420,11 +6434,13 @@ async function calculateBarbermanSlip(params) {
     } = params;
     
     // 1. HARI KERJA
-    const hariKerja = absenList.filter(a => 
-        a.status_kehadiran && 
-        a.status_kehadiran !== 'Belum absen' &&
-        a.status_kehadiran.trim() !== ''
-    ).length;
+   const hariKerja = absenList.filter(a => {
+    const status = (a.status_kehadiran || '').trim().toLowerCase();
+    return status !== '' && 
+           status !== 'belum absen' && 
+           status !== 'izin' && 
+           status !== 'libur';
+}).length;
     
     // 2. UOP & TIPS QRIS
     const totalUOP = komisiList.reduce((sum, k) => sum + (k.uop || 0), 0);
