@@ -8594,18 +8594,23 @@ async function deleteAdjustment(index) {
         });
     });
 }
-// ========== FUNGSI MENU KOMPONEN - UPDATE STOK ==========
-// =======================================================
+// ========== FUNGSI MENU KOMPONEN - UPDATE STOK (FINAL VERSION) ==========
+// =======================================================================
 
 // Variabel global untuk stok
 let currentUserStok = null;
 let isOwnerStok = false;
 let currentOutletStok = null;
+let requestItems = []; // Untuk menyimpan multiple items
+let selectedOutletFilter = 'all'; // Untuk owner filter
 
 // [1] Fungsi utama untuk tampilkan halaman stok
 async function showStokPage() {
     try {
         console.log('=== SHOW STOK PAGE ===');
+        
+        // Reset items
+        requestItems = [];
         
         // Ambil data user
         const { data: { user } } = await supabase.auth.getUser();
@@ -8699,94 +8704,171 @@ function createStokPage() {
 // [3] UI untuk KASIR
 function createKasirStokUI() {
     return `
-        <!-- FILTER & SEARCH -->
-        <div class="stok-controls">
-            <div class="search-box">
-                <i class="fas fa-search"></i>
-                <input type="text" id="searchProduk" placeholder="Cari produk...">
+        <div class="stok-content kasir-view">
+            <!-- SUMMARY & ACTION BUTTON -->
+            <div class="kasir-action-section">
+                <button class="btn-update-stok" id="btnUpdateStok">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Update Stok</span>
+                </button>
+                
+                <div class="summary-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-label">Total Produk</div>
+                            <div class="stat-value" id="totalProduk">0</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-cubes"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-label">Total Stok</div>
+                            <div class="stat-value" id="totalStok">0</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-label">Stok Rendah</div>
+                            <div class="stat-value" id="stokRendah">0</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="filter-buttons">
-                <button class="filter-btn active" data-filter="all">Semua</button>
-                <button class="filter-btn" data-filter="low">Stok Rendah</button>
-                <button class="filter-btn" data-filter="out">Habis</button>
-            </div>
+            
+            <!-- PRODUCT SUMMARY TABLE -->
+            <section class="product-summary-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-list-alt"></i> Ringkasan Stok - ${currentOutletStok}</h3>
+                </div>
+                
+                <div class="summary-table-container">
+                    <table class="summary-table" id="summaryTable">
+                        <thead>
+                            <tr>
+                                <th>Group Produk</th>
+                                <th>Nama Produk</th>
+                                <th>Stok</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryTableBody">
+                            <tr>
+                                <td colspan="3" class="loading-cell">
+                                    <i class="fas fa-spinner fa-spin"></i> Memuat data...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+            <!-- REQUEST HISTORY -->
+            <section class="request-history-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-history"></i> Riwayat Request</h3>
+                </div>
+                
+                <div class="requests-list" id="requestsList">
+                    <div class="loading">Memuat riwayat request...</div>
+                </div>
+            </section>
         </div>
         
-        <!-- CURRENT STOCK -->
-        <section class="current-stock-section">
-            <div class="section-header">
-                <h3><i class="fas fa-box-open"></i> Stok Saat Ini - ${currentOutletStok}</h3>
-                <button class="btn-primary btn-small" id="btnRequestStok">
-                    <i class="fas fa-plus"></i> Request Stok Baru
-                </button>
-            </div>
-            
-            <div class="products-grid" id="productsGrid">
-                <!-- Produk akan diisi di sini -->
-                <div class="loading">Memuat data produk...</div>
-            </div>
-        </section>
-        
-        <!-- REQUEST HISTORY -->
-        <section class="request-history-section">
-            <div class="section-header">
-                <h3><i class="fas fa-history"></i> Riwayat Request</h3>
-            </div>
-            
-            <div class="requests-list" id="requestsList">
-                <div class="loading">Memuat riwayat request...</div>
-            </div>
-        </section>
-        
-        <!-- MODAL REQUEST STOK -->
+        <!-- MODAL REQUEST STOK (MULTIPLE ITEMS) -->
         <div class="modal-overlay" id="requestModal" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3><i class="fas fa-cart-plus"></i> Request Stok Baru</h3>
+                    <h3><i class="fas fa-cart-plus"></i> Request Update Stok</h3>
                     <button class="close-modal" id="closeRequestModal">&times;</button>
                 </div>
                 
                 <div class="modal-body">
-                    <form id="stokRequestForm">
-                        <div class="form-group">
-                            <label for="selectProdukRequest">Pilih Produk:</label>
-                            <select id="selectProdukRequest" class="form-select" required>
-                                <option value="">-- Pilih Produk --</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="stokType">Jenis Update:</label>
-                            <select id="stokType" class="form-select" required>
-                                <option value="masuk">Stok Masuk</option>
-                                <option value="keluar">Stok Keluar</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="qtyChange">Jumlah:</label>
-                            <input type="number" id="qtyChange" min="1" value="1" 
-                                   class="form-input" required>
-                            <div class="form-hint" id="currentStockInfo">
-                                Stok saat ini: <span id="currentStockValue">0</span>
+                    <!-- ADD ITEM FORM -->
+                    <div class="add-item-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="selectProdukRequest">Pilih Produk:</label>
+                                <select id="selectProdukRequest" class="form-select">
+                                    <option value="">-- Pilih Produk --</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="stokType">Jenis:</label>
+                                <select id="stokType" class="form-select">
+                                    <option value="masuk">Stok Masuk</option>
+                                    <option value="keluar">Stok Keluar</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="qtyChange">Jumlah:</label>
+                                <input type="number" id="qtyChange" min="1" value="1" 
+                                       class="form-input" placeholder="Jumlah">
+                                <div class="form-hint" id="currentStockInfo" style="display: none;">
+                                    Stok saat ini: <span id="currentStockValue">0</span>
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="form-group">
-                            <label for="requestNotes">Keterangan:</label>
-                            <textarea id="requestNotes" class="form-textarea" 
-                                      rows="3" placeholder="Contoh: Stok hampir habis, ada permintaan pelanggan"></textarea>
-                        </div>
+                        <button type="button" class="btn-add-item" id="btnAddItem">
+                            <i class="fas fa-plus"></i> Tambah ke List
+                        </button>
+                    </div>
+                    
+                    <!-- ITEMS LIST -->
+                    <div class="items-list-section">
+                        <h4><i class="fas fa-list"></i> Items dalam Request</h4>
                         
-                        <div class="modal-footer">
-                            <button type="button" class="btn-secondary" id="cancelRequest">
-                                Batal
-                            </button>
-                            <button type="submit" class="btn-primary">
-                                <i class="fas fa-paper-plane"></i> Submit Request
-                            </button>
+                        <div class="items-list-container">
+                            <div class="items-list" id="itemsList">
+                                <div class="empty-list">
+                                    <i class="fas fa-clipboard-list"></i>
+                                    <p>Belum ada item ditambahkan</p>
+                                </div>
+                            </div>
+                            
+                            <div class="items-summary" id="itemsSummary" style="display: none;">
+                                <div class="summary-row">
+                                    <span>Total Items:</span>
+                                    <strong id="totalItemsCount">0</strong>
+                                </div>
+                                <div class="summary-row">
+                                    <span>Total Stok Masuk:</span>
+                                    <strong class="text-success" id="totalMasukCount">0</strong>
+                                </div>
+                                <div class="summary-row">
+                                    <span>Total Stok Keluar:</span>
+                                    <strong class="text-danger" id="totalKeluarCount">0</strong>
+                                </div>
+                            </div>
                         </div>
-                    </form>
+                    </div>
+                    
+                    <!-- KETERANGAN -->
+                    <div class="form-group">
+                        <label for="requestNotes">Keterangan (Opsional):</label>
+                        <textarea id="requestNotes" class="form-textarea" 
+                                  rows="3" placeholder="Contoh: Restock bulanan, permintaan pelanggan"></textarea>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="cancelRequest">
+                        <i class="fas fa-times"></i> Batal
+                    </button>
+                    <button type="button" class="btn-primary" id="submitRequest" disabled>
+                        <i class="fas fa-paper-plane"></i> Simpan Request
+                    </button>
                 </div>
             </div>
         </div>
@@ -8796,137 +8878,183 @@ function createKasirStokUI() {
 // [4] UI untuk OWNER
 function createOwnerStokUI() {
     return `
-        <!-- FILTER SECTION -->
-        <div class="owner-filter-section">
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label for="filterOutletStok">Outlet:</label>
-                    <select id="filterOutletStok" class="outlet-select">
-                        <option value="all">Semua Outlet</option>
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <label for="filterStatusStok">Status:</label>
-                    <select id="filterStatusStok" class="status-select">
-                        <option value="pending">Pending Approval</option>
-                        <option value="all">Semua Status</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <label for="filterDateStok">Periode:</label>
-                    <select id="filterDateStok" class="date-select">
-                        <option value="today">Hari Ini</option>
-                        <option value="week">7 Hari</option>
-                        <option value="month">Bulan Ini</option>
-                    </select>
+        <div class="stok-content owner-view">
+            <!-- FILTER SECTION -->
+            <div class="owner-filter-section">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="filterOutletStok">Outlet:</label>
+                        <select id="filterOutletStok" class="outlet-select">
+                            <option value="all">Semua Outlet</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="filterStatusStok">Status:</label>
+                        <select id="filterStatusStok" class="status-select">
+                            <option value="pending">Pending Approval</option>
+                            <option value="all">Semua Status</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="filterDateStok">Periode:</label>
+                        <select id="filterDateStok" class="date-select">
+                            <option value="today">Hari Ini</option>
+                            <option value="week">7 Hari</option>
+                            <option value="month">Bulan Ini</option>
+                        </select>
+                    </div>
                 </div>
             </div>
+            
+            <!-- SUMMARY STATS -->
+            <div class="owner-summary-stats">
+                <div class="summary-card pending">
+                    <div class="card-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-label">Pending</div>
+                        <div class="card-value" id="statPending">0</div>
+                    </div>
+                </div>
+                
+                <div class="summary-card approved">
+                    <div class="card-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-label">Approved Today</div>
+                        <div class="card-value" id="statApproved">0</div>
+                    </div>
+                </div>
+                
+                <div class="summary-card adjustment">
+                    <div class="card-icon">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-label">Adjustments</div>
+                        <div class="card-value" id="statAdjustments">0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- PENDING REQUESTS -->
+            <section class="pending-requests-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-clock"></i> Permintaan Pending</h3>
+                    <div class="section-badge" id="pendingRequestsCount">
+                        0 requests
+                    </div>
+                </div>
+                
+                <div class="pending-table-container">
+                    <table class="pending-table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Outlet</th>
+                                <th>Produk</th>
+                                <th>Kasir</th>
+                                <th>Jenis</th>
+                                <th>Jumlah</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pendingRequestsBody">
+                            <tr>
+                                <td colspan="8" class="loading-cell">
+                                    <i class="fas fa-spinner fa-spin"></i> Memuat data...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+            <!-- QUICK ADJUSTMENT -->
+            <section class="quick-adjust-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-exchange-alt"></i> Quick Adjustment</h3>
+                    <button class="btn-primary btn-small" id="btnToggleAdjust">
+                        <i class="fas fa-edit"></i> Buat Adjustment
+                    </button>
+                </div>
+                
+                <div class="adjust-form-container" id="adjustFormContainer" style="display: none;">
+                    <form id="quickAdjustForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="adjustOutlet">Outlet:</label>
+                                <select id="adjustOutlet" class="form-select">
+                                    <option value="${currentOutletStok}">${currentOutletStok}</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="adjustProduk">Produk:</label>
+                                <select id="adjustProduk" class="form-select">
+                                    <option value="">-- Pilih Produk --</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="adjustType">Jenis:</label>
+                                <select id="adjustType" class="form-select">
+                                    <option value="masuk">Stok Masuk</option>
+                                    <option value="keluar">Stok Keluar</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="adjustQty">Jumlah:</label>
+                                <input type="number" id="adjustQty" min="1" value="1" 
+                                       class="form-input" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="adjustNotes">Alasan Adjustment:</label>
+                            <input type="text" id="adjustNotes" class="form-input" 
+                                   placeholder="Contoh: Barang rusak, stok opname, koreksi" required>
+                        </div>
+                        
+                        <div class="form-buttons">
+                            <button type="button" class="btn-secondary" id="cancelAdjust">
+                                <i class="fas fa-times"></i> Batal
+                            </button>
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-check"></i> Simpan Adjustment
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- RECENT ADJUSTMENTS -->
+                <div class="recent-adjustments">
+                    <h4><i class="fas fa-history"></i> Adjustment Terakhir</h4>
+                    <div class="adjustments-list" id="recentAdjustments">
+                        <div class="loading">Memuat data...</div>
+                    </div>
+                </div>
+            </section>
         </div>
         
-        <!-- PENDING REQUESTS -->
-        <section class="pending-requests-section">
-            <div class="section-header">
-                <h3><i class="fas fa-clock"></i> Permintaan Pending</h3>
-                <div class="pending-count">
-                    <span id="pendingRequestsCount">0</span> requests
-                </div>
-            </div>
-            
-            <div class="pending-table-container">
-                <table class="pending-table">
-                    <thead>
-                        <tr>
-                            <th>Tanggal</th>
-                            <th>Outlet</th>
-                            <th>Produk</th>
-                            <th>Kasir</th>
-                            <th>Jenis</th>
-                            <th>Jumlah</th>
-                            <th>Stok Sebelum</th>
-                            <th>Keterangan</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pendingRequestsBody">
-                        <!-- Data akan diisi -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
-        
-        <!-- QUICK ADJUSTMENT -->
-        <section class="quick-adjust-section">
-            <div class="section-header">
-                <h3><i class="fas fa-exchange-alt"></i> Quick Adjustment</h3>
-                <button class="btn-primary btn-small" id="btnQuickAdjust">
-                    <i class="fas fa-edit"></i> Buat Adjustment
-                </button>
-            </div>
-            
-            <div class="adjust-form-container" id="adjustFormContainer" style="display: none;">
-                <form id="quickAdjustForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="adjustProduk">Produk:</label>
-                            <select id="adjustProduk" class="form-select">
-                                <option value="">-- Pilih Produk --</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="adjustType">Jenis:</label>
-                            <select id="adjustType" class="form-select">
-                                <option value="masuk">Stok Masuk</option>
-                                <option value="keluar">Stok Keluar</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="adjustQty">Jumlah:</label>
-                            <input type="number" id="adjustQty" min="1" value="1" class="form-input">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="adjustNotes">Alasan:</label>
-                        <input type="text" id="adjustNotes" class="form-input" 
-                               placeholder="Contoh: Barang rusak, stok opname">
-                    </div>
-                    
-                    <div class="form-buttons">
-                        <button type="button" class="btn-secondary" id="cancelAdjust">
-                            Batal
-                        </button>
-                        <button type="submit" class="btn-primary">
-                            <i class="fas fa-check"></i> Simpan
-                        </button>
-                    </div>
-                </form>
-            </div>
-            
-            <!-- RECENT ADJUSTMENTS -->
-            <div class="recent-adjustments">
-                <h4><i class="fas fa-history"></i> Adjustment Terakhir</h4>
-                <div class="adjustments-list" id="recentAdjustments">
-                    <!-- Data akan diisi -->
-                </div>
-            </div>
-        </section>
-        
-        <!-- MODAL APPROVAL -->
+        <!-- MODAL APPROVAL DETAIL -->
         <div class="modal-overlay" id="approvalModal" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3><i class="fas fa-clipboard-check"></i> Review Request</h3>
+                    <h3><i class="fas fa-clipboard-check"></i> Detail Request</h3>
                     <button class="close-modal" id="closeApprovalModal">&times;</button>
                 </div>
                 
                 <div class="modal-body" id="approvalModalBody">
-                    <!-- Detail request akan diisi -->
+                    <!-- Detail akan diisi -->
                 </div>
             </div>
         </div>
@@ -8954,27 +9082,10 @@ function setupStokPageEvents() {
 
 // [6] Setup events khusus untuk KASIR
 function setupKasirStokEvents() {
-    // Tombol request stok
-    const btnRequest = document.getElementById('btnRequestStok');
-    if (btnRequest) {
-        btnRequest.addEventListener('click', showRequestModal);
-    }
-    
-    // Filter buttons
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            filterProducts(this.dataset.filter);
-        });
-    });
-    
-    // Search produk
-    const searchInput = document.getElementById('searchProduk');
-    if (searchInput) {
-        searchInput.addEventListener('input', debounce((e) => {
-            searchProducts(e.target.value);
-        }, 300));
+    // Tombol Update Stok
+    const btnUpdate = document.getElementById('btnUpdateStok');
+    if (btnUpdate) {
+        btnUpdate.addEventListener('click', showRequestModal);
     }
     
     // Modal events
@@ -8984,12 +9095,27 @@ function setupKasirStokEvents() {
 // [7] Setup events khusus untuk OWNER
 function setupOwnerStokEvents() {
     // Filter events
-    document.getElementById('filterOutletStok')?.addEventListener('change', loadStokData);
-    document.getElementById('filterStatusStok')?.addEventListener('change', loadStokData);
-    document.getElementById('filterDateStok')?.addEventListener('change', loadStokData);
+    const filterOutlet = document.getElementById('filterOutletStok');
+    const filterStatus = document.getElementById('filterStatusStok');
+    const filterDate = document.getElementById('filterDateStok');
     
-    // Quick adjust button
-    document.getElementById('btnQuickAdjust')?.addEventListener('click', function() {
+    if (filterOutlet) {
+        filterOutlet.addEventListener('change', function() {
+            selectedOutletFilter = this.value;
+            loadStokData();
+        });
+    }
+    
+    if (filterStatus) {
+        filterStatus.addEventListener('change', loadStokData);
+    }
+    
+    if (filterDate) {
+        filterDate.addEventListener('change', loadStokData);
+    }
+    
+    // Toggle adjustment form
+    document.getElementById('btnToggleAdjust')?.addEventListener('click', function() {
         const container = document.getElementById('adjustFormContainer');
         container.style.display = container.style.display === 'none' ? 'block' : 'none';
         
@@ -9001,6 +9127,7 @@ function setupOwnerStokEvents() {
     // Cancel adjust
     document.getElementById('cancelAdjust')?.addEventListener('click', function() {
         document.getElementById('adjustFormContainer').style.display = 'none';
+        document.getElementById('quickAdjustForm').reset();
     });
     
     // Quick adjust form submit
@@ -9013,19 +9140,11 @@ function setupOwnerStokEvents() {
     }
 }
 
-// [8] Setup modal request events
+// [8] Setup modal request events (MULTIPLE ITEMS)
 function setupRequestModalEvents() {
     // Close modal buttons
     document.getElementById('closeRequestModal')?.addEventListener('click', closeRequestModal);
     document.getElementById('cancelRequest')?.addEventListener('click', closeRequestModal);
-    
-    // Stok type change
-    const stokTypeSelect = document.getElementById('stokType');
-    if (stokTypeSelect) {
-        stokTypeSelect.addEventListener('change', function() {
-            updateQtyLimits();
-        });
-    }
     
     // Produk select change
     const produkSelect = document.getElementById('selectProdukRequest');
@@ -9035,14 +9154,24 @@ function setupRequestModalEvents() {
         });
     }
     
-    // Form submit
-    const requestForm = document.getElementById('stokRequestForm');
-    if (requestForm) {
-        requestForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            submitStokRequest();
-        });
+    // Stok type change
+    const stokTypeSelect = document.getElementById('stokType');
+    if (stokTypeSelect) {
+        stokTypeSelect.addEventListener('change', updateQtyLimits);
     }
+    
+    // Add item button
+    document.getElementById('btnAddItem')?.addEventListener('click', addItemToList);
+    
+    // Submit request button
+    document.getElementById('submitRequest')?.addEventListener('click', submitStokRequest);
+    
+    // Close modal on ESC key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeRequestModal();
+        }
+    });
 }
 
 // [9] Fungsi utama untuk load data stok
@@ -9065,12 +9194,14 @@ async function loadStokData() {
 // [10] Load data untuk KASIR
 async function loadKasirStokData() {
     try {
-        // Load produk
+        // Load produk untuk summary (hanya inventory=TRUE)
         const { data: produkData, error: produkError } = await supabase
             .from('produk')
-            .select('id, nama_produk, group_produk, stok, harga_beli, harga_jual, status')
+            .select('id, nama_produk, group_produk, stok, inventory')
             .eq('outlet', currentOutletStok)
             .eq('status', 'active')
+            .eq('inventory', true) // Hanya produk inventory
+            .order('group_produk')
             .order('nama_produk');
         
         if (produkError) throw produkError;
@@ -9087,8 +9218,11 @@ async function loadKasirStokData() {
         if (requestError) throw requestError;
         
         // Update UI
-        displayProductsKasir(produkData || []);
+        updateKasirSummary(produkData || []);
         displayRequestHistory(requestData || []);
+        
+        // Load produk untuk dropdown modal
+        await loadProdukForRequest();
         
     } catch (error) {
         console.error('Error loading kasir stok data:', error);
@@ -9096,131 +9230,98 @@ async function loadKasirStokData() {
     }
 }
 
-// [11] Load data untuk OWNER
-async function loadOwnerStokData() {
-    try {
-        // Get filter values
-        const outletFilter = document.getElementById('filterOutletStok')?.value || 'all';
-        const statusFilter = document.getElementById('filterStatusStok')?.value || 'pending';
-        const dateFilter = document.getElementById('filterDateStok')?.value || 'today';
-        
-        // Build query untuk pending requests
-        let requestQuery = supabase
-            .from('stok_update')
-            .select('*')
-            .order('created_at', { ascending: false });
-        
-        // Apply filters
-        if (outletFilter !== 'all') {
-            requestQuery = requestQuery.eq('outlet', outletFilter);
-        }
-        
-        if (statusFilter !== 'all') {
-            requestQuery = requestQuery.eq('approval_status', statusFilter);
-        } else {
-            // Default: hanya pending untuk halaman utama
-            requestQuery = requestQuery.eq('approval_status', 'pending');
-        }
-        
-        // Date filter
-        if (dateFilter === 'today') {
-            const today = new Date().toISOString().split('T')[0];
-            requestQuery = requestQuery.eq('tanggal', today);
-        } else if (dateFilter === 'week') {
-            const weekAgo = new Date();
-            weekAgo.setDate(weekAgo.getDate() - 7);
-            requestQuery = requestQuery.gte('tanggal', weekAgo.toISOString().split('T')[0]);
-        }
-        
-        const { data: requests, error: requestError } = await requestQuery;
-        
-        if (requestError) throw requestError;
-        
-        // Load recent adjustments
-        const { data: adjustments, error: adjustError } = await supabase
-            .from('stok_update')
-            .select('*')
-            .eq('approval_status', 'approved')
-            .eq('outlet', currentOutletStok)
-            .order('created_at', { ascending: false })
-            .limit(5);
-        
-        if (adjustError) throw adjustError;
-        
-        // Load outlet dropdown
-        await loadOutletDropdownStok();
-        
-        // Update UI
-        displayPendingRequests(requests || []);
-        displayRecentAdjustments(adjustments || []);
-        
-    } catch (error) {
-        console.error('Error loading owner stok data:', error);
-        showError('Gagal memuat data requests');
-    }
-}
-
-// [12] Display produk untuk KASIR
-function displayProductsKasir(products) {
-    const productsGrid = document.getElementById('productsGrid');
-    if (!productsGrid) return;
-    
+// [11] Update summary untuk KASIR
+function updateKasirSummary(products) {
     if (!products || products.length === 0) {
-        productsGrid.innerHTML = `
-            <div class="no-data">
-                <i class="fas fa-box-open" style="font-size: 3rem; color: #ccc;"></i>
-                <p>Tidak ada produk ditemukan</p>
-            </div>
-        `;
+        document.getElementById('totalProduk').textContent = '0';
+        document.getElementById('totalStok').textContent = '0';
+        document.getElementById('stokRendah').textContent = '0';
+        
+        const tbody = document.getElementById('summaryTableBody');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="3" class="no-data-cell">
+                        <i class="fas fa-box-open"></i>
+                        <p>Tidak ada produk inventory</p>
+                    </td>
+                </tr>
+            `;
+        }
         return;
     }
     
-    productsGrid.innerHTML = products.map(product => {
-        const stockClass = getStockStatusClass(product.stok);
-        const stockStatus = getStockStatusText(product.stok);
-        
-        return `
-            <div class="product-card" data-id="${product.id}">
-                <div class="product-header">
-                    <h4 class="product-name">${product.nama_produk}</h4>
-                    <span class="product-group">${product.group_produk || 'Umum'}</span>
-                </div>
-                
-                <div class="product-info">
-                    <div class="info-item">
-                        <span class="label">Stok:</span>
-                        <span class="value ${stockClass}">${product.stok} unit</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="label">Status:</span>
-                        <span class="value ${stockClass}">${stockStatus}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="label">Harga:</span>
-                        <span class="value">Rp ${formatNumber(product.harga_jual || 0)}</span>
-                    </div>
-                </div>
-                
-                <div class="product-actions">
-                    <button class="btn-action request-btn" data-id="${product.id}" data-name="${product.nama_produk}">
-                        <i class="fas fa-plus"></i> Request
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
+    // Calculate statistics
+    const totalProduk = products.length;
+    const totalStok = products.reduce((sum, p) => sum + (p.stok || 0), 0);
+    const stokRendah = products.filter(p => (p.stok || 0) <= 10).length;
     
-    // Add event listeners to request buttons
-    document.querySelectorAll('.request-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const productId = this.dataset.id;
-            const productName = this.dataset.name;
-            showRequestModal(productId, productName);
+    // Update stats
+    document.getElementById('totalProduk').textContent = totalProduk;
+    document.getElementById('totalStok').textContent = totalStok.toLocaleString();
+    document.getElementById('stokRendah').textContent = stokRendah;
+    
+    // Group products by group_produk
+    const groupedProducts = {};
+    products.forEach(product => {
+        const group = product.group_produk || 'Lainnya';
+        if (!groupedProducts[group]) {
+            groupedProducts[group] = [];
+        }
+        groupedProducts[group].push(product);
+    });
+    
+    // Display in table
+    const tbody = document.getElementById('summaryTableBody');
+    if (!tbody) return;
+    
+    let html = '';
+    
+    // Sort groups alphabetically
+    const sortedGroups = Object.keys(groupedProducts).sort();
+    
+    sortedGroups.forEach((group, groupIndex) => {
+        const groupProducts = groupedProducts[group];
+        
+        groupProducts.forEach((product, productIndex) => {
+            const isFirstInGroup = productIndex === 0;
+            const stockClass = getStockStatusClass(product.stok);
+            
+            html += `
+                <tr class="${stockClass}">
+                    ${isFirstInGroup ? 
+                        `<td rowspan="${groupProducts.length}" class="group-cell">
+                            <strong>${group}</strong>
+                        </td>` : ''
+                    }
+                    <td class="product-cell">
+                        <div class="product-name">${product.nama_produk}</div>
+                        ${product.inventory === false ? 
+                            '<span class="non-inventory-badge">Non-Inventory</span>' : ''
+                        }
+                    </td>
+                    <td class="stock-cell ${stockClass}">
+                        ${product.stok || 0}
+                        ${product.stok <= 10 ? 
+                            '<span class="low-stock-badge"><i class="fas fa-exclamation-circle"></i></span>' : ''
+                        }
+                    </td>
+                </tr>
+            `;
         });
     });
+    
+    tbody.innerHTML = html || `
+        <tr>
+            <td colspan="3" class="no-data-cell">
+                <i class="fas fa-box-open"></i>
+                <p>Tidak ada produk inventory</p>
+            </td>
+        </tr>
+    `;
 }
 
-// [13] Display request history untuk KASIR
+// [12] Display request history untuk KASIR
 function displayRequestHistory(requests) {
     const requestsList = document.getElementById('requestsList');
     if (!requestsList) return;
@@ -9228,7 +9329,7 @@ function displayRequestHistory(requests) {
     if (!requests || requests.length === 0) {
         requestsList.innerHTML = `
             <div class="no-data">
-                <i class="fas fa-history" style="font-size: 2rem; color: #ccc;"></i>
+                <i class="fas fa-history"></i>
                 <p>Belum ada riwayat request</p>
             </div>
         `;
@@ -9239,6 +9340,7 @@ function displayRequestHistory(requests) {
         const statusClass = getApprovalStatusClass(request.approval_status);
         const typeClass = request.stok_type === 'masuk' ? 'type-in' : 'type-out';
         const typeIcon = request.stok_type === 'masuk' ? 'fa-arrow-down' : 'fa-arrow-up';
+        const typeText = request.stok_type === 'masuk' ? 'Stok Masuk' : 'Stok Keluar';
         
         return `
             <div class="request-item ${statusClass}">
@@ -9257,14 +9359,16 @@ function displayRequestHistory(requests) {
                         <strong>${request.nama_produk}</strong>
                         <span class="request-type ${typeClass}">
                             <i class="fas ${typeIcon}"></i>
-                            ${request.stok_type === 'masuk' ? 'Stok Masuk' : 'Stok Keluar'}
+                            ${typeText}
                         </span>
                     </div>
                     
                     <div class="request-details">
                         <div class="detail-item">
                             <span>Jumlah:</span>
-                            <strong>${Math.abs(request.qty_change)} unit</strong>
+                            <strong class="${typeClass}">
+                                ${request.stok_type === 'masuk' ? '+' : '-'}${Math.abs(request.qty_change)}
+                            </strong>
                         </div>
                         <div class="detail-item">
                             <span>Stok:</span>
@@ -9278,13 +9382,165 @@ function displayRequestHistory(requests) {
                         ${request.notes}
                     </div>
                     ` : ''}
+                    
+                    ${request.rejection_reason ? `
+                    <div class="request-rejection">
+                        <i class="fas fa-times-circle"></i>
+                        <strong>Alasan ditolak:</strong> ${request.rejection_reason}
+                    </div>
+                    ` : ''}
                 </div>
             </div>
         `;
     }).join('');
 }
 
-// [14] Display pending requests untuk OWNER
+// [13] Load data untuk OWNER
+async function loadOwnerStokData() {
+    try {
+        // Get filter values
+        const outletFilter = selectedOutletFilter || 'all';
+        const statusFilter = document.getElementById('filterStatusStok')?.value || 'pending';
+        const dateFilter = document.getElementById('filterDateStok')?.value || 'today';
+        
+        // Load outlet dropdown
+        await loadOutletDropdownStok();
+        
+        // Calculate date range
+        let dateStart = null;
+        let dateEnd = null;
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (dateFilter === 'today') {
+            dateStart = today.toISOString().split('T')[0];
+            dateEnd = dateStart;
+        } else if (dateFilter === 'week') {
+            dateEnd = today.toISOString().split('T')[0];
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            dateStart = weekAgo.toISOString().split('T')[0];
+        } else if (dateFilter === 'month') {
+            dateEnd = today.toISOString().split('T')[0];
+            const monthAgo = new Date(today);
+            monthAgo.setMonth(monthAgo.getMonth() - 1);
+            dateStart = monthAgo.toISOString().split('T')[0];
+        }
+        
+        // Build query untuk pending requests
+        let requestQuery = supabase
+            .from('stok_update')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        // Apply filters
+        if (outletFilter !== 'all') {
+            requestQuery = requestQuery.eq('outlet', outletFilter);
+        }
+        
+        if (statusFilter !== 'all') {
+            requestQuery = requestQuery.eq('approval_status', statusFilter);
+        } else {
+            // For "all status", don't filter by status
+        }
+        
+        // Date filter
+        if (dateStart && dateEnd) {
+            requestQuery = requestQuery.gte('tanggal', dateStart).lte('tanggal', dateEnd);
+        }
+        
+        const { data: requests, error: requestError } = await requestQuery;
+        
+        if (requestError) throw requestError;
+        
+        // Load stats
+        await loadOwnerStats(outletFilter, dateStart, dateEnd);
+        
+        // Load recent adjustments
+        const { data: adjustments, error: adjustError } = await supabase
+            .from('stok_update')
+            .select('*')
+            .eq('approval_status', 'approved')
+            .eq('stok_type', 'keluar')
+            .eq('outlet', currentOutletStok)
+            .order('created_at', { ascending: false })
+            .limit(5);
+        
+        if (adjustError) throw adjustError;
+        
+        // Update UI
+        displayPendingRequests(requests || []);
+        displayRecentAdjustments(adjustments || []);
+        
+    } catch (error) {
+        console.error('Error loading owner stok data:', error);
+        showError('Gagal memuat data requests');
+    }
+}
+
+// [14] Load owner statistics
+async function loadOwnerStats(outletFilter, dateStart, dateEnd) {
+    try {
+        // Pending requests count
+        let pendingQuery = supabase
+            .from('stok_update')
+            .select('id', { count: 'exact', head: true })
+            .eq('approval_status', 'pending');
+        
+        if (outletFilter !== 'all') {
+            pendingQuery = pendingQuery.eq('outlet', outletFilter);
+        }
+        
+        const { count: pendingCount, error: pendingError } = await pendingQuery;
+        
+        if (pendingError) throw pendingError;
+        
+        // Approved today count
+        let approvedQuery = supabase
+            .from('stok_update')
+            .select('id', { count: 'exact', head: true })
+            .eq('approval_status', 'approved')
+            .eq('tanggal', new Date().toISOString().split('T')[0]);
+        
+        if (outletFilter !== 'all') {
+            approvedQuery = approvedQuery.eq('outlet', outletFilter);
+        }
+        
+        const { count: approvedCount, error: approvedError } = await approvedQuery;
+        
+        if (approvedError) throw approvedError;
+        
+        // Adjustments count (owner initiated)
+        let adjustQuery = supabase
+            .from('stok_update')
+            .select('id', { count: 'exact', head: true })
+            .eq('approval_status', 'approved')
+            .neq('requested_by', null);
+        
+        if (outletFilter !== 'all') {
+            adjustQuery = adjustQuery.eq('outlet', outletFilter);
+        }
+        
+        if (dateStart && dateEnd) {
+            adjustQuery = adjustQuery.gte('tanggal', dateStart).lte('tanggal', dateEnd);
+        }
+        
+        const { count: adjustCount, error: adjustError } = await adjustQuery;
+        
+        if (adjustError) throw adjustError;
+        
+        // Update UI
+        document.getElementById('statPending').textContent = pendingCount || 0;
+        document.getElementById('statApproved').textContent = approvedCount || 0;
+        document.getElementById('statAdjustments').textContent = adjustCount || 0;
+        
+    } catch (error) {
+        console.error('Error loading owner stats:', error);
+    }
+}
+
+// [15] Display pending requests untuk OWNER
 function displayPendingRequests(requests) {
     const pendingBody = document.getElementById('pendingRequestsBody');
     const pendingCount = document.getElementById('pendingRequestsCount');
@@ -9294,32 +9550,40 @@ function displayPendingRequests(requests) {
     if (!requests || requests.length === 0) {
         pendingBody.innerHTML = `
             <tr>
-                <td colspan="9" class="no-data-cell">
+                <td colspan="8" class="no-data-cell">
                     <i class="fas fa-check-circle"></i>
-                    Tidak ada permintaan pending
+                    <p>Tidak ada data request</p>
                 </td>
             </tr>
         `;
-        if (pendingCount) pendingCount.textContent = '0';
+        if (pendingCount) pendingCount.textContent = '0 requests';
         return;
     }
     
     // Update count
+    const pendingOnly = requests.filter(r => r.approval_status === 'pending');
     if (pendingCount) {
-        pendingCount.textContent = requests.length.toString();
+        pendingCount.textContent = `${pendingOnly.length} pending`;
     }
     
     pendingBody.innerHTML = requests.map(request => {
         const typeClass = request.stok_type === 'masuk' ? 'type-in' : 'type-out';
         const typeText = request.stok_type === 'masuk' ? 'Masuk' : 'Keluar';
+        const statusClass = getApprovalStatusClass(request.approval_status);
+        const statusText = getApprovalStatusText(request.approval_status);
+        
+        // Check if already approved/rejected to disable buttons
+        const isActionable = request.approval_status === 'pending';
         
         return `
-            <tr>
+            <tr data-id="${request.id}" data-status="${request.approval_status}">
                 <td>${formatDateStok(request.tanggal)}</td>
                 <td>${request.outlet}</td>
                 <td>
-                    <strong>${request.nama_produk}</strong>
-                    <div class="product-group">${request.group_produk || '-'}</div>
+                    <div class="product-info">
+                        <strong>${request.nama_produk}</strong>
+                        <div class="product-group">${request.group_produk || '-'}</div>
+                    </div>
                 </td>
                 <td>${request.updated_by}</td>
                 <td>
@@ -9332,19 +9596,32 @@ function displayPendingRequests(requests) {
                         ${request.stok_type === 'masuk' ? '+' : '-'}${Math.abs(request.qty_change)}
                     </strong>
                 </td>
-                <td>${request.qty_before}</td>
-                <td>${request.notes || '-'}</td>
+                <td>
+                    <span class="status-badge ${statusClass}">
+                        ${statusText}
+                    </span>
+                </td>
                 <td>
                     <div class="action-buttons">
-                        <button class="btn-action btn-approve" data-id="${request.id}">
-                            <i class="fas fa-check"></i>
-                        </button>
-                        <button class="btn-action btn-reject" data-id="${request.id}">
-                            <i class="fas fa-times"></i>
-                        </button>
-                        <button class="btn-action btn-view" data-id="${request.id}">
-                            <i class="fas fa-eye"></i>
-                        </button>
+                        ${isActionable ? `
+                            <button class="btn-action btn-approve" data-id="${request.id}" 
+                                    title="Approve">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button class="btn-action btn-reject" data-id="${request.id}" 
+                                    title="Reject">
+                                <i class="fas fa-times"></i>
+                            </button>
+                            <button class="btn-action btn-view" data-id="${request.id}" 
+                                    title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        ` : `
+                            <button class="btn-action btn-view" data-id="${request.id}" 
+                                    title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        `}
                     </div>
                 </td>
             </tr>
@@ -9355,350 +9632,7 @@ function displayPendingRequests(requests) {
     setupRequestActionButtons();
 }
 
-// [15] Display recent adjustments untuk OWNER
-function displayRecentAdjustments(adjustments) {
-    const recentEl = document.getElementById('recentAdjustments');
-    if (!recentEl) return;
-    
-    if (!adjustments || adjustments.length === 0) {
-        recentEl.innerHTML = `
-            <div class="no-data">
-                <p>Belum ada adjustment</p>
-            </div>
-        `;
-        return;
-    }
-    
-    recentEl.innerHTML = adjustments.map(adj => {
-        const typeClass = adj.stok_type === 'masuk' ? 'type-in' : 'type-out';
-        const typeIcon = adj.stok_type === 'masuk' ? 'fa-arrow-down' : 'fa-arrow-up';
-        
-        return `
-            <div class="adjustment-item">
-                <div class="adjustment-header">
-                    <div class="adjustment-date">
-                        ${formatDateStok(adj.tanggal)}
-                    </div>
-                    <div class="adjustment-type ${typeClass}">
-                        <i class="fas ${typeIcon}"></i>
-                    </div>
-                </div>
-                <div class="adjustment-body">
-                    <div class="adjustment-product">${adj.nama_produk}</div>
-                    <div class="adjustment-qty ${typeClass}">
-                        ${adj.stok_type === 'masuk' ? '+' : '-'}${Math.abs(adj.qty_change)} unit
-                    </div>
-                    <div class="adjustment-notes">${adj.notes || '-'}</div>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-// [16] Show request modal untuk KASIR
-async function showRequestModal(productId = null, productName = null) {
-    const modal = document.getElementById('requestModal');
-    if (!modal) return;
-    
-    // Load produk untuk dropdown
-    await loadProdukForRequest();
-    
-    // Jika ada produk spesifik, select itu
-    if (productId && productName) {
-        const select = document.getElementById('selectProdukRequest');
-        if (select) {
-            select.value = productId;
-            updateCurrentStockInfo(productId);
-        }
-    }
-    
-    // Show modal
-    modal.style.display = 'flex';
-}
-
-// [17] Close request modal
-function closeRequestModal() {
-    const modal = document.getElementById('requestModal');
-    if (modal) {
-        modal.style.display = 'none';
-        
-        // Reset form
-        const form = document.getElementById('stokRequestForm');
-        if (form) form.reset();
-        
-        // Reset info
-        const stockInfo = document.getElementById('currentStockInfo');
-        if (stockInfo) stockInfo.style.display = 'none';
-    }
-}
-
-// [18] Load produk untuk request dropdown
-async function loadProdukForRequest() {
-    const select = document.getElementById('selectProdukRequest');
-    if (!select) return;
-    
-    try {
-        const { data: produkData, error } = await supabase
-            .from('produk')
-            .select('id, nama_produk, stok')
-            .eq('outlet', currentOutletStok)
-            .eq('status', 'active')
-            .order('nama_produk');
-        
-        if (error) throw error;
-        
-        select.innerHTML = `
-            <option value="">-- Pilih Produk --</option>
-            ${produkData.map(p => `
-                <option value="${p.id}" data-stock="${p.stok}">
-                    ${p.nama_produk} (Stok: ${p.stok})
-                </option>
-            `).join('')}
-        `;
-        
-    } catch (error) {
-        console.error('Error loading produk for request:', error);
-        select.innerHTML = '<option value="">Error loading produk</option>';
-    }
-}
-
-// [19] Load produk untuk owner adjustment
-async function loadProdukForAdjustment() {
-    const select = document.getElementById('adjustProduk');
-    if (!select) return;
-    
-    try {
-        const { data: produkData, error } = await supabase
-            .from('produk')
-            .select('id, nama_produk, stok')
-            .eq('outlet', currentOutletStok)
-            .eq('status', 'active')
-            .order('nama_produk');
-        
-        if (error) throw error;
-        
-        select.innerHTML = `
-            <option value="">-- Pilih Produk --</option>
-            ${produkData.map(p => `
-                <option value="${p.id}">
-                    ${p.nama_produk} (Stok: ${p.stok})
-                </option>
-            `).join('')}
-        `;
-        
-    } catch (error) {
-        console.error('Error loading produk for adjustment:', error);
-    }
-}
-
-// [20] Update current stock info in modal
-async function updateCurrentStockInfo(productId) {
-    const stockValue = document.getElementById('currentStockValue');
-    const stockInfo = document.getElementById('currentStockInfo');
-    
-    if (!productId) {
-        stockInfo.style.display = 'none';
-        return;
-    }
-    
-    try {
-        const { data: produk, error } = await supabase
-            .from('produk')
-            .select('stok')
-            .eq('id', productId)
-            .single();
-        
-        if (error) throw error;
-        
-        if (stockValue) stockValue.textContent = produk.stok;
-        if (stockInfo) stockInfo.style.display = 'block';
-        
-    } catch (error) {
-        console.error('Error getting current stock:', error);
-        if (stockValue) stockValue.textContent = 'Error';
-    }
-}
-
-// [21] Update quantity limits based on stok type
-function updateQtyLimits() {
-    const stokType = document.getElementById('stokType')?.value;
-    const qtyInput = document.getElementById('qtyChange');
-    const currentStock = parseInt(document.getElementById('currentStockValue')?.textContent || 0);
-    
-    if (!qtyInput) return;
-    
-    if (stokType === 'keluar') {
-        // Untuk stok keluar, maksimal tidak boleh melebihi stok saat ini
-        qtyInput.max = currentStock;
-        qtyInput.title = `Maksimal: ${currentStock} unit (stok saat ini)`;
-    } else {
-        // Untuk stok masuk, tidak ada batas maksimal
-        qtyInput.removeAttribute('max');
-        qtyInput.title = '';
-    }
-}
-
-// [22] Submit stok request (KASIR)
-async function submitStokRequest() {
-    try {
-        const productId = document.getElementById('selectProdukRequest')?.value;
-        const stokType = document.getElementById('stokType')?.value;
-        const qtyChange = parseInt(document.getElementById('qtyChange')?.value || 0);
-        const notes = document.getElementById('requestNotes')?.value;
-        
-        if (!productId) {
-            alert('Pilih produk terlebih dahulu');
-            return;
-        }
-        
-        if (qtyChange <= 0) {
-            alert('Jumlah harus lebih dari 0');
-            return;
-        }
-        
-        // Get product info
-        const { data: produk, error: produkError } = await supabase
-            .from('produk')
-            .select('nama_produk, group_produk, stok')
-            .eq('id', productId)
-            .single();
-        
-        if (produkError) throw produkError;
-        
-        // Calculate quantities
-        const qtyBefore = produk.stok;
-        const qtyChangeFinal = stokType === 'masuk' ? qtyChange : -qtyChange;
-        const qtyAfter = qtyBefore + qtyChangeFinal;
-        
-        // Validate untuk stok keluar
-        if (stokType === 'keluar' && qtyAfter < 0) {
-            alert('Stok tidak mencukupi! Stok saat ini: ' + qtyBefore);
-            return;
-        }
-        
-        // Create request
-        const requestData = {
-            tanggal: new Date().toISOString().split('T')[0],
-            outlet: currentOutletStok,
-            stok_type: stokType,
-            updated_by: currentUserStok.nama_karyawan,
-            nama_produk: produk.nama_produk,
-            group_produk: produk.group_produk || '',
-            qty_before: qtyBefore,
-            qty_change: qtyChangeFinal,
-            qty_after: qtyAfter,
-            approval_status: 'pending',
-            notes: notes || '',
-            created_at: new Date().toISOString()
-        };
-        
-        const { data, error } = await supabase
-            .from('stok_update')
-            .insert([requestData])
-            .select();
-        
-        if (error) throw error;
-        
-        // Success
-        alert('Request stok berhasil dikirim! Menunggu approval owner.');
-        closeRequestModal();
-        loadStokData(); // Refresh data
-        
-    } catch (error) {
-        console.error('Error submitting stok request:', error);
-        alert('Gagal mengirim request: ' + error.message);
-    }
-}
-
-// [23] Handle quick adjustment (OWNER)
-async function handleQuickAdjust() {
-    try {
-        const productId = document.getElementById('adjustProduk')?.value;
-        const stokType = document.getElementById('adjustType')?.value;
-        const qtyChange = parseInt(document.getElementById('adjustQty')?.value || 0);
-        const notes = document.getElementById('adjustNotes')?.value;
-        
-        if (!productId) {
-            alert('Pilih produk terlebih dahulu');
-            return;
-        }
-        
-        if (qtyChange <= 0) {
-            alert('Jumlah harus lebih dari 0');
-            return;
-        }
-        
-        // Get product info
-        const { data: produk, error: produkError } = await supabase
-            .from('produk')
-            .select('nama_produk, group_produk, stok')
-            .eq('id', productId)
-            .eq('outlet', currentOutletStok)
-            .single();
-        
-        if (produkError) throw produkError;
-        
-        // Calculate quantities
-        const qtyBefore = produk.stok;
-        const qtyChangeFinal = stokType === 'masuk' ? qtyChange : -qtyChange;
-        const qtyAfter = qtyBefore + qtyChangeFinal;
-        
-        // Validate untuk stok keluar
-        if (stokType === 'keluar' && qtyAfter < 0) {
-            alert('Stok tidak mencukupi! Stok saat ini: ' + qtyBefore);
-            return;
-        }
-        
-        // Create adjustment (auto approved for owner)
-        const adjustmentData = {
-            tanggal: new Date().toISOString().split('T')[0],
-            outlet: currentOutletStok,
-            stok_type: stokType,
-            updated_by: currentUserStok.nama_karyawan,
-            nama_produk: produk.nama_produk,
-            group_produk: produk.group_produk || '',
-            qty_before: qtyBefore,
-            qty_change: qtyChangeFinal,
-            qty_after: qtyAfter,
-            approval_status: 'approved',
-            approved_by: currentUserStok.nama_karyawan,
-            notes: notes || 'Quick adjustment by owner',
-            created_at: new Date().toISOString()
-        };
-        
-        const { data, error } = await supabase
-            .from('stok_update')
-            .insert([adjustmentData]);
-        
-        if (error) throw error;
-        
-        // Update produk.stok langsung
-        await supabase
-            .from('produk')
-            .update({ 
-                stok: qtyAfter,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', productId)
-            .eq('outlet', currentOutletStok);
-        
-        // Success
-        alert('Adjustment berhasil disimpan!');
-        
-        // Reset form
-        document.getElementById('quickAdjustForm').reset();
-        document.getElementById('adjustFormContainer').style.display = 'none';
-        
-        // Refresh data
-        loadStokData();
-        
-    } catch (error) {
-        console.error('Error handling quick adjustment:', error);
-        alert('Gagal menyimpan adjustment: ' + error.message);
-    }
-}
-
-// [24] Setup request action buttons (OWNER)
+// [16] Setup request action buttons (OWNER)
 function setupRequestActionButtons() {
     // Approve buttons
     document.querySelectorAll('.btn-approve').forEach(btn => {
@@ -9725,9 +9659,9 @@ function setupRequestActionButtons() {
     });
 }
 
-// [25] Approve stok request (OWNER)
+// [17] Approve stok request (OWNER) - UPDATE PRODUK.STOK
 async function approveStokRequest(requestId) {
-    if (!confirm('Approve request ini?')) return;
+    if (!confirm('Approve request ini? Stok produk akan diupdate.')) return;
     
     try {
         // Get request data
@@ -9738,6 +9672,12 @@ async function approveStokRequest(requestId) {
             .single();
         
         if (getError) throw getError;
+        
+        // Check if already approved/rejected
+        if (request.approval_status !== 'pending') {
+            alert('Request ini sudah diproses sebelumnya.');
+            return;
+        }
         
         // Update request status
         const { error: updateError } = await supabase
@@ -9751,7 +9691,7 @@ async function approveStokRequest(requestId) {
         
         if (updateError) throw updateError;
         
-        // Update produk.stok
+        // UPDATE PRODUK.STOK
         const { error: produkError } = await supabase
             .from('produk')
             .update({ 
@@ -9762,13 +9702,29 @@ async function approveStokRequest(requestId) {
             .eq('outlet', request.outlet);
         
         if (produkError) {
-            console.warn('Warning: Failed to update produk.stok', produkError);
-            // Continue anyway
+            console.error('Error updating produk.stok:', produkError);
+            alert('Request approved tapi gagal update stok produk. Silakan cek manual.');
+        } else {
+            // Success
+            alert('Request approved! Stok produk berhasil diperbarui.');
         }
         
-        // Success
-        alert('Request approved! Stok telah diperbarui.');
-        loadStokData(); // Refresh
+        // Disable action buttons for this row
+        const row = document.querySelector(`tr[data-id="${requestId}"]`);
+        if (row) {
+            const buttons = row.querySelectorAll('.btn-approve, .btn-reject');
+            buttons.forEach(btn => btn.disabled = true);
+            
+            // Update status badge
+            const statusBadge = row.querySelector('.status-badge');
+            if (statusBadge) {
+                statusBadge.className = 'status-badge status-approved';
+                statusBadge.textContent = 'Disetujui';
+            }
+        }
+        
+        // Refresh stats
+        loadStokData();
         
     } catch (error) {
         console.error('Error approving request:', error);
@@ -9776,7 +9732,7 @@ async function approveStokRequest(requestId) {
     }
 }
 
-// [26] Show reject modal
+// [18] Show reject modal
 async function showRejectModal(requestId) {
     const reason = prompt('Masukkan alasan penolakan:');
     if (reason === null) return; // User cancelled
@@ -9788,9 +9744,21 @@ async function showRejectModal(requestId) {
     await rejectStokRequest(requestId, reason);
 }
 
-// [27] Reject stok request (OWNER)
+// [19] Reject stok request (OWNER)
 async function rejectStokRequest(requestId, rejectionReason) {
     try {
+        // Get request data to check status
+        const { data: request } = await supabase
+            .from('stok_update')
+            .select('approval_status')
+            .eq('id', requestId)
+            .single();
+        
+        if (request.approval_status !== 'pending') {
+            alert('Request ini sudah diproses sebelumnya.');
+            return;
+        }
+        
         const { error } = await supabase
             .from('stok_update')
             .update({
@@ -9804,6 +9772,21 @@ async function rejectStokRequest(requestId, rejectionReason) {
         if (error) throw error;
         
         alert('Request telah ditolak.');
+        
+        // Disable action buttons for this row
+        const row = document.querySelector(`tr[data-id="${requestId}"]`);
+        if (row) {
+            const buttons = row.querySelectorAll('.btn-approve, .btn-reject');
+            buttons.forEach(btn => btn.disabled = true);
+            
+            // Update status badge
+            const statusBadge = row.querySelector('.status-badge');
+            if (statusBadge) {
+                statusBadge.className = 'status-badge status-rejected';
+                statusBadge.textContent = 'Ditolak';
+            }
+        }
+        
         loadStokData(); // Refresh
         
     } catch (error) {
@@ -9812,7 +9795,7 @@ async function rejectStokRequest(requestId, rejectionReason) {
     }
 }
 
-// [28] Show request detail (OWNER)
+// [20] Show request detail (OWNER)
 async function showRequestDetail(requestId) {
     try {
         const { data: request, error } = await supabase
@@ -9830,6 +9813,10 @@ async function showRequestDetail(requestId) {
         
         const typeText = request.stok_type === 'masuk' ? 'Stok Masuk' : 'Stok Keluar';
         const typeClass = request.stok_type === 'masuk' ? 'type-in' : 'type-out';
+        const statusText = getApprovalStatusText(request.approval_status);
+        const statusClass = getApprovalStatusClass(request.approval_status);
+        
+        const isActionable = request.approval_status === 'pending';
         
         modalBody.innerHTML = `
             <div class="request-detail">
@@ -9845,15 +9832,23 @@ async function showRequestDetail(requestId) {
                             <span class="value">${request.outlet}</span>
                         </div>
                         <div class="detail-item">
-                            <span class="label">Request By:</span>
+                            <span class="label">Dibuat Oleh:</span>
                             <span class="value">${request.updated_by}</span>
                         </div>
                         <div class="detail-item">
                             <span class="label">Status:</span>
-                            <span class="value status-${request.approval_status}">
-                                ${getApprovalStatusText(request.approval_status)}
-                            </span>
+                            <span class="value ${statusClass}">${statusText}</span>
                         </div>
+                        ${request.approved_by ? `
+                        <div class="detail-item">
+                            <span class="label">Disetujui Oleh:</span>
+                            <span class="value">${request.approved_by}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Waktu Approval:</span>
+                            <span class="value">${formatDateTime(request.updated_at)}</span>
+                        </div>
+                        ` : ''}
                     </div>
                 </div>
                 
@@ -9899,7 +9894,7 @@ async function showRequestDetail(requestId) {
                 </div>
                 ` : ''}
                 
-                ${request.approval_status === 'pending' ? `
+                ${isActionable ? `
                 <div class="detail-actions">
                     <button class="btn-primary btn-approve-action" data-id="${request.id}">
                         <i class="fas fa-check"></i> Approve
@@ -9932,7 +9927,47 @@ async function showRequestDetail(requestId) {
     }
 }
 
-// [29] Load outlet dropdown untuk OWNER
+// [21] Display recent adjustments untuk OWNER
+function displayRecentAdjustments(adjustments) {
+    const recentEl = document.getElementById('recentAdjustments');
+    if (!recentEl) return;
+    
+    if (!adjustments || adjustments.length === 0) {
+        recentEl.innerHTML = `
+            <div class="no-data">
+                <p>Belum ada adjustment</p>
+            </div>
+        `;
+        return;
+    }
+    
+    recentEl.innerHTML = adjustments.map(adj => {
+        const typeClass = adj.stok_type === 'masuk' ? 'type-in' : 'type-out';
+        const typeIcon = adj.stok_type === 'masuk' ? 'fa-arrow-down' : 'fa-arrow-up';
+        
+        return `
+            <div class="adjustment-item">
+                <div class="adjustment-header">
+                    <div class="adjustment-date">
+                        ${formatDateStok(adj.tanggal)}
+                    </div>
+                    <div class="adjustment-type ${typeClass}">
+                        <i class="fas ${typeIcon}"></i>
+                    </div>
+                </div>
+                <div class="adjustment-body">
+                    <div class="adjustment-product">${adj.nama_produk}</div>
+                    <div class="adjustment-qty ${typeClass}">
+                        ${adj.stok_type === 'masuk' ? '+' : '-'}${Math.abs(adj.qty_change)} unit
+                    </div>
+                    <div class="adjustment-notes">${adj.notes || '-'}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// [22] Load outlet dropdown untuk OWNER (FIX TIDAK RESET)
 async function loadOutletDropdownStok() {
     const select = document.getElementById('filterOutletStok');
     if (!select) return;
@@ -9951,11 +9986,19 @@ async function loadOutletDropdownStok() {
         
         let options = '<option value="all">Semua Outlet</option>';
         uniqueOutlets.forEach(outlet => {
-            const selected = outlet === currentOutletStok ? 'selected' : '';
+            // Check if this outlet should be selected
+            const shouldSelect = selectedOutletFilter === outlet || 
+                               (selectedOutletFilter === 'all' && outlet === currentOutletStok);
+            const selected = shouldSelect ? 'selected' : '';
             options += `<option value="${outlet}" ${selected}>${outlet}</option>`;
         });
         
         select.innerHTML = options;
+        
+        // Force update selected value
+        if (selectedOutletFilter && selectedOutletFilter !== 'all') {
+            select.value = selectedOutletFilter;
+        }
         
     } catch (error) {
         console.error('Error loading outlets for stok:', error);
@@ -9963,63 +10006,471 @@ async function loadOutletDropdownStok() {
     }
 }
 
-// [30] Filter products (KASIR)
-function filterProducts(filterType) {
-    const products = document.querySelectorAll('.product-card');
+// [23] Show request modal untuk KASIR (MULTIPLE ITEMS)
+async function showRequestModal() {
+    const modal = document.getElementById('requestModal');
+    if (!modal) return;
     
-    products.forEach(product => {
-        const stockText = product.querySelector('.value')?.textContent || '';
-        const stockMatch = stockText.match(/\d+/);
-        const stock = stockMatch ? parseInt(stockMatch[0]) : 0;
+    // Reset items list
+    requestItems = [];
+    updateItemsList();
+    
+    // Load produk untuk dropdown
+    await loadProdukForRequest();
+    
+    // Reset form
+    document.getElementById('stokRequestForm')?.reset();
+    document.getElementById('currentStockInfo').style.display = 'none';
+    document.getElementById('submitRequest').disabled = true;
+    
+    // Show modal
+    modal.style.display = 'flex';
+}
+
+// [24] Close request modal
+function closeRequestModal() {
+    const modal = document.getElementById('requestModal');
+    if (modal) {
+        modal.style.display = 'none';
         
-        let show = true;
+        // Reset items
+        requestItems = [];
+        updateItemsList();
         
-        switch(filterType) {
-            case 'low':
-                show = stock > 0 && stock <= 10;
-                break;
-            case 'out':
-                show = stock === 0;
-                break;
-            case 'all':
-            default:
-                show = true;
+        // Reset form
+        const form = document.getElementById('stokRequestForm');
+        if (form) form.reset();
+    }
+}
+
+// [25] Load produk untuk request dropdown (HANYA INVENTORY=TRUE)
+async function loadProdukForRequest() {
+    const select = document.getElementById('selectProdukRequest');
+    if (!select) return;
+    
+    try {
+        const { data: produkData, error } = await supabase
+            .from('produk')
+            .select('id, nama_produk, stok, group_produk')
+            .eq('outlet', currentOutletStok)
+            .eq('status', 'active')
+            .eq('inventory', true) // Hanya produk inventory
+            .order('nama_produk');
+        
+        if (error) throw error;
+        
+        select.innerHTML = `
+            <option value="">-- Pilih Produk --</option>
+            ${produkData.map(p => `
+                <option value="${p.id}" data-stock="${p.stok}">
+                    ${p.nama_produk} (Stok: ${p.stok})
+                </option>
+            `).join('')}
+        `;
+        
+    } catch (error) {
+        console.error('Error loading produk for request:', error);
+        select.innerHTML = '<option value="">Error loading produk</option>';
+    }
+}
+
+// [26] Load produk untuk owner adjustment (HANYA INVENTORY=TRUE)
+async function loadProdukForAdjustment() {
+    const outletSelect = document.getElementById('adjustOutlet');
+    const produkSelect = document.getElementById('adjustProduk');
+    
+    if (!outletSelect || !produkSelect) return;
+    
+    try {
+        // Set outlet to current outlet
+        outletSelect.innerHTML = `<option value="${currentOutletStok}">${currentOutletStok}</option>`;
+        
+        // Load produk untuk outlet tersebut
+        const { data: produkData, error } = await supabase
+            .from('produk')
+            .select('id, nama_produk, stok')
+            .eq('outlet', currentOutletStok)
+            .eq('status', 'active')
+            .eq('inventory', true) // Hanya produk inventory
+            .order('nama_produk');
+        
+        if (error) throw error;
+        
+        produkSelect.innerHTML = `
+            <option value="">-- Pilih Produk --</option>
+            ${produkData.map(p => `
+                <option value="${p.id}">
+                    ${p.nama_produk} (Stok: ${p.stok})
+                </option>
+            `).join('')}
+        `;
+        
+    } catch (error) {
+        console.error('Error loading produk for adjustment:', error);
+        produkSelect.innerHTML = '<option value="">Error loading produk</option>';
+    }
+}
+
+// [27] Update current stock info in modal
+async function updateCurrentStockInfo(productId) {
+    const stockValue = document.getElementById('currentStockValue');
+    const stockInfo = document.getElementById('currentStockInfo');
+    
+    if (!productId) {
+        stockInfo.style.display = 'none';
+        return;
+    }
+    
+    try {
+        const { data: produk, error } = await supabase
+            .from('produk')
+            .select('stok')
+            .eq('id', productId)
+            .single();
+        
+        if (error) throw error;
+        
+        if (stockValue) stockValue.textContent = produk.stok;
+        if (stockInfo) stockInfo.style.display = 'block';
+        
+        // Update qty limits
+        updateQtyLimits();
+        
+    } catch (error) {
+        console.error('Error getting current stock:', error);
+        if (stockValue) stockValue.textContent = 'Error';
+    }
+}
+
+// [28] Update quantity limits based on stok type
+function updateQtyLimits() {
+    const stokType = document.getElementById('stokType')?.value;
+    const qtyInput = document.getElementById('qtyChange');
+    const currentStock = parseInt(document.getElementById('currentStockValue')?.textContent || 0);
+    
+    if (!qtyInput) return;
+    
+    if (stokType === 'keluar') {
+        // Untuk stok keluar, maksimal tidak boleh melebihi stok saat ini
+        qtyInput.max = currentStock;
+        qtyInput.title = `Maksimal: ${currentStock} unit (stok saat ini)`;
+    } else {
+        // Untuk stok masuk, tidak ada batas maksimal
+        qtyInput.removeAttribute('max');
+        qtyInput.title = '';
+    }
+}
+
+// [29] Add item to list (MULTIPLE ITEMS)
+async function addItemToList() {
+    try {
+        const productId = document.getElementById('selectProdukRequest')?.value;
+        const productSelect = document.getElementById('selectProdukRequest');
+        const productName = productSelect?.selectedOptions[0]?.text.split(' (Stok:')[0] || '';
+        const stokType = document.getElementById('stokType')?.value;
+        const qtyChange = parseInt(document.getElementById('qtyChange')?.value || 0);
+        
+        if (!productId) {
+            alert('Pilih produk terlebih dahulu');
+            return;
         }
         
-        product.style.display = show ? 'block' : 'none';
-    });
-}
-
-// [31] Search products (KASIR)
-function searchProducts(searchTerm) {
-    const products = document.querySelectorAll('.product-card');
-    const term = searchTerm.toLowerCase();
-    
-    products.forEach(product => {
-        const productName = product.querySelector('.product-name')?.textContent.toLowerCase() || '';
-        const productGroup = product.querySelector('.product-group')?.textContent.toLowerCase() || '';
+        if (qtyChange <= 0) {
+            alert('Jumlah harus lebih dari 0');
+            return;
+        }
         
-        const match = productName.includes(term) || productGroup.includes(term);
-        product.style.display = match ? 'block' : 'none';
+        // Get current stock
+        const { data: produk, error } = await supabase
+            .from('produk')
+            .select('stok, group_produk')
+            .eq('id', productId)
+            .single();
+        
+        if (error) throw error;
+        
+        // Check for stok keluar
+        if (stokType === 'keluar' && qtyChange > produk.stok) {
+            alert(`Stok tidak mencukupi! Stok saat ini: ${produk.stok}`);
+            return;
+        }
+        
+        // Check if product already in list
+        const existingItemIndex = requestItems.findIndex(item => 
+            item.produk_id === productId && item.stok_type === stokType
+        );
+        
+        if (existingItemIndex !== -1) {
+            // Update existing item
+            requestItems[existingItemIndex].qty_change += stokType === 'masuk' ? qtyChange : -qtyChange;
+            
+            // Check stock again for updated quantity
+            if (stokType === 'keluar') {
+                const totalQty = Math.abs(requestItems[existingItemIndex].qty_change);
+                if (totalQty > produk.stok) {
+                    alert(`Total stok keluar (${totalQty}) melebihi stok saat ini (${produk.stok})`);
+                    requestItems[existingItemIndex].qty_change = stokType === 'masuk' ? qtyChange : -qtyChange;
+                    return;
+                }
+            }
+        } else {
+            // Add new item
+            requestItems.push({
+                produk_id: productId,
+                nama_produk: productName,
+                group_produk: produk.group_produk || '',
+                stok_type: stokType,
+                qty_change: stokType === 'masuk' ? qtyChange : -qtyChange,
+                current_stock: produk.stok,
+                qty_before: produk.stok,
+                qty_after: stokType === 'masuk' ? produk.stok + qtyChange : produk.stok - qtyChange
+            });
+        }
+        
+        // Update UI
+        updateItemsList();
+        
+        // Reset form
+        document.getElementById('qtyChange').value = 1;
+        
+    } catch (error) {
+        console.error('Error adding item:', error);
+        alert('Gagal menambah item: ' + error.message);
+    }
+}
+
+// [30] Update items list display
+function updateItemsList() {
+    const itemsList = document.getElementById('itemsList');
+    const itemsSummary = document.getElementById('itemsSummary');
+    const submitBtn = document.getElementById('submitRequest');
+    
+    if (!itemsList || !itemsSummary || !submitBtn) return;
+    
+    if (requestItems.length === 0) {
+        itemsList.innerHTML = `
+            <div class="empty-list">
+                <i class="fas fa-clipboard-list"></i>
+                <p>Belum ada item ditambahkan</p>
+            </div>
+        `;
+        itemsSummary.style.display = 'none';
+        submitBtn.disabled = true;
+        return;
+    }
+    
+    // Display items
+    itemsList.innerHTML = requestItems.map((item, index) => {
+        const typeClass = item.stok_type === 'masuk' ? 'type-in' : 'type-out';
+        const typeIcon = item.stok_type === 'masuk' ? 'fa-arrow-down' : 'fa-arrow-up';
+        const typeText = item.stok_type === 'masuk' ? 'Stok Masuk' : 'Stok Keluar';
+        
+        return `
+            <div class="item-row" data-index="${index}">
+                <div class="item-info">
+                    <div class="item-name">${item.nama_produk}</div>
+                    <div class="item-details">
+                        <span class="item-type ${typeClass}">
+                            <i class="fas ${typeIcon}"></i> ${typeText}
+                        </span>
+                        <span class="item-qty ${typeClass}">
+                            ${item.stok_type === 'masuk' ? '+' : '-'}${Math.abs(item.qty_change)} unit
+                        </span>
+                        <span class="item-stock">
+                            Stok: ${item.qty_before} → ${item.qty_after}
+                        </span>
+                    </div>
+                </div>
+                <button class="btn-remove-item" data-index="${index}" title="Hapus item">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+    }).join('');
+    
+    // Calculate summary
+    const totalItems = requestItems.length;
+    const totalMasuk = requestItems
+        .filter(item => item.stok_type === 'masuk')
+        .reduce((sum, item) => sum + Math.abs(item.qty_change), 0);
+    const totalKeluar = requestItems
+        .filter(item => item.stok_type === 'keluar')
+        .reduce((sum, item) => sum + Math.abs(item.qty_change), 0);
+    
+    // Update summary
+    document.getElementById('totalItemsCount').textContent = totalItems;
+    document.getElementById('totalMasukCount').textContent = totalMasuk;
+    document.getElementById('totalKeluarCount').textContent = totalKeluar;
+    
+    itemsSummary.style.display = 'block';
+    submitBtn.disabled = false;
+    
+    // Add event listeners for remove buttons
+    document.querySelectorAll('.btn-remove-item').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const index = parseInt(this.dataset.index);
+            removeItemFromList(index);
+        });
     });
 }
 
-// [32] Helper: Get stock status class
+// [31] Remove item from list
+function removeItemFromList(index) {
+    if (index >= 0 && index < requestItems.length) {
+        requestItems.splice(index, 1);
+        updateItemsList();
+    }
+}
+
+// [32] Submit stok request (MULTIPLE ITEMS)
+async function submitStokRequest() {
+    try {
+        if (requestItems.length === 0) {
+            alert('Tambah minimal satu item sebelum submit');
+            return;
+        }
+        
+        const notes = document.getElementById('requestNotes')?.value || '';
+        
+        // Create requests for all items
+        const requests = requestItems.map(item => ({
+            tanggal: new Date().toISOString().split('T')[0],
+            outlet: currentOutletStok,
+            stok_type: item.stok_type,
+            updated_by: currentUserStok.nama_karyawan,
+            nama_produk: item.nama_produk,
+            group_produk: item.group_produk,
+            qty_before: item.qty_before,
+            qty_change: item.qty_change,
+            qty_after: item.qty_after,
+            approval_status: 'pending',
+            notes: notes,
+            created_at: new Date().toISOString()
+        }));
+        
+        const { data, error } = await supabase
+            .from('stok_update')
+            .insert(requests)
+            .select();
+        
+        if (error) throw error;
+        
+        // Success
+        alert(`Request berhasil dikirim! Total ${requestItems.length} item menunggu approval.`);
+        closeRequestModal();
+        
+        // Refresh data
+        loadStokData();
+        
+    } catch (error) {
+        console.error('Error submitting stok request:', error);
+        alert('Gagal mengirim request: ' + error.message);
+    }
+}
+
+// [33] Handle quick adjustment (OWNER) - UPDATE PRODUK.STOK
+async function handleQuickAdjust() {
+    try {
+        const outlet = document.getElementById('adjustOutlet')?.value;
+        const productId = document.getElementById('adjustProduk')?.value;
+        const stokType = document.getElementById('adjustType')?.value;
+        const qtyChange = parseInt(document.getElementById('adjustQty')?.value || 0);
+        const notes = document.getElementById('adjustNotes')?.value;
+        
+        if (!productId) {
+            alert('Pilih produk terlebih dahulu');
+            return;
+        }
+        
+        if (qtyChange <= 0) {
+            alert('Jumlah harus lebih dari 0');
+            return;
+        }
+        
+        if (!notes) {
+            alert('Harap isi alasan adjustment');
+            return;
+        }
+        
+        // Get product info
+        const { data: produk, error: produkError } = await supabase
+            .from('produk')
+            .select('nama_produk, group_produk, stok')
+            .eq('id', productId)
+            .eq('outlet', outlet)
+            .single();
+        
+        if (produkError) throw produkError;
+        
+        // Calculate quantities
+        const qtyBefore = produk.stok;
+        const qtyChangeFinal = stokType === 'masuk' ? qtyChange : -qtyChange;
+        const qtyAfter = qtyBefore + qtyChangeFinal;
+        
+        // Validate untuk stok keluar
+        if (stokType === 'keluar' && qtyAfter < 0) {
+            alert('Stok tidak mencukupi! Stok saat ini: ' + qtyBefore);
+            return;
+        }
+        
+        // Create adjustment (auto approved for owner)
+        const adjustmentData = {
+            tanggal: new Date().toISOString().split('T')[0],
+            outlet: outlet,
+            stok_type: stokType,
+            updated_by: currentUserStok.nama_karyawan,
+            nama_produk: produk.nama_produk,
+            group_produk: produk.group_produk || '',
+            qty_before: qtyBefore,
+            qty_change: qtyChangeFinal,
+            qty_after: qtyAfter,
+            approval_status: 'approved',
+            approved_by: currentUserStok.nama_karyawan,
+            notes: notes,
+            created_at: new Date().toISOString()
+        };
+        
+        // Insert ke stok_update
+        const { data, error } = await supabase
+            .from('stok_update')
+            .insert([adjustmentData]);
+        
+        if (error) throw error;
+        
+        // UPDATE PRODUK.STOK
+        await supabase
+            .from('produk')
+            .update({ 
+                stok: qtyAfter,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', productId)
+            .eq('outlet', outlet);
+        
+        // Success
+        alert('Adjustment berhasil disimpan! Stok produk diperbarui.');
+        
+        // Reset form
+        document.getElementById('quickAdjustForm').reset();
+        document.getElementById('adjustFormContainer').style.display = 'none';
+        
+        // Refresh data
+        loadStokData();
+        
+    } catch (error) {
+        console.error('Error handling quick adjustment:', error);
+        alert('Gagal menyimpan adjustment: ' + error.message);
+    }
+}
+
+// [34] Helper: Get stock status class
 function getStockStatusClass(stock) {
     if (stock === 0) return 'stock-out';
     if (stock <= 10) return 'stock-low';
     return 'stock-ok';
 }
 
-// [33] Helper: Get stock status text
-function getStockStatusText(stock) {
-    if (stock === 0) return 'Habis';
-    if (stock <= 5) return 'Sangat Rendah';
-    if (stock <= 10) return 'Rendah';
-    return 'Aman';
-}
-
-// [34] Helper: Get approval status class
+// [35] Helper: Get approval status class
 function getApprovalStatusClass(status) {
     switch(status) {
         case 'approved': return 'status-approved';
@@ -10028,7 +10479,7 @@ function getApprovalStatusClass(status) {
     }
 }
 
-// [35] Helper: Get approval status text
+// [36] Helper: Get approval status text
 function getApprovalStatusText(status) {
     switch(status) {
         case 'approved': return 'Disetujui';
@@ -10037,7 +10488,7 @@ function getApprovalStatusText(status) {
     }
 }
 
-// [36] Helper: Format date for stok
+// [37] Helper: Format date for stok
 function formatDateStok(dateString) {
     if (!dateString) return '-';
     
@@ -10045,30 +10496,29 @@ function formatDateStok(dateString) {
         const date = new Date(dateString);
         return date.toLocaleDateString('id-ID', {
             day: '2-digit',
-            month: 'short',
-            year: 'numeric'
+            month: 'short'
         });
     } catch (error) {
         return dateString;
     }
 }
 
-// [37] Helper: Format number
-function formatNumber(num) {
-    return num.toLocaleString('id-ID');
-}
-
-// [38] Helper: Debounce function
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
+// [38] Helper: Format date time
+function formatDateTime(dateTimeString) {
+    if (!dateTimeString) return '-';
+    
+    try {
+        const date = new Date(dateTimeString);
+        return date.toLocaleString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (error) {
+        return dateTimeString;
+    }
 }
 
 // [39] Helper: Show error message
@@ -10080,7 +10530,6 @@ function showError(message) {
         <span>${message}</span>
     `;
     
-    // Cari tempat yang tepat untuk menampilkan error
     const content = document.querySelector('.stok-content');
     if (content) {
         content.prepend(errorDiv);
@@ -10088,12 +10537,18 @@ function showError(message) {
     }
 }
 
-// [40] Close approval modal
+// [40] Close modals on outside click
 document.addEventListener('click', function(e) {
+    // Close approval modal
     if (e.target.id === 'closeApprovalModal' || e.target.id === 'approvalModal') {
         document.getElementById('approvalModal').style.display = 'none';
     }
+    
+    // Close request modal on outside click
+    const requestModal = document.getElementById('requestModal');
+    if (e.target === requestModal) {
+        closeRequestModal();
+    }
 });
-
 // ========== END OF STOK FUNCTIONS ==========
 // ========== END OF FILE ==========
