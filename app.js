@@ -9516,7 +9516,7 @@ async function loadOwnerStats(outletFilter, dateStart, dateEnd) {
             .from('stok_update')
             .select('id', { count: 'exact', head: true })
             .eq('approval_status', 'approved')
-            .neq('requested_by', null);
+             .not('requested_by', 'is', null);
         
         if (outletFilter !== 'all') {
             adjustQuery = adjustQuery.eq('outlet', outletFilter);
