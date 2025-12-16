@@ -5504,7 +5504,7 @@ marquee {
     align-items: center;
     margin-bottom: 8px;
     padding: 6px 0;
-    border-bottom: 1px dashed #e9ecef;
+    /* border-bottom: 1px dashed #e9ecef; */
 }
 
 .info-item:last-child {
