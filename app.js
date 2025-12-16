@@ -6113,11 +6113,21 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
     const startDate = `${yearStr}-${monthStr}-01`;
     const endDate = `${yearStr}-${monthStr}-31`;
     
+    // [A] AMBIL PRODUK DENGAN KOMISI ≥ 5000 TERLEBIH DAHULU
+    const { data: produkPremium } = await supabase
+        .from('produk')
+        .select('nama_produk')
+        .gte('komisi', 5000)
+        .not('nama_produk', 'is', null);
+
+    const produkNamesPremium = produkPremium?.map(p => p.nama_produk) || [];
+    
     // Query semua data secara paralel
     const [
         absenData,
-        komisiData,  // INI YANG DIPERBAIKI
-        transaksiData,
+        komisiData,
+        transaksiQtyData,     // Untuk qty (hanya produk premium)
+        transaksiKomisiData,  // Untuk komisi (semua produk)
         membercardData,
         kasData,
         outletTargetData,
@@ -6140,44 +6150,30 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
             .gte('tanggal', startDate)
             .lte('tanggal', endDate),
         
-       // [A] UNTUK QTY (produk premium saja)
-// 1. Get produk dengan komisi ≥ 5000
-const { data: produkPremium } = await supabase
-    .from('produk')
-    .select('nama_produk')
-    .gte('komisi', 5000)
-    .not('nama_produk', 'is', null);
+        // 3A. Data transaksi untuk QTY (hanya produk premium)
+        (async () => {
+            let qtyQuery = supabase
+                .from('transaksi_detail')
+                .select('qty, item_name')
+                .eq('serve_by', namaKaryawan)
+                .eq('status', 'completed')
+                .gte('order_date', startDate)
+                .lte('order_date', endDate);
 
-const produkNamesPremium = produkPremium?.map(p => p.nama_produk) || [];
-
-// 2. Query transaksi untuk qty (hanya produk premium)
-let qtyQuery = supabase
-    .from('transaksi_detail')
-    .select('qty, item_name')
-    .eq('serve_by', namaKaryawan)
-    .eq('status', 'completed')
-    .gte('order_date', startDate)
-    .lte('order_date', endDate);
-
-if (produkNamesPremium.length > 0) {
-    qtyQuery = qtyQuery.in('item_name', produkNamesPremium);
-}
-
-const { data: transaksiQty } = await qtyQuery;
-
-// [B] UNTUK KOMISI (semua produk)
-const { data: transaksiKomisi } = await supabase
-    .from('transaksi_detail')
-    .select('comission, item_name')
-    .eq('serve_by', namaKaryawan)
-    .eq('status', 'completed')
-    .gte('order_date', startDate)
-    .lte('order_date', endDate);
-    // NO FILTER for item_name
-
-// Kemudian di calculateKasirSlip():
-const transaksiList = transaksiKomisi || [];  // Untuk komisi
-const transaksiQtyList = transaksiQty || [];  // Untuk penjualan produk
+            if (produkNamesPremium.length > 0) {
+                qtyQuery = qtyQuery.in('item_name', produkNamesPremium);
+            }
+            return await qtyQuery;
+        })(),
+        
+        // 3B. Data transaksi untuk KOMISI (semua produk)
+        supabase
+            .from('transaksi_detail')
+            .select('comission, item_name, qty')
+            .eq('serve_by', namaKaryawan)
+            .eq('status', 'completed')
+            .gte('order_date', startDate)
+            .lte('order_date', endDate),
         
         // 4. Data membercard (tanggal_create: TEXT)
         supabase
@@ -6230,7 +6226,8 @@ const transaksiQtyList = transaksiQty || [];  // Untuk penjualan produk
     // Proses data
     const absenList = absenData.data || [];
     const komisiList = komisiData.data || [];
-    const transaksiList = transaksiData.data || [];
+    const transaksiQtyList = transaksiQtyData.data || [];    // Untuk penjualan produk
+    const transaksiKomisiList = transaksiKomisiData.data || []; // Untuk komisi produk
     const membercardList = membercardData.data || [];
     const kasList = kasData.data || [];
     const target = outletTargetData.data || {};
@@ -6249,7 +6246,8 @@ const transaksiQtyList = transaksiQty || [];  // Untuk penjualan produk
             tahun,
             absenList,
             komisiList,
-            transaksiList,
+            transaksiQtyList,      // Untuk penjualan produk (premium)
+            transaksiKomisiList,   // Untuk komisi produk (semua)
             membercardList,
             kasList,
             target,
@@ -6265,7 +6263,7 @@ const transaksiQtyList = transaksiQty || [];  // Untuk penjualan produk
             tahun,
             absenList,
             komisiList,
-            transaksiList,
+            transaksiKomisiList,   // Untuk barberman pakai yang komisi
             target,
             karyawan
         });
@@ -6283,7 +6281,8 @@ async function calculateKasirSlip(params) {
         tahun,
         absenList,
         komisiList,
-        transaksiList,
+        transaksiQtyList,      // ← Baru: untuk penjualan produk (premium)
+        transaksiKomisiList,   // ← Baru: untuk komisi produk (semua)
         membercardList,
         kasList,
         target,
@@ -6301,7 +6300,6 @@ async function calculateKasirSlip(params) {
         return !bukanHariKerja.includes(status);
     }).length;
     
-    // TAMBAH 2 BARIS INI:
     const gajiPerHari = karyawan.gaji || 0;
     const totalGaji = absenList.reduce((sum, a) => sum + (a.gaji_pokok || 0), 0);
     
@@ -6316,9 +6314,11 @@ async function calculateKasirSlip(params) {
     
     const totalOvertimeRupiah = absenList.reduce((sum, a) => sum + (a.over_time_rp || 0), 0);
     
-  // 3. PENJUALAN PRODUK & KOMISI
-const penjualanProduk = transaksiQtyList.reduce((sum, t) => sum + (t.qty || 0), 0);
-const komisiProduk = transaksiList.reduce((sum, t) => sum + (t.comission || 0), 0);
+    // 3. PENJUALAN PRODUK & KOMISI
+    const penjualanProduk = transaksiQtyList.reduce((sum, t) => sum + (t.qty || 0), 0);
+    const komisiProduk = transaksiKomisiList.reduce((sum, t) => sum + (t.comission || 0), 0);
+    
+
     
     // 4. MEMBERCARD
     const membercardCreated = membercardList.length;
