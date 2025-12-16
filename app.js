@@ -9441,10 +9441,7 @@ async function loadOwnerStokData() {
         
         if (statusFilter !== 'all') {
             requestQuery = requestQuery.eq('approval_status', statusFilter);
-        } else {
-            // For "all status", don't filter by status
-        }
-        
+        } 
         // Date filter
         if (dateStart && dateEnd) {
             requestQuery = requestQuery.gte('tanggal', dateStart).lte('tanggal', dateEnd);
