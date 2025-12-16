@@ -6281,8 +6281,8 @@ async function calculateKasirSlip(params) {
         tahun,
         absenList,
         komisiList,
-        transaksiQtyList,      // ← Baru: untuk penjualan produk (premium)
-        transaksiKomisiList,   // ← Baru: untuk komisi produk (semua)
+        transaksiQtyList,      // ← INI YANG BARU (untuk qty)
+        transaksiKomisiList,   // ← INI YANG BARU (untuk komisi)
         membercardList,
         kasList,
         target,
@@ -6314,11 +6314,11 @@ async function calculateKasirSlip(params) {
     
     const totalOvertimeRupiah = absenList.reduce((sum, a) => sum + (a.over_time_rp || 0), 0);
     
-    // 3. PENJUALAN PRODUK & KOMISI
-    const penjualanProduk = transaksiQtyList.reduce((sum, t) => sum + (t.qty || 0), 0);
-    const komisiProduk = transaksiKomisiList.reduce((sum, t) => sum + (t.comission || 0), 0);
-    
-
+    // 3. PENJUALAN PRODUK & KOMISI - PERBAIKI DI SINI!
+    // transaksiQtyList untuk qty (produk premium)
+    // transaksiKomisiList untuk komisi (semua produk)
+    const penjualanProduk = (transaksiQtyList || []).reduce((sum, t) => sum + (t.qty || 0), 0);
+    const komisiProduk = (transaksiKomisiList || []).reduce((sum, t) => sum + (t.comission || 0), 0);
     
     // 4. MEMBERCARD
     const membercardCreated = membercardList.length;
@@ -6336,7 +6336,7 @@ async function calculateKasirSlip(params) {
         bulan,
         tahun,
         membercardList,
-        transaksiList,
+        transaksiQtyList || [],  // ← Kirim transaksiQtyList untuk achievement
         target,
         semuaKasirList,
         absenList,
