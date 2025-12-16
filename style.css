@@ -142,10 +142,11 @@ body {
 .app-logo {
     height: 60px;
     width: auto;
-    background: #4CAF50;
-    border-radius: 10px; /* Sudut melengkung */
-    /* atau */
-    border-radius: 50%; /* Lingkaran */
+    background: linear-gradient(145deg, #ffffff, #f0f0f0);
+    border-radius: 12px;
+    border: 2px solid #4CAF50;
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.1),
+                -5px -5px 15px rgba(255,255,255,0.7);
 }
 .user-info {
     display: flex;
