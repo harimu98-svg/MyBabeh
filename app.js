@@ -5625,7 +5625,13 @@ async function showSlipPage() {
         currentUserOutletSlip = karyawanData.outlet;
         isOwnerSlip = karyawanData.role === 'owner';
         
+         // Set global variables untuk diakses oleh fungsi lain
+        window.isOwnerSlip = isOwnerSlip;
+        window.currentSlipKaryawan = currentSlipKaryawan;
+        window.currentUserOutletSlip = currentUserOutletSlip;
+        
         console.log('Slip karyawan data:', currentSlipKaryawan);
+        console.log('Global isOwnerSlip set to:', window.isOwnerSlip);
         
         // Sembunyikan main app, tampilkan halaman slip
         document.getElementById('appScreen').style.display = 'none';
@@ -6795,10 +6801,10 @@ function displaySlipData(slipData, dataSource) {
         content.innerHTML = renderBarbermanSlip(slipData.data, dataSource);
     }
     
-    // Setup UI events
-    setTimeout(() => {
-        setupSlipUIEvents();
-    }, 100);
+   // Setup UI events
+setTimeout(() => {
+    setupSlipUIEvents(dataSource);  // ← KIRIM dataSource sebagai parameter
+}, 100);
     
     content.style.display = 'block';
     emptyState.style.display = 'none';
@@ -7340,7 +7346,9 @@ function renderBarbermanSlip(data, dataSource) {
 }
 
 // [20] Setup UI events - DIPERBAIKI
-function setupSlipUIEvents() {
+function setupSlipUIEvents(dataSource) {
+    console.log('setupSlipUIEvents called with dataSource:', dataSource);
+    
     // Toggle Detail Harian
     const toggleDetail = document.getElementById('toggleDetail');
     const detailContent = document.getElementById('detailContent');
@@ -7348,16 +7356,11 @@ function setupSlipUIEvents() {
     if (toggleDetail && detailContent) {
         // Reset state setiap render
         detailContent.classList.remove('expanded');
-        toggleDetail.querySelector('.detail-toggle').classList.remove('rotated');
         const toggleIcon = toggleDetail.querySelector('.detail-toggle i');
         const toggleText = toggleDetail.querySelector('.toggle-text');
         
-        if (toggleIcon) {
-            toggleIcon.className = 'fas fa-chevron-down';
-        }
-        if (toggleText) {
-            toggleText.textContent = 'Klik untuk lihat';
-        }
+        if (toggleIcon) toggleIcon.className = 'fas fa-chevron-down';
+        if (toggleText) toggleText.textContent = 'Klik untuk lihat';
         
         toggleDetail.addEventListener('click', () => {
             const isExpanded = detailContent.classList.contains('expanded');
@@ -7416,9 +7419,193 @@ function setupSlipUIEvents() {
     }
     
     // Setup adjustment buttons jika ada
-    if (isOwnerSlip && dataSource === 'realtime') {
-        setupAdjustmentButtons();
+    // GUNAKAN PARAMETER dataSource, BUKAN variabel global yang mungkin undefined
+    const isFinal = dataSource === 'final';
+    const slipContainer = document.querySelector('.slip-container');
+    
+    if (slipContainer) {
+        // Untuk safety, juga cek class final-slip
+        const hasFinalClass = slipContainer.classList.contains('final-slip');
+        const shouldShowAdjustment = !isFinal && !hasFinalClass;
+        
+        if (window.isOwnerSlip && shouldShowAdjustment) {
+            console.log('Setting up adjustment buttons for owner (dataSource:', dataSource, ')');
+            setupAdjustmentButtons();
+        } else {
+            console.log('Adjustment buttons NOT shown:', {
+                isOwnerSlip: window.isOwnerSlip,
+                isFinal: isFinal,
+                hasFinalClass: hasFinalClass,
+                dataSource: dataSource
+            });
+        }
     }
+    
+    // Setup event delegation sebagai fallback
+    setupEventDelegation();
+}
+
+// Helper: Event delegation untuk handle dynamic buttons
+function setupEventDelegation() {
+    // Hapus listener lama jika ada
+    if (window._slipEventDelegationHandler) {
+        document.removeEventListener('click', window._slipEventDelegationHandler);
+    }
+    
+    // Buat handler baru
+    const clickHandler = function(e) {
+        // Tombol Tambah Adjustment
+        if (e.target.id === 'addAdjustmentBtn' || e.target.closest('#addAdjustmentBtn')) {
+            console.log('Event delegation: Add adjustment button clicked');
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (typeof showAddAdjustmentModal === 'function') {
+                showAddAdjustmentModal();
+            }
+            return false;
+        }
+        
+        // Tombol Edit Adjustment
+        if (e.target.classList.contains('btn-edit-adj') || e.target.closest('.btn-edit-adj')) {
+            const btn = e.target.closest('.btn-edit-adj');
+            const index = btn?.dataset?.index;
+            if (index !== undefined && typeof showEditAdjustmentModal === 'function') {
+                e.preventDefault();
+                e.stopPropagation();
+                showEditAdjustmentModal(parseInt(index));
+                return false;
+            }
+        }
+        
+        // Tombol Delete Adjustment
+        if (e.target.classList.contains('btn-delete-adj') || e.target.closest('.btn-delete-adj')) {
+            const btn = e.target.closest('.btn-delete-adj');
+            const index = btn?.dataset?.index;
+            if (index !== undefined && typeof deleteAdjustment === 'function') {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if (confirm('Hapus adjustment ini?')) {
+                    deleteAdjustment(parseInt(index));
+                }
+                return false;
+            }
+        }
+        
+        // Tombol Retry Error
+        if (e.target.id === 'retrySlip' || e.target.closest('#retrySlip')) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const bulan = parseInt(document.getElementById('selectBulan').value);
+            const tahun = parseInt(document.getElementById('selectTahun').value);
+            
+            if (typeof loadSlipData === 'function') {
+                loadSlipData(bulan, tahun);
+            }
+            return false;
+        }
+    };
+    
+    // Simpan reference untuk bisa di-remove nanti
+    window._slipEventDelegationHandler = clickHandler;
+    
+    // Pasang listener dengan capture phase (lebih reliable)
+    document.addEventListener('click', clickHandler, true);
+}
+
+// Setup adjustment buttons
+function setupAdjustmentButtons() {
+    console.log('setupAdjustmentButtons called');
+    
+    // 1. TOMBOL TAMBAH ADJUSTMENT
+    const addBtn = document.getElementById('addAdjustmentBtn');
+    if (addBtn) {
+        console.log('Found add adjustment button, setting up...');
+        
+        // Clone tombol untuk reset event listeners
+        const newBtn = addBtn.cloneNode(true);
+        addBtn.parentNode.replaceChild(newBtn, addBtn);
+        
+        // Dapatkan tombol baru
+        const freshBtn = document.getElementById('addAdjustmentBtn');
+        
+        // Tambah onclick attribute (paling reliable)
+        freshBtn.setAttribute('onclick', `
+            event.preventDefault();
+            event.stopPropagation();
+            console.log('Add adjustment button clicked (inline onclick)');
+            if (typeof showAddAdjustmentModal === 'function') {
+                showAddAdjustmentModal();
+            } else if (typeof window.showAddAdjustmentModal === 'function') {
+                window.showAddAdjustmentModal();
+            } else {
+                console.error('showAddAdjustmentModal function not found!');
+                alert('Error: Fungsi modal tidak ditemukan');
+            }
+            return false;
+        `);
+        
+        // Juga tambah event listener sebagai backup
+        freshBtn.addEventListener('click', function(e) {
+            console.log('Add adjustment button clicked (addEventListener)');
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        }, true);
+        
+        // Visual feedback
+        freshBtn.style.cursor = 'pointer';
+        freshBtn.title = 'Klik untuk menambah adjustment';
+        
+        console.log('✅ Add adjustment button setup complete');
+    } else {
+        console.warn('Add adjustment button not found in setupAdjustmentButtons');
+    }
+    
+    // 2. TOMBOL EDIT ADJUSTMENT
+    const editBtns = document.querySelectorAll('.btn-edit-adj');
+    console.log(`Found ${editBtns.length} edit buttons`);
+    
+    editBtns.forEach((btn, index) => {
+        const dataIndex = btn.dataset.index;
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        
+        newBtn.setAttribute('onclick', `
+            event.preventDefault();
+            event.stopPropagation();
+            console.log('Edit adjustment button ${dataIndex} clicked');
+            if (typeof showEditAdjustmentModal === 'function') {
+                showEditAdjustmentModal(${dataIndex});
+            }
+            return false;
+        `);
+    });
+    
+    // 3. TOMBOL DELETE ADJUSTMENT
+    const deleteBtns = document.querySelectorAll('.btn-delete-adj');
+    console.log(`Found ${deleteBtns.length} delete buttons`);
+    
+    deleteBtns.forEach((btn, index) => {
+        const dataIndex = btn.dataset.index;
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        
+        newBtn.setAttribute('onclick', `
+            event.preventDefault();
+            event.stopPropagation();
+            console.log('Delete adjustment button ${dataIndex} clicked');
+            if (confirm('Hapus adjustment ini?')) {
+                if (typeof deleteAdjustment === 'function') {
+                    deleteAdjustment(${dataIndex});
+                }
+            }
+            return false;
+        `);
+    });
+    
+    console.log('✅ All adjustment buttons setup complete');
 }
 
 // [21] Fungsi untuk save screen capture
