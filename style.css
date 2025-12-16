@@ -4432,7 +4432,30 @@ marquee {
     padding: 8px 10px;
     border-top: 2px solid #4CAF50;
 }
-
+/* Tambahkan di CSS Anda */
+@media (max-width: 768px) {
+    /* Untuk semua sel di summary table */
+    .summary-table td {
+        white-space: nowrap; /* ← INI YANG PENTING */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 6px 8px; /* Kurangi padding */
+        font-size: 0.85rem; /* Perkecil font sedikit */
+    }
+    
+    /* Label panjang seperti "Over Time (menit)" */
+    .summary-table td:first-child,
+    .summary-table td:nth-child(3) {
+        min-width: 120px; /* Atur lebar minimum */
+        max-width: 140px;
+    }
+    
+    /* Nilai/value cells */
+    .summary-table td:nth-child(2),
+    .summary-table td:nth-child(4) {
+        min-width: 80px;
+        text-align: right;
+    }
 /* ========== TARGET SECTION ========== */
 .target-section {
     margin-top: 20px;
