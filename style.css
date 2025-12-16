@@ -7793,36 +7793,4 @@ tr.stock-out .product-cell {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
-/* Untuk mengatur layout header yang benar: */
-.request-header {
-    display: flex;
-    align-items: center;
-    padding: 15px 20px;
-}
 
-/* Untuk membuat 3 kolom: Back | Title | Actions */
-.request-header {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 15px;
-    align-items: center;
-}
-
-/* Atau dengan flexbox: */
-.request-header {
-    display: flex;
-    align-items: center;
-}
-
-.back-btn {
-    margin-right: 15px;
-}
-
-.request-header h2 {
-    flex: 1;
-    margin: 0;
-}
-
-.header-actions {
-    margin-left: auto;
-}
