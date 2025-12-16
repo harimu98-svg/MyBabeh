@@ -10798,7 +10798,7 @@ function createRequestPage() {
             <!-- Inventory List -->
             <div class="inventory-list-section">
                 <div class="section-header">
-                    <h3><i class="fas fa-boxes"></i> Daftar Inventory - ${currentUserOutletRequest}</h3>
+                   <h3><i class="fas fa-boxes"></i> Daftar Inventory</h3>
                     <div class="inventory-stats">
                         <span id="inventoryCount">0 items</span>
                     </div>
@@ -11035,7 +11035,7 @@ function setupOwnerRequestEvents() {
     });
 }
 
-// [6] Fungsi untuk load inventory untuk kasir
+// [6] Fungsi untuk load inventory untuk kasir - VERSI TANPA OUTLET
 async function loadInventoryForRequest() {
     try {
         const loadingEl = document.getElementById('loadingInventory');
@@ -11044,11 +11044,10 @@ async function loadInventoryForRequest() {
         if (loadingEl) loadingEl.style.display = 'block';
         if (tableEl) tableEl.style.display = 'none';
         
-        // Query inventory berdasarkan outlet karyawan
+        // Query inventory SEMUA outlet (karena tidak ada kolom outlet)
         const { data, error } = await supabase
             .from('inventory')
             .select('*')
-            .eq('outlet', currentUserOutletRequest)
             .eq('status', 'active')
             .eq('is_available', true)
             .order('category')
@@ -11770,13 +11769,24 @@ function displayRequestHistory(requests) {
     });
 }
 
-// [21] Load outlet dropdown for owner
+// [21] Load outlet dropdown for owner - AMBIL DARI REQUEST_BARANG
 async function loadOutletDropdownForOwner(requests) {
     const select = document.getElementById('filterOutletOwner');
     if (!select) return;
     
-    // Get unique outlets from requests
-    const outlets = [...new Set(requests.map(r => r.outlet).filter(Boolean))];
+    // Get unique outlets dari tabel request_barang
+    const { data: outletsData, error } = await supabase
+        .from('request_barang')
+        .select('outlet')
+        .not('outlet', 'is', null);
+    
+    if (error) {
+        console.error('Error loading outlets:', error);
+        return;
+    }
+    
+    // Get unique outlets
+    const outlets = [...new Set(outletsData.map(r => r.outlet).filter(Boolean))];
     
     select.innerHTML = `
         <option value="all">Semua Outlet</option>
