@@ -6039,6 +6039,7 @@ async function checkDataSource(namaKaryawan, bulan, tahun) {
         return 'realtime';
     }
 }
+
 // [8] Update badge sumber data
 function updateDataSourceBadge(source) {
     const badge = document.getElementById('dataSourceBadge');
@@ -6108,7 +6109,7 @@ async function loadFinalSlipData(namaKaryawan, bulan, tahun) {
     }
 }
 
-// [10] Hitung real-time slip gaji - PERBAIKI UNTUK DATE TYPE
+// [10] Hitung real-time slip gaji - DIPERBAIKI untuk semua perubahan
 async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
     console.log('Calculating real-time slip for:', { namaKaryawan, outlet, bulan, tahun });
     
@@ -6123,98 +6124,104 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
     const [
         absenData,
         komisiData,
-        transaksiData,  // ← Tanpa filter comission >= 5000
+        transaksiData,
         membercardData,
         kasData,
         outletTargetData,
         karyawanData,
         semuaKasirAbsen,
         omsetData,
-        produkData  // ← DATA BARU: ambil semua produk
+        produkData // Tambah query produk untuk validasi komisi
     ] = await Promise.all([
         // 1. Data absensi (tanggal: TEXT)
-        supabase.from('absen').select('*').eq('nama', namaKaryawan).like('tanggal', `%/${monthStr}/${yearStr}`),
+        supabase
+            .from('absen')
+            .select('*')
+            .eq('nama', namaKaryawan)
+            .like('tanggal', `%/${monthStr}/${yearStr}`),
         
-        // 2. Data komisi (tanggal: DATE)
-        supabase.from('komisi').select('*').eq('serve_by', namaKaryawan).gte('tanggal', startDate).lte('tanggal', endDate),
+        // 2. Data komisi (tanggal: DATE) - HAPUS FILTER comission >= 5000
+        supabase
+            .from('komisi')
+            .select('*')
+            .eq('serve_by', namaKaryawan)
+            .gte('tanggal', startDate)
+            .lte('tanggal', endDate),
         
-        // 3. Data transaksi produk - HAPUS filter .gte('comission', 5000)
-        supabase.from('transaksi_detail').select('*')
+        // 3. Data transaksi produk - HAPUS FILTER comission >= 5000
+        supabase
+            .from('transaksi_detail')
+            .select('*')
             .eq('serve_by', namaKaryawan)
             .eq('status', 'completed')
             .gte('order_date', startDate)
             .lte('order_date', endDate),
         
         // 4. Data membercard (tanggal_create: TEXT)
-        supabase.from('membercard').select('id_member, tanggal_create, kasir_create')
+        supabase
+            .from('membercard')
+            .select('id_member, tanggal_create, kasir_create')
             .eq('kasir_create', namaKaryawan)
             .like('tanggal_create', `%/${monthStr}/${yearStr}`),
         
         // 5. Data kas (tanggal: DATE)
-        supabase.from('kas').select('fee_trf_setoran, tanggal, kasir')
+        supabase
+            .from('kas')
+            .select('fee_trf_setoran, tanggal, kasir')
             .eq('kasir', namaKaryawan)
             .gte('tanggal', startDate)
             .lte('tanggal', endDate),
         
         // 6. Data target outlet
-        supabase.from('outlet').select('target_weekdays, target_weekends, target_omset')
+        supabase
+            .from('outlet')
+            .select('target_weekdays, target_weekends, target_omset')
             .eq('outlet', outlet)
             .single(),
         
         // 7. Data karyawan lengkap
-        supabase.from('karyawan').select('gaji, posisi, role')
+        supabase
+            .from('karyawan')
+            .select('gaji, posisi, role')
             .eq('nama_karyawan', namaKaryawan)
             .single(),
         
         // 8. Data semua kasir di outlet (tanggal: TEXT)
-        supabase.from('absen').select('nama, tanggal')
+        supabase
+            .from('absen')
+            .select('nama, tanggal')
             .eq('outlet', outlet)
             .not('status_kehadiran', 'is', null)
             .not('status_kehadiran', 'eq', '')
             .like('tanggal', `%/${monthStr}/${yearStr}`),
         
-        // 9. Data omset (order_date: mungkin DATE/TIMESTAMP)
-        supabase.from('transaksi_order').select('total_amount, harga_beli, status')
+        // 9. Data omset
+        supabase
+            .from('transaksi_order')
+            .select('total_amount, harga_beli, status')
             .eq('outlet', outlet)
             .eq('status', 'completed')
             .gte('order_date', startDate)
             .lte('order_date', endDate),
         
-        // 10. DATA PRODUK UNTUK MAPPING (BARU)
-        supabase.from('produk').select('nama_produk, komisi')
+        // 10. Data produk untuk validasi komisi >= 5000 (KASIR ONLY)
+        supabase
+            .from('produk')
+            .select('nama_produk, komisi')
+            .gte('komisi', 5000)
     ]);
     
     // Proses data
     const absenList = absenData.data || [];
     const komisiList = komisiData.data || [];
-    const transaksiRawList = transaksiData.data || [];  // Semua transaksi
+    const transaksiList = transaksiData.data || [];
     const membercardList = membercardData.data || [];
     const kasList = kasData.data || [];
     const target = outletTargetData.data || {};
     const karyawan = karyawanData.data || {};
     const semuaKasirList = semuaKasirAbsen.data || [];
     const omsetList = omsetData.data || [];
-    const produkList = produkData.data || [];  // Data produk
-    
-    // BUAT MAPPING produk.nama_produk -> produk.komisi
-    const produkKomisiMap = {};
-    produkList.forEach(p => {
-        const key = (p.nama_produk || '').toLowerCase().trim();
-        produkKomisiMap[key] = p.komisi || 0;
-    });
-    
-    // FILTER transaksi berdasarkan produk.komisi >= 5000
-    const transaksiList = transaksiRawList.filter(t => {
-        const itemName = (t.item_name || '').toLowerCase().trim();
-        const produkKomisi = produkKomisiMap[itemName] || 0;
-        return produkKomisi >= 5000;
-    });
-    
-    console.log('Filtered transactions:', {
-        totalTransaksi: transaksiRawList.length,
-        filteredTransaksi: transaksiList.length,
-        produkCount: produkList.length
-    });
+    const produkList = produkData.data || [];
     
     const role = karyawan.role || currentSlipKaryawan?.role || 'kasir';
     
@@ -6227,13 +6234,14 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
             tahun,
             absenList,
             komisiList,
-            transaksiList,  // ← transaksiList YANG SUDAH DIFILTER
+            transaksiList,
             membercardList,
             kasList,
             target,
             karyawan,
             semuaKasirList,
-            omsetList
+            omsetList,
+            produkList
         });
     } else if (role === 'barberman') {
         return await calculateBarbermanSlip({
@@ -6243,7 +6251,7 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
             tahun,
             absenList,
             komisiList,
-            transaksiList,  // ← transaksiList YANG SUDAH DIFILTER
+            transaksiList,
             target,
             karyawan
         });
@@ -6252,7 +6260,7 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
     }
 }
 
-// [11] Hitung slip untuk KASIR
+// [11] Hitung slip untuk KASIR - DIPERBAIKI sesuai permintaan
 async function calculateKasirSlip(params) {
     const {
         namaKaryawan,
@@ -6267,32 +6275,26 @@ async function calculateKasirSlip(params) {
         target,
         karyawan,
         semuaKasirList,
-        omsetList
+        omsetList,
+        produkList
     } = params;
     
-    // 1. HITUNG HARI KERJA & GAJI (DIPERBAIKI)
+    // 1. HITUNG HARI KERJA (PERBAIKAN: Exclude Izin, Libur case insensitive)
     const hariKerja = absenList.filter(a => {
-        const status = (a.status_kehadiran || '').trim().toLowerCase();
-        return status !== '' && 
-               status !== 'belum absen' && 
-               status !== 'izin' && 
-               status !== 'libur';
+        if (!a.status_kehadiran) return false;
+        
+        const statusLower = a.status_kehadiran.toLowerCase().trim();
+        const excludedStatuses = ['', 'belum absen', 'izin', 'libur'];
+        
+        return !excludedStatuses.includes(statusLower);
     }).length;
     
     const gajiPerHari = karyawan.gaji || 0;
-    
-    // PERBAIKAN: Total gaji hanya dari hari kerja yang valid
-    const totalGaji = absenList.reduce((sum, a) => {
-        const status = (a.status_kehadiran || '').trim().toLowerCase();
-        // Hanya tambahkan gaji jika status valid untuk hari kerja
-        if (status !== '' && 
-            status !== 'belum absen' && 
-            status !== 'izin' && 
-            status !== 'libur') {
-            return sum + (a.gaji_pokok || 0);
-        }
-        return sum;
-    }, 0);
+    const totalGaji = absenList.filter(a => {
+        if (!a.status_kehadiran) return false;
+        const statusLower = a.status_kehadiran.toLowerCase().trim();
+        return !['', 'belum absen', 'izin', 'libur'].includes(statusLower);
+    }).reduce((sum, a) => sum + (a.gaji_pokok || 0), 0);
     
     // 2. OVERTIME
     const totalOvertimeMenit = absenList.reduce((sum, a) => {
@@ -6305,31 +6307,40 @@ async function calculateKasirSlip(params) {
     
     const totalOvertimeRupiah = absenList.reduce((sum, a) => sum + (a.over_time_rp || 0), 0);
     
-    // 3. PENJUALAN PRODUK & KOMISI
-    const penjualanProduk = transaksiList.reduce((sum, t) => sum + (t.qty || 0), 0);
-    const komisiProduk = transaksiList.reduce((sum, t) => sum + (t.comission || 0), 0);
+    // 3. PENJUALAN PRODUK & KOMISI (PERBAIKAN: Filter produk.komisi >= 5000)
+    const produkDenganKomisiTinggi = new Set(
+        produkList.filter(p => p.komisi >= 5000).map(p => p.nama_produk)
+    );
+    
+    const transaksiProdukValid = transaksiList.filter(t => 
+        t.item_name && produkDenganKomisiTinggi.has(t.item_name)
+    );
+    
+    const penjualanProduk = transaksiProdukValid.reduce((sum, t) => sum + (t.qty || 0), 0);
+    const komisiProduk = transaksiProdukValid.reduce((sum, t) => sum + (t.comission || 0), 0);
     
     // 4. MEMBERCARD
     const membercardCreated = membercardList.length;
-    const komisiMembercard = membercardCreated * 500; // Rp 500 per membercard
+    const komisiMembercard = membercardCreated * 500;
     
     // 5. UOP, TIPS QRIS, FEE TRANSFER
     const totalUOP = komisiList.reduce((sum, k) => sum + (k.uop || 0), 0);
     const totalTipsQRIS = komisiList.reduce((sum, k) => sum + (k.tips_qris || 0), 0);
     const totalFeeTransfer = kasList.reduce((sum, k) => sum + (k.fee_trf_setoran || 0), 0);
     
-    // 6. TARGET & ACHIEVEMENT
+    // 6. TARGET & ACHIEVEMENT (PERBAIKAN: Hitung hanya hari yang ada absennya)
     const targetAchievement = await calculateTargetAchievement(
         namaKaryawan,
         outlet,
         bulan,
         tahun,
         membercardList,
-        transaksiList,
+        transaksiProdukValid, // Gunakan transaksi yang sudah difilter
         target,
         semuaKasirList,
-        absenList.length,
-        omsetList
+        hariKerja,
+        omsetList,
+        absenList // Kirim absenList untuk hitung hari kerja aktual
     );
     
     // 7. ADJUSTMENT
@@ -6355,9 +6366,8 @@ async function calculateKasirSlip(params) {
     const subTotalPenghasilan = totalGaji + totalOvertimeRupiah + komisiProduk + 
                                komisiMembercard + totalUOP + totalFeeTransfer + totalTipsQRIS;
     
-    const subTotalTarget = (targetAchievement.bonus_membercard_value || 0) + 
-                          (targetAchievement.bonus_produk_value || 0) + 
-                          (targetAchievement.bonus_omset || 0);
+    // PERBAIKAN: Sub total target hanya dari omset
+    const subTotalTarget = (targetAchievement.bonus_omset || 0);
     
     const totalPenghasilan = subTotalPenghasilan + subTotalTarget + totalAdjustment;
     const penghasilanDiambil = komisiProduk;
@@ -6393,12 +6403,10 @@ async function calculateKasirSlip(params) {
             achievement_membercard: targetAchievement.achievement_membercard,
             status_membercard: targetAchievement.status_membercard,
             bonus_membercard: targetAchievement.bonus_membercard,
-            bonus_membercard_value: targetAchievement.bonus_membercard_value,
             target_produk: targetAchievement.target_produk,
             achievement_produk: targetAchievement.achievement_produk,
             status_produk: targetAchievement.status_produk,
             bonus_produk: targetAchievement.bonus_produk,
-            bonus_produk_value: targetAchievement.bonus_produk_value,
             target_omset: targetAchievement.target_omset,
             achievement_omset: targetAchievement.achievement_omset,
             status_omset: targetAchievement.status_omset,
@@ -6420,7 +6428,7 @@ async function calculateKasirSlip(params) {
     };
 }
 
-// [12] Hitung slip untuk BARBERMAN
+// [12] Hitung slip untuk BARBERMAN - DIPERBAIKI
 async function calculateBarbermanSlip(params) {
     const {
         namaKaryawan,
@@ -6434,25 +6442,32 @@ async function calculateBarbermanSlip(params) {
         karyawan
     } = params;
     
-    // 1. HARI KERJA
-   const hariKerja = absenList.filter(a => {
-    const status = (a.status_kehadiran || '').trim().toLowerCase();
-    return status !== '' && 
-           status !== 'belum absen' && 
-           status !== 'izin' && 
-           status !== 'libur';
-}).length;
+    // 1. HARI KERJA (PERBAIKAN: Exclude Izin, Libur case insensitive)
+    const hariKerja = absenList.filter(a => {
+        if (!a.status_kehadiran) return false;
+        
+        const statusLower = a.status_kehadiran.toLowerCase().trim();
+        const excludedStatuses = ['', 'belum absen', 'izin', 'libur'];
+        
+        return !excludedStatuses.includes(statusLower);
+    }).length;
     
     // 2. UOP & TIPS QRIS
     const totalUOP = komisiList.reduce((sum, k) => sum + (k.uop || 0), 0);
     const totalTipsQRIS = komisiList.reduce((sum, k) => sum + (k.tips_qris || 0), 0);
     
-    // 3. KOMISI & ITEM DETAIL
+    // 3. KOMISI & ITEM DETAIL (PERBAIKAN: Exclude item_group UOP dan Tips)
     const itemDetails = [];
     const komisiMap = {};
     
-    // Group by item_name (asumsi ada kolom item_name)
-    transaksiList.forEach(t => {
+    // Filter transaksi: exclude item_group = 'UOP' atau 'Tips'
+    const filteredTransaksi = transaksiList.filter(t => {
+        const itemGroup = (t.item_group || '').toLowerCase();
+        return !['uop', 'tips', 'tips qris'].includes(itemGroup);
+    });
+    
+    // Group by item_name
+    filteredTransaksi.forEach(t => {
         const itemName = t.item_name || 'Layanan';
         if (!komisiMap[itemName]) {
             komisiMap[itemName] = {
@@ -6483,7 +6498,13 @@ async function calculateBarbermanSlip(params) {
     
     const totalAdjustment = adjustments.reduce((sum, adj) => sum + (adj.amount || 0), 0);
     
-    // 5. TOTAL
+    // 5. TARGET & ACHIEVEMENT (untuk barberman mungkin tidak ada)
+    const targetAchievement = await calculateTargetAchievementBarberman(
+        absenList,
+        target
+    );
+    
+    // 6. TOTAL
     const totalPenghasilan = subTotal + totalAdjustment;
     
     return {
@@ -6506,6 +6527,12 @@ async function calculateBarbermanSlip(params) {
             // Item Details
             item_details: itemDetails,
             
+            // Target (opsional untuk barberman)
+            target_produk: targetAchievement.target_produk || 0,
+            achievement_produk: targetAchievement.achievement_produk || 0,
+            status_produk: targetAchievement.status_produk || 0,
+            bonus_produk: targetAchievement.bonus_produk || '-',
+            
             // Adjustment
             adjustments: adjustments,
             total_adjustment: totalAdjustment,
@@ -6516,23 +6543,22 @@ async function calculateBarbermanSlip(params) {
     };
 }
 
-// [13] Fungsi helper: Hitung Target & Achievement
+// [13] Fungsi helper: Hitung Target & Achievement untuk KASIR - DIPERBAIKI
 async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun, 
                                          membercardList, transaksiList, target, 
-                                         semuaKasirList, hariKerjaKasir, omsetList) {
+                                         semuaKasirList, hariKerjaKasir, omsetList,
+                                         absenList) {
     
     const result = {
         target_membercard: 0,
         achievement_membercard: membercardList.length,
         status_membercard: 0,
         bonus_membercard: '-',
-        bonus_membercard_value: 0,
         
-        target_produk: target.target_weekdays || 0.5,
+        target_produk: 0,
         achievement_produk: transaksiList.reduce((sum, t) => sum + (t.qty || 0), 0),
         status_produk: 0,
         bonus_produk: '-',
-        bonus_produk_value: 0,
         
         target_omset: target.target_omset || 20000000,
         achievement_omset: 0,
@@ -6541,50 +6567,60 @@ async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun,
         proporsi_kasir: 0
     };
     
-    // 1. TARGET MEMBERCARD
-    try {
-        // Hitung hari dalam bulan
-        const daysInMonth = new Date(tahun, bulan, 0).getDate();
-        let totalTargetMembercard = 0;
+    // 1. ANALISA HARI KERJA AKTUAL untuk hitung target
+    const hariKerjaAktual = [];
+    
+    absenList.forEach(absen => {
+        if (!absen.status_kehadiran || !absen.tanggal) return;
         
-        for (let day = 1; day <= daysInMonth; day++) {
-            const date = new Date(tahun, bulan - 1, day);
-            const dayOfWeek = date.getDay(); // 0 = Minggu, 1-6 = Senin-Sabtu
-            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        const statusLower = absen.status_kehadiran.toLowerCase().trim();
+        if (['', 'belum absen', 'izin', 'libur'].includes(statusLower)) return;
+        
+        // Parse tanggal dari format DD/MM/YYYY
+        const [day, month, year] = absen.tanggal.split('/').map(Number);
+        if (month === bulan && year === tahun) {
+            const date = new Date(year, month - 1, day);
+            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
             
-            if (isWeekend) {
-                totalTargetMembercard += target.target_weekends || 1.5;
-            } else {
-                totalTargetMembercard += target.target_weekdays || 0.5;
-            }
+            hariKerjaAktual.push({
+                tanggal: absen.tanggal,
+                isWeekend: isWeekend,
+                date: date
+            });
         }
-        
-        result.target_membercard = totalTargetMembercard;
-        result.status_membercard = totalTargetMembercard > 0 ? 
-            (result.achievement_membercard / totalTargetMembercard) * 100 : 0;
-        
-        if (result.status_membercard >= 100) {
-            result.bonus_membercard = 'Hadiah Menarik';
-            result.bonus_membercard_value = 50000; // Contoh
+    });
+    
+    // 2. TARGET PRODUK (hanya hari yang ada absennya)
+    let totalTargetProduk = 0;
+    
+    hariKerjaAktual.forEach(hari => {
+        if (hari.isWeekend) {
+            totalTargetProduk += target.target_weekends || 1.5;
+        } else {
+            totalTargetProduk += target.target_weekdays || 0.5;
         }
-    } catch (error) {
-        console.error('Error calculating membercard target:', error);
+    });
+    
+    result.target_produk = totalTargetProduk;
+    result.status_produk = result.target_produk > 0 ? 
+        (result.achievement_produk / result.target_produk) * 100 : 0;
+    
+    // Bonus produk: "Hadiah Menarik" jika mencapai target (tanpa nilai)
+    if (result.status_produk >= 100) {
+        result.bonus_produk = 'Hadiah Menarik';
     }
     
-    // 2. TARGET PRODUK
-    try {
-        result.status_produk = result.target_produk > 0 ? 
-            (result.achievement_produk / result.target_produk) * 100 : 0;
-        
-        if (result.status_produk >= 100) {
-            result.bonus_produk = 'Hadiah Menarik';
-            result.bonus_produk_value = 50000; // Contoh
-        }
-    } catch (error) {
-        console.error('Error calculating produk target:', error);
+    // 3. TARGET MEMBERCARD (2x target produk)
+    result.target_membercard = result.target_produk * 2;
+    result.status_membercard = result.target_membercard > 0 ? 
+        (result.achievement_membercard / result.target_membercard) * 100 : 0;
+    
+    // Bonus membercard: "Hadiah Menarik" jika mencapai target (tanpa nilai)
+    if (result.status_membercard >= 100) {
+        result.bonus_membercard = 'Hadiah Menarik';
     }
     
-    // 3. TARGET OMSET
+    // 4. TARGET OMSET
     try {
         // Hitung omset bersih
         const totalOmsetKotor = omsetList.reduce((sum, o) => sum + (o.total_amount || 0), 0);
@@ -6611,6 +6647,46 @@ async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun,
     }
     
     return result;
+}
+
+// Fungsi helper: Hitung Target & Achievement untuk BARBERMAN (simplified)
+async function calculateTargetAchievementBarberman(absenList, target) {
+    // Untuk barberman, hitung target berdasarkan hari kerja aktual juga
+    const hariKerjaAktual = [];
+    
+    absenList.forEach(absen => {
+        if (!absen.status_kehadiran || !absen.tanggal) return;
+        
+        const statusLower = absen.status_kehadiran.toLowerCase().trim();
+        if (['', 'belum absen', 'izin', 'libur'].includes(statusLower)) return;
+        
+        // Parse tanggal dari format DD/MM/YYYY
+        const [day, month, year] = absen.tanggal.split('/').map(Number);
+        const date = new Date(year, month - 1, day);
+        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+        
+        hariKerjaAktual.push({
+            isWeekend: isWeekend
+        });
+    });
+    
+    // Hitung target produk
+    let totalTargetProduk = 0;
+    
+    hariKerjaAktual.forEach(hari => {
+        if (hari.isWeekend) {
+            totalTargetProduk += target.target_weekends || 1.5;
+        } else {
+            totalTargetProduk += target.target_weekdays || 0.5;
+        }
+    });
+    
+    return {
+        target_produk: totalTargetProduk,
+        achievement_produk: 0, // Barberman tidak track achievement produk
+        status_produk: 0,
+        bonus_produk: '-'
+    };
 }
 
 // [14] Fungsi helper: Hitung Detail Harian
@@ -6792,7 +6868,7 @@ function getHariFromDateDDMMYYYY(dateStr) {
     }
 }
 
-// [17] Tampilkan data slip ke UI - DIPERBAIKI
+// [17] Tampilkan data slip ke UI - DIPERBAIKI untuk perubahan bonus
 function displaySlipData(slipData, dataSource) {
     const content = document.getElementById('slipContent');
     const emptyState = document.getElementById('emptySlip');
@@ -6819,9 +6895,9 @@ function displaySlipData(slipData, dataSource) {
     }
     
    // Setup UI events
-setTimeout(() => {
-    setupSlipUIEvents(dataSource);  // ← KIRIM dataSource sebagai parameter
-}, 100);
+    setTimeout(() => {
+        setupSlipUIEvents(dataSource);
+    }, 100);
     
     content.style.display = 'block';
     emptyState.style.display = 'none';
@@ -6863,7 +6939,7 @@ function formatDateTime(datetimeStr) {
     }
 }
 
-// [18] Render slip untuk KASIR
+// [18] Render slip untuk KASIR - DIPERBAIKI untuk perubahan bonus
 function renderKasirSlip(data, dataSource) {
     const isFinal = dataSource === 'final';
     
@@ -7005,7 +7081,7 @@ function renderKasirSlip(data, dataSource) {
                         <tfoot>
                             <tr class="summary-total-row">
                                 <td colspan="4" class="text-right text-small"><strong>Sub Total Bonus:</strong></td>
-                                <td class="text-small"><strong>${formatRupiahShort(data.sub_total_target || 0)}</strong></td>
+                                <td class="text-small"><strong>${formatRupiahShort(data.bonus_omset || 0)}</strong></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -7093,7 +7169,7 @@ function renderKasirSlip(data, dataSource) {
                 </div>
             </section>
             
-            <!-- Detail Harian (Toggle) - HEADER SELALU TAMPIL -->
+            <!-- Detail Harian (Toggle) -->
             <section class="detail-section" id="detailSection">
                 <div class="detail-header" id="toggleDetail">
                     <h4>
@@ -7173,7 +7249,8 @@ function renderKasirSlip(data, dataSource) {
         </div>
     `;
 }
-// [19] Render slip untuk BARBERMAN
+
+// [19] Render slip untuk BARBERMAN - DIPERBAIKI untuk item detail
 function renderBarbermanSlip(data, dataSource) {
     const isFinal = dataSource === 'final';
     
@@ -7242,7 +7319,7 @@ function renderBarbermanSlip(data, dataSource) {
             <!-- Item Details -->
             <section class="target-section">
                 <h4 class="section-title">
-                    <i class="fas fa-list"></i> DETAIL ITEM
+                    <i class="fas fa-list"></i> DETAIL ITEM (Exclude UOP & Tips)
                 </h4>
                 <div class="target-table-container">
                     ${data.item_details && data.item_details.length > 0 ? `
@@ -7265,8 +7342,8 @@ function renderBarbermanSlip(data, dataSource) {
                         </tbody>
                         <tfoot>
                             <tr class="summary-total-row">
-                                <td colspan="2" class="text-right text-small"><strong>Sub Total:</strong></td>
-                                <td class="text-small"><strong>${formatRupiahShort(data.sub_total || 0)}</strong></td>
+                                <td colspan="2" class="text-right text-small"><strong>Total Komisi:</strong></td>
+                                <td class="text-small"><strong>${formatRupiahShort(data.komisi || 0)}</strong></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -7436,25 +7513,16 @@ function setupSlipUIEvents(dataSource) {
     }
     
     // Setup adjustment buttons jika ada
-    // GUNAKAN PARAMETER dataSource, BUKAN variabel global yang mungkin undefined
     const isFinal = dataSource === 'final';
     const slipContainer = document.querySelector('.slip-container');
     
     if (slipContainer) {
-        // Untuk safety, juga cek class final-slip
         const hasFinalClass = slipContainer.classList.contains('final-slip');
         const shouldShowAdjustment = !isFinal && !hasFinalClass;
         
         if (window.isOwnerSlip && shouldShowAdjustment) {
-            console.log('Setting up adjustment buttons for owner (dataSource:', dataSource, ')');
+            console.log('Setting up adjustment buttons for owner');
             setupAdjustmentButtons();
-        } else {
-            console.log('Adjustment buttons NOT shown:', {
-                isOwnerSlip: window.isOwnerSlip,
-                isFinal: isFinal,
-                hasFinalClass: hasFinalClass,
-                dataSource: dataSource
-            });
         }
     }
     
@@ -7548,7 +7616,7 @@ function setupAdjustmentButtons() {
         // Dapatkan tombol baru
         const freshBtn = document.getElementById('addAdjustmentBtn');
         
-        // Tambah onclick attribute (paling reliable)
+        // Tambah onclick attribute
         freshBtn.setAttribute('onclick', `
             event.preventDefault();
             event.stopPropagation();
@@ -7821,6 +7889,7 @@ function formatRupiahShort(amount) {
     
     return 'Rp ' + amount.toLocaleString('id-ID');
 }
+
 // Helper untuk mendapatkan outlet dari karyawan
 async function getOutletByKaryawan(namaKaryawan) {
     try {
@@ -7832,7 +7901,6 @@ async function getOutletByKaryawan(namaKaryawan) {
             
         if (error) {
             console.error('Error getting outlet for', namaKaryawan, ':', error);
-            // Return default outlet atau throw error
             return currentUserOutletSlip || 'Outlet Tidak Diketahui';
         }
         
@@ -7842,6 +7910,7 @@ async function getOutletByKaryawan(namaKaryawan) {
         return currentUserOutletSlip || 'Outlet Tidak Diketahui';
     }
 }
+
 function getStatusColor(percentage) {
     if (percentage >= 100) return 'status-achieved';
     if (percentage >= 80) return 'status-good';
@@ -7849,8 +7918,20 @@ function getStatusColor(percentage) {
     return 'status-failed';
 }
 
+function parseAmountFromRupiah(rupiahString) {
+    if (!rupiahString) return 0;
+    
+    // Remove "Rp", dots, spaces, and convert to number
+    const cleanString = rupiahString
+        .replace('Rp', '')
+        .replace(/\./g, '')
+        .replace(',', '.')
+        .trim();
+    
+    return parseFloat(cleanString) || 0;
+}
 
-// [25] Modal untuk tambah/edit adjustment - DIPERBAIKI
+// [25] Modal untuk tambah/edit adjustment
 function showAddAdjustmentModal() {
     showAdjustmentModal(null);
 }
@@ -7869,7 +7950,6 @@ function showEditAdjustmentModal(index) {
     const amount = parseAmountFromRupiah(amountText);
     
     // Untuk edit, kita butuh tanggal asli dari database
-    // Tapi karena tidak ada di UI, kita gunakan tanggal bulan berjalan
     const bulan = parseInt(document.getElementById('selectBulan').value);
     const tahun = parseInt(document.getElementById('selectTahun').value);
     
@@ -7892,8 +7972,6 @@ function showAdjustmentModal(adjustmentData) {
     
     // Hitung tanggal range untuk info
     const daysInMonth = new Date(tahun, bulan, 0).getDate();
-    const firstDay = `01/${bulan.toString().padStart(2, '0')}/${tahun}`;
-    const lastDay = `${daysInMonth.toString().padStart(2, '0')}/${bulan.toString().padStart(2, '0')}/${tahun}`;
     
     // Format tanggal default: YYYY-MM-DD
     const defaultDate = adjustmentData?.tanggal || `${tahun}-${bulan.toString().padStart(2, '0')}-01`;
@@ -8118,7 +8196,7 @@ function setupTabNavigation(elements) {
     });
 }
 
-// [26] Fungsi untuk save adjustment - GUNAKAN FORMAT YYYY-MM-DD
+// [26] Fungsi untuk save adjustment
 async function saveAdjustment(index) {
     try {
         const dateInput = document.getElementById('adjustmentDate');
@@ -8134,12 +8212,8 @@ async function saveAdjustment(index) {
             return;
         }
         
-        // ========== GUNAKAN FORMAT YANG SUDAH BENAR ==========
-        // Input dari date picker sudah format: "2025-12-09" (YYYY-MM-DD)
-        const selectedDate = dateInput.value; // Format: YYYY-MM-DD
-        
+        const selectedDate = dateInput.value;
         console.log('DEBUG - Selected date:', selectedDate);
-        // ========== END PERBAIKAN ==========
         
         let adjustmentType = '';
         
@@ -8221,7 +8295,7 @@ async function saveAdjustment(index) {
             .from('komisi')
             .select('id, tanggal, outlet, adjustment, adjustment_amount')
             .eq('serve_by', namaKaryawan)
-            .eq('tanggal', selectedDate)  // GUNAKAN selectedDate (YYYY-MM-DD)
+            .eq('tanggal', selectedDate)
             .maybeSingle();
             
         console.log('DEBUG - Query result:', {
@@ -8268,10 +8342,10 @@ async function saveAdjustment(index) {
             result = { success: true, action: 'updated', id: existingKomisi.id };
             
         } else {
-            // INSERT new line - GUNAKAN FORMAT YYYY-MM-DD
+            // INSERT new line
             const newKomisiData = {
                 serve_by: namaKaryawan,
-                tanggal: selectedDate,  // YYYY-MM-DD
+                tanggal: selectedDate,
                 outlet: karyawanOutlet,
                 kasir: namaKaryawan,
                 adjustment: adjustmentType,
@@ -8339,24 +8413,8 @@ async function saveAdjustment(index) {
         alert('Gagal menyimpan adjustment: ' + error.message);
     }
 }
-// Helper function untuk format tanggal display
-function formatDateDisplay(dateStr) {
-    if (!dateStr) return '-';
-    
-    try {
-        const [year, month, day] = dateStr.split('-').map(Number);
-        const date = new Date(year, month - 1, day);
-        return date.toLocaleDateString('id-ID', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric'
-        });
-    } catch (e) {
-        return dateStr;
-    }
-}
 
-// [27] Fungsi untuk delete adjustment - DIPERBAIKI dengan tanggal
+// [27] Fungsi untuk delete adjustment
 async function deleteAdjustment(index) {
     // Ambil data dari UI untuk mendapatkan type
     const adjustmentRows = document.querySelectorAll('tr[data-index]');
@@ -8470,7 +8528,6 @@ async function deleteAdjustment(index) {
             
             try {
                 // Hapus dari database berdasarkan nama, type, amount dan tanggal
-                // Karena kita tidak punya ID yang spesifik, hapus berdasarkan kombinasi ini
                 const { error, count } = await supabase
                     .from('komisi')
                     .delete()
@@ -8525,33 +8582,4 @@ async function deleteAdjustment(index) {
     });
 }
 
-// [28] Update fungsi setupAdjustmentButtons
-function setupAdjustmentButtons() {
-    // Tambah adjustment
-    const addBtn = document.getElementById('addAdjustmentBtn');
-    if (addBtn) {
-        addBtn.addEventListener('click', showAddAdjustmentModal);
-    }
-    
-    // Edit adjustment
-    document.querySelectorAll('.btn-edit-adj').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const index = parseInt(e.target.closest('button').dataset.index);
-            if (!isNaN(index)) {
-                showEditAdjustmentModal(index);
-            }
-        });
-    });
-    
-    // Delete adjustment
-    document.querySelectorAll('.btn-delete-adj').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const index = parseInt(e.target.closest('button').dataset.index);
-            if (!isNaN(index)) {
-                const confirmed = await deleteAdjustment(index);
-                console.log('Delete confirmed:', confirmed);
-            }
-        });
-    });
-}
 // ========== END OF FILE ==========
