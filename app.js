@@ -6263,7 +6263,7 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
             tahun,
             absenList,
             komisiList,
-            transaksiKomisiList,   // Untuk barberman pakai yang komisi
+            transaksiList: transaksiKomisiList, 
             target,
             karyawan
         });
@@ -6462,19 +6462,21 @@ async function calculateBarbermanSlip(params) {
     const itemDetails = [];
     const komisiMap = {};
     
-    // Group by item_name (asumsi ada kolom item_name)
-    transaksiList.forEach(t => {
-        const itemName = t.item_name || 'Layanan';
-        if (!komisiMap[itemName]) {
-            komisiMap[itemName] = {
-                item: itemName,
-                qty: 0,
-                komisi: 0
-            };
-        }
-        komisiMap[itemName].qty += t.qty || 1;
-        komisiMap[itemName].komisi += t.comission || 0;
-    });
+   // Pastikan transaksiList ada
+    if (transaksiList && Array.isArray(transaksiList)) {
+        transaksiList.forEach(t => {
+            const itemName = t.item_name || 'Layanan';
+            if (!komisiMap[itemName]) {
+                komisiMap[itemName] = {
+                    item: itemName,
+                    qty: 0,
+                    komisi: 0
+                };
+            }
+            komisiMap[itemName].qty += t.qty || 1;
+            komisiMap[itemName].komisi += t.comission || 0;
+        });
+    }
     
     // Convert to array
     Object.values(komisiMap).forEach(item => {
