@@ -2229,6 +2229,7 @@ marquee {
 .weekly-absensi-table td[class*="status-"].updated {
     animation: statusPulse 0.5s ease-in-out 2 !important;
 }
+
 /* ========== CSS UNTUK KOMPONEN KAS & SETORAN ========== */
 .kas-page {
     position: fixed;
@@ -2292,15 +2293,15 @@ marquee {
     padding: 16px;
 }
 
-/* User Info Section */
+/* ========== PERBAIKAN: User Info Section - Lebih Rapat ========== */
 .user-info-section {
-    margin-bottom: 20px;
+    margin-bottom: 15px; /* Dikurangi dari 20px */
 }
 
 .info-card {
     background: white;
     border-radius: 16px;
-    padding: 20px;
+    padding: 15px; /* Dikurangi dari 20px */
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
     border: 1px solid rgba(16, 185, 129, 0.1);
 }
@@ -2308,39 +2309,43 @@ marquee {
 .info-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
+    gap: 10px; /* Dikurangi dari 15px */
 }
 
 .info-item {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px; /* Dikurangi dari 12px */
+    padding: 8px 0; /* Ditambahkan padding kecil */
 }
 
 .info-item i {
-    width: 40px;
-    height: 40px;
+    width: 36px; /* Dikurangi dari 40px */
+    height: 36px; /* Dikurangi dari 40px */
     background: linear-gradient(135deg, #10b981, #059669);
-    border-radius: 10px;
+    border-radius: 8px; /* Dikurangi dari 10px */
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 1.2rem;
+    font-size: 1rem; /* Dikurangi dari 1.2rem */
+    flex-shrink: 0;
 }
 
 .info-label {
-    font-size: 0.8rem;
+    font-size: 0.75rem; /* Dikurangi dari 0.8rem */
     color: #6b7280;
-    margin-bottom: 4px;
+    margin-bottom: 2px; /* Dikurangi dari 4px */
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px; /* Dikurangi dari 0.5px */
+    line-height: 1.2;
 }
 
 .info-value {
-    font-size: 1rem;
+    font-size: 0.9rem; /* Dikurangi dari 1rem */
     font-weight: 700;
     color: #1f2937;
+    line-height: 1.2;
 }
 
 /* Ringkasan Section */
@@ -3294,72 +3299,50 @@ marquee {
     font-size: 1.2rem;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .info-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .status-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-    
-    .setoran-actions {
-        flex-direction: column;
-    }
-    
-    .btn-setor, .btn-verifikasi {
-        min-width: 100%;
-    }
-    
-    .modal-info-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .item-header {
-        flex-direction: column;
-    }
-    
-    .item-controls {
-        width: 100%;
-    }
-    
-    .item-input {
-        flex: 1;
-    }
-}
-
-@media (max-width: 480px) {
-    .kas-content {
-        padding: 12px;
-    }
-    
-    .section-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .periode-select {
-        min-width: 100%;
-    }
-    
-    .status-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .modal-content {
-        margin: 10px;
-        max-height: calc(100vh - 20px);
-    }
-}
 /* ========== PERBAIKAN RESPONSIVE MOBILE ========== */
 
-/* [1] Hilangkan Info Card untuk Mobile */
+/* [1] Perbaikan Info Grid untuk Mobile */
 @media (max-width: 768px) {
+    .info-grid {
+        grid-template-columns: repeat(3, 1fr); /* 3 kolom untuk mobile */
+        gap: 8px; /* Lebih rapat */
+    }
     
-    .ringkasan-section {
-        padding: 15px 12px;
-        margin-top: -10px; /* Kompensasi hilangnya user-info */
+    .info-item {
+        flex-direction: column; /* Layout vertikal */
+        gap: 6px;
+        padding: 8px 5px; /* Padding lebih kecil */
+        align-items: center;
+        text-align: center;
+    }
+    
+    .info-item i {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+        margin-bottom: 2px;
+    }
+    
+    .info-label {
+        font-size: 0.65rem; /* Lebih kecil */
+        margin-bottom: 1px;
+        letter-spacing: 0.2px;
+        line-height: 1.1;
+    }
+    
+    .info-value {
+        font-size: 0.8rem;
+        font-weight: 600;
+        line-height: 1.1;
+    }
+    
+    .user-info-section {
+        margin-bottom: 12px; /* Lebih rapat */
+    }
+    
+    .info-card {
+        padding: 12px 10px;
+        border-radius: 12px;
     }
 }
 
@@ -3379,7 +3362,7 @@ marquee {
     
     .ringkasan-table {
         min-width: 100%;
-        font-size: 0.75rem; /* Perkecil font */
+        font-size: 0.75rem;
     }
     
     .ringkasan-table th {
@@ -3391,10 +3374,9 @@ marquee {
     .ringkasan-table td {
         padding: 6px 4px;
         font-size: 0.75rem;
-        line-height: 1.2; /* Kurangi tinggi baris */
+        line-height: 1.2;
     }
     
-    /* Perkecil kolom kasir */
     .ringkasan-table td.kasir-column {
         max-width: 80px;
         min-width: 60px;
@@ -3403,41 +3385,38 @@ marquee {
         white-space: nowrap;
     }
     
-    /* Perbaikan header tabel */
-    .ringkasan-table th:nth-child(1) { /* Tanggal */
+    .ringkasan-table th:nth-child(1) {
         width: 60px;
         min-width: 60px;
     }
     
-    .ringkasan-table th:nth-child(2) { /* Hari */
+    .ringkasan-table th:nth-child(2) {
         width: 50px;
         min-width: 50px;
     }
     
-    .ringkasan-table th:nth-child(3) { /* Outlet */
+    .ringkasan-table th:nth-child(3) {
         width: 60px;
         min-width: 60px;
     }
     
-    .ringkasan-table th:nth-child(4) { /* Kasir */
+    .ringkasan-table th:nth-child(4) {
         width: 70px;
         min-width: 70px;
     }
     
-    .ringkasan-table th:nth-child(5), /* Pemasukan */
-    .ringkasan-table th:nth-child(6), /* Pengeluaran */
-    .ringkasan-table th:nth-child(7) { /* Saldo */
+    .ringkasan-table th:nth-child(5),
+    .ringkasan-table th:nth-child(6),
+    .ringkasan-table th:nth-child(7) {
         width: 80px;
         min-width: 80px;
     }
     
-    /* Total row lebih kecil */
     .total-row td {
         padding: 6px 4px;
         font-size: 0.8rem;
     }
     
-    /* Perbaikan periode info */
     .periode-info {
         padding: 8px 0 10px;
         margin-bottom: 10px;
@@ -3450,48 +3429,6 @@ marquee {
     
     .periode-dates {
         font-size: 0.75rem;
-    }
-}
-
-/* Extra small devices (phones, 480px and down) */
-@media (max-width: 480px) {
-    .ringkasan-table {
-        font-size: 0.7rem;
-    }
-    
-    .ringkasan-table th {
-        font-size: 0.65rem;
-        padding: 6px 3px;
-    }
-    
-    .ringkasan-table td {
-        font-size: 0.7rem;
-        padding: 5px 2px;
-    }
-    
-    /* Perkecil kolom */
-    .ringkasan-table th:nth-child(1), /* Tanggal */
-    .ringkasan-table th:nth-child(2), /* Hari */
-    .ringkasan-table th:nth-child(3) { /* Outlet */
-        width: 50px;
-        min-width: 50px;
-    }
-    
-    .ringkasan-table th:nth-child(4) { /* Kasir */
-        width: 60px;
-        min-width: 60px;
-    }
-    
-    .ringkasan-table th:nth-child(5), /* Pemasukan */
-    .ringkasan-table th:nth-child(6), /* Pengeluaran */
-    .ringkasan-table th:nth-child(7) { /* Saldo */
-        width: 70px;
-        min-width: 70px;
-    }
-    
-    .ringkasan-table td.kasir-column {
-        max-width: 60px;
-        min-width: 50px;
     }
 }
 
@@ -3516,7 +3453,7 @@ marquee {
     }
     
     .status-grid {
-        gap: 8px; /* Kurangi jarak antar baris */
+        gap: 8px;
     }
     
     .status-item {
@@ -3533,126 +3470,110 @@ marquee {
         line-height: 1.2;
     }
     
-    /* Grid 2 kolom untuk mobile */
     .status-grid {
         grid-template-columns: 1fr 1fr;
     }
 }
 
-@media (max-width: 480px) {
-    .status-setoran-card {
-        padding: 10px 8px;
-    }
-    
-    .status-grid {
-        grid-template-columns: 1fr;
-        gap: 6px;
-    }
-    
-    .status-item {
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-        padding: 4px 0;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    }
-    
-    .status-item:last-child {
-        border-bottom: none;
-    }
-    
-    .status-label {
-        font-size: 0.65rem;
-        margin-bottom: 0;
-        flex: 1;
-    }
-    
-    .status-value {
-        font-size: 0.8rem;
-        text-align: right;
-        flex: 1;
-    }
-}
-
-/* [4] Perbaikan Filter Tanggal Input untuk Mobile */
+/* ========== PERBAIKAN TANGGAL DISPLAY MOBILE ========== */
 @media (max-width: 768px) {
     .filter-section {
-        padding: 15px 12px;
-        margin-bottom: 15px;
+        padding: 12px 10px;
     }
     
-    .filter-section h3 {
-        font-size: 1rem;
-        margin-bottom: 12px;
-    }
-    
+    /* Flex layout yang responsif */
     .filter-content {
-        flex-direction: row; /* Filter sebelah kiri, hasil sebelah kanan */
-        align-items: center;
-        gap: 10px;
-        flex-wrap: nowrap;
-    }
-    
-    .date-input-group {
-        flex-direction: row;
-        align-items: center;
-        flex: 1;
+        display: flex;
+        flex-wrap: wrap;
         gap: 8px;
+        align-items: center;
+    }
+    
+    .date-input-group {
+        display: flex;
+        flex: 1;
+        min-width: 0;
+        gap: 8px;
+        align-items: center;
     }
     
     .date-input-group label {
+        flex-shrink: 0;
         font-size: 0.8rem;
         white-space: nowrap;
-        flex-shrink: 0;
-        margin-bottom: 0;
-        width: 60px; /* Lebar fixed untuk label */
+        width: 50px;
+        text-align: right;
     }
     
     .date-input {
         flex: 1;
-        padding: 10px;
+        min-width: 0;
+        padding: 8px 10px;
         font-size: 0.85rem;
-        min-width: 0; /* Allow shrinking */
     }
     
     .date-display {
         flex-shrink: 0;
-        padding: 10px 12px;
-        font-size: 0.8rem;
-        white-space: nowrap;
-        text-align: center;
-        min-width: 160px; /* Fixed width untuk tanggal display */
-        background: #f0fdf4;
-        border-color: #bbf7d0;
-    }
-}
-
-/* Extra small mobile optimization */
-@media (max-width: 480px) {
-    .filter-content {
-        flex-wrap: wrap; /* Allow wrapping if really small */
-    }
-    
-    .date-input-group {
-        flex: 1 0 100%;
-        margin-bottom: 8px;
-    }
-    
-    .date-display {
-        flex: 1 0 100%;
-        text-align: left;
-    }
-    
-    /* Perbaikan input tanggal */
-    .date-input {
-        font-size: 0.8rem;
+        min-width: 120px;
+        max-width: 150px;
         padding: 8px 10px;
+        font-size: 0.8rem;
+        text-align: center;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        box-sizing: border-box;
+        font-weight: 500;
+        color: #065f46;
+        
+        /* Format tanggal lebih ringkas */
+        font-size: 0.75rem;
+        letter-spacing: -0.1px;
     }
     
-    .date-input-group label {
-        width: 50px;
-        font-size: 0.75rem;
+    /* Untuk layar lebih kecil */
+    @media (max-width: 480px) {
+        .filter-content {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .date-input-group {
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        
+        .date-display {
+            width: 100%;
+            max-width: 100%;
+            text-align: center;
+            margin-top: 0;
+            order: 2;
+            font-size: 0.7rem;
+            padding: 6px 8px;
+            min-width: auto;
+        }
+    }
+    
+    /* Untuk layar sangat kecil */
+    @media (max-width: 375px) {
+        .date-display {
+            font-size: 0.65rem;
+            padding: 5px 6px;
+        }
+        
+        .date-input-group label {
+            width: 45px;
+            font-size: 0.75rem;
+        }
+        
+        .date-input {
+            font-size: 0.8rem;
+            padding: 6px 8px;
+        }
     }
 }
 
@@ -3676,7 +3597,6 @@ marquee {
         min-width: 200px;
     }
     
-    /* Tombol lebih kecil */
     .btn-setor, .btn-verifikasi {
         padding: 10px 16px;
         font-size: 0.85rem;
@@ -3688,7 +3608,6 @@ marquee {
         font-size: 0.8rem;
     }
     
-    /* Input Pemasukan/Pengeluaran */
     .pemasukan-section, .pengeluaran-section {
         padding: 15px 12px;
     }
@@ -3706,7 +3625,6 @@ marquee {
         width: 100px;
     }
     
-    /* Total section */
     .total-section {
         padding: 12px;
     }
@@ -3719,7 +3637,6 @@ marquee {
         font-size: 1.1rem;
     }
     
-    /* Submit button */
     .btn-submit {
         padding: 14px 30px;
         font-size: 1rem;
@@ -3727,7 +3644,70 @@ marquee {
     }
 }
 
+/* Extra small devices (phones, 480px and down) */
 @media (max-width: 480px) {
+    .ringkasan-table {
+        font-size: 0.7rem;
+    }
+    
+    .ringkasan-table th {
+        font-size: 0.65rem;
+        padding: 6px 3px;
+    }
+    
+    .ringkasan-table td {
+        font-size: 0.7rem;
+        padding: 5px 2px;
+    }
+    
+    .ringkasan-table th:nth-child(1),
+    .ringkasan-table th:nth-child(2),
+    .ringkasan-table th:nth-child(3) {
+        width: 50px;
+        min-width: 50px;
+    }
+    
+    .ringkasan-table th:nth-child(4) {
+        width: 60px;
+        min-width: 60px;
+    }
+    
+    .ringkasan-table th:nth-child(5),
+    .ringkasan-table th:nth-child(6),
+    .ringkasan-table th:nth-child(7) {
+        width: 70px;
+        min-width: 70px;
+    }
+    
+    .ringkasan-table td.kasir-column {
+        max-width: 60px;
+        min-width: 50px;
+    }
+    
+    /* Info grid jadi 2 kolom untuk layar kecil */
+    .info-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+    
+    .info-item {
+        padding: 6px 4px;
+    }
+    
+    .info-item i {
+        width: 30px;
+        height: 30px;
+        font-size: 0.8rem;
+    }
+    
+    .info-label {
+        font-size: 0.6rem;
+    }
+    
+    .info-value {
+        font-size: 0.75rem;
+    }
+    
     .kas-content {
         padding: 10px 8px;
     }
@@ -3743,13 +3723,11 @@ marquee {
         min-width: 100%;
     }
     
-    /* Grid input pemasukan/pengeluaran jadi 1 kolom */
     .input-grid {
         grid-template-columns: 1fr;
         gap: 15px;
     }
     
-    /* Setoran actions jadi kolom */
     .setoran-actions {
         flex-direction: column;
     }
@@ -3759,7 +3737,6 @@ marquee {
         min-width: 100%;
     }
     
-    /* Modal lebih kecil */
     .modal-content {
         margin: 10px;
         max-height: calc(100vh - 20px);
@@ -3824,16 +3801,12 @@ marquee {
     }
 }
 
-/* [9] Perbaikan tanggal display format */
+/* [9] Format tanggal lebih singkat untuk mobile */
 @media (max-width: 480px) {
     .date-display {
-        font-size: 0.75rem;
-        min-width: 110px;
-        padding: 8px 10px;
-    }
-    
-    /* Format tanggal lebih singkat untuk mobile */
-    #kasTanggalDisplay {
+        font-size: 0.7rem;
+        min-width: auto;
+        max-width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -3861,6 +3834,22 @@ marquee {
     
     .filter-content {
         flex-wrap: nowrap;
+    }
+    
+    /* Info grid horizontal untuk landscape */
+    .info-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .info-item {
+        flex-direction: row;
+        text-align: left;
+        padding: 4px 0;
+    }
+    
+    .info-item i {
+        margin-bottom: 0;
+        margin-right: 5px;
     }
 }
 
@@ -3907,14 +3896,13 @@ marquee {
         transform: scale(0.98);
     }
     
-    /* Increase touch target size */
     .item-select,
     .item-input,
     .note-input,
     .date-input,
     .form-input,
     .form-select {
-        min-height: 44px; /* Minimum touch target size */
+        min-height: 40px;
     }
     
     .btn-setor,
@@ -3922,163 +3910,45 @@ marquee {
     .btn-tambah,
     .btn-submit,
     .btn-modal-submit {
-        min-height: 44px;
+        min-height: 40px;
     }
 }
-/* ========== FIXED WIDTH OPTIMIZATION ========== */
 
-/* [4.7] PERBAIKI Fixed width system untuk layout yang lebih predictable */
-@media (max-width: 768px) {
-    .filter-section {
-        padding: 12px 10px;
-    }
-    
-    /* Grid layout dengan fixed widths */
-    .date-input-group {
-        display: grid;
-        grid-template-columns: auto 1fr minmax(120px, auto); /* PERBAIKAN: minmax untuk fleksibilitas */
-        gap: 8px; /* Tambah gap sedikit */
-        align-items: center;
-    }
-    
-    .date-input-group label {
-        grid-column: 1;
-        width: auto;
-        text-align: right;
-        padding-right: 6px;
-        white-space: nowrap;
-        font-size: 0.8rem;
-    }
-    
-    .date-input {
-        grid-column: 2;
-        width: 100%;
-        max-width: none;
-        padding: 8px 10px;
-        font-size: 0.85rem;
-    }
-    
+/* [14] Dark mode support */
+@media (prefers-color-scheme: dark) {
     .date-display {
-        grid-column: 3;
-        width: auto; /* GANTI dari fixed width ke auto */
-        min-width: 0; /* Izinkan shrink */
-        max-width: 150px; /* Maksimum width */
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis; /* Tambah ellipsis jika terlalu panjang */
-        padding: 8px 10px;
-        font-size: 0.8rem;
-        text-align: center;
-        background: #f0fdf4;
-        border: 1px solid #bbf7d0;
-        border-radius: 6px;
-        box-sizing: border-box;
+        background: #064e3b;
+        color: #a7f3d0;
+        border-color: #10b981;
+    }
+    
+    .info-card {
+        background: #1f2937;
+        border-color: #374151;
+    }
+    
+    .info-label {
+        color: #9ca3af;
+    }
+    
+    .info-value {
+        color: #f3f4f6;
     }
 }
 
-/* [4.8] Adjust untuk layar medium */
-@media (max-width: 480px) and (min-width: 376px) {
-    .date-input-group {
-        grid-template-columns: 50px 1fr 90px;
-        gap: 5px;
-    }
-    
-    .date-display {
-        width: 90px;
-        min-width: 90px;
-        max-width: 90px;
-        font-size: 0.7rem;
-        padding: 7px 8px;
-    }
-}
-
-/* [4.9] Adjust untuk layar small */
-@media (max-width: 375px) and (min-width: 321px) {
-    .date-input-group {
-        grid-template-columns: 45px 1fr 85px;
-        gap: 4px;
-    }
-    
-    .date-display {
-        width: 85px;
-        min-width: 85px;
-        max-width: 85px;
-        font-size: 0.68rem;
-        padding: 6px 7px;
-    }
-    
-    .date-input-group label {
-        font-size: 0.68rem;
-    }
-    
-    .date-input {
-        font-size: 0.68rem;
-        padding: 6px 8px;
-    }
-}
-
-/* [4.10] Adjust untuk layar sangat kecil */
-@media (max-width: 320px) {
-    .date-input-group {
-        grid-template-columns: 1fr;
-        gap: 6px;
-    }
-    
-    .date-input-group label {
-        display: block;
-        text-align: left;
-        width: auto;
-        grid-column: 1;
-    }
-    
-    .date-input {
-        grid-column: 1;
-        width: 100%;
-    }
-    
-    .date-display {
-        grid-column: 1;
-        width: 100%;
-        min-width: 100%;
-        max-width: 100%;
-        text-align: left;
-    }
-}
-
-/* [4.11] Font optimization untuk readability */
-.date-display {
-    font-family: 'Segoe UI', 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
-    letter-spacing: 0.02em;
-    line-height: 1.2;
-}
-
-/* [4.12] High contrast untuk accessibility */
+/* [15] High contrast untuk accessibility */
 @media (prefers-contrast: high) {
     .date-display {
         background: #10b981;
         color: white;
         border-color: #059669;
+        font-weight: 600;
     }
-}
-
-/* [4.13] Dark mode support */
-@media (prefers-color-scheme: dark) {
-    .date-display {
-    background: #064e3b;
-    color: #a7f3d0;
-    border-color: #10b981;
     
-    /* TAMBAHKAN INI: */
-    min-width: 180px;        /* Perbesar lebar */
-    padding: 8px 12px;      /* Jaga tinggi sama */
-    white-space: nowrap;
-    text-align: center;
-    border-radius: 8px;
-    border: 1px solid;       /* Pastikan ada border */
-    box-sizing: border-box;
-}
-}
-
+    .info-item i {
+        background: linear-gradient(135deg, #059669, #047857);
+    }
+    }
 /* ========== CSS UNTUK SLIP PENGHASILAN ========== */
 /* ============================================== */
 
