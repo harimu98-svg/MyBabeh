@@ -10100,7 +10100,7 @@ async function loadProdukForRequest() {
     }
 }
 
-// [26] Load produk untuk owner adjustment (HANYA INVENTORY=TRUE)
+// [26] Load produk untuk owner adjustment (HANYA INVENTORY=TRUE) - FIXED
 async function loadProdukForAdjustment() {
     const outletSelect = document.getElementById('adjustOutlet');
     const produkSelect = document.getElementById('adjustProduk');
@@ -10108,31 +10108,66 @@ async function loadProdukForAdjustment() {
     if (!outletSelect || !produkSelect) return;
     
     try {
-        // Set outlet to current outlet
-        outletSelect.innerHTML = `<option value="${currentOutletStok}">${currentOutletStok}</option>`;
+        // Load semua outlet untuk owner
+        const { data: outlets } = await supabase
+            .from('karyawan')
+            .select('outlet')
+            .not('outlet', 'is', null);
         
-        // Load produk untuk outlet tersebut
-        const { data: produkData, error } = await supabase
-            .from('produk')
-            .select('id, nama_produk, stok')
-            .eq('outlet', currentOutletStok)
-            .eq('status', 'active')
-            .eq('inventory', true) // Hanya produk inventory
-            .order('nama_produk');
+        if (outlets && outlets.length > 0) {
+            const uniqueOutlets = [...new Set(outlets.map(o => o.outlet))].filter(Boolean);
+            let options = '<option value="">-- Pilih Outlet --</option>';
+            uniqueOutlets.forEach(outlet => {
+                options += `<option value="${outlet}">${outlet}</option>`;
+            });
+            outletSelect.innerHTML = options;
+        } else {
+            outletSelect.innerHTML = `<option value="${currentOutletStok}">${currentOutletStok}</option>`;
+        }
         
-        if (error) throw error;
+        // Reset produk dropdown dulu
+        produkSelect.innerHTML = '<option value="">-- Pilih Outlet terlebih dahulu --</option>';
         
-        produkSelect.innerHTML = `
-            <option value="">-- Pilih Produk --</option>
-            ${produkData.map(p => `
-                <option value="${p.id}">
-                    ${p.nama_produk} (Stok: ${p.stok})
-                </option>
-            `).join('')}
-        `;
+        // Event listener untuk load produk ketika outlet dipilih
+        outletSelect.addEventListener('change', async function() {
+            const selectedOutlet = this.value;
+            if (!selectedOutlet) {
+                produkSelect.innerHTML = '<option value="">-- Pilih Outlet terlebih dahulu --</option>';
+                return;
+            }
+            
+            // Load produk untuk outlet yang dipilih
+            const { data: produkData, error } = await supabase
+                .from('produk')
+                .select('id, nama_produk, stok')
+                .eq('outlet', selectedOutlet)
+                .eq('status', 'active')
+                .eq('inventory', true)
+                .order('nama_produk');
+            
+            if (error) {
+                console.error('Error loading produk:', error);
+                produkSelect.innerHTML = '<option value="">Error loading produk</option>';
+                return;
+            }
+            
+            if (produkData && produkData.length > 0) {
+                produkSelect.innerHTML = `
+                    <option value="">-- Pilih Produk --</option>
+                    ${produkData.map(p => `
+                        <option value="${p.id}">
+                            ${p.nama_produk} (Stok: ${p.stok})
+                        </option>
+                    `).join('')}
+                `;
+            } else {
+                produkSelect.innerHTML = '<option value="">Tidak ada produk inventory</option>';
+            }
+        });
         
     } catch (error) {
         console.error('Error loading produk for adjustment:', error);
+        outletSelect.innerHTML = '<option value="">Error loading outlets</option>';
         produkSelect.innerHTML = '<option value="">Error loading produk</option>';
     }
 }
@@ -10394,7 +10429,7 @@ async function submitStokRequest() {
     }
 }
 
-// [33] Handle quick adjustment (OWNER) - UPDATE PRODUK.STOK
+// [33] Handle quick adjustment (OWNER) - UPDATE PRODUK.STOK - FIXED
 async function handleQuickAdjust() {
     try {
         const outlet = document.getElementById('adjustOutlet')?.value;
@@ -10402,6 +10437,11 @@ async function handleQuickAdjust() {
         const stokType = document.getElementById('adjustType')?.value;
         const qtyChange = parseInt(document.getElementById('adjustQty')?.value || 0);
         const notes = document.getElementById('adjustNotes')?.value;
+        
+        if (!outlet) {
+            alert('Pilih outlet terlebih dahulu');
+            return;
+        }
         
         if (!productId) {
             alert('Pilih produk terlebih dahulu');
@@ -10418,15 +10458,19 @@ async function handleQuickAdjust() {
             return;
         }
         
-        // Get product info
+        // Get product info (dengan outlet yang spesifik)
         const { data: produk, error: produkError } = await supabase
             .from('produk')
             .select('nama_produk, group_produk, stok')
             .eq('id', productId)
-            .eq('outlet', outlet)
+            .eq('outlet', outlet) // PASTIKAN outlet sesuai
             .single();
         
-        if (produkError) throw produkError;
+        if (produkError) {
+            console.error('Product error:', produkError);
+            alert('Produk tidak ditemukan di outlet ini!');
+            return;
+        }
         
         // Calculate quantities
         const qtyBefore = produk.stok;
@@ -10464,14 +10508,19 @@ async function handleQuickAdjust() {
         if (error) throw error;
         
         // UPDATE PRODUK.STOK
-        await supabase
+        const { error: updateError } = await supabase
             .from('produk')
             .update({ 
                 stok: qtyAfter,
                 updated_at: new Date().toISOString()
             })
             .eq('id', productId)
-            .eq('outlet', outlet);
+            .eq('outlet', outlet); // PASTIKAN outlet sesuai
+        
+        if (updateError) {
+            console.error('Update produk error:', updateError);
+            throw updateError;
+        }
         
         // Success
         alert('Adjustment berhasil disimpan! Stok produk diperbarui.');
