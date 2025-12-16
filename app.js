@@ -11607,6 +11607,7 @@ function displayKasirHistory(requests) {
 }
 
 // [19] Fungsi untuk update selected items section
+// Fungsi untuk update selected items section - PERBAIKAN
 function updateSelectedItemsSection() {
     const section = document.getElementById('selectedItemsSection');
     const submitBtn = document.getElementById('submitRequestBtn');
@@ -11614,16 +11615,31 @@ function updateSelectedItemsSection() {
     const totalAmountEl = document.getElementById('totalRequestAmount');
     const tbody = document.getElementById('selectedItemsBody');
     
-    if (!section || !submitBtn || !tbody) return;
+    console.log('updateSelectedItemsSection called', {
+        selectedItemsCount: selectedItems.length,
+        sectionExists: !!section,
+        tbodyExists: !!tbody
+    });
+    
+    if (!section || !submitBtn || !tbody) {
+        console.error('Missing elements:', {
+            section: !!section,
+            submitBtn: !!submitBtn,
+            tbody: !!tbody
+        });
+        return;
+    }
     
     // Show/hide section based on selected items
     if (selectedItems.length > 0) {
+        console.log('Showing selected items section');
         section.style.display = 'block';
         submitBtn.disabled = false;
         
         // Update count
         if (selectedCountEl) {
             selectedCountEl.textContent = selectedItems.length;
+            console.log('Selected count updated:', selectedItems.length);
         }
         
         // Update table
@@ -11632,6 +11648,7 @@ function updateSelectedItemsSection() {
         let totalAmount = 0;
         
         selectedItems.forEach((item, index) => {
+            console.log('Adding item to table:', item);
             totalAmount += item.total_price;
             
             const row = document.createElement('tr');
@@ -11646,7 +11663,7 @@ function updateSelectedItemsSection() {
                         <button class="qty-btn minus" onclick="adjustSelectedItemQty(${index}, -1)" ${item.qty <= 1 ? 'disabled' : ''}>
                             <i class="fas fa-minus"></i>
                         </button>
-                        <span class="qty-display">${item.qty} ${item.unit_type}</span>
+                        <span class="qty-display">${item.qty} ${item.unit_type || 'pcs'}</span>
                         <button class="qty-btn plus" onclick="adjustSelectedItemQty(${index}, 1)">
                             <i class="fas fa-plus"></i>
                         </button>
@@ -11666,13 +11683,14 @@ function updateSelectedItemsSection() {
         // Update total amount
         if (totalAmountEl) {
             totalAmountEl.textContent = formatRupiah(totalAmount);
+            console.log('Total amount updated:', totalAmount);
         }
     } else {
+        console.log('Hiding selected items section');
         section.style.display = 'none';
         submitBtn.disabled = true;
     }
 }
-
 // [20] Fungsi untuk adjust selected item quantity
 function adjustSelectedItemQty(index, change) {
     if (index < 0 || index >= selectedItems.length) return;
