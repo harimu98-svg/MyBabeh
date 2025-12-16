@@ -388,15 +388,16 @@ function handleMenuClick(menuId) {
        case 'stok':  // <-- TAMBAHKAN INI
             showStokPage();
             break;
+        case 'request':
+            showRequestPage(); // <-- TAMBAHKAN INI
+            break;
         case 'libur':
         case 'top':
-        case 'request':
         case 'sertifikasi':
             // Menu lain akan diimplementasikan nanti
             const menuTitles = {
                 'libur': 'Libur & Izin',
                 'top': 'TOP (Tools Ownership Program)',
-                'request': 'Request',
                 'sertifikasi': 'Sertifikasi'
             };
             alert(`Menu "${menuTitles[menuId]}" akan diimplementasikan nanti.`);
@@ -10626,4 +10627,1396 @@ document.addEventListener('click', function(e) {
     }
 });
 // ========== END OF STOK FUNCTIONS ==========
+// ========== FUNGSI MENU KOMPONEN - REQUEST ==========
+// =================================================
+
+// Variabel global untuk request
+let currentKaryawanRequest = null;
+let currentUserOutletRequest = null;
+let isOwnerRequest = false;
+let selectedItems = []; // Untuk menyimpan items yang akan di-request
+let batchId = null; // ID batch untuk grouping multi-item
+let inventoryData = []; // Cache data inventory
+
+// [1] Fungsi untuk tampilkan halaman request
+async function showRequestPage() {
+    try {
+        // Ambil data user
+        const { data: { user } } = await supabase.auth.getUser();
+        const namaKaryawan = user?.user_metadata?.nama_karyawan;
+        
+        if (!namaKaryawan) {
+            alert('User tidak ditemukan!');
+            return;
+        }
+        
+        // Ambil data karyawan lengkap
+        const { data: karyawanData } = await supabase
+            .from('karyawan')
+            .select('role, outlet, posisi')
+            .eq('nama_karyawan', namaKaryawan)
+            .single();
+        
+        if (!karyawanData) {
+            alert('Data karyawan tidak ditemukan!');
+            return;
+        }
+        
+        currentKaryawanRequest = {
+            nama_karyawan: namaKaryawan,
+            role: karyawanData.role,
+            outlet: karyawanData.outlet,
+            posisi: karyawanData.posisi
+        };
+        
+        currentUserOutletRequest = karyawanData.outlet;
+        isOwnerRequest = karyawanData.role === 'owner';
+        
+        // Sembunyikan main app, tampilkan halaman request
+        document.getElementById('appScreen').style.display = 'none';
+        
+        // Buat container halaman request
+        createRequestPage();
+        
+        // Generate batch ID untuk grouping
+        batchId = generateBatchId();
+        
+        // Load data berdasarkan role
+        if (isOwnerRequest) {
+            await loadRequestsForOwner();
+        } else {
+            await loadInventoryForRequest();
+        }
+        
+    } catch (error) {
+        console.error('Error in showRequestPage:', error);
+        alert('Gagal memuat halaman request!');
+    }
+}
+
+// [2] Fungsi untuk buat halaman request
+function createRequestPage() {
+    // Hapus halaman request sebelumnya jika ada
+    const existingPage = document.getElementById('requestPage');
+    if (existingPage) {
+        existingPage.remove();
+    }
+    
+    // Tentukan konten berdasarkan role
+    const isKasir = currentKaryawanRequest?.role === 'kasir';
+    
+    // Buat container halaman request
+    const requestPage = document.createElement('div');
+    requestPage.id = 'requestPage';
+    requestPage.className = 'request-page';
+    
+    requestPage.innerHTML = `
+        <!-- Header -->
+        <header class="request-header">
+            <button class="back-btn" id="backToMainFromRequest">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2><i class="fas fa-comment-dots"></i> Request Barang</h2>
+            <div class="header-actions">
+                ${isKasir ? `
+                    <button class="submit-btn" id="submitRequestBtn" disabled>
+                        <i class="fas fa-paper-plane"></i> Submit Request
+                    </button>
+                ` : `
+                    <button class="refresh-btn" id="refreshRequests">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                `}
+            </div>
+        </header>
+        
+        <!-- Info Header -->
+        <div class="request-info-header">
+            <div class="info-row">
+                <div class="info-item">
+                    <i class="fas fa-calendar-day"></i>
+                    <span id="currentDate">${new Date().toLocaleDateString('id-ID', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    })}</span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-user"></i>
+                    <span id="userName">${currentKaryawanRequest?.nama_karyawan || '-'}</span>
+                </div>
+            </div>
+            <div class="info-row">
+                <div class="info-item">
+                    <i class="fas fa-briefcase"></i>
+                    <span id="userPosition">${currentKaryawanRequest?.posisi || '-'}</span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-store"></i>
+                    <span id="userOutlet">${currentUserOutletRequest || '-'}</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Untuk KASIR: Form Request Multi-Item -->
+        ${isKasir ? `
+        <div class="kasir-request-section">
+            <!-- Search & Filter -->
+            <div class="search-filter-section">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInventory" placeholder="Cari item (nama, kategori, SKU)...">
+                    <button class="clear-search" id="clearSearchBtn" title="Clear search">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="filterCategory"><i class="fas fa-tags"></i> Kategori:</label>
+                        <select id="filterCategory" class="category-select">
+                            <option value="">Semua Kategori</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterGroup"><i class="fas fa-layer-group"></i> Group:</label>
+                        <select id="filterGroup" class="group-select">
+                            <option value="">Semua Group</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterAvailability"><i class="fas fa-check-circle"></i> Status:</label>
+                        <select id="filterAvailability" class="availability-select">
+                            <option value="all">Semua Status</option>
+                            <option value="available">Tersedia</option>
+                            <option value="low">Stok Rendah</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Inventory List -->
+            <div class="inventory-list-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-boxes"></i> Daftar Inventory - ${currentUserOutletRequest}</h3>
+                    <div class="inventory-stats">
+                        <span id="inventoryCount">0 items</span>
+                    </div>
+                </div>
+                <div class="inventory-table-container">
+                    <div class="loading" id="loadingInventory">Memuat data inventory...</div>
+                    <table class="inventory-table" id="inventoryTable" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th width="50px"><input type="checkbox" id="selectAllItems"></th>
+                                <th width="250px">Item</th>
+                                <th width="120px">Kategori</th>
+                                <th width="120px">Group</th>
+                                <th width="100px">SKU</th>
+                                <th width="100px">Stok</th>
+                                <th width="120px">Harga Satuan</th>
+                                <th width="100px">Qty</th>
+                                <th width="120px">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryBody">
+                            <!-- Data inventory akan diisi di sini -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Selected Items Summary -->
+            <div class="selected-items-section" id="selectedItemsSection" style="display: none;">
+                <div class="section-header">
+                    <h3><i class="fas fa-shopping-cart"></i> Items yang akan di-Request <span class="badge" id="selectedCount">0</span></h3>
+                    <button class="btn-clear" id="clearAllSelected">
+                        <i class="fas fa-trash"></i> Hapus Semua
+                    </button>
+                </div>
+                <div class="selected-items-table-container">
+                    <table class="selected-items-table" id="selectedItemsTable">
+                        <thead>
+                            <tr>
+                                <th width="200px">Item</th>
+                                <th width="100px">Kategori</th>
+                                <th width="80px">Qty</th>
+                                <th width="120px">Harga Satuan</th>
+                                <th width="120px">Subtotal</th>
+                                <th width="80px">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="selectedItemsBody">
+                            <!-- Items terpilih akan diisi di sini -->
+                        </tbody>
+                        <tfoot>
+                            <tr class="total-row">
+                                <td colspan="4" class="total-label"><strong>Total Request:</strong></td>
+                                <td class="total-amount" id="totalRequestAmount">Rp 0</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="selected-notes">
+                    <label for="requestNotes"><i class="fas fa-sticky-note"></i> Catatan (opsional):</label>
+                    <textarea id="requestNotes" placeholder="Tambahkan catatan untuk request ini..." rows="2"></textarea>
+                </div>
+            </div>
+        </div>
+        ` : `
+        <!-- Untuk OWNER: Approval Requests -->
+        <div class="owner-request-section">
+            <!-- Filter untuk Owner -->
+            <div class="owner-filter-section">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="filterOutletOwner"><i class="fas fa-store"></i> Outlet:</label>
+                        <select id="filterOutletOwner" class="outlet-select">
+                            <option value="all">Semua Outlet</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterStatusOwner"><i class="fas fa-filter"></i> Status:</label>
+                        <select id="filterStatusOwner" class="status-select">
+                            <option value="all">Semua Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="partially_approved">Partially Approved</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterDateOwner"><i class="fas fa-calendar"></i> Periode:</label>
+                        <select id="filterDateOwner" class="date-select">
+                            <option value="today">Hari Ini</option>
+                            <option value="week">7 Hari Terakhir</option>
+                            <option value="month">Bulan Ini</option>
+                            <option value="all">Semua</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pending Requests -->
+            <div class="pending-requests-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-clock"></i> Pending Requests</h3>
+                    <div class="request-stats">
+                        <span id="pendingCount">0 requests</span>
+                    </div>
+                </div>
+                <div class="pending-requests-container">
+                    <div class="loading" id="loadingPending">Memuat data request...</div>
+                    <div id="pendingRequestsGrid" style="display: none;">
+                        <!-- Grouped requests akan diisi di sini -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Request History -->
+            <div class="request-history-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-history"></i> Request History</h3>
+                </div>
+                <div class="history-table-container">
+                    <div class="loading" id="loadingHistory">Memuat history...</div>
+                    <table class="history-table" id="historyTable" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th width="150px">Tanggal</th>
+                                <th width="100px">Batch ID</th>
+                                <th width="120px">Outlet</th>
+                                <th width="150px">Karyawan</th>
+                                <th width="200px">Item</th>
+                                <th width="80px">Qty</th>
+                                <th width="120px">Status</th>
+                                <th width="150px">Disetujui Oleh</th>
+                                <th width="150px">Catatan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyBody">
+                            <!-- History akan diisi di sini -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        `}
+        
+        <!-- Footer -->
+        <div class="request-footer">
+            <p><i class="fas fa-info-circle"></i> ${isKasir ? 'Pilih item dari inventory dan submit request' : 'Review dan approve request dari karyawan'}</p>
+        </div>
+    `;
+    
+    document.body.appendChild(requestPage);
+    
+    // Setup event listeners
+    setupRequestPageEvents();
+}
+
+// [3] Setup event listeners untuk halaman request
+function setupRequestPageEvents() {
+    // Tombol kembali
+    document.getElementById('backToMainFromRequest').addEventListener('click', () => {
+        document.getElementById('requestPage').remove();
+        document.getElementById('appScreen').style.display = 'block';
+    });
+    
+    const isKasir = currentKaryawanRequest?.role === 'kasir';
+    
+    if (isKasir) {
+        // KASIR: Setup event listeners
+        setupKasirRequestEvents();
+    } else {
+        // OWNER: Setup event listeners
+        setupOwnerRequestEvents();
+    }
+}
+
+// [4] Setup events untuk KASIR
+function setupKasirRequestEvents() {
+    // Tombol submit request
+    const submitBtn = document.getElementById('submitRequestBtn');
+    submitBtn.addEventListener('click', submitRequest);
+    
+    // Search input
+    const searchInput = document.getElementById('searchInventory');
+    searchInput.addEventListener('input', debounce(filterInventory, 300));
+    
+    // Clear search button
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            filterInventory();
+        });
+    }
+    
+    // Filter dropdowns
+    document.getElementById('filterCategory').addEventListener('change', filterInventory);
+    document.getElementById('filterGroup').addEventListener('change', filterInventory);
+    document.getElementById('filterAvailability').addEventListener('change', filterInventory);
+    
+    // Select all checkbox
+    const selectAllCheckbox = document.getElementById('selectAllItems');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', toggleSelectAllItems);
+    }
+    
+    // Clear all selected button
+    const clearAllBtn = document.getElementById('clearAllSelected');
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', clearAllSelectedItems);
+    }
+}
+
+// [5] Setup events untuk OWNER
+function setupOwnerRequestEvents() {
+    // Tombol refresh
+    const refreshBtn = document.getElementById('refreshRequests');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', async () => {
+            await loadRequestsForOwner();
+        });
+    }
+    
+    // Filter dropdowns
+    document.getElementById('filterOutletOwner')?.addEventListener('change', async () => {
+        await loadRequestsForOwner();
+    });
+    
+    document.getElementById('filterStatusOwner')?.addEventListener('change', async () => {
+        await loadRequestsForOwner();
+    });
+    
+    document.getElementById('filterDateOwner')?.addEventListener('change', async () => {
+        await loadRequestsForOwner();
+    });
+}
+
+// [6] Fungsi untuk load inventory untuk kasir
+async function loadInventoryForRequest() {
+    try {
+        const loadingEl = document.getElementById('loadingInventory');
+        const tableEl = document.getElementById('inventoryTable');
+        
+        if (loadingEl) loadingEl.style.display = 'block';
+        if (tableEl) tableEl.style.display = 'none';
+        
+        // Query inventory berdasarkan outlet karyawan
+        const { data, error } = await supabase
+            .from('inventory')
+            .select('*')
+            .eq('outlet', currentUserOutletRequest)
+            .eq('status', 'active')
+            .eq('is_available', true)
+            .order('category')
+            .order('item');
+        
+        if (error) throw error;
+        
+        inventoryData = data || [];
+        
+        // Tampilkan data di tabel
+        displayInventoryData(inventoryData);
+        
+        // Load filter options
+        loadFilterOptions(inventoryData);
+        
+    } catch (error) {
+        console.error('Error loading inventory:', error);
+        const inventoryBody = document.getElementById('inventoryBody');
+        if (inventoryBody) {
+            inventoryBody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Gagal memuat data inventory: ${error.message}
+                    </td>
+                </tr>
+            `;
+        }
+    } finally {
+        const loadingEl = document.getElementById('loadingInventory');
+        const tableEl = document.getElementById('inventoryTable');
+        
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (tableEl) tableEl.style.display = 'table';
+    }
+}
+
+// [7] Fungsi untuk display inventory data
+function displayInventoryData(items) {
+    const tbody = document.getElementById('inventoryBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    if (!items || items.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="empty-message">
+                    <i class="fas fa-box-open"></i>
+                    Tidak ada data inventory untuk outlet ${currentUserOutletRequest}
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // Update count
+    const countEl = document.getElementById('inventoryCount');
+    if (countEl) {
+        countEl.textContent = `${items.length} items`;
+    }
+    
+    items.forEach(item => {
+        const isSelected = selectedItems.some(sel => sel.sku === item.sku);
+        const selectedQty = isSelected ? selectedItems.find(sel => sel.sku === item.sku).qty : 1;
+        
+        const row = document.createElement('tr');
+        row.className = isSelected ? 'selected' : '';
+        row.innerHTML = `
+            <td>
+                <input type="checkbox" class="item-checkbox" 
+                    data-sku="${item.sku}"
+                    ${isSelected ? 'checked' : ''}>
+            </td>
+            <td>
+                <div class="item-name">${item.item}</div>
+                ${item.description ? `<div class="item-desc">${item.description}</div>` : ''}
+            </td>
+            <td><span class="badge category">${item.category}</span></td>
+            <td><span class="badge group">${item.item_group}</span></td>
+            <td><code>${item.sku}</code></td>
+            <td>
+                <span class="stock-badge ${getStockClass(item.current_stock, item.min_stock)}">
+                    ${item.current_stock} ${item.unit_type || 'pcs'}
+                </span>
+            </td>
+            <td class="price">${formatRupiah(item.unit_price)}</td>
+            <td>
+                <div class="qty-control">
+                    <button class="qty-btn minus" data-sku="${item.sku}" ${isSelected && selectedQty <= 1 ? 'disabled' : ''}>
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <input type="number" class="qty-input" data-sku="${item.sku}" 
+                        value="${selectedQty}" min="1" max="${item.current_stock || 99}">
+                    <button class="qty-btn plus" data-sku="${item.sku}">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </td>
+            <td class="subtotal">${formatRupiah(item.unit_price * selectedQty)}</td>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    // Attach event listeners to new elements
+    attachInventoryEventListeners();
+    
+    // Update selected items section
+    updateSelectedItemsSection();
+}
+
+// [8] Fungsi untuk attach event listeners ke inventory items
+function attachInventoryEventListeners() {
+    // Checkbox events
+    document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const sku = this.getAttribute('data-sku');
+            const item = inventoryData.find(i => i.sku === sku);
+            
+            if (this.checked) {
+                addItemToRequest(item);
+            } else {
+                removeItemFromRequest(sku);
+            }
+            
+            // Update row styling
+            const row = this.closest('tr');
+            if (row) {
+                row.classList.toggle('selected', this.checked);
+            }
+        });
+    });
+    
+    // Quantity button events
+    document.querySelectorAll('.qty-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const sku = this.getAttribute('data-sku');
+            const isPlus = this.classList.contains('plus');
+            const input = document.querySelector(`.qty-input[data-sku="${sku}"]`);
+            
+            if (!input) return;
+            
+            let currentQty = parseInt(input.value) || 1;
+            const item = inventoryData.find(i => i.sku === sku);
+            const maxQty = item?.current_stock || 99;
+            
+            if (isPlus && currentQty < maxQty) {
+                currentQty++;
+            } else if (!isPlus && currentQty > 1) {
+                currentQty--;
+            }
+            
+            input.value = currentQty;
+            
+            // Update item in selected items
+            updateItemQuantity(sku, currentQty);
+        });
+    });
+    
+    // Quantity input events
+    document.querySelectorAll('.qty-input').forEach(input => {
+        input.addEventListener('change', function() {
+            const sku = this.getAttribute('data-sku');
+            let qty = parseInt(this.value) || 1;
+            const item = inventoryData.find(i => i.sku === sku);
+            const maxQty = item?.current_stock || 99;
+            
+            if (qty < 1) qty = 1;
+            if (qty > maxQty) qty = maxQty;
+            
+            this.value = qty;
+            updateItemQuantity(sku, qty);
+        });
+    });
+}
+
+// [9] Fungsi untuk load filter options
+function loadFilterOptions(items) {
+    const categories = [...new Set(items.map(item => item.category).filter(Boolean))];
+    const groups = [...new Set(items.map(item => item.item_group).filter(Boolean))];
+    
+    const categorySelect = document.getElementById('filterCategory');
+    const groupSelect = document.getElementById('filterGroup');
+    
+    if (categorySelect) {
+        categorySelect.innerHTML = `
+            <option value="">Semua Kategori</option>
+            ${categories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+        `;
+    }
+    
+    if (groupSelect) {
+        groupSelect.innerHTML = `
+            <option value="">Semua Group</option>
+            ${groups.map(grp => `<option value="${grp}">${grp}</option>`).join('')}
+        `;
+    }
+}
+
+// [10] Fungsi untuk filter inventory
+function filterInventory() {
+    const searchTerm = document.getElementById('searchInventory').value.toLowerCase();
+    const categoryFilter = document.getElementById('filterCategory').value;
+    const groupFilter = document.getElementById('filterGroup').value;
+    const availabilityFilter = document.getElementById('filterAvailability').value;
+    
+    let filtered = [...inventoryData];
+    
+    // Search filter
+    if (searchTerm) {
+        filtered = filtered.filter(item => 
+            item.item.toLowerCase().includes(searchTerm) ||
+            item.category.toLowerCase().includes(searchTerm) ||
+            item.item_group.toLowerCase().includes(searchTerm) ||
+            item.sku.toLowerCase().includes(searchTerm) ||
+            (item.description && item.description.toLowerCase().includes(searchTerm))
+        );
+    }
+    
+    // Category filter
+    if (categoryFilter) {
+        filtered = filtered.filter(item => item.category === categoryFilter);
+    }
+    
+    // Group filter
+    if (groupFilter) {
+        filtered = filtered.filter(item => item.item_group === groupFilter);
+    }
+    
+    // Availability filter
+    if (availabilityFilter === 'available') {
+        filtered = filtered.filter(item => item.current_stock > 0);
+    } else if (availabilityFilter === 'low') {
+        filtered = filtered.filter(item => item.current_stock <= (item.min_stock || 10));
+    }
+    
+    displayInventoryData(filtered);
+}
+
+// [11] Fungsi untuk add item ke request
+function addItemToRequest(item) {
+    if (!item) return;
+    
+    // Cek apakah item sudah ada
+    const existingIndex = selectedItems.findIndex(i => i.sku === item.sku);
+    
+    if (existingIndex >= 0) {
+        // Update quantity jika sudah ada
+        selectedItems[existingIndex].qty += 1;
+    } else {
+        // Tambah item baru
+        selectedItems.push({
+            id: item.id,
+            item: item.item,
+            category: item.category,
+            item_group: item.item_group,
+            sku: item.sku,
+            qty: 1,
+            unit_price: item.unit_price,
+            total_price: item.unit_price,
+            unit_type: item.unit_type || 'pcs',
+            current_stock: item.current_stock
+        });
+    }
+    
+    updateSelectedItemsSection();
+}
+
+// [12] Fungsi untuk remove item dari request
+function removeItemFromRequest(sku) {
+    selectedItems = selectedItems.filter(item => item.sku !== sku);
+    updateSelectedItemsSection();
+}
+
+// [13] Fungsi untuk update item quantity
+function updateItemQuantity(sku, qty) {
+    const itemIndex = selectedItems.findIndex(item => item.sku === sku);
+    
+    if (itemIndex >= 0) {
+        selectedItems[itemIndex].qty = qty;
+        selectedItems[itemIndex].total_price = selectedItems[itemIndex].unit_price * qty;
+        updateSelectedItemsSection();
+    }
+}
+
+// [14] Fungsi untuk update selected items section
+function updateSelectedItemsSection() {
+    const section = document.getElementById('selectedItemsSection');
+    const submitBtn = document.getElementById('submitRequestBtn');
+    const selectedCountEl = document.getElementById('selectedCount');
+    const totalAmountEl = document.getElementById('totalRequestAmount');
+    
+    if (!section || !submitBtn) return;
+    
+    // Show/hide section based on selected items
+    if (selectedItems.length > 0) {
+        section.style.display = 'block';
+        submitBtn.disabled = false;
+        
+        // Update count
+        if (selectedCountEl) {
+            selectedCountEl.textContent = selectedItems.length;
+        }
+        
+        // Update selected items table
+        updateSelectedItemsTable();
+        
+        // Update total amount
+        if (totalAmountEl) {
+            const totalAmount = selectedItems.reduce((sum, item) => sum + (item.unit_price * item.qty), 0);
+            totalAmountEl.textContent = formatRupiah(totalAmount);
+        }
+    } else {
+        section.style.display = 'none';
+        submitBtn.disabled = true;
+    }
+}
+
+// [15] Fungsi untuk update selected items table
+function updateSelectedItemsTable() {
+    const tbody = document.getElementById('selectedItemsBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    selectedItems.forEach((item, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>
+                <div class="item-name">${item.item}</div>
+                <div class="item-sku"><small>SKU: ${item.sku}</small></div>
+            </td>
+            <td><span class="badge category">${item.category}</span></td>
+            <td>
+                <div class="qty-control small">
+                    <button class="qty-btn minus" onclick="updateSelectedItemQty('${item.sku}', ${item.qty - 1})" ${item.qty <= 1 ? 'disabled' : ''}>
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <span class="qty-display">${item.qty} ${item.unit_type}</span>
+                    <button class="qty-btn plus" onclick="updateSelectedItemQty('${item.sku}', ${item.qty + 1})">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </td>
+            <td>${formatRupiah(item.unit_price)}</td>
+            <td class="subtotal">${formatRupiah(item.total_price)}</td>
+            <td>
+                <button class="btn-remove" onclick="removeSelectedItem('${item.sku}')" title="Hapus item">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// [16] Fungsi untuk submit request (kasir)
+async function submitRequest() {
+    if (selectedItems.length === 0) {
+        alert('Pilih minimal 1 item untuk di-request!');
+        return;
+    }
+    
+    try {
+        const submitBtn = document.getElementById('submitRequestBtn');
+        const originalText = submitBtn.innerHTML;
+        
+        // Disable button and show loading
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+        
+        const notes = document.getElementById('requestNotes').value.trim();
+        
+        // Insert multiple records for each item
+        const requests = selectedItems.map(item => ({
+            batch_id: batchId,
+            outlet: currentUserOutletRequest,
+            karyawan: currentKaryawanRequest.nama_karyawan,
+            item: item.item,
+            sku: item.sku,
+            qty: item.qty,
+            category: item.category,
+            item_group: item.item_group,
+            unit_price: item.unit_price,
+            total_price: item.total_price,
+            status: 'pending',
+            notes: notes || null,
+            created_at: new Date().toISOString()
+        }));
+        
+        const { data, error } = await supabase
+            .from('request_barang')
+            .insert(requests);
+        
+        if (error) throw error;
+        
+        // Success
+        alert(`✅ Request berhasil dikirim!\n\nTotal ${selectedItems.length} item\nBatch ID: ${batchId}`);
+        
+        // Reset form
+        selectedItems = [];
+        document.getElementById('requestNotes').value = '';
+        batchId = generateBatchId(); // Generate new batch ID
+        
+        // Reload inventory
+        await loadInventoryForRequest();
+        
+        // Update UI
+        updateSelectedItemsSection();
+        
+    } catch (error) {
+        console.error('Error submitting request:', error);
+        alert(`❌ Gagal mengirim request: ${error.message}`);
+    } finally {
+        // Reset button
+        const submitBtn = document.getElementById('submitRequestBtn');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Request';
+        }
+    }
+}
+
+// [17] Fungsi untuk load requests untuk owner
+async function loadRequestsForOwner() {
+    try {
+        // Tampilkan loading
+        const loadingPending = document.getElementById('loadingPending');
+        const pendingGrid = document.getElementById('pendingRequestsGrid');
+        const loadingHistory = document.getElementById('loadingHistory');
+        const historyTable = document.getElementById('historyTable');
+        
+        if (loadingPending) loadingPending.style.display = 'block';
+        if (pendingGrid) pendingGrid.style.display = 'none';
+        if (loadingHistory) loadingHistory.style.display = 'block';
+        if (historyTable) historyTable.style.display = 'none';
+        
+        // Get filter values
+        const outletFilter = document.getElementById('filterOutletOwner')?.value || 'all';
+        const statusFilter = document.getElementById('filterStatusOwner')?.value || 'all';
+        const dateFilter = document.getElementById('filterDateOwner')?.value || 'today';
+        
+        // Build query
+        let query = supabase
+            .from('request_barang')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        // Apply filters
+        if (outletFilter !== 'all') {
+            query = query.eq('outlet', outletFilter);
+        }
+        
+        if (statusFilter !== 'all') {
+            query = query.eq('status', statusFilter);
+        }
+        
+        if (dateFilter !== 'all') {
+            const today = new Date();
+            let startDate = new Date();
+            
+            if (dateFilter === 'today') {
+                startDate.setHours(0, 0, 0, 0);
+            } else if (dateFilter === 'week') {
+                startDate.setDate(today.getDate() - 7);
+            } else if (dateFilter === 'month') {
+                startDate.setMonth(today.getMonth() - 1);
+            }
+            
+            query = query.gte('created_at', startDate.toISOString());
+        }
+        
+        const { data: requests, error } = await query;
+        
+        if (error) throw error;
+        
+        // Group requests by batch_id for pending section
+        const groupedRequests = groupRequestsByBatch(requests || []);
+        
+        // Display data
+        displayPendingRequests(groupedRequests);
+        displayRequestHistory(requests || []);
+        
+        // Load outlet dropdown options
+        await loadOutletDropdownForOwner(requests || []);
+        
+    } catch (error) {
+        console.error('Error loading requests:', error);
+        alert(`Gagal memuat data request: ${error.message}`);
+    } finally {
+        // Hide loading
+        const loadingPending = document.getElementById('loadingPending');
+        const pendingGrid = document.getElementById('pendingRequestsGrid');
+        const loadingHistory = document.getElementById('loadingHistory');
+        const historyTable = document.getElementById('historyTable');
+        
+        if (loadingPending) loadingPending.style.display = 'none';
+        if (pendingGrid) pendingGrid.style.display = 'block';
+        if (loadingHistory) loadingHistory.style.display = 'none';
+        if (historyTable) historyTable.style.display = 'table';
+    }
+}
+
+// [18] Group requests by batch_id
+function groupRequestsByBatch(requests) {
+    const grouped = {};
+    
+    requests.forEach(request => {
+        if (!request.batch_id) return;
+        
+        if (!grouped[request.batch_id]) {
+            grouped[request.batch_id] = {
+                batch_id: request.batch_id,
+                outlet: request.outlet,
+                karyawan: request.karyawan,
+                created_at: request.created_at,
+                status: request.status,
+                notes: request.notes,
+                items: [],
+                total_items: 0,
+                total_qty: 0,
+                total_amount: 0
+            };
+        }
+        
+        grouped[request.batch_id].items.push(request);
+        grouped[request.batch_id].total_items++;
+        grouped[request.batch_id].total_qty += (request.qty || 0);
+        grouped[request.batch_id].total_amount += (request.total_price || 0);
+    });
+    
+    return Object.values(grouped);
+}
+
+// [19] Display pending requests for owner
+function displayPendingRequests(groupedRequests) {
+    const pendingGrid = document.getElementById('pendingRequestsGrid');
+    const pendingCountEl = document.getElementById('pendingCount');
+    
+    if (!pendingGrid) return;
+    
+    // Filter hanya yang status pending
+    const pendingRequests = groupedRequests.filter(group => group.status === 'pending');
+    
+    // Update count
+    if (pendingCountEl) {
+        pendingCountEl.textContent = `${pendingRequests.length} requests pending`;
+    }
+    
+    if (pendingRequests.length === 0) {
+        pendingGrid.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-check-circle"></i>
+                <h4>Tidak ada request pending</h4>
+                <p>Semua request sudah diproses</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    
+    pendingRequests.forEach(group => {
+        const date = new Date(group.created_at);
+        const formattedDate = date.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        html += `
+            <div class="request-card" data-batch-id="${group.batch_id}">
+                <div class="request-card-header">
+                    <div class="request-id">
+                        <i class="fas fa-hashtag"></i>
+                        <span>Batch: ${group.batch_id.substring(0, 8)}...</span>
+                    </div>
+                    <div class="request-date">
+                        <i class="far fa-clock"></i>
+                        <span>${formattedDate}</span>
+                    </div>
+                </div>
+                
+                <div class="request-card-body">
+                    <div class="request-info">
+                        <div class="info-item">
+                            <i class="fas fa-store"></i>
+                            <span>${group.outlet || '-'}</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-user"></i>
+                            <span>${group.karyawan || '-'}</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-box"></i>
+                            <span>${group.total_items} items</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-calculator"></i>
+                            <span>Total: ${formatRupiah(group.total_amount)}</span>
+                        </div>
+                    </div>
+                    
+                    ${group.notes ? `
+                    <div class="request-notes">
+                        <i class="fas fa-sticky-note"></i>
+                        <span>${group.notes}</span>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="request-items">
+                        <h5>Items Requested:</h5>
+                        <table class="items-table">
+                            <thead>
+                                <tr>
+                                    <th width="30px"></th>
+                                    <th>Item</th>
+                                    <th width="80px">Qty</th>
+                                    <th width="120px">Harga</th>
+                                    <th width="120px">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${group.items.map(item => `
+                                    <tr data-item-id="${item.id}">
+                                        <td>
+                                            <input type="checkbox" class="approve-checkbox" 
+                                                data-item-id="${item.id}"
+                                                data-batch-id="${group.batch_id}">
+                                        </td>
+                                        <td>
+                                            <div class="item-name">${item.item}</div>
+                                            <div class="item-sku">SKU: ${item.sku}</div>
+                                        </td>
+                                        <td>${item.qty} pcs</td>
+                                        <td>${formatRupiah(item.unit_price)}</td>
+                                        <td>${formatRupiah(item.total_price)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="request-card-footer">
+                    <button class="btn-reject" onclick="rejectRequest('${group.batch_id}')">
+                        <i class="fas fa-times"></i> Reject All
+                    </button>
+                    <button class="btn-approve" onclick="approveSelectedItems('${group.batch_id}')">
+                        <i class="fas fa-check"></i> Approve Selected
+                    </button>
+                    <button class="btn-approve-all" onclick="approveAllItems('${group.batch_id}')">
+                        <i class="fas fa-check-double"></i> Approve All
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    pendingGrid.innerHTML = html;
+    
+    // Attach event listeners to checkboxes
+    attachApproveCheckboxListeners();
+}
+
+// [20] Display request history
+function displayRequestHistory(requests) {
+    const tbody = document.getElementById('historyBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    if (!requests || requests.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="empty-message">
+                    <i class="fas fa-history"></i>
+                    Tidak ada history request
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // Limit to 50 records untuk performance
+    const displayRequests = requests.slice(0, 50);
+    
+    displayRequests.forEach(request => {
+        const createdDate = new Date(request.created_at);
+        const approvedDate = request.approved_at ? new Date(request.approved_at) : null;
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${createdDate.toLocaleDateString('id-ID')}<br>
+                <small>${createdDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>
+            </td>
+            <td><code>${request.batch_id ? request.batch_id.substring(0, 8) + '...' : '-'}</code></td>
+            <td>${request.outlet || '-'}</td>
+            <td>${request.karyawan || '-'}</td>
+            <td>
+                <div class="item-name">${request.item}</div>
+                <div class="item-sku"><small>SKU: ${request.sku}</small></div>
+            </td>
+            <td>${request.qty} pcs</td>
+            <td>
+                <span class="status-pill ${getRequestStatusClass(request.status)}">
+                    ${request.status}
+                </span>
+            </td>
+            <td>
+                ${request.approved_by || '-'}
+                ${approvedDate ? `<br><small>${approvedDate.toLocaleDateString('id-ID')}</small>` : ''}
+            </td>
+            <td>${request.notes || '-'}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// [21] Load outlet dropdown for owner
+async function loadOutletDropdownForOwner(requests) {
+    const select = document.getElementById('filterOutletOwner');
+    if (!select) return;
+    
+    // Get unique outlets from requests
+    const outlets = [...new Set(requests.map(r => r.outlet).filter(Boolean))];
+    
+    select.innerHTML = `
+        <option value="all">Semua Outlet</option>
+        ${outlets.map(outlet => `<option value="${outlet}">${outlet}</option>`).join('')}
+    `;
+}
+
+// [22] Fungsi untuk approve selected items
+async function approveSelectedItems(batchId) {
+    try {
+        // Get all checked items for this batch
+        const checkboxes = document.querySelectorAll(`
+            .request-card[data-batch-id="${batchId}"] 
+            .approve-checkbox:checked
+        `);
+        
+        if (checkboxes.length === 0) {
+            alert('Pilih minimal 1 item untuk di-approve!');
+            return;
+        }
+        
+        const itemIds = Array.from(checkboxes).map(cb => cb.getAttribute('data-item-id'));
+        const approveAll = confirm(`Approve ${itemIds.length} item yang dipilih?\n\nItem yang tidak dipilih akan tetap status pending.`);
+        
+        if (!approveAll) return;
+        
+        // Update status in database
+        const { error } = await supabase
+            .from('request_barang')
+            .update({ 
+                status: 'approved',
+                approved_at: new Date().toISOString(),
+                approved_by: currentKaryawanRequest.nama_karyawan
+            })
+            .in('id', itemIds);
+        
+        if (error) throw error;
+        
+        // Check if all items in batch are approved
+        await checkBatchCompleteStatus(batchId);
+        
+        // Reload requests
+        await loadRequestsForOwner();
+        
+        alert(`✅ ${itemIds.length} item berhasil di-approve!`);
+        
+    } catch (error) {
+        console.error('Error approving items:', error);
+        alert(`❌ Gagal approve items: ${error.message}`);
+    }
+}
+
+// [23] Fungsi untuk approve all items
+async function approveAllItems(batchId) {
+    try {
+        const approveAll = confirm('Approve semua item dalam batch ini?');
+        
+        if (!approveAll) return;
+        
+        // Update all items in batch
+        const { error } = await supabase
+            .from('request_barang')
+            .update({ 
+                status: 'approved',
+                approved_at: new Date().toISOString(),
+                approved_by: currentKaryawanRequest.nama_karyawan
+            })
+            .eq('batch_id', batchId)
+            .eq('status', 'pending');
+        
+        if (error) throw error;
+        
+        // Reload requests
+        await loadRequestsForOwner();
+        
+        alert('✅ Semua item dalam batch berhasil di-approve!');
+        
+    } catch (error) {
+        console.error('Error approving all items:', error);
+        alert(`❌ Gagal approve semua items: ${error.message}`);
+    }
+}
+
+// [24] Fungsi untuk reject request
+async function rejectRequest(batchId) {
+    try {
+        const rejectAll = confirm('Tolak semua item dalam batch ini?\n\nSemua item akan berstatus rejected.');
+        
+        if (!rejectAll) return;
+        
+        // Update all items in batch
+        const { error } = await supabase
+            .from('request_barang')
+            .update({ 
+                status: 'rejected',
+                approved_at: new Date().toISOString(),
+                approved_by: currentKaryawanRequest.nama_karyawan
+            })
+            .eq('batch_id', batchId)
+            .eq('status', 'pending');
+        
+        if (error) throw error;
+        
+        // Reload requests
+        await loadRequestsForOwner();
+        
+        alert('❌ Batch request telah ditolak!');
+        
+    } catch (error) {
+        console.error('Error rejecting request:', error);
+        alert(`❌ Gagal reject request: ${error.message}`);
+    }
+}
+
+// [25] Check if batch is partially or fully approved
+async function checkBatchCompleteStatus(batchId) {
+    try {
+        // Get remaining pending items in batch
+        const { data: pendingItems, error } = await supabase
+            .from('request_barang')
+            .select('id')
+            .eq('batch_id', batchId)
+            .eq('status', 'pending');
+        
+        if (error) throw error;
+        
+        // If there are still pending items, update batch to partially_approved
+        if (pendingItems && pendingItems.length > 0) {
+            await supabase
+                .from('request_barang')
+                .update({ 
+                    status: 'partially_approved'
+                })
+                .eq('batch_id', batchId)
+                .eq('status', 'pending');
+        }
+        
+    } catch (error) {
+        console.error('Error checking batch status:', error);
+    }
+}
+
+// [26] Attach checkbox event listeners
+function attachApproveCheckboxListeners() {
+    document.querySelectorAll('.approve-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const row = this.closest('tr');
+            if (row) {
+                row.classList.toggle('selected', this.checked);
+            }
+        });
+    });
+}
+
+// [27] Global functions untuk onclick events
+window.updateSelectedItemQty = function(sku, newQty) {
+    if (newQty < 1) newQty = 1;
+    updateItemQuantity(sku, newQty);
+};
+
+window.removeSelectedItem = function(sku) {
+    removeItemFromRequest(sku);
+};
+
+window.approveSelectedItems = approveSelectedItems;
+window.approveAllItems = approveAllItems;
+window.rejectRequest = rejectRequest;
+
+// [28] Helper functions
+function generateBatchId() {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 8);
+    return `REQ-${timestamp}-${random}`.toUpperCase();
+}
+
+function getStockClass(currentStock, minStock) {
+    if (!minStock) minStock = 10;
+    if (currentStock <= 0) return 'out-of-stock';
+    if (currentStock <= minStock) return 'low-stock';
+    if (currentStock <= minStock * 2) return 'medium-stock';
+    return 'good-stock';
+}
+
+function getRequestStatusClass(status) {
+    switch(status) {
+        case 'approved': return 'status-approved';
+        case 'pending': return 'status-pending';
+        case 'partially_approved': return 'status-partial';
+        case 'rejected': return 'status-rejected';
+        default: return 'status-unknown';
+    }
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function toggleSelectAllItems() {
+    const selectAll = document.getElementById('selectAllItems');
+    const checkboxes = document.querySelectorAll('.item-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+        const sku = checkbox.getAttribute('data-sku');
+        const item = inventoryData.find(i => i.sku === sku);
+        
+        if (selectAll.checked) {
+            addItemToRequest(item);
+        } else {
+            removeItemFromRequest(sku);
+        }
+        
+        // Update row styling
+        const row = checkbox.closest('tr');
+        if (row) {
+            row.classList.toggle('selected', selectAll.checked);
+        }
+    });
+}
+
+function clearAllSelectedItems() {
+    const confirmClear = confirm('Hapus semua item yang dipilih?');
+    if (!confirmClear) return;
+    
+    selectedItems = [];
+    updateSelectedItemsSection();
+    
+    // Uncheck all checkboxes
+    document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.inventory-table tr').forEach(row => row.classList.remove('selected'));
+    document.getElementById('selectAllItems').checked = false;
+}
+
+// ========== END OF REQUEST IMPLEMENTATION ==========
 // ========== END OF FILE ==========
