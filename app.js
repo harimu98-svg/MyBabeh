@@ -9397,83 +9397,101 @@ function displayRequestHistory(requests) {
 
 // [13] Load data untuk OWNER
 async function loadOwnerStokData() {
+  console.log('=== LOAD OWNER STOK DATA ===');
+  
+  try {
+    // 1. DAPATKAN FILTER DARI UI
+    const outletSelect = document.getElementById('filterOutletStok');
+    const statusSelect = document.getElementById('filterStatusStok');
+    const dateSelect = document.getElementById('filterDateStok');
+    
+    const outletFilter = outletSelect ? outletSelect.value : 'all';
+    const statusFilter = statusSelect ? statusSelect.value : 'pending';
+    const dateFilter = dateSelect ? dateSelect.value : 'today';
+    
+    console.log('Active Filters:', { outlet: outletFilter, status: statusFilter, date: dateFilter });
+    
+    // 2. LOAD OUTLET DROPDOWN (SIMPLE VERSION)
     try {
-        // Get filter values
-        const outletFilter = selectedOutletFilter || 'all';
-        const statusFilter = document.getElementById('filterStatusStok')?.value || 'pending';
-        const dateFilter = document.getElementById('filterDateStok')?.value || 'today';
+      if (outletSelect) {
+        const { data: outlets } = await supabase
+          .from('karyawan')
+          .select('outlet')
+          .not('outlet', 'is', null);
         
-        // Load outlet dropdown
-        await loadOutletDropdownStok();
-        
-        // Calculate date range
-        let dateStart = null;
-        let dateEnd = null;
-        
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        if (dateFilter === 'today') {
-            dateStart = today.toISOString().split('T')[0];
-            dateEnd = dateStart;
-        } else if (dateFilter === 'week') {
-            dateEnd = today.toISOString().split('T')[0];
-            const weekAgo = new Date(today);
-            weekAgo.setDate(weekAgo.getDate() - 7);
-            dateStart = weekAgo.toISOString().split('T')[0];
-        } else if (dateFilter === 'month') {
-            dateEnd = today.toISOString().split('T')[0];
-            const monthAgo = new Date(today);
-            monthAgo.setMonth(monthAgo.getMonth() - 1);
-            dateStart = monthAgo.toISOString().split('T')[0];
+        if (outlets && outlets.length > 0) {
+          const uniqueOutlets = [...new Set(outlets.map(o => o.outlet))].filter(Boolean);
+          let options = '<option value="all">Semua Outlet</option>';
+          uniqueOutlets.forEach(outlet => {
+            const selected = outlet === outletFilter ? 'selected' : '';
+            options += `<option value="${outlet}" ${selected}>${outlet}</option>`;
+          });
+          outletSelect.innerHTML = options;
+          outletSelect.value = outletFilter;
         }
-        
-        // Build query untuk pending requests
-        let requestQuery = supabase
-            .from('stok_update')
-            .select('*')
-            .order('created_at', { ascending: false });
-        
-        // Apply filters
-        if (outletFilter !== 'all') {
-            requestQuery = requestQuery.eq('outlet', outletFilter);
-        }
-        
-        if (statusFilter !== 'all') {
-            requestQuery = requestQuery.eq('approval_status', statusFilter);
-        } 
-        // Date filter
-        if (dateStart && dateEnd) {
-            requestQuery = requestQuery.gte('tanggal', dateStart).lte('tanggal', dateEnd);
-        }
-        
-        const { data: requests, error: requestError } = await requestQuery;
-        
-        if (requestError) throw requestError;
-        
-        // Load stats
-        await loadOwnerStats(outletFilter, dateStart, dateEnd);
-        
-        // Load recent adjustments
-        const { data: adjustments, error: adjustError } = await supabase
-            .from('stok_update')
-            .select('*')
-            .eq('approval_status', 'approved')
-            .eq('stok_type', 'keluar')
-            .eq('outlet', currentOutletStok)
-            .order('created_at', { ascending: false })
-            .limit(5);
-        
-        if (adjustError) throw adjustError;
-        
-        // Update UI
-        displayPendingRequests(requests || []);
-        displayRecentAdjustments(adjustments || []);
-        
-    } catch (error) {
-        console.error('Error loading owner stok data:', error);
-        showError('Gagal memuat data requests');
+      }
+    } catch (dropdownErr) {
+      console.warn('Outlet dropdown error:', dropdownErr.message);
     }
+    
+    // 3. QUERY UTAMA UNTUK DATA
+    let requestQuery = supabase
+      .from('stok_update')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    // Apply filters
+    if (outletFilter !== 'all') {
+      requestQuery = requestQuery.eq('outlet', outletFilter);
+    }
+    
+    if (statusFilter !== 'all') {
+      requestQuery = requestQuery.eq('approval_status', statusFilter);
+    }
+    // Jika statusFilter = 'all', TIDAK ADA FILTER approval_status
+    
+    // Date filter (sementara non-aktif karena bug)
+    // if (dateFilter === 'today') { ... }
+    
+    const { data: requests, error: requestError } = await requestQuery;
+    
+    if (requestError) {
+      console.error('Query error:', requestError);
+      throw requestError;
+    }
+    
+    console.log(`Query success: ${requests?.length || 0} records`);
+    
+    // 4. LOAD STATS (DENGAN PERBAIKAN ERROR)
+    try {
+      await loadOwnerStats(outletFilter, null, null); // Non-aktifkan date filter dulu
+    } catch (statsError) {
+      console.warn('Stats loading skipped:', statsError.message);
+      // Tetap lanjut meski stats error
+    }
+    
+    // 5. LOAD RECENT ADJUSTMENTS
+    try {
+      const { data: adjustments } = await supabase
+        .from('stok_update')
+        .select('*')
+        .eq('approval_status', 'approved')
+        .eq('outlet', currentOutletStok || outletFilter !== 'all' ? outletFilter : 'Rempoa')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      displayRecentAdjustments(adjustments || []);
+    } catch (adjustError) {
+      console.warn('Adjustments loading skipped:', adjustError.message);
+    }
+    
+    // 6. TAMPILKAN DATA
+    displayPendingRequests(requests || []);
+    
+  } catch (error) {
+    console.error('Error in loadOwnerStokData:', error);
+    showError('Gagal memuat data requests');
+  }
 }
 
 // [14] Load owner statistics
