@@ -9396,7 +9396,7 @@ function displayRequestHistory(requests) {
     }).join('');
 }
 
-// [13] Load data untuk OWNER
+// [13] Load data untuk OWNER - PERBAIKI BAGIAN ADJUSTMENTS
 async function loadOwnerStokData() {
   console.log('=== LOAD OWNER STOK DATA ===');
   
@@ -9471,32 +9471,47 @@ async function loadOwnerStokData() {
       // Tetap lanjut meski stats error
     }
     
-   // 5. LOAD RECENT ADJUSTMENTS
-try {
-  // Determine which outlet to show
-  const adjOutlet = outletFilter !== 'all' ? outletFilter : (currentOutletStok || 'Rempoa');
-  
-  let adjQuery = supabase
-    .from('stok_update')
-    .select('*')
-    .eq('approval_status', 'approved')
-    .order('created_at', { ascending: false })
-    .limit(5);
-  
-  // Filter by selected outlet
-  if (adjOutlet && adjOutlet !== 'all') {
-    adjQuery = adjQuery.eq('outlet', adjOutlet);
-  }
-  
-  // Only show adjustments (not regular requests)
-  adjQuery = adjQuery.not('requested_by', 'is', null);
-  
-  const { data: adjustments } = await adjQuery;
-  
-  displayRecentAdjustments(adjustments || []);
-} catch (adjustError) {
-  console.warn('Adjustments loading skipped:', adjustError.message);
-}
+    // 5. LOAD RECENT ADJUSTMENTS - PERBAIKAN UTAMA DI SINI
+    try {
+      // Determine which outlet to show
+      const adjOutlet = outletFilter !== 'all' ? outletFilter : (currentOutletStok || 'Rempoa');
+      
+      let adjQuery = supabase
+        .from('stok_update')
+        .select('*')
+        .eq('approval_status', 'approved')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      // Filter by selected outlet
+      if (adjOutlet && adjOutlet !== 'all') {
+        adjQuery = adjQuery.eq('outlet', adjOutlet);
+      }
+      
+      // PERBAIKAN: Gunakan updated_by, bukan requested_by
+      // Hapus filter ini jika tidak ada kolom tersebut
+      // adjQuery = adjQuery.not('requested_by', 'is', null);
+      
+      // Sebagai ganti, filter hanya adjustment yang dilakukan oleh owner
+      // Atau tampilkan semua yang approved
+      adjQuery = adjQuery.not('updated_by', 'is', null);
+      
+      const { data: adjustments, error: adjError } = await adjQuery;
+      
+      if (adjError) {
+        console.error('Error loading adjustments:', adjError);
+        throw adjError;
+      }
+      
+      console.log(`Adjustments loaded: ${adjustments?.length || 0}`);
+      displayRecentAdjustments(adjustments || []);
+      
+    } catch (adjustError) {
+      console.warn('Adjustments loading skipped:', adjustError.message);
+      // Tampilkan pesan kosong jika error
+      displayRecentAdjustments([]);
+    }
+    
     // 6. TAMPILKAN DATA
     displayPendingRequests(requests || []);
     
@@ -9505,7 +9520,6 @@ try {
     showError('Gagal memuat data requests');
   }
 }
-
 // [14] Load owner statistics
 async function loadOwnerStats(outletFilter, dateStart, dateEnd) {
     try {
@@ -9954,40 +9968,62 @@ async function showRequestDetail(requestId) {
     }
 }
 
-// [21] Display recent adjustments untuk OWNER
+// [21] Display recent adjustments untuk OWNER - FIXED
 function displayRecentAdjustments(adjustments) {
     const recentEl = document.getElementById('recentAdjustments');
-    if (!recentEl) return;
+    if (!recentEl) {
+        console.log('Recent adjustments element not found');
+        return;
+    }
     
     if (!adjustments || adjustments.length === 0) {
         recentEl.innerHTML = `
             <div class="no-data">
+                <i class="fas fa-history"></i>
                 <p>Belum ada adjustment</p>
             </div>
         `;
+        console.log('No adjustments to display');
         return;
     }
+    
+    console.log(`Displaying ${adjustments.length} adjustments`);
     
     recentEl.innerHTML = adjustments.map(adj => {
         const typeClass = adj.stok_type === 'masuk' ? 'type-in' : 'type-out';
         const typeIcon = adj.stok_type === 'masuk' ? 'fa-arrow-down' : 'fa-arrow-up';
         
+        // Format date
+        const date = formatDateStok(adj.tanggal) || adj.tanggal;
+        
         return `
             <div class="adjustment-item">
                 <div class="adjustment-header">
                     <div class="adjustment-date">
-                        ${formatDateStok(adj.tanggal)}
+                        <i class="fas fa-calendar"></i>
+                        ${date}
                     </div>
                     <div class="adjustment-type ${typeClass}">
                         <i class="fas ${typeIcon}"></i>
                     </div>
                 </div>
                 <div class="adjustment-body">
-                    <div class="adjustment-product">${adj.nama_produk}</div>
+                    <div class="adjustment-product">
+                        <strong>${adj.nama_produk}</strong>
+                        <span class="adjustment-outlet">${adj.outlet}</span>
+                    </div>
                     <div class="adjustment-qty ${typeClass}">
                         ${adj.stok_type === 'masuk' ? '+' : '-'}${Math.abs(adj.qty_change)} unit
                     </div>
-                    <div class="adjustment-notes">${adj.notes || '-'}</div>
+                    <div class="adjustment-info">
+                        <span class="adjustment-by">Oleh: ${adj.updated_by || '-'}</span>
+                        ${adj.notes ? `
+                        <div class="adjustment-notes">
+                            <i class="fas fa-sticky-note"></i>
+                            ${adj.notes}
+                        </div>
+                        ` : ''}
+                    </div>
                 </div>
             </div>
         `;
