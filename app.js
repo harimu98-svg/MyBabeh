@@ -10636,7 +10636,6 @@ let currentUserOutletRequest = null;
 let isOwnerRequest = false;
 let selectedItems = []; // Untuk menyimpan items yang akan di-request
 let batchId = null; // ID batch untuk grouping multi-item
-let inventoryData = []; // Cache data inventory
 
 // [1] Fungsi untuk tampilkan halaman request
 async function showRequestPage() {
@@ -10685,7 +10684,8 @@ async function showRequestPage() {
         if (isOwnerRequest) {
             await loadRequestsForOwner();
         } else {
-            await loadInventoryForRequest();
+            // Untuk kasir: load filter dan history
+            await loadKasirInitialData();
         }
         
     } catch (error) {
@@ -10719,8 +10719,8 @@ function createRequestPage() {
             <h2><i class="fas fa-comment-dots"></i> Request Barang</h2>
             <div class="header-actions">
                 ${isKasir ? `
-                    <button class="submit-btn" id="submitRequestBtn" disabled>
-                        <i class="fas fa-paper-plane"></i> Submit Request
+                    <button class="refresh-btn" id="refreshRequestsKasir">
+                        <i class="fas fa-sync-alt"></i> Refresh
                     </button>
                 ` : `
                     <button class="refresh-btn" id="refreshRequests">
@@ -10764,26 +10764,24 @@ function createRequestPage() {
         <div class="kasir-request-section">
             <!-- Search & Filter -->
             <div class="search-filter-section">
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="searchInventory" placeholder="Cari item (nama, kategori, SKU)...">
-                    <button class="clear-search" id="clearSearchBtn" title="Clear search">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
                 <div class="filter-row">
-                    <div class="filter-group">
-                        <label for="filterCategory"><i class="fas fa-tags"></i> Kategori:</label>
-                        <select id="filterCategory" class="category-select">
-                            <option value="">Semua Kategori</option>
-                        </select>
-                    </div>
+                    <!-- GROUP Filter -->
                     <div class="filter-group">
                         <label for="filterGroup"><i class="fas fa-layer-group"></i> Group:</label>
                         <select id="filterGroup" class="group-select">
                             <option value="">Semua Group</option>
                         </select>
                     </div>
+                    
+                    <!-- CATEGORY Filter (akan di-update berdasarkan group) -->
+                    <div class="filter-group">
+                        <label for="filterCategory"><i class="fas fa-tags"></i> Kategori:</label>
+                        <select id="filterCategory" class="category-select" disabled>
+                            <option value="">Pilih Group dulu</option>
+                        </select>
+                    </div>
+                    
+                    <!-- STATUS Filter -->
                     <div class="filter-group">
                         <label for="filterAvailability"><i class="fas fa-check-circle"></i> Status:</label>
                         <select id="filterAvailability" class="availability-select">
@@ -10793,40 +10791,21 @@ function createRequestPage() {
                         </select>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Inventory List -->
-            <div class="inventory-list-section">
-                <div class="section-header">
-                    <h3><i class="fas fa-boxes"></i> Daftar Inventory - ${currentUserOutletRequest}</h3>
-                    <div class="inventory-stats">
-                        <span id="inventoryCount">0 items</span>
-                    </div>
-                </div>
-                <div class="inventory-table-container">
-                    <div class="loading" id="loadingInventory">Memuat data inventory...</div>
-                    <table class="inventory-table" id="inventoryTable" style="display: none;">
-                        <thead>
-                            <tr>
-                                <th width="50px"><input type="checkbox" id="selectAllItems"></th>
-                                <th width="250px">Item</th>
-                                <th width="120px">Kategori</th>
-                                <th width="120px">Group</th>
-                                <th width="100px">SKU</th>
-                                <th width="100px">Stok</th>
-                                <th width="120px">Harga Satuan</th>
-                                <th width="100px">Qty</th>
-                                <th width="120px">Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventoryBody">
-                            <!-- Data inventory akan diisi di sini -->
-                        </tbody>
-                    </table>
+                
+                <!-- Search Box -->
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInventory" placeholder="Ketik nama item atau SKU... (min. 2 karakter)">
+                    <button class="clear-search" id="clearSearchBtn" title="Clear search">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <button class="btn-search-action" id="openSearchPopup">
+                        <i class="fas fa-list"></i> Tampilkan Hasil
+                    </button>
                 </div>
             </div>
             
-            <!-- Selected Items Summary -->
+            <!-- Selected Items Section -->
             <div class="selected-items-section" id="selectedItemsSection" style="display: none;">
                 <div class="section-header">
                     <h3><i class="fas fa-shopping-cart"></i> Items yang akan di-Request <span class="badge" id="selectedCount">0</span></h3>
@@ -10834,6 +10813,8 @@ function createRequestPage() {
                         <i class="fas fa-trash"></i> Hapus Semua
                     </button>
                 </div>
+                
+                <!-- Table Selected Items -->
                 <div class="selected-items-table-container">
                     <table class="selected-items-table" id="selectedItemsTable">
                         <thead>
@@ -10858,9 +10839,74 @@ function createRequestPage() {
                         </tfoot>
                     </table>
                 </div>
-                <div class="selected-notes">
-                    <label for="requestNotes"><i class="fas fa-sticky-note"></i> Catatan (opsional):</label>
-                    <textarea id="requestNotes" placeholder="Tambahkan catatan untuk request ini..." rows="2"></textarea>
+                
+                <!-- Notes & Submit Button -->
+                <div class="selected-notes-submit">
+                    <div class="notes-section">
+                        <label for="requestNotes"><i class="fas fa-sticky-note"></i> Catatan (opsional):</label>
+                        <textarea id="requestNotes" placeholder="Tambahkan catatan untuk request ini..." rows="2"></textarea>
+                    </div>
+                    
+                    <div class="submit-section">
+                        <button class="submit-btn" id="submitRequestBtn" disabled>
+                            <i class="fas fa-paper-plane"></i> Submit Request
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Request History untuk Kasir -->
+            <div class="kasir-history-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-history"></i> Request History</h3>
+                </div>
+                <div class="history-table-container">
+                    <div class="loading" id="loadingHistoryKasir">Memuat history request...</div>
+                    <table class="history-table" id="historyTableKasir" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th width="120px">Tanggal</th>
+                                <th width="100px">Batch ID</th>
+                                <th width="200px">Item</th>
+                                <th width="80px">Qty</th>
+                                <th width="100px">Status</th>
+                                <th width="150px">Disetujui Oleh</th>
+                                <th width="120px">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyBodyKasir">
+                            <!-- History akan diisi di sini -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Search Results Modal -->
+            <div class="modal-overlay" id="searchModal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-search"></i> Hasil Pencarian</h3>
+                        <button class="modal-close" id="closeSearchModal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="search-results-container">
+                            <div class="loading" id="loadingSearchResults">Mencari item...</div>
+                            <div class="search-results-grid" id="searchResultsGrid" style="display: none;">
+                                <!-- Hasil pencarian akan ditampilkan di sini -->
+                            </div>
+                            <div class="no-results" id="noSearchResults" style="display: none;">
+                                <i class="fas fa-search"></i>
+                                <p>Tidak ada item ditemukan</p>
+                                <p class="hint">Coba dengan kata kunci lain atau filter yang berbeda</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary" id="cancelSearchModal">Tutup</button>
+                        <button class="btn-primary" id="confirmSelectedItems">
+                            <i class="fas fa-check"></i> Tambahkan Item Terpilih
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -10945,7 +10991,7 @@ function createRequestPage() {
         
         <!-- Footer -->
         <div class="request-footer">
-            <p><i class="fas fa-info-circle"></i> ${isKasir ? 'Pilih item dari inventory dan submit request' : 'Review dan approve request dari karyawan'}</p>
+            <p><i class="fas fa-info-circle"></i> ${isKasir ? 'Search item dan tambahkan ke request' : 'Review dan approve request dari karyawan'}</p>
         </div>
     `;
     
@@ -10980,28 +11026,82 @@ function setupKasirRequestEvents() {
     const submitBtn = document.getElementById('submitRequestBtn');
     submitBtn.addEventListener('click', submitRequest);
     
+    // Tombol refresh
+    const refreshBtn = document.getElementById('refreshRequestsKasir');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', async () => {
+            await loadKasirInitialData();
+        });
+    }
+    
+    // Group filter - Ketika berubah, update category filter
+    const groupFilter = document.getElementById('filterGroup');
+    groupFilter.addEventListener('change', async function() {
+        const categoryFilter = document.getElementById('filterCategory');
+        
+        if (this.value) {
+            // Enable category filter dan load options berdasarkan group
+            categoryFilter.disabled = false;
+            await loadCategoryOptionsByGroup(this.value);
+        } else {
+            // Disable category filter
+            categoryFilter.disabled = true;
+            categoryFilter.innerHTML = '<option value="">Pilih Group dulu</option>';
+        }
+    });
+    
+    // Category filter
+    document.getElementById('filterCategory').addEventListener('change', () => {});
+    
+    // Status filter
+    document.getElementById('filterAvailability').addEventListener('change', () => {});
+    
     // Search input
     const searchInput = document.getElementById('searchInventory');
-    searchInput.addEventListener('input', debounce(filterInventory, 300));
+    searchInput.addEventListener('keyup', debounce(handleSearchInput, 500));
     
     // Clear search button
     const clearSearchBtn = document.getElementById('clearSearchBtn');
     if (clearSearchBtn) {
         clearSearchBtn.addEventListener('click', () => {
             searchInput.value = '';
-            filterInventory();
+            document.getElementById('searchModal').style.display = 'none';
         });
     }
     
-    // Filter dropdowns
-    document.getElementById('filterCategory').addEventListener('change', filterInventory);
-    document.getElementById('filterGroup').addEventListener('change', filterInventory);
-    document.getElementById('filterAvailability').addEventListener('change', filterInventory);
+    // Open search modal button
+    const openSearchBtn = document.getElementById('openSearchPopup');
+    if (openSearchBtn) {
+        openSearchBtn.addEventListener('click', async () => {
+            const searchTerm = searchInput.value.trim();
+            if (searchTerm.length < 2) {
+                alert('Masukkan minimal 2 karakter untuk pencarian');
+                return;
+            }
+            await performSearch();
+        });
+    }
     
-    // Select all checkbox
-    const selectAllCheckbox = document.getElementById('selectAllItems');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', toggleSelectAllItems);
+    // Modal close button
+    const closeModalBtn = document.getElementById('closeSearchModal');
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', () => {
+            document.getElementById('searchModal').style.display = 'none';
+        });
+    }
+    
+    // Modal cancel button
+    const cancelModalBtn = document.getElementById('cancelSearchModal');
+    if (cancelModalBtn) {
+        cancelModalBtn.addEventListener('click', () => {
+            document.getElementById('searchModal').style.display = 'none';
+        });
+    }
+    
+    // Confirm selected items button
+    const confirmItemsBtn = document.getElementById('confirmSelectedItems');
+    if (confirmItemsBtn) {
+        confirmItemsBtn.addEventListener('click', addSelectedSearchItems);
     }
     
     // Clear all selected button
@@ -11035,313 +11135,486 @@ function setupOwnerRequestEvents() {
     });
 }
 
-// [6] Fungsi untuk load inventory untuk kasir
-async function loadInventoryForRequest() {
+// [6] Fungsi untuk load initial data kasir
+async function loadKasirInitialData() {
     try {
-        const loadingEl = document.getElementById('loadingInventory');
-        const tableEl = document.getElementById('inventoryTable');
+        // Load filter options
+        await loadFilterOptions();
+        
+        // Load history request
+        await loadKasirHistory();
+        
+    } catch (error) {
+        console.error('Error loading kasir data:', error);
+        alert('Gagal memuat data: ' + error.message);
+    }
+}
+
+// [7] Fungsi untuk load filter options
+async function loadFilterOptions() {
+    const groupSelect = document.getElementById('filterGroup');
+    
+    if (groupSelect) {
+        try {
+            // Load distinct groups dari database
+            const { data: groupsData, error } = await supabase
+                .from('inventory')
+                .select('item_group')
+                .not('item_group', 'is', null)
+                .order('item_group');
+            
+            if (!error && groupsData) {
+                const groups = [...new Set(groupsData.map(item => item.item_group).filter(Boolean))];
+                
+                groupSelect.innerHTML = `
+                    <option value="">Semua Group</option>
+                    ${groups.map(grp => `<option value="${grp}">${grp}</option>`).join('')}
+                `;
+            } else {
+                groupSelect.innerHTML = '<option value="">Error loading groups</option>';
+            }
+        } catch (error) {
+            console.error('Error loading groups:', error);
+            groupSelect.innerHTML = '<option value="">Error loading groups</option>';
+        }
+    }
+}
+
+// [8] Fungsi untuk load kategori berdasarkan group
+async function loadCategoryOptionsByGroup(selectedGroup) {
+    const categoryFilter = document.getElementById('filterCategory');
+    
+    try {
+        // Query distinct categories untuk group tertentu
+        const { data, error } = await supabase
+            .from('inventory')
+            .select('category')
+            .eq('item_group', selectedGroup)
+            .not('category', 'is', null)
+            .order('category');
+        
+        if (error) throw error;
+        
+        // Get unique categories
+        const categories = [...new Set(data.map(item => item.category).filter(Boolean))];
+        
+        categoryFilter.innerHTML = `
+            <option value="">Semua Kategori</option>
+            ${categories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+        `;
+        
+    } catch (error) {
+        console.error('Error loading categories:', error);
+        categoryFilter.innerHTML = '<option value="">Error loading</option>';
+    }
+}
+
+// [9] Fungsi untuk handle search input
+function handleSearchInput() {
+    const searchTerm = document.getElementById('searchInventory').value.trim();
+    const searchBtn = document.getElementById('openSearchPopup');
+    
+    // Enable/disable search button berdasarkan panjang input
+    if (searchBtn) {
+        searchBtn.disabled = searchTerm.length < 2;
+    }
+}
+
+// [10] Fungsi untuk perform search
+async function performSearch() {
+    const searchTerm = document.getElementById('searchInventory').value.trim();
+    const modal = document.getElementById('searchModal');
+    const loading = document.getElementById('loadingSearchResults');
+    const resultsGrid = document.getElementById('searchResultsGrid');
+    const noResults = document.getElementById('noSearchResults');
+    
+    if (!searchTerm || searchTerm.length < 2) {
+        alert('Masukkan minimal 2 karakter untuk pencarian');
+        return;
+    }
+    
+    // Tampilkan modal
+    if (modal) modal.style.display = 'flex';
+    if (loading) loading.style.display = 'block';
+    if (resultsGrid) resultsGrid.style.display = 'none';
+    if (noResults) noResults.style.display = 'none';
+    
+    try {
+        // Build query berdasarkan filters
+        let query = supabase
+            .from('inventory')
+            .select('*')
+            .or(`item.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%`)
+            .eq('status', 'active')
+            .eq('is_available', true);
+        
+        // Apply group filter jika dipilih
+        const groupFilter = document.getElementById('filterGroup').value;
+        if (groupFilter) {
+            query = query.eq('item_group', groupFilter);
+        }
+        
+        // Apply category filter jika dipilih dan enabled
+        const categoryFilter = document.getElementById('filterCategory');
+        if (!categoryFilter.disabled && categoryFilter.value) {
+            query = query.eq('category', categoryFilter.value);
+        }
+        
+        // Apply availability filter
+        const availabilityFilter = document.getElementById('filterAvailability').value;
+        if (availabilityFilter === 'available') {
+            query = query.gt('current_stock', 0);
+        } else if (availabilityFilter === 'low') {
+            query = query.lte('current_stock', 10);
+        }
+        
+        query = query.order('item').limit(50);
+        
+        const { data: results, error } = await query;
+        
+        if (error) throw error;
+        
+        // Tampilkan hasil
+        displaySearchResults(results || []);
+        
+    } catch (error) {
+        console.error('Search error:', error);
+        if (resultsGrid) {
+            resultsGrid.innerHTML = `
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Gagal mencari: ${error.message}
+                </div>
+            `;
+            resultsGrid.style.display = 'block';
+        }
+    } finally {
+        if (loading) loading.style.display = 'none';
+    }
+}
+
+// [11] Fungsi untuk display search results
+function displaySearchResults(items) {
+    const resultsGrid = document.getElementById('searchResultsGrid');
+    const noResults = document.getElementById('noSearchResults');
+    
+    if (!resultsGrid || !noResults) return;
+    
+    if (!items || items.length === 0) {
+        resultsGrid.style.display = 'none';
+        noResults.style.display = 'block';
+        return;
+    }
+    
+    let html = `
+        <div class="results-header">
+            <span class="results-count">${items.length} item ditemukan</span>
+            <button class="btn-select-all" onclick="selectAllSearchItems()">
+                <i class="fas fa-check-square"></i> Pilih Semua
+            </button>
+        </div>
+        <div class="results-list">
+    `;
+    
+    items.forEach((item, index) => {
+        const isSelected = selectedItems.some(sel => sel.sku === item.sku);
+        const selectedQty = isSelected ? selectedItems.find(sel => sel.sku === item.sku).qty : 1;
+        
+        html += `
+            <div class="search-result-item ${isSelected ? 'selected' : ''}" data-item-id="${item.id}" data-sku="${item.sku}">
+                <div class="item-check">
+                    <input type="checkbox" id="search_item_${index}" 
+                        ${isSelected ? 'checked' : ''}
+                        onchange="toggleSearchItemSelection('${item.sku}', this.checked, ${item.unit_price})">
+                </div>
+                <div class="item-info">
+                    <div class="item-name">${item.item}</div>
+                    <div class="item-meta">
+                        <span class="badge category">${item.category}</span>
+                        <span class="badge group">${item.item_group}</span>
+                        <span class="item-sku">SKU: ${item.sku}</span>
+                    </div>
+                    <div class="item-details">
+                        <div class="stock-info">
+                            <i class="fas fa-box"></i> Stok: 
+                            <span class="stock-badge ${getStockClass(item.current_stock)}">
+                                ${item.current_stock} ${item.unit_type || 'pcs'}
+                            </span>
+                        </div>
+                        <div class="price-info">
+                            <i class="fas fa-tag"></i> Harga: 
+                            <span class="price">${formatRupiah(item.unit_price)}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item-qty-control" ${isSelected ? '' : 'style="display: none;"'}>
+                    <label>Qty:</label>
+                    <div class="qty-control">
+                        <button class="qty-btn minus" onclick="adjustSearchItemQty('${item.sku}', -1)" ${selectedQty <= 1 ? 'disabled' : ''}>
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <input type="number" class="qty-input" value="${selectedQty}" min="1" max="${item.current_stock || 99}" 
+                            onchange="updateSearchItemQty('${item.sku}', this.value)">
+                        <button class="qty-btn plus" onclick="adjustSearchItemQty('${item.sku}', 1)">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    resultsGrid.innerHTML = html;
+    resultsGrid.style.display = 'block';
+    noResults.style.display = 'none';
+}
+
+// [12] Fungsi untuk toggle item selection di search modal
+function toggleSearchItemSelection(sku, isChecked, unitPrice) {
+    const itemElement = document.querySelector(`.search-result-item[data-sku="${sku}"]`);
+    const qtyControl = itemElement?.querySelector('.item-qty-control');
+    
+    if (itemElement) {
+        itemElement.classList.toggle('selected', isChecked);
+        if (qtyControl) {
+            qtyControl.style.display = isChecked ? 'flex' : 'none';
+        }
+    }
+}
+
+// [13] Fungsi untuk select all items di search modal
+function selectAllSearchItems() {
+    const checkboxes = document.querySelectorAll('.search-result-item input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        if (!checkbox.checked) {
+            checkbox.checked = true;
+            const sku = checkbox.closest('.search-result-item').getAttribute('data-sku');
+            const itemElement = document.querySelector(`.search-result-item[data-sku="${sku}"]`);
+            const qtyControl = itemElement?.querySelector('.item-qty-control');
+            
+            if (itemElement) {
+                itemElement.classList.add('selected');
+                if (qtyControl) {
+                    qtyControl.style.display = 'flex';
+                }
+            }
+        }
+    });
+}
+
+// [14] Fungsi untuk adjust quantity di search modal
+function adjustSearchItemQty(sku, change) {
+    const input = document.querySelector(`.search-result-item[data-sku="${sku}"] .qty-input`);
+    if (!input) return;
+    
+    let currentQty = parseInt(input.value) || 1;
+    const newQty = Math.max(1, currentQty + change);
+    
+    input.value = newQty;
+    updateSearchItemQty(sku, newQty);
+}
+
+// [15] Fungsi untuk update quantity di search modal
+function updateSearchItemQty(sku, newQty) {
+    const input = document.querySelector(`.search-result-item[data-sku="${sku}"] .qty-input`);
+    if (!input) return;
+    
+    let qty = parseInt(newQty) || 1;
+    if (qty < 1) qty = 1;
+    
+    input.value = qty;
+}
+
+// [16] Fungsi untuk add selected items from search modal
+function addSelectedSearchItems() {
+    const checkboxes = document.querySelectorAll('.search-result-item input[type="checkbox"]:checked');
+    
+    if (checkboxes.length === 0) {
+        alert('Pilih minimal 1 item untuk ditambahkan');
+        return;
+    }
+    
+    checkboxes.forEach(checkbox => {
+        const itemElement = checkbox.closest('.search-result-item');
+        const sku = itemElement.getAttribute('data-sku');
+        const itemName = itemElement.querySelector('.item-name').textContent;
+        const category = itemElement.querySelector('.badge.category').textContent;
+        const qtyInput = itemElement.querySelector('.qty-input');
+        const qty = parseInt(qtyInput?.value) || 1;
+        
+        // Cari item di inventoryData untuk mendapatkan harga
+        const inventoryItem = inventoryData?.find(item => item.sku === sku);
+        const unitPrice = inventoryItem?.unit_price || 0;
+        
+        // Cek apakah item sudah ada di selectedItems
+        const existingIndex = selectedItems.findIndex(item => item.sku === sku);
+        
+        if (existingIndex >= 0) {
+            // Update quantity jika sudah ada
+            selectedItems[existingIndex].qty = qty;
+            selectedItems[existingIndex].total_price = unitPrice * qty;
+        } else {
+            // Tambah item baru
+            selectedItems.push({
+                id: inventoryItem?.id,
+                item: itemName,
+                category: category,
+                item_group: inventoryItem?.item_group || '',
+                sku: sku,
+                qty: qty,
+                unit_price: unitPrice,
+                total_price: unitPrice * qty,
+                unit_type: inventoryItem?.unit_type || 'pcs',
+                current_stock: inventoryItem?.current_stock || 0
+            });
+        }
+    });
+    
+    // Update UI
+    updateSelectedItemsSection();
+    
+    // Tutup modal
+    document.getElementById('searchModal').style.display = 'none';
+    
+    // Beri feedback
+    alert(`${checkboxes.length} item telah ditambahkan ke request`);
+}
+
+// [17] Fungsi untuk load kasir history
+async function loadKasirHistory() {
+    try {
+        const loadingEl = document.getElementById('loadingHistoryKasir');
+        const tableEl = document.getElementById('historyTableKasir');
         
         if (loadingEl) loadingEl.style.display = 'block';
         if (tableEl) tableEl.style.display = 'none';
         
-        // Query inventory berdasarkan outlet karyawan
-        const { data, error } = await supabase
-            .from('inventory')
+        // Query request history untuk karyawan ini
+        const { data: requests, error } = await supabase
+            .from('request_barang')
             .select('*')
-            .eq('outlet', currentUserOutletRequest)
-            .eq('status', 'active')
-            .eq('is_available', true)
-            .order('category')
-            .order('item');
+            .eq('karyawan', currentKaryawanRequest.nama_karyawan)
+            .order('created_at', { ascending: false })
+            .limit(20);
         
         if (error) throw error;
         
-        inventoryData = data || [];
-        
-        // Tampilkan data di tabel
-        displayInventoryData(inventoryData);
-        
-        // Load filter options
-        loadFilterOptions(inventoryData);
+        displayKasirHistory(requests || []);
         
     } catch (error) {
-        console.error('Error loading inventory:', error);
-        const inventoryBody = document.getElementById('inventoryBody');
-        if (inventoryBody) {
-            inventoryBody.innerHTML = `
+        console.error('Error loading kasir history:', error);
+        const tbody = document.getElementById('historyBodyKasir');
+        if (tbody) {
+            tbody.innerHTML = `
                 <tr>
-                    <td colspan="9" class="error-message">
+                    <td colspan="7" class="error-message">
                         <i class="fas fa-exclamation-triangle"></i>
-                        Gagal memuat data inventory: ${error.message}
+                        Gagal memuat history: ${error.message}
                     </td>
                 </tr>
             `;
         }
     } finally {
-        const loadingEl = document.getElementById('loadingInventory');
-        const tableEl = document.getElementById('inventoryTable');
+        const loadingEl = document.getElementById('loadingHistoryKasir');
+        const tableEl = document.getElementById('historyTableKasir');
         
         if (loadingEl) loadingEl.style.display = 'none';
         if (tableEl) tableEl.style.display = 'table';
     }
 }
 
-// [7] Fungsi untuk display inventory data
-function displayInventoryData(items) {
-    const tbody = document.getElementById('inventoryBody');
+// [18] Fungsi untuk display kasir history
+function displayKasirHistory(requests) {
+    const tbody = document.getElementById('historyBodyKasir');
     if (!tbody) return;
     
     tbody.innerHTML = '';
     
-    if (!items || items.length === 0) {
+    if (!requests || requests.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="9" class="empty-message">
-                    <i class="fas fa-box-open"></i>
-                    Tidak ada data inventory untuk outlet ${currentUserOutletRequest}
+                <td colspan="7" class="empty-message">
+                    <i class="fas fa-inbox"></i>
+                    Belum ada request
                 </td>
             </tr>
         `;
         return;
     }
     
-    // Update count
-    const countEl = document.getElementById('inventoryCount');
-    if (countEl) {
-        countEl.textContent = `${items.length} items`;
-    }
+    // Group by batch_id
+    const groupedByBatch = {};
     
-    items.forEach(item => {
-        const isSelected = selectedItems.some(sel => sel.sku === item.sku);
-        const selectedQty = isSelected ? selectedItems.find(sel => sel.sku === item.sku).qty : 1;
+    requests.forEach(request => {
+        if (!request.batch_id) return;
+        
+        if (!groupedByBatch[request.batch_id]) {
+            groupedByBatch[request.batch_id] = {
+                batch_id: request.batch_id,
+                created_at: request.created_at,
+                status: request.status,
+                approved_by: request.approved_by,
+                approved_at: request.approved_at,
+                items: [],
+                total_amount: 0
+            };
+        }
+        
+        groupedByBatch[request.batch_id].items.push(request);
+        groupedByBatch[request.batch_id].total_amount += (request.total_price || 0);
+    });
+    
+    // Tampilkan setiap batch
+    Object.values(groupedByBatch).forEach(batch => {
+        const date = new Date(batch.created_at);
+        const formattedDate = date.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric'
+        });
+        
+        // Ambil 2 item pertama untuk preview
+        const previewItems = batch.items.slice(0, 2);
+        const hasMoreItems = batch.items.length > 2;
         
         const row = document.createElement('tr');
-        row.className = isSelected ? 'selected' : '';
         row.innerHTML = `
-            <td>
-                <input type="checkbox" class="item-checkbox" 
-                    data-sku="${item.sku}"
-                    ${isSelected ? 'checked' : ''}>
+            <td>${formattedDate}<br>
+                <small>${date.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>
             </td>
+            <td><code title="${batch.batch_id}">${batch.batch_id.substring(0, 8)}...</code></td>
             <td>
-                <div class="item-name">${item.item}</div>
-                ${item.description ? `<div class="item-desc">${item.description}</div>` : ''}
+                ${previewItems.map(item => 
+                    `<div class="item-name">${item.item} (${item.qty} ${item.unit_type || 'pcs'})</div>`
+                ).join('')}
+                ${hasMoreItems ? `<div class="more-items">+ ${batch.items.length - 2} item lainnya</div>` : ''}
             </td>
-            <td><span class="badge category">${item.category}</span></td>
-            <td><span class="badge group">${item.item_group}</span></td>
-            <td><code>${item.sku}</code></td>
+            <td>${batch.items.reduce((sum, item) => sum + item.qty, 0)}</td>
             <td>
-                <span class="stock-badge ${getStockClass(item.current_stock, item.min_stock)}">
-                    ${item.current_stock} ${item.unit_type || 'pcs'}
+                <span class="status-pill ${getRequestStatusClass(batch.status)}">
+                    ${batch.status}
                 </span>
             </td>
-            <td class="price">${formatRupiah(item.unit_price)}</td>
             <td>
-                <div class="qty-control">
-                    <button class="qty-btn minus" data-sku="${item.sku}" ${isSelected && selectedQty <= 1 ? 'disabled' : ''}>
-                        <i class="fas fa-minus"></i>
-                    </button>
-                    <input type="number" class="qty-input" data-sku="${item.sku}" 
-                        value="${selectedQty}" min="1" max="${item.current_stock || 99}">
-                    <button class="qty-btn plus" data-sku="${item.sku}">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                </div>
+                ${batch.approved_by || '-'}
+                ${batch.approved_at ? `<br><small>${new Date(batch.approved_at).toLocaleDateString('id-ID')}</small>` : ''}
             </td>
-            <td class="subtotal">${formatRupiah(item.unit_price * selectedQty)}</td>
+            <td class="price">${formatRupiah(batch.total_amount)}</td>
         `;
         tbody.appendChild(row);
     });
-    
-    // Attach event listeners to new elements
-    attachInventoryEventListeners();
-    
-    // Update selected items section
-    updateSelectedItemsSection();
 }
 
-// [8] Fungsi untuk attach event listeners ke inventory items
-function attachInventoryEventListeners() {
-    // Checkbox events
-    document.querySelectorAll('.item-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const sku = this.getAttribute('data-sku');
-            const item = inventoryData.find(i => i.sku === sku);
-            
-            if (this.checked) {
-                addItemToRequest(item);
-            } else {
-                removeItemFromRequest(sku);
-            }
-            
-            // Update row styling
-            const row = this.closest('tr');
-            if (row) {
-                row.classList.toggle('selected', this.checked);
-            }
-        });
-    });
-    
-    // Quantity button events
-    document.querySelectorAll('.qty-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const sku = this.getAttribute('data-sku');
-            const isPlus = this.classList.contains('plus');
-            const input = document.querySelector(`.qty-input[data-sku="${sku}"]`);
-            
-            if (!input) return;
-            
-            let currentQty = parseInt(input.value) || 1;
-            const item = inventoryData.find(i => i.sku === sku);
-            const maxQty = item?.current_stock || 99;
-            
-            if (isPlus && currentQty < maxQty) {
-                currentQty++;
-            } else if (!isPlus && currentQty > 1) {
-                currentQty--;
-            }
-            
-            input.value = currentQty;
-            
-            // Update item in selected items
-            updateItemQuantity(sku, currentQty);
-        });
-    });
-    
-    // Quantity input events
-    document.querySelectorAll('.qty-input').forEach(input => {
-        input.addEventListener('change', function() {
-            const sku = this.getAttribute('data-sku');
-            let qty = parseInt(this.value) || 1;
-            const item = inventoryData.find(i => i.sku === sku);
-            const maxQty = item?.current_stock || 99;
-            
-            if (qty < 1) qty = 1;
-            if (qty > maxQty) qty = maxQty;
-            
-            this.value = qty;
-            updateItemQuantity(sku, qty);
-        });
-    });
-}
-
-// [9] Fungsi untuk load filter options
-function loadFilterOptions(items) {
-    const categories = [...new Set(items.map(item => item.category).filter(Boolean))];
-    const groups = [...new Set(items.map(item => item.item_group).filter(Boolean))];
-    
-    const categorySelect = document.getElementById('filterCategory');
-    const groupSelect = document.getElementById('filterGroup');
-    
-    if (categorySelect) {
-        categorySelect.innerHTML = `
-            <option value="">Semua Kategori</option>
-            ${categories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
-        `;
-    }
-    
-    if (groupSelect) {
-        groupSelect.innerHTML = `
-            <option value="">Semua Group</option>
-            ${groups.map(grp => `<option value="${grp}">${grp}</option>`).join('')}
-        `;
-    }
-}
-
-// [10] Fungsi untuk filter inventory
-function filterInventory() {
-    const searchTerm = document.getElementById('searchInventory').value.toLowerCase();
-    const categoryFilter = document.getElementById('filterCategory').value;
-    const groupFilter = document.getElementById('filterGroup').value;
-    const availabilityFilter = document.getElementById('filterAvailability').value;
-    
-    let filtered = [...inventoryData];
-    
-    // Search filter
-    if (searchTerm) {
-        filtered = filtered.filter(item => 
-            item.item.toLowerCase().includes(searchTerm) ||
-            item.category.toLowerCase().includes(searchTerm) ||
-            item.item_group.toLowerCase().includes(searchTerm) ||
-            item.sku.toLowerCase().includes(searchTerm) ||
-            (item.description && item.description.toLowerCase().includes(searchTerm))
-        );
-    }
-    
-    // Category filter
-    if (categoryFilter) {
-        filtered = filtered.filter(item => item.category === categoryFilter);
-    }
-    
-    // Group filter
-    if (groupFilter) {
-        filtered = filtered.filter(item => item.item_group === groupFilter);
-    }
-    
-    // Availability filter
-    if (availabilityFilter === 'available') {
-        filtered = filtered.filter(item => item.current_stock > 0);
-    } else if (availabilityFilter === 'low') {
-        filtered = filtered.filter(item => item.current_stock <= (item.min_stock || 10));
-    }
-    
-    displayInventoryData(filtered);
-}
-
-// [11] Fungsi untuk add item ke request
-function addItemToRequest(item) {
-    if (!item) return;
-    
-    // Cek apakah item sudah ada
-    const existingIndex = selectedItems.findIndex(i => i.sku === item.sku);
-    
-    if (existingIndex >= 0) {
-        // Update quantity jika sudah ada
-        selectedItems[existingIndex].qty += 1;
-    } else {
-        // Tambah item baru
-        selectedItems.push({
-            id: item.id,
-            item: item.item,
-            category: item.category,
-            item_group: item.item_group,
-            sku: item.sku,
-            qty: 1,
-            unit_price: item.unit_price,
-            total_price: item.unit_price,
-            unit_type: item.unit_type || 'pcs',
-            current_stock: item.current_stock
-        });
-    }
-    
-    updateSelectedItemsSection();
-}
-
-// [12] Fungsi untuk remove item dari request
-function removeItemFromRequest(sku) {
-    selectedItems = selectedItems.filter(item => item.sku !== sku);
-    updateSelectedItemsSection();
-}
-
-// [13] Fungsi untuk update item quantity
-function updateItemQuantity(sku, qty) {
-    const itemIndex = selectedItems.findIndex(item => item.sku === sku);
-    
-    if (itemIndex >= 0) {
-        selectedItems[itemIndex].qty = qty;
-        selectedItems[itemIndex].total_price = selectedItems[itemIndex].unit_price * qty;
-        updateSelectedItemsSection();
-    }
-}
-
-// [14] Fungsi untuk update selected items section
+// [19] Fungsi untuk update selected items section
 function updateSelectedItemsSection() {
     const section = document.getElementById('selectedItemsSection');
     const submitBtn = document.getElementById('submitRequestBtn');
     const selectedCountEl = document.getElementById('selectedCount');
     const totalAmountEl = document.getElementById('totalRequestAmount');
+    const tbody = document.getElementById('selectedItemsBody');
     
-    if (!section || !submitBtn) return;
+    if (!section || !submitBtn || !tbody) return;
     
     // Show/hide section based on selected items
     if (selectedItems.length > 0) {
@@ -11353,12 +11626,45 @@ function updateSelectedItemsSection() {
             selectedCountEl.textContent = selectedItems.length;
         }
         
-        // Update selected items table
-        updateSelectedItemsTable();
+        // Update table
+        tbody.innerHTML = '';
+        
+        let totalAmount = 0;
+        
+        selectedItems.forEach((item, index) => {
+            totalAmount += item.total_price;
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <div class="item-name">${item.item}</div>
+                    <div class="item-sku"><small>SKU: ${item.sku}</small></div>
+                </td>
+                <td><span class="badge category">${item.category}</span></td>
+                <td>
+                    <div class="qty-control small">
+                        <button class="qty-btn minus" onclick="adjustSelectedItemQty(${index}, -1)" ${item.qty <= 1 ? 'disabled' : ''}>
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <span class="qty-display">${item.qty} ${item.unit_type}</span>
+                        <button class="qty-btn plus" onclick="adjustSelectedItemQty(${index}, 1)">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </td>
+                <td>${formatRupiah(item.unit_price)}</td>
+                <td class="subtotal">${formatRupiah(item.total_price)}</td>
+                <td>
+                    <button class="btn-remove" onclick="removeSelectedItem(${index})" title="Hapus item">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
         
         // Update total amount
         if (totalAmountEl) {
-            const totalAmount = selectedItems.reduce((sum, item) => sum + (item.unit_price * item.qty), 0);
             totalAmountEl.textContent = formatRupiah(totalAmount);
         }
     } else {
@@ -11367,45 +11673,39 @@ function updateSelectedItemsSection() {
     }
 }
 
-// [15] Fungsi untuk update selected items table
-function updateSelectedItemsTable() {
-    const tbody = document.getElementById('selectedItemsBody');
-    if (!tbody) return;
+// [20] Fungsi untuk adjust selected item quantity
+function adjustSelectedItemQty(index, change) {
+    if (index < 0 || index >= selectedItems.length) return;
     
-    tbody.innerHTML = '';
+    const item = selectedItems[index];
+    const newQty = Math.max(1, item.qty + change);
     
-    selectedItems.forEach((item, index) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>
-                <div class="item-name">${item.item}</div>
-                <div class="item-sku"><small>SKU: ${item.sku}</small></div>
-            </td>
-            <td><span class="badge category">${item.category}</span></td>
-            <td>
-                <div class="qty-control small">
-                    <button class="qty-btn minus" onclick="updateSelectedItemQty('${item.sku}', ${item.qty - 1})" ${item.qty <= 1 ? 'disabled' : ''}>
-                        <i class="fas fa-minus"></i>
-                    </button>
-                    <span class="qty-display">${item.qty} ${item.unit_type}</span>
-                    <button class="qty-btn plus" onclick="updateSelectedItemQty('${item.sku}', ${item.qty + 1})">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                </div>
-            </td>
-            <td>${formatRupiah(item.unit_price)}</td>
-            <td class="subtotal">${formatRupiah(item.total_price)}</td>
-            <td>
-                <button class="btn-remove" onclick="removeSelectedItem('${item.sku}')" title="Hapus item">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        `;
-        tbody.appendChild(row);
-    });
+    item.qty = newQty;
+    item.total_price = item.unit_price * newQty;
+    
+    updateSelectedItemsSection();
 }
 
-// [16] Fungsi untuk submit request (kasir)
+// [21] Fungsi untuk remove selected item
+function removeSelectedItem(index) {
+    if (index < 0 || index >= selectedItems.length) return;
+    
+    selectedItems.splice(index, 1);
+    updateSelectedItemsSection();
+}
+
+// [22] Fungsi untuk clear all selected items
+function clearAllSelectedItems() {
+    if (selectedItems.length === 0) return;
+    
+    const confirmClear = confirm(`Hapus semua ${selectedItems.length} item yang dipilih?`);
+    if (!confirmClear) return;
+    
+    selectedItems = [];
+    updateSelectedItemsSection();
+}
+
+// [23] Fungsi untuk submit request
 async function submitRequest() {
     if (selectedItems.length === 0) {
         alert('Pilih minimal 1 item untuk di-request!');
@@ -11451,13 +11751,14 @@ async function submitRequest() {
         // Reset form
         selectedItems = [];
         document.getElementById('requestNotes').value = '';
-        batchId = generateBatchId(); // Generate new batch ID
-        
-        // Reload inventory
-        await loadInventoryForRequest();
+        document.getElementById('searchInventory').value = '';
+        batchId = generateBatchId();
         
         // Update UI
         updateSelectedItemsSection();
+        
+        // Reload history
+        await loadKasirHistory();
         
     } catch (error) {
         console.error('Error submitting request:', error);
@@ -11472,7 +11773,7 @@ async function submitRequest() {
     }
 }
 
-// [17] Fungsi untuk load requests untuk owner
+// [24] Fungsi untuk load requests untuk owner
 async function loadRequestsForOwner() {
     try {
         // Tampilkan loading
@@ -11552,7 +11853,7 @@ async function loadRequestsForOwner() {
     }
 }
 
-// [18] Group requests by batch_id
+// [25] Group requests by batch_id
 function groupRequestsByBatch(requests) {
     const grouped = {};
     
@@ -11583,7 +11884,7 @@ function groupRequestsByBatch(requests) {
     return Object.values(grouped);
 }
 
-// [19] Display pending requests for owner
+// [26] Display pending requests for owner
 function displayPendingRequests(groupedRequests) {
     const pendingGrid = document.getElementById('pendingRequestsGrid');
     const pendingCountEl = document.getElementById('pendingCount');
@@ -11716,7 +12017,7 @@ function displayPendingRequests(groupedRequests) {
     attachApproveCheckboxListeners();
 }
 
-// [20] Display request history
+// [27] Display request history
 function displayRequestHistory(requests) {
     const tbody = document.getElementById('historyBody');
     if (!tbody) return;
@@ -11770,21 +12071,36 @@ function displayRequestHistory(requests) {
     });
 }
 
-// [21] Load outlet dropdown for owner
+// [28] Load outlet dropdown for owner
 async function loadOutletDropdownForOwner(requests) {
     const select = document.getElementById('filterOutletOwner');
     if (!select) return;
     
-    // Get unique outlets from requests
-    const outlets = [...new Set(requests.map(r => r.outlet).filter(Boolean))];
-    
-    select.innerHTML = `
-        <option value="all">Semua Outlet</option>
-        ${outlets.map(outlet => `<option value="${outlet}">${outlet}</option>`).join('')}
-    `;
+    try {
+        const { data: outletsData, error } = await supabase
+            .from('request_barang')
+            .select('outlet')
+            .not('outlet', 'is', null);
+        
+        if (error) {
+            console.error('Error loading outlets:', error);
+            return;
+        }
+        
+        // Get unique outlets
+        const outlets = [...new Set(outletsData.map(r => r.outlet).filter(Boolean))];
+        
+        select.innerHTML = `
+            <option value="all">Semua Outlet</option>
+            ${outlets.map(outlet => `<option value="${outlet}">${outlet}</option>`).join('')}
+        `;
+        
+    } catch (error) {
+        console.error('Error loading outlets:', error);
+    }
 }
 
-// [22] Fungsi untuk approve selected items
+// [29] Fungsi untuk approve selected items
 async function approveSelectedItems(batchId) {
     try {
         // Get all checked items for this batch
@@ -11829,7 +12145,7 @@ async function approveSelectedItems(batchId) {
     }
 }
 
-// [23] Fungsi untuk approve all items
+// [30] Fungsi untuk approve all items
 async function approveAllItems(batchId) {
     try {
         const approveAll = confirm('Approve semua item dalam batch ini?');
@@ -11860,7 +12176,7 @@ async function approveAllItems(batchId) {
     }
 }
 
-// [24] Fungsi untuk reject request
+// [31] Fungsi untuk reject request
 async function rejectRequest(batchId) {
     try {
         const rejectAll = confirm('Tolak semua item dalam batch ini?\n\nSemua item akan berstatus rejected.');
@@ -11891,7 +12207,7 @@ async function rejectRequest(batchId) {
     }
 }
 
-// [25] Check if batch is partially or fully approved
+// [32] Check if batch is partially or fully approved
 async function checkBatchCompleteStatus(batchId) {
     try {
         // Get remaining pending items in batch
@@ -11919,7 +12235,7 @@ async function checkBatchCompleteStatus(batchId) {
     }
 }
 
-// [26] Attach checkbox event listeners
+// [33] Attach checkbox event listeners
 function attachApproveCheckboxListeners() {
     document.querySelectorAll('.approve-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', function() {
@@ -11931,32 +12247,17 @@ function attachApproveCheckboxListeners() {
     });
 }
 
-// [27] Global functions untuk onclick events
-window.updateSelectedItemQty = function(sku, newQty) {
-    if (newQty < 1) newQty = 1;
-    updateItemQuantity(sku, newQty);
-};
-
-window.removeSelectedItem = function(sku) {
-    removeItemFromRequest(sku);
-};
-
-window.approveSelectedItems = approveSelectedItems;
-window.approveAllItems = approveAllItems;
-window.rejectRequest = rejectRequest;
-
-// [28] Helper functions
+// [34] Helper functions
 function generateBatchId() {
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).substring(2, 8);
     return `REQ-${timestamp}-${random}`.toUpperCase();
 }
 
-function getStockClass(currentStock, minStock) {
-    if (!minStock) minStock = 10;
-    if (currentStock <= 0) return 'out-of-stock';
-    if (currentStock <= minStock) return 'low-stock';
-    if (currentStock <= minStock * 2) return 'medium-stock';
+function getStockClass(currentStock) {
+    if (!currentStock || currentStock <= 0) return 'out-of-stock';
+    if (currentStock <= 10) return 'low-stock';
+    if (currentStock <= 20) return 'medium-stock';
     return 'good-stock';
 }
 
@@ -11982,75 +12283,21 @@ function debounce(func, wait) {
     };
 }
 
-function toggleSelectAllItems() {
-    const selectAll = document.getElementById('selectAllItems');
-    const checkboxes = document.querySelectorAll('.item-checkbox');
-    
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = selectAll.checked;
-        const sku = checkbox.getAttribute('data-sku');
-        const item = inventoryData.find(i => i.sku === sku);
-        
-        if (selectAll.checked) {
-            addItemToRequest(item);
-        } else {
-            removeItemFromRequest(sku);
-        }
-        
-        // Update row styling
-        const row = checkbox.closest('tr');
-        if (row) {
-            row.classList.toggle('selected', selectAll.checked);
-        }
-    });
-}
+// [35] Global functions untuk onclick events
+window.adjustSelectedItemQty = adjustSelectedItemQty;
+window.removeSelectedItem = removeSelectedItem;
+window.approveSelectedItems = approveSelectedItems;
+window.approveAllItems = approveAllItems;
+window.rejectRequest = rejectRequest;
+window.selectAllSearchItems = selectAllSearchItems;
+window.toggleSearchItemSelection = toggleSearchItemSelection;
+window.adjustSearchItemQty = adjustSearchItemQty;
+window.updateSearchItemQty = updateSearchItemQty;
 
-function clearAllSelectedItems() {
-    const confirmClear = confirm('Hapus semua item yang dipilih?');
-    if (!confirmClear) return;
-    
-    selectedItems = [];
-    updateSelectedItemsSection();
-    
-    // Uncheck all checkboxes
-    document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = false);
-    document.querySelectorAll('.inventory-table tr').forEach(row => row.classList.remove('selected'));
-    document.getElementById('selectAllItems').checked = false;
-}
-
-// [29] Update handleMenuClick untuk include request
-function handleMenuClick(menuId) {
-    switch(menuId) {
-        case 'komisi':
-            showKomisiPage();
-            break;
-        case 'absensi':
-            showAbsensiPage();
-            break;
-        case 'kas':
-            showKasPage();
-            break;
-        case 'slip':
-            showSlipPage();
-            break;
-        case 'request':
-            showRequestPage(); // <-- TAMBAHKAN INI
-            break;
-        case 'libur':
-        case 'top':
-        case 'stok':
-        case 'sertifikasi':
-            const menuTitles = {
-                'libur': 'Libur & Izin',
-                'top': 'TOP (Tools Ownership Program)',
-                'stok': 'Tambah Stok',
-                'sertifikasi': 'Sertifikasi'
-            };
-            alert(`Menu "${menuTitles[menuId]}" akan diimplementasikan nanti.`);
-            break;
-        default:
-            console.log('Menu tidak dikenali:', menuId);
-    }
+// Tambahkan function formatRupiah jika belum ada
+function formatRupiah(amount) {
+    if (amount === 0 || !amount) return 'Rp 0';
+    return 'Rp ' + amount.toLocaleString('id-ID');
 }
 
 // ========== END OF REQUEST IMPLEMENTATION ==========
