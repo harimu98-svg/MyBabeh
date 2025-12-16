@@ -5777,7 +5777,7 @@ function createSlipPage() {
 <div class="slip-footer">
     <p class="footer-note">
         <i class="fas fa-info-circle"></i> 
-        Data slip akan difinalkan setiap tanggal 1 jam 06:00
+        Data slip akan difinalkan setiap tanggal 1 jam 12:00
     </p>
 </div>
      `;
