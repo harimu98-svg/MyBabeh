@@ -9470,21 +9470,32 @@ async function loadOwnerStokData() {
       // Tetap lanjut meski stats error
     }
     
-    // 5. LOAD RECENT ADJUSTMENTS
-    try {
-      const { data: adjustments } = await supabase
-        .from('stok_update')
-        .select('*')
-        .eq('approval_status', 'approved')
-        .eq('outlet', currentOutletStok || outletFilter !== 'all' ? outletFilter : 'Rempoa')
-        .order('created_at', { ascending: false })
-        .limit(5);
-      
-      displayRecentAdjustments(adjustments || []);
-    } catch (adjustError) {
-      console.warn('Adjustments loading skipped:', adjustError.message);
-    }
-    
+   // 5. LOAD RECENT ADJUSTMENTS
+try {
+  // Determine which outlet to show
+  const adjOutlet = outletFilter !== 'all' ? outletFilter : (currentOutletStok || 'Rempoa');
+  
+  let adjQuery = supabase
+    .from('stok_update')
+    .select('*')
+    .eq('approval_status', 'approved')
+    .order('created_at', { ascending: false })
+    .limit(5);
+  
+  // Filter by selected outlet
+  if (adjOutlet && adjOutlet !== 'all') {
+    adjQuery = adjQuery.eq('outlet', adjOutlet);
+  }
+  
+  // Only show adjustments (not regular requests)
+  adjQuery = adjQuery.not('requested_by', 'is', null);
+  
+  const { data: adjustments } = await adjQuery;
+  
+  displayRecentAdjustments(adjustments || []);
+} catch (adjustError) {
+  console.warn('Adjustments loading skipped:', adjustError.message);
+}
     // 6. TAMPILKAN DATA
     displayPendingRequests(requests || []);
     
