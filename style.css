@@ -4078,7 +4078,11 @@ marquee {
     box-sizing: border-box;
 }
 }
-
+/* ========== HIDE TANGGAL DISPLAY BACKGROUND HIJAU ========== */
+.filter-section .date-display,
+#kasTanggalDisplay {
+    display: none !important;
+}
 /* ========== CSS UNTUK SLIP PENGHASILAN ========== */
 /* ============================================== */
 
