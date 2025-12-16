@@ -3027,7 +3027,7 @@ function createKasPage() {
                     <div class="date-input-group">
                         <label for="kasFilterTanggal">Tanggal:</label>
                         <input type="date" id="kasFilterTanggal" class="date-input">
-                        <!--<div class="date-display" id="kasTanggalDisplay"></div>-->
+                        <div class="date-display" id="kasTanggalDisplay"></div>
                     </div>
                 </div>
             </section>
