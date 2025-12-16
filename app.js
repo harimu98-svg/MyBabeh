@@ -6113,21 +6113,11 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
     const startDate = `${yearStr}-${monthStr}-01`;
     const endDate = `${yearStr}-${monthStr}-31`;
     
-    // [A] AMBIL PRODUK DENGAN KOMISI ≥ 5000 TERLEBIH DAHULU
-    const { data: produkPremium } = await supabase
-        .from('produk')
-        .select('nama_produk')
-        .gte('komisi', 5000)
-        .not('nama_produk', 'is', null);
-
-    const produkNamesPremium = produkPremium?.map(p => p.nama_produk) || [];
-    
     // Query semua data secara paralel
     const [
         absenData,
-        komisiData,
-        transaksiQtyData,     // Untuk qty (hanya produk premium)
-        transaksiKomisiData,  // Untuk komisi (semua produk)
+        komisiData,  // INI YANG DIPERBAIKI
+        transaksiData,
         membercardData,
         kasData,
         outletTargetData,
@@ -6150,28 +6140,13 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
             .gte('tanggal', startDate)
             .lte('tanggal', endDate),
         
-        // 3A. Data transaksi untuk QTY (hanya produk premium)
-        (async () => {
-            let qtyQuery = supabase
-                .from('transaksi_detail')
-                .select('qty, item_name')
-                .eq('serve_by', namaKaryawan)
-                .eq('status', 'completed')
-                .gte('order_date', startDate)
-                .lte('order_date', endDate);
-
-            if (produkNamesPremium.length > 0) {
-                qtyQuery = qtyQuery.in('item_name', produkNamesPremium);
-            }
-            return await qtyQuery;
-        })(),
-        
-        // 3B. Data transaksi untuk KOMISI (semua produk)
+        // 3. Data transaksi produk (order_date: mungkin DATE/TIMESTAMP)
         supabase
             .from('transaksi_detail')
-            .select('comission, item_name, qty')
+            .select('*')
             .eq('serve_by', namaKaryawan)
             .eq('status', 'completed')
+            .gte('comission', 5000)
             .gte('order_date', startDate)
             .lte('order_date', endDate),
         
@@ -6226,8 +6201,7 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
     // Proses data
     const absenList = absenData.data || [];
     const komisiList = komisiData.data || [];
-    const transaksiQtyList = transaksiQtyData.data || [];    // Untuk penjualan produk
-    const transaksiKomisiList = transaksiKomisiData.data || []; // Untuk komisi produk
+    const transaksiList = transaksiData.data || [];
     const membercardList = membercardData.data || [];
     const kasList = kasData.data || [];
     const target = outletTargetData.data || {};
@@ -6246,8 +6220,7 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
             tahun,
             absenList,
             komisiList,
-            transaksiQtyList,      // Untuk penjualan produk (premium)
-            transaksiKomisiList,   // Untuk komisi produk (semua)
+            transaksiList,
             membercardList,
             kasList,
             target,
@@ -6263,7 +6236,7 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
             tahun,
             absenList,
             komisiList,
-            transaksiList: transaksiKomisiList, 
+            transaksiList,
             target,
             karyawan
         });
@@ -6281,8 +6254,7 @@ async function calculateKasirSlip(params) {
         tahun,
         absenList,
         komisiList,
-        transaksiQtyList,      // ← INI YANG BARU (untuk qty)
-        transaksiKomisiList,   // ← INI YANG BARU (untuk komisi)
+        transaksiList,
         membercardList,
         kasList,
         target,
@@ -6292,13 +6264,11 @@ async function calculateKasirSlip(params) {
     } = params;
     
     // 1. HITUNG HARI KERJA & GAJI
-    const hariKerja = absenList.filter(a => {
-        if (!a.status_kehadiran) return false;
-        
-        const status = a.status_kehadiran.trim();
-        const bukanHariKerja = ['Belum absen', 'Izin', 'Libur'];
-        return !bukanHariKerja.includes(status);
-    }).length;
+    const hariKerja = absenList.filter(a => 
+        a.status_kehadiran && 
+        a.status_kehadiran !== 'Belum absen' &&
+        a.status_kehadiran.trim() !== ''
+    ).length;
     
     const gajiPerHari = karyawan.gaji || 0;
     const totalGaji = absenList.reduce((sum, a) => sum + (a.gaji_pokok || 0), 0);
@@ -6314,11 +6284,9 @@ async function calculateKasirSlip(params) {
     
     const totalOvertimeRupiah = absenList.reduce((sum, a) => sum + (a.over_time_rp || 0), 0);
     
-    // 3. PENJUALAN PRODUK & KOMISI - PERBAIKI DI SINI!
-    // transaksiQtyList untuk qty (produk premium)
-    // transaksiKomisiList untuk komisi (semua produk)
-    const penjualanProduk = (transaksiQtyList || []).reduce((sum, t) => sum + (t.qty || 0), 0);
-    const komisiProduk = (transaksiKomisiList || []).reduce((sum, t) => sum + (t.comission || 0), 0);
+    // 3. PENJUALAN PRODUK & KOMISI
+    const penjualanProduk = transaksiList.reduce((sum, t) => sum + (t.qty || 0), 0);
+    const komisiProduk = transaksiList.reduce((sum, t) => sum + (t.comission || 0), 0);
     
     // 4. MEMBERCARD
     const membercardCreated = membercardList.length;
@@ -6336,10 +6304,10 @@ async function calculateKasirSlip(params) {
         bulan,
         tahun,
         membercardList,
-        transaksiQtyList || [],  // ← Kirim transaksiQtyList untuk achievement
+        transaksiList,
         target,
         semuaKasirList,
-        absenList,
+        absenList.length,
         omsetList
     );
     
@@ -6366,8 +6334,9 @@ async function calculateKasirSlip(params) {
     const subTotalPenghasilan = totalGaji + totalOvertimeRupiah + komisiProduk + 
                                komisiMembercard + totalUOP + totalFeeTransfer + totalTipsQRIS;
     
-    const subTotalTarget = (targetAchievement.bonus_omset || 0);  
-// HANYA bonus omset, bonus membercard & produk = 0
+    const subTotalTarget = (targetAchievement.bonus_membercard_value || 0) + 
+                          (targetAchievement.bonus_produk_value || 0) + 
+                          (targetAchievement.bonus_omset || 0);
     
     const totalPenghasilan = subTotalPenghasilan + subTotalTarget + totalAdjustment;
     const penghasilanDiambil = komisiProduk;
@@ -6444,15 +6413,12 @@ async function calculateBarbermanSlip(params) {
         karyawan
     } = params;
     
-      // 1. HARI KERJA
-    const hariKerja = absenList.filter(a => {
-        if (!a.status_kehadiran) return false;
-        
-        const status = a.status_kehadiran.trim();
-        const bukanHariKerja = ['Belum absen', 'Izin', 'Libur'];
-        
-        return !bukanHariKerja.includes(status);
-    }).length;
+    // 1. HARI KERJA
+    const hariKerja = absenList.filter(a => 
+        a.status_kehadiran && 
+        a.status_kehadiran !== 'Belum absen' &&
+        a.status_kehadiran.trim() !== ''
+    ).length;
     
     // 2. UOP & TIPS QRIS
     const totalUOP = komisiList.reduce((sum, k) => sum + (k.uop || 0), 0);
@@ -6462,21 +6428,19 @@ async function calculateBarbermanSlip(params) {
     const itemDetails = [];
     const komisiMap = {};
     
-   // Pastikan transaksiList ada
-    if (transaksiList && Array.isArray(transaksiList)) {
-        transaksiList.forEach(t => {
-            const itemName = t.item_name || 'Layanan';
-            if (!komisiMap[itemName]) {
-                komisiMap[itemName] = {
-                    item: itemName,
-                    qty: 0,
-                    komisi: 0
-                };
-            }
-            komisiMap[itemName].qty += t.qty || 1;
-            komisiMap[itemName].komisi += t.comission || 0;
-        });
-    }
+    // Group by item_name (asumsi ada kolom item_name)
+    transaksiList.forEach(t => {
+        const itemName = t.item_name || 'Layanan';
+        if (!komisiMap[itemName]) {
+            komisiMap[itemName] = {
+                item: itemName,
+                qty: 0,
+                komisi: 0
+            };
+        }
+        komisiMap[itemName].qty += t.qty || 1;
+        komisiMap[itemName].komisi += t.comission || 0;
+    });
     
     // Convert to array
     Object.values(komisiMap).forEach(item => {
@@ -6532,77 +6496,21 @@ async function calculateBarbermanSlip(params) {
 // [13] Fungsi helper: Hitung Target & Achievement
 async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun, 
                                          membercardList, transaksiList, target, 
-                                         semuaKasirList, absenList, omsetList) {
-    
-    // 1. FILTER HARI KERJA DARI absenList
-    const hariKerjaList = absenList.filter(a => {
-        if (!a.status_kehadiran) return false;
-        const status = a.status_kehadiran.trim();
-        return !['Belum absen', 'Izin', 'Libur'].includes(status);
-    });
-    
-    // 2. HITUNG TARGET HANYA UNTUK HARI KERJA
-    let totalTargetMembercard = 0;
-    let totalTargetProduk = 0;
-    
-    hariKerjaList.forEach(absen => {
-        const [day, month, year] = absen.tanggal.split('/').map(Number);
-        const date = new Date(year, month - 1, day);
-        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-        
-        // TARGET PRODUK = dari outlet (target_weekdays/weekends)
-        const targetProdukHarian = isWeekend ? 
-            (target.target_weekends || 1.5) : 
-            (target.target_weekdays || 0.5);
-            
-        // TARGET MEMBERCARD = 2 × target produk
-        const targetMembercardHarian = targetProdukHarian * 2;
-        
-        totalTargetProduk += targetProdukHarian;
-        totalTargetMembercard += targetMembercardHarian;
-    });
-    
-    // 3. HITUNG ACHIEVEMENT
-    const achievementMembercard = membercardList.length;
-    const achievementProduk = transaksiList.reduce((sum, t) => sum + (t.qty || 0), 0);
-    
-    // 4. HITUNG STATUS
-    const statusMembercard = totalTargetMembercard > 0 ? 
-        (achievementMembercard / totalTargetMembercard) * 100 : 0;
-        
-    const statusProduk = totalTargetProduk > 0 ? 
-        (achievementProduk / totalTargetProduk) * 100 : 0;
-    
-    // 5. HITUNG BONUS (MEMBERCARD & PRODUK = 0, HANYA LABEL)
-    let bonusMembercard = '-';
-    let bonusMembercardValue = 0;  // ← SELALU 0
-    let bonusProduk = '-';
-    let bonusProdukValue = 0;      // ← SELALU 0
-    
-    if (statusMembercard >= 100) {
-        bonusMembercard = 'Hadiah Menarik';  // ← HANYA LABEL
-        // bonusMembercardValue = 0 (tetap 0)
-    }
-    
-    if (statusProduk >= 100) {
-        bonusProduk = 'Hadiah Menarik';      // ← HANYA LABEL
-        // bonusProdukValue = 0 (tetap 0)
-    }
+                                         semuaKasirList, hariKerjaKasir, omsetList) {
     
     const result = {
-        target_membercard: totalTargetMembercard,
-        achievement_membercard: achievementMembercard,
-        status_membercard: statusMembercard,
-        bonus_membercard: bonusMembercard,
-        bonus_membercard_value: 0,  // ← SELALU 0
+        target_membercard: 0,
+        achievement_membercard: membercardList.length,
+        status_membercard: 0,
+        bonus_membercard: '-',
+        bonus_membercard_value: 0,
         
-        target_produk: totalTargetProduk,
-        achievement_produk: achievementProduk,
-        status_produk: statusProduk,
-        bonus_produk: bonusProduk,
-        bonus_produk_value: 0,      // ← SELALU 0
+        target_produk: target.target_weekdays || 0.5,
+        achievement_produk: transaksiList.reduce((sum, t) => sum + (t.qty || 0), 0),
+        status_produk: 0,
+        bonus_produk: '-',
+        bonus_produk_value: 0,
         
-        // Target omset tetap ada bonus (nilai rupiah)
         target_omset: target.target_omset || 20000000,
         achievement_omset: 0,
         status_omset: 0,
@@ -6610,7 +6518,50 @@ async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun,
         proporsi_kasir: 0
     };
     
-    // 6. HITUNG TARGET OMSET (bonus masih ada nilai)
+    // 1. TARGET MEMBERCARD
+    try {
+        // Hitung hari dalam bulan
+        const daysInMonth = new Date(tahun, bulan, 0).getDate();
+        let totalTargetMembercard = 0;
+        
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(tahun, bulan - 1, day);
+            const dayOfWeek = date.getDay(); // 0 = Minggu, 1-6 = Senin-Sabtu
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+            
+            if (isWeekend) {
+                totalTargetMembercard += target.target_weekends || 1.5;
+            } else {
+                totalTargetMembercard += target.target_weekdays || 0.5;
+            }
+        }
+        
+        result.target_membercard = totalTargetMembercard;
+        result.status_membercard = totalTargetMembercard > 0 ? 
+            (result.achievement_membercard / totalTargetMembercard) * 100 : 0;
+        
+        if (result.status_membercard >= 100) {
+            result.bonus_membercard = 'Hadiah Menarik';
+            result.bonus_membercard_value = 50000; // Contoh
+        }
+    } catch (error) {
+        console.error('Error calculating membercard target:', error);
+    }
+    
+    // 2. TARGET PRODUK
+    try {
+        result.status_produk = result.target_produk > 0 ? 
+            (result.achievement_produk / result.target_produk) * 100 : 0;
+        
+        if (result.status_produk >= 100) {
+            result.bonus_produk = 'Hadiah Menarik';
+            result.bonus_produk_value = 50000; // Contoh
+        }
+    } catch (error) {
+        console.error('Error calculating produk target:', error);
+    }
+    
+    // 3. TARGET OMSET
     try {
         // Hitung omset bersih
         const totalOmsetKotor = omsetList.reduce((sum, o) => sum + (o.total_amount || 0), 0);
@@ -6626,7 +6577,7 @@ async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun,
         ).size;
         
         result.proporsi_kasir = uniqueKasirDays > 0 ? 
-            hariKerjaList.length / uniqueKasirDays : 0;
+            hariKerjaKasir / uniqueKasirDays : 0;
         
         // Bonus omset 1% dari omset bersih * proporsi
         if (result.status_omset >= 100) {
@@ -6638,6 +6589,7 @@ async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun,
     
     return result;
 }
+
 // [14] Fungsi helper: Hitung Detail Harian
 function calculateDetailHarian(absenList, komisiList, transaksiList, membercardList, kasList) {
     // Group by date
