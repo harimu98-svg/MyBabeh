@@ -11916,143 +11916,179 @@ function groupRequestsByBatch(requests) {
     return Object.values(grouped);
 }
 
-// [24] Display pending requests for owner - DIMODIFIKASI: Tambah Reject Selected
+// [15] Display pending requests untuk OWNER - GROUPED VERSION (FIXED)
 function displayPendingRequests(groupedRequests) {
-    const pendingGrid = document.getElementById('pendingRequestsGrid');
-    const pendingCountEl = document.getElementById('pendingCount');
+    const pendingBody = document.getElementById('pendingRequestsBody');
+    const pendingCount = document.getElementById('pendingRequestsCount');
     
-    if (!pendingGrid) return;
-    
-    // Filter hanya yang status pending
-    const pendingRequests = groupedRequests.filter(group => group.status === 'pending');
-    
-    // Update count
-    if (pendingCountEl) {
-        pendingCountEl.textContent = `${pendingRequests.length} requests pending`;
+    if (!pendingBody) {
+        console.error('pendingRequestsBody element not found!');
+        return;
     }
     
-    if (pendingRequests.length === 0) {
-        pendingGrid.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-check-circle"></i>
-                <h4>Tidak ada request pending</h4>
-                <p>Semua request sudah diproses</p>
-            </div>
+    // Clear table first
+    pendingBody.innerHTML = '';
+    
+    // Validate input - ini GROUPED requests, bukan array biasa
+    if (!Array.isArray(groupedRequests) || groupedRequests.length === 0) {
+        pendingBody.innerHTML = `
+            <tr>
+                <td colspan="8" class="no-data-cell">
+                    <i class="fas fa-check-circle"></i>
+                    <p>Tidak ada data request</p>
+                </td>
+            </tr>
+        `;
+        if (pendingCount) pendingCount.textContent = '0 requests';
+        return;
+    }
+    
+    console.log(`📊 Processing ${groupedRequests.length} grouped requests`);
+    
+    // FLATTEN grouped requests untuk ditampilkan di table
+    // Karena table biasa tidak bisa handle grouped data
+    let allItems = [];
+    
+    groupedRequests.forEach(group => {
+        if (group.items && Array.isArray(group.items)) {
+            group.items.forEach(item => {
+                allItems.push({
+                    ...item,
+                    batch_id: group.batch_id,
+                    group_date: group.created_at,
+                    outlet: group.outlet || item.outlet,
+                    karyawan: group.karyawan || item.updated_by
+                });
+            });
+        }
+    });
+    
+    console.log(`📊 Total items to display: ${allItems.length}`);
+    
+    // Count pending (hanya yang status pending)
+    const pendingOnly = allItems.filter(item => 
+        item.approval_status && item.approval_status.toLowerCase() === 'pending'
+    );
+    
+    if (pendingCount) {
+        pendingCount.textContent = `${pendingOnly.length} pending`;
+    }
+    
+    // Display semua items dalam table
+    if (allItems.length === 0) {
+        pendingBody.innerHTML = `
+            <tr>
+                <td colspan="8" class="no-data-cell">
+                    <i class="fas fa-check-circle"></i>
+                    <p>Tidak ada data request</p>
+                </td>
+            </tr>
         `;
         return;
     }
     
     let html = '';
     
-    pendingRequests.forEach(group => {
-        const date = new Date(group.created_at);
-        const formattedDate = date.toLocaleDateString('id-ID', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-        
-        html += `
-            <div class="request-card" data-batch-id="${group.batch_id}">
-                <div class="request-card-header">
-                    <div class="request-id">
-                        <i class="fas fa-hashtag"></i>
-                        <span>Batch: ${group.batch_id.substring(0, 8)}...</span>
-                    </div>
-                    <div class="request-date">
-                        <i class="far fa-clock"></i>
-                        <span>${formattedDate}</span>
-                    </div>
-                </div>
-                
-                <div class="request-card-body">
-                    <div class="request-info">
-                        <div class="info-item">
-                            <i class="fas fa-store"></i>
-                            <span>${group.outlet || '-'}</span>
+    allItems.forEach((item, index) => {
+        try {
+            // Extract data dengan fallback
+            const id = item.id || item.batch_id || `item-${index}`;
+            const tanggal = item.tanggal || item.group_date || '-';
+            const outlet = item.outlet || '-';
+            const nama_produk = item.nama_produk || item.item || '-';
+            const group_produk = item.group_produk || item.category || '-';
+            const updated_by = item.updated_by || item.karyawan || '-';
+            const stok_type = item.stok_type || 'masuk';
+            const qty_change = Math.abs(item.qty_change || item.qty || 0);
+            const approval_status = item.approval_status || 'pending';
+            const batch_id = item.batch_id ? `Batch: ${item.batch_id.substring(0, 8)}...` : '';
+            
+            // Determine classes
+            const typeClass = stok_type === 'masuk' ? 'type-in' : 'type-out';
+            const typeText = stok_type === 'masuk' ? 'Masuk' : 'Keluar';
+            
+            // Status handling
+            let statusClass = 'status-pending';
+            let statusText = 'Menunggu';
+            
+            if (approval_status === 'approved') {
+                statusClass = 'status-approved';
+                statusText = 'Disetujui';
+            } else if (approval_status === 'rejected') {
+                statusClass = 'status-rejected';
+                statusText = 'Ditolak';
+            }
+            
+            const isActionable = approval_status === 'pending';
+            
+            html += `
+                <tr data-id="${id}" data-batch="${item.batch_id}" data-status="${approval_status}">
+                    <td>${formatDateStok(tanggal) || tanggal}</td>
+                    <td>
+                        ${outlet}
+                        ${batch_id ? `<div class="batch-info">${batch_id}</div>` : ''}
+                    </td>
+                    <td>
+                        <div class="product-info">
+                            <strong>${nama_produk}</strong>
+                            <div class="product-group">${group_produk}</div>
                         </div>
-                        <div class="info-item">
-                            <i class="fas fa-user"></i>
-                            <span>${group.karyawan || '-'}</span>
+                    </td>
+                    <td>${updated_by}</td>
+                    <td>
+                        <span class="type-badge ${typeClass}">
+                            ${typeText}
+                        </span>
+                    </td>
+                    <td>
+                        <strong class="${typeClass}">
+                            ${stok_type === 'masuk' ? '+' : '-'}${qty_change}
+                        </strong>
+                    </td>
+                    <td>
+                        <span class="status-badge ${statusClass}">
+                            ${statusText}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            ${isActionable ? `
+                                <button class="btn-action btn-approve" data-id="${id}" data-batch="${item.batch_id}" title="Approve">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn-action btn-reject" data-id="${id}" data-batch="${item.batch_id}" title="Reject">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <button class="btn-action btn-view" data-id="${id}" data-batch="${item.batch_id}" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            ` : `
+                                <button class="btn-action btn-view" data-id="${id}" data-batch="${item.batch_id}" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            `}
                         </div>
-                        <div class="info-item">
-                            <i class="fas fa-box"></i>
-                            <span>${group.total_items} items</span>
-                        </div>
-                        <div class="info-item">
-                            <i class="fas fa-calculator"></i>
-                            <span>Total: ${formatRupiah(group.total_amount)}</span>
-                        </div>
-                    </div>
-                    
-                    ${group.notes ? `
-                    <div class="request-notes">
-                        <i class="fas fa-sticky-note"></i>
-                        <span>${group.notes}</span>
-                    </div>
-                    ` : ''}
-                    
-                    <div class="request-items">
-                        <h5>Items Requested:</h5>
-                        <div class="table-wrapper">
-                            <table class="items-table horizontal-scroll">
-                                <thead>
-                                    <tr>
-                                        <th width="30px">
-                                            <input type="checkbox" class="select-all-checkbox" 
-                                                onchange="toggleSelectAllItems('${group.batch_id}', this.checked)">
-                                        </th>
-                                        <th>Item</th>
-                                        <th width="80px">Qty</th>
-                                        <th width="120px">Harga</th>
-                                        <th width="120px">Subtotal</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${group.items.map(item => `
-                                        <tr data-item-id="${item.id}" data-batch-id="${group.batch_id}">
-                                            <td>
-                                                <input type="checkbox" class="approve-checkbox" 
-                                                    data-item-id="${item.id}"
-                                                    data-batch-id="${group.batch_id}"
-                                                    onchange="toggleItemSelection('${item.id}', '${group.batch_id}', this.checked)">
-                                            </td>
-                                            <td>
-                                                <div class="item-name">${item.item}</div>
-                                                <div class="item-sku">SKU: ${item.sku}</div>
-                                            </td>
-                                            <td>${item.qty} ${item.unit_type || 'pcs'}</td>
-                                            <td>${formatRupiah(item.unit_price)}</td>
-                                            <td>${formatRupiah(item.total_price)}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="request-card-footer">
-                    <button class="btn-reject" onclick="rejectSelectedItems('${group.batch_id}')">
-                        <i class="fas fa-times"></i> Reject Selected
-                    </button>
-                    <button class="btn-reject-all" onclick="rejectRequest('${group.batch_id}')">
-                        <i class="fas fa-ban"></i> Reject All
-                    </button>
-                    <button class="btn-approve" onclick="approveSelectedItems('${group.batch_id}')">
-                        <i class="fas fa-check"></i> Approve Selected
-                    </button>
-                    <button class="btn-approve-all" onclick="approveAllItems('${group.batch_id}')">
-                        <i class="fas fa-check-double"></i> Approve All
-                    </button>
-                </div>
-            </div>
-        `;
+                    </td>
+                </tr>
+            `;
+        } catch (error) {
+            console.error(`Error rendering item ${index}:`, error);
+            html += `
+                <tr class="error-row">
+                    <td colspan="8">Error displaying item</td>
+                </tr>
+            `;
+        }
     });
     
-    pendingGrid.innerHTML = html;
+    pendingBody.innerHTML = html;
+    
+    // Setup event listeners
+    setTimeout(() => {
+        setupRequestActionButtons();
+    }, 100);
+    
+    console.log(`✅ Rendered ${allItems.length} items in table`);
 }
 
 // [25] Display request history untuk Owner - DIMODIFIKASI
