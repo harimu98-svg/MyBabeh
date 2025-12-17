@@ -5503,7 +5503,7 @@ async function checkClockOutStatus() {
         return { semuaClockOut: true, karyawanBelumClockOut: [] };
     }
 }
- out warning - VERSI FINAL DIPERBAIKI
+ // [43] Fungsi untuk tampilkan popup clock out warning - VERSI FINAL DIPERBAIKI
 function showClockOutWarningPopup(karyawanList) {
     console.log('🔄 showClockOutWarningPopup dipanggil dengan data:', karyawanList);
     
