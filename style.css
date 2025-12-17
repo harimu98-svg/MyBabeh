@@ -8037,3 +8037,413 @@ tr.stock-out .product-cell {
     100% { transform: rotate(360deg); }
 }
 
+/* ========== CLOCK OUT WARNING POPUP - CSS KAS ========== */
+
+
+/* [1] OVERLAY - Pakai class unik */
+.clock-warning-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: rgba(0, 0, 0, 0.85) !important;
+    z-index: 10000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 20px !important;
+    animation: clockWarningFadeIn 0.3s ease !important;
+}
+
+/* [2] MODAL CONTAINER */
+.clock-warning-modal {
+    background: white !important;
+    border-radius: 16px !important;
+    width: 100% !important;
+    max-width: 500px !important;
+    max-height: 85vh !important;
+    overflow: hidden !important;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3) !important;
+    border: 4px solid #f59e0b !important;
+    animation: clockWarningSlideUp 0.3s ease !important;
+}
+
+/* [3] HEADER */
+.clock-warning-header {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    color: white !important;
+    padding: 20px !important;
+    text-align: center !important;
+    border-bottom: 3px solid #b45309 !important;
+}
+
+.clock-warning-header h3 {
+    margin: 0 !important;
+    font-size: 1.3rem !important;
+    font-weight: 700 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+}
+
+.clock-warning-header i {
+    font-size: 1.5rem !important;
+}
+
+/* [4] BODY */
+.clock-warning-body {
+    padding: 25px !important;
+}
+
+/* Icon Section */
+.clock-warning-icon-section {
+    text-align: center !important;
+    margin-bottom: 25px !important;
+}
+
+.clock-warning-icon {
+    font-size: 48px !important;
+    color: #f59e0b !important;
+    margin-bottom: 15px !important;
+}
+
+.clock-warning-title {
+    color: #92400e !important;
+    font-size: 1.3rem !important;
+    font-weight: 700 !important;
+    margin: 10px 0 15px 0 !important;
+}
+
+.clock-warning-info {
+    background: #fffbeb !important;
+    border: 1px solid #fbbf24 !important;
+    border-radius: 8px !important;
+    padding: 12px 15px !important;
+    color: #92400e !important;
+    font-size: 0.95rem !important;
+    line-height: 1.5 !important;
+}
+
+.clock-warning-info p {
+    margin: 5px 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.clock-warning-info i {
+    width: 20px !important;
+    text-align: center !important;
+    color: #d97706 !important;
+}
+
+/* [5] KARYAWAN LIST CONTAINER */
+.clock-warning-list-container {
+    background: #fffbeb !important;
+    border: 2px solid #fbbf24 !important;
+    border-radius: 12px !important;
+    padding: 15px !important;
+    margin: 20px 0 !important;
+    max-height: 300px !important;
+    overflow-y: auto !important;
+}
+
+.clock-warning-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+}
+
+.clock-warning-item {
+    background: white !important;
+    border-radius: 10px !important;
+    padding: 15px !important;
+    border: 1px solid #fde68a !important;
+    box-shadow: 0 3px 10px rgba(251, 191, 36, 0.1) !important;
+}
+
+.clock-warning-item-header {
+    margin-bottom: 12px !important;
+}
+
+.clock-warning-name {
+    font-weight: 700 !important;
+    color: #1f2937 !important;
+    font-size: 1.05rem !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-bottom: 8px !important;
+}
+
+.clock-warning-name i {
+    color: #10b981 !important;
+    width: 24px !important;
+    text-align: center !important;
+}
+
+.clock-warning-badges {
+    display: flex !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+}
+
+.clock-warning-role {
+    background: #dbeafe !important;
+    color: #1e40af !important;
+    padding: 4px 12px !important;
+    border-radius: 20px !important;
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+}
+
+.clock-warning-position {
+    background: #f3e8ff !important;
+    color: #7c3aed !important;
+    padding: 4px 12px !important;
+    border-radius: 20px !important;
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+}
+
+.clock-warning-times {
+    border-top: 1px solid #f3f4f6 !important;
+    padding-top: 12px !important;
+}
+
+.clock-in-info {
+    color: #6b7280 !important;
+    font-size: 0.9rem !important;
+    margin-bottom: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.clock-in-info i {
+    color: #10b981 !important;
+    width: 20px !important;
+    text-align: center !important;
+}
+
+.clock-out-status {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+    padding: 10px 12px !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    border: 1px solid #fca5a5 !important;
+}
+
+.clock-out-warning {
+    color: #b91c1c !important;
+    font-weight: 700 !important;
+}
+
+/* [6] INSTRUCTION */
+.clock-warning-instruction {
+    background: #f0f9ff !important;
+    border: 2px solid #0ea5e9 !important;
+    border-radius: 12px !important;
+    padding: 15px !important;
+    display: flex !important;
+    gap: 15px !important;
+    align-items: flex-start !important;
+    margin-top: 20px !important;
+}
+
+.clock-warning-instruction-icon {
+    font-size: 1.5rem !important;
+    color: #0ea5e9 !important;
+    flex-shrink: 0 !important;
+}
+
+.clock-warning-instruction-text {
+    flex: 1 !important;
+}
+
+.clock-warning-instruction-text p {
+    margin: 0 !important;
+    color: #0369a1 !important;
+    font-size: 0.95rem !important;
+    line-height: 1.5 !important;
+}
+
+.clock-warning-instruction-text strong {
+    color: #0c4a6e !important;
+}
+
+/* [7] FOOTER */
+.clock-warning-footer {
+    padding: 20px !important;
+    border-top: 1px solid #e5e7eb !important;
+    text-align: center !important;
+    background: #fef3c7 !important;
+}
+
+.clock-warning-close-btn {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    color: white !important;
+    border: none !important;
+    padding: 12px 30px !important;
+    border-radius: 10px !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    transition: all 0.3s ease !important;
+    min-width: 200px !important;
+}
+
+.clock-warning-close-btn:hover {
+    background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+}
+
+.clock-warning-close-btn:active {
+    transform: translateY(0) !important;
+}
+
+/* [8] SCROLLBAR STYLING */
+.clock-warning-list-container::-webkit-scrollbar {
+    width: 6px !important;
+}
+
+.clock-warning-list-container::-webkit-scrollbar-track {
+    background: #fef3c7 !important;
+    border-radius: 3px !important;
+}
+
+.clock-warning-list-container::-webkit-scrollbar-thumb {
+    background: #f59e0b !important;
+    border-radius: 3px !important;
+}
+
+.clock-warning-list-container::-webkit-scrollbar-thumb:hover {
+    background: #d97706 !important;
+}
+
+/* [9] ANIMATIONS */
+@keyframes clockWarningFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes clockWarningSlideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* [10] RESPONSIVE */
+@media (max-width: 768px) {
+    .clock-warning-overlay {
+        padding: 10px !important;
+    }
+    
+    .clock-warning-modal {
+        max-height: 90vh !important;
+        border-width: 3px !important;
+    }
+    
+    .clock-warning-header {
+        padding: 15px !important;
+    }
+    
+    .clock-warning-header h3 {
+        font-size: 1.1rem !important;
+    }
+    
+    .clock-warning-body {
+        padding: 20px 15px !important;
+    }
+    
+    .clock-warning-icon {
+        font-size: 36px !important;
+        margin-bottom: 10px !important;
+    }
+    
+    .clock-warning-title {
+        font-size: 1.1rem !important;
+    }
+    
+    .clock-warning-info {
+        padding: 10px 12px !important;
+        font-size: 0.9rem !important;
+    }
+    
+    .clock-warning-list-container {
+        padding: 12px !important;
+        max-height: 250px !important;
+    }
+    
+    .clock-warning-item {
+        padding: 12px !important;
+    }
+    
+    .clock-warning-name {
+        font-size: 1rem !important;
+    }
+    
+    .clock-in-info, 
+    .clock-out-status {
+        font-size: 0.85rem !important;
+    }
+    
+    .clock-warning-close-btn {
+        padding: 10px 20px !important;
+        font-size: 0.95rem !important;
+        min-width: 150px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .clock-warning-modal {
+        border-width: 2px !important;
+        border-radius: 12px !important;
+    }
+    
+    .clock-warning-title {
+        font-size: 1rem !important;
+    }
+    
+    .clock-warning-item {
+        padding: 10px !important;
+    }
+    
+    .clock-warning-badges {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 5px !important;
+    }
+    
+    .clock-warning-instruction {
+        flex-direction: column !important;
+        text-align: center !important;
+        gap: 10px !important;
+    }
+    
+    .clock-warning-close-btn {
+        width: 100% !important;
+        min-width: 100% !important;
+    }
+}
+/* ========== END OF CLOCK OUT WARNING POPUP ========== */
