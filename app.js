@@ -10922,48 +10922,48 @@ function createRequestPage() {
         <!-- Untuk KASIR: Form Request Multi-Item - DIMODIFIKASI -->
         ${isKasir ? `
         <div class="kasir-request-section">
-            <!-- Filter Section - URUTAN DIMODIFIKASI -->
-            <div class="search-filter-section">
-                <div class="filter-row">
-                    <!-- GROUP Filter (Urutan 1) -->
-                    <div class="filter-group">
-                        <label for="filterGroup"><i class="fas fa-layer-group"></i> Group:</label>
-                        <select id="filterGroup" class="group-select">
-                            <option value="">Semua Group</option>
-                        </select>
-                    </div>
-                    
-                    <!-- CATEGORY Filter (Urutan 2) -->
-                    <div class="filter-group">
-                        <label for="filterCategory"><i class="fas fa-tags"></i> Kategori:</label>
-                        <select id="filterCategory" class="category-select" disabled>
-                            <option value="">Pilih Group dulu</option>
-                        </select>
-                    </div>
-                    
-                    <!-- STATUS Filter (Urutan 3) -->
-                    <div class="filter-group">
-                        <label for="filterStatus"><i class="fas fa-check-circle"></i> Status:</label>
-                        <select id="filterStatus" class="status-select">
-                            <option value="all">Semua Status</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Search Box -->
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="searchInventory" placeholder="Ketik nama item atau SKU... (min. 2 karakter)">
-                        <button class="clear-search" id="clearSearchBtn" title="Clear search">
-                            <i class="fas fa-times"></i>
-                        </button>
-                        <button class="btn-search-action" id="applyFilterBtn">
-                            <i class="fas fa-filter"></i> Terapkan Filter
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <!-- Filter Section - 2 BARIS -->
+<div class="search-filter-section">
+    <!-- BARIS 1: 3 Filter -->
+    <div class="filter-row-top">
+        <div class="filter-group">
+            <label for="filterGroup"><i class="fas fa-layer-group"></i> Group:</label>
+            <select id="filterGroup" class="group-select">
+                <option value="">Semua Group</option>
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="filterCategory"><i class="fas fa-tags"></i> Kategori:</label>
+            <select id="filterCategory" class="category-select" disabled>
+                <option value="">Pilih Group dulu</option>
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="filterStatus"><i class="fas fa-check-circle"></i> Status:</label>
+            <select id="filterStatus" class="status-select">
+                <option value="all">Semua Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+            </select>
+        </div>
+    </div>
+    
+    <!-- BARIS 2: Search + Filter Button -->
+    <div class="filter-row-bottom">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInventory" placeholder="Cari nama item atau SKU...">
+            <button class="clear-search" id="clearSearchBtn" title="Clear search">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <button class="btn-search-action" id="applyFilterBtn">
+            <i class="fas fa-filter"></i> Terapkan Filter
+        </button>
+    </div>
+</div>
             
             <!-- Inventory List Table - DIMODIFIKASI: Scroll Horizontal -->
             <div class="inventory-table-section">
