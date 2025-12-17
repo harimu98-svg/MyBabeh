@@ -9314,7 +9314,7 @@ async function loadKasirStokData() {
         
         // Update UI
         updateKasirSummary(produkData || []);
-        displayRequestHistory(requestData || []);
+        displayRequestHistoryForKasir(requestData || []);
         
         // Load produk untuk dropdown modal
         await loadProdukForRequest();
@@ -9417,7 +9417,7 @@ function updateKasirSummary(products) {
 }
 
 // [12] Display request history untuk KASIR
-function displayRequestHistory(requests) {
+function displayRequestHistoryForKasir(requests) {
     const requestsList = document.getElementById('requestsList');
     if (!requestsList) return;
     
