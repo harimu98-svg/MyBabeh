@@ -8673,186 +8673,187 @@ tr.stock-out .product-cell {
 }
 /* ========== END OF CLOCK OUT WARNING POPUP ========== */
 
-/* ========== DESKTOP FIXES FOR REQUEST MODULE ========== */
+/* ========== PERMANENT DESKTOP FIX CSS ========== */
+/* Tambahkan di akhir style.css, sebelum penutup */
 
-/* Fix untuk desktop: layout lebih luas */
-@media (min-width: 769px) {
-    /* Container lebih luas di desktop */
-    #requestPage .stok-content,
+/* Force desktop layout */
+@media (min-width: 768px) {
+    /* TABLE FULL WIDTH FIX */
+    #requestPage .items-table,
+    #requestPage .pending-table,
+    #requestPage .history-table,
+    #requestPage .inventory-table {
+        width: 100% !important;
+        min-width: calc(100vw - 100px) !important;
+        table-layout: auto !important;
+    }
+    
+    #requestPage .table-wrapper,
+    #requestPage .pending-table-container,
+    #requestPage .history-table-container,
+    #requestPage .inventory-table-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* FULL WIDTH CONTAINERS */
+    #requestPage .owner-request-section,
     #requestPage .kasir-request-section,
-    #requestPage .owner-request-section {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 20px;
+    #requestPage .stok-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 20px 40px !important;
+        margin: 0 auto !important;
+        box-sizing: border-box !important;
     }
     
-    /* Pending requests container lebih luas */
-    #requestPage .pending-requests-container {
-        padding: 25px;
+    #requestPage .pending-requests-section,
+    #requestPage .request-history-section,
+    #requestPage .kasir-history-section {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 0 30px 0 !important;
+        padding: 0 !important;
     }
     
-    /* Request card lebih baik di desktop */
-    #requestPage .request-card {
-        margin-bottom: 25px;
-        border-radius: 12px;
+    /* BUTTON COLORS PERMANENT */
+    #requestPage .btn-approve-item,
+    #requestPage .btn-approve-all,
+    #requestPage .btn-approve {
+        background: linear-gradient(135deg, #28a745, #20c997) !important;
+        background-color: #28a745 !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 6px !important;
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 4px !important;
+        cursor: pointer !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        transition: all 0.2s !important;
     }
     
-    /* Header info lebih rapi */
-    #requestPage .request-info-compact {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 20px;
-        padding: 15px;
-        background: #f8f9fa;
-        border-radius: 8px;
-        margin-bottom: 15px;
+    #requestPage .btn-reject-item,
+    #requestPage .btn-reject-all,
+    #requestPage .btn-reject {
+        background: linear-gradient(135deg, #dc3545, #fd7e14) !important;
+        background-color: #dc3545 !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 6px !important;
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 4px !important;
+        cursor: pointer !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        transition: all 0.2s !important;
     }
     
-    /* Table wrapper lebih baik di desktop */
+    #requestPage .btn-view-item,
+    #requestPage .btn-view {
+        background: linear-gradient(135deg, #6c757d, #495057) !important;
+        background-color: #6c757d !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 6px !important;
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 4px !important;
+        cursor: pointer !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        transition: all 0.2s !important;
+    }
+    
+    /* HOVER EFFECTS */
+    #requestPage .btn-action:hover:not(:disabled),
+    #requestPage .btn-approve-item:hover:not(:disabled),
+    #requestPage .btn-reject-item:hover:not(:disabled),
+    #requestPage .btn-view-item:hover:not(:disabled) {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+        filter: brightness(1.1) !important;
+    }
+    
+    /* ACTION BUTTONS CONTAINER */
+    #requestPage .action-buttons-row,
+    #requestPage .action-buttons {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 8px !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        flex-wrap: nowrap !important;
+        min-width: 120px !important;
+    }
+    
+    /* TABLE HEADER - SOLID COLOR */
+    #requestPage thead th {
+        background: #667eea !important;
+        background-image: none !important;
+        color: white !important;
+        font-weight: 600 !important;
+        padding: 16px 20px !important;
+        border: none !important;
+        text-transform: uppercase !important;
+        font-size: 13px !important;
+        letter-spacing: 0.5px !important;
+    }
+    
+    /* TABLE WRAPPER BORDER (1 SAJA) */
     #requestPage .table-wrapper {
-        border-radius: 10px;
-        box-shadow: 0 2px 15px rgba(0,0,0,0.08);
-        border: 1px solid #e0e0e0;
-        margin: 20px 0;
+        border: 1px solid #e0e0e0 !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
+        margin: 15px 0 !important;
     }
     
-    /* Items table lebih lebar di desktop */
-    #requestPage .items-table {
-        min-width: 900px;
-        font-size: 14px;
-    }
-    
-    #requestPage .items-table th {
-        padding: 18px 24px;
-        font-size: 14px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-bottom: none;
-    }
-    
-    #requestPage .items-table td {
-        padding: 16px 24px;
-        font-size: 14px;
-    }
-    
-    /* Action buttons lebih besar di desktop */
-    #requestPage .action-buttons-row {
-        gap: 10px;
-        justify-content: center;
-    }
-    
-    #requestPage .action-buttons-row .btn-action {
-        width: 36px;
-        height: 36px;
-        font-size: 14px;
-        border-radius: 8px;
-        transition: all 0.3s ease;
-    }
-    
-    #requestPage .action-buttons-row .btn-action:hover:not(:disabled) {
-        transform: translateY(-3px) scale(1.05);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    }
-    
-    /* Tombol warna konsisten dengan stok module */
-    #requestPage .btn-approve-item {
-        background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+    /* REMOVE EXTRA BORDERS */
+    #requestPage table,
+    #requestPage td,
+    #requestPage th,
+    #requestPage tr {
         border: none !important;
+        outline: none !important;
     }
     
-    #requestPage .btn-reject-item {
-        background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%) !important;
-        border: none !important;
-    }
-    
-    #requestPage .btn-view-item {
-        background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important;
-        border: none !important;
-    }
-    
-    #requestPage .btn-approve-all {
-        background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%) !important;
-        border: none !important;
-    }
-    
-    #requestPage .btn-reject-all {
-        background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%) !important;
-        border: none !important;
-    }
-    
-    /* Status badges di desktop */
-    #requestPage .status-pill {
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-    
-    /* Item name lebih jelas di desktop */
-    #requestPage .item-name {
-        font-size: 15px;
-        font-weight: 600;
-        color: #2d3436;
-    }
-    
-    #requestPage .item-sku {
-        font-size: 13px;
-        color: #6c757d;
-    }
-    
-    /* Footer table di desktop */
-    #requestPage .items-table tfoot {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    }
-    
-    #requestPage .items-table tfoot td {
-        padding: 18px 24px;
-        font-size: 15px;
-        color: #495057;
+    #requestPage td {
+        border-bottom: 1px solid #f0f0f0 !important;
     }
 }
 
-/* Fix khusus untuk desktop layar sangat lebar */
+/* FORCE FULL WIDTH ON LARGE DESKTOP */
 @media (min-width: 1200px) {
-    #requestPage .stok-content,
-    #requestPage .kasir-request-section,
-    #requestPage .owner-request-section {
-        max-width: 1400px;
-        padding: 30px;
-    }
-    
-    #requestPage .items-table {
-        min-width: 1000px;
-    }
-    
-    #requestPage .items-table th {
-        padding: 20px 30px;
-    }
-    
-    #requestPage .items-table td {
-        padding: 18px 30px;
+    #requestPage .items-table,
+    #requestPage .pending-table {
+        min-width: calc(100vw - 120px) !important;
     }
 }
 
-/* Fix untuk tombol yang mungkin terkena override CSS lain */
-#requestPage .btn-action i {
-    font-size: 14px !important;
+/* IMPORTANT OVERRIDES */
+#requestPage .owner-request-section {
+    max-width: none !important;
 }
 
-/* Pastikan warna tombol tidak di-override */
-#requestPage .btn-approve-item,
-#requestPage .btn-approve-all {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
-    color: white !important;
+#requestPage .table-wrapper {
+    max-width: none !important;
 }
-
-#requestPage .btn-reject-item,
-#requestPage .btn-reject-all {
-    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%) !important;
-    color: white !important;
-}
-
-#requestPage .btn-view-item {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important;
-    color: white !important;
-}
+/* ========== END PERMANENT DESKTOP FIX ========== */
