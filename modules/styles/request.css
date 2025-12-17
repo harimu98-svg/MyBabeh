@@ -1742,3 +1742,164 @@
     font-size: 13px;
     font-weight: 600;
     }
+/* ========== PERBAIKAN TOMBOL APPROVE ALL & REJECT ALL ========== */
+
+/* Container untuk tombol all */
+.action-buttons-row .btn-approve-all,
+.action-buttons-row .btn-reject-all {
+    min-width: 100px !important; /* Lebar minimum yang cukup */
+    height: 36px !important;
+    padding: 8px 12px !important;
+    border: none !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    color: white !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+}
+
+/* Warna spesifik untuk tombol all */
+.btn-approve-all {
+    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%) !important;
+}
+
+.btn-reject-all {
+    background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%) !important;
+}
+
+/* Hover effects */
+.btn-approve-all:hover,
+.btn-reject-all:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Icon dalam tombol all */
+.btn-approve-all i,
+.btn-reject-all i {
+    font-size: 12px !important;
+    flex-shrink: 0 !important;
+}
+
+/* Perbaikan untuk container tombol all di footer */
+.items-table tfoot .action-buttons-row {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 10px !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
+}
+
+/* Perbaikan khusus untuk kolom footer (tombol all) */
+.items-table tfoot td:last-child {
+    min-width: 220px !important; /* Lebar minimum lebih besar untuk tombol all */
+    padding: 12px 15px !important;
+}
+
+/* Media query untuk tablet */
+@media (max-width: 992px) {
+    .action-buttons-row .btn-approve-all,
+    .action-buttons-row .btn-reject-all {
+        min-width: 90px !important;
+        height: 34px !important;
+        padding: 6px 10px !important;
+        font-size: 11px !important;
+        gap: 5px !important;
+    }
+    
+    .items-table tfoot td:last-child {
+        min-width: 200px !important;
+    }
+}
+
+/* Media query untuk mobile */
+@media (max-width: 768px) {
+    .action-buttons-row .btn-approve-all,
+    .action-buttons-row .btn-reject-all {
+        min-width: 85px !important;
+        height: 32px !important;
+        padding: 6px 8px !important;
+        font-size: 10px !important;
+        gap: 4px !important;
+    }
+    
+    .btn-approve-all i,
+    .btn-reject-all i {
+        font-size: 11px !important;
+    }
+    
+    .items-table tfoot td:last-child {
+        min-width: 180px !important;
+    }
+    
+    /* Pastikan container cukup untuk 2 tombol */
+    .items-table tfoot .action-buttons-row {
+        gap: 8px !important;
+    }
+}
+
+/* Media query untuk mobile kecil */
+@media (max-width: 480px) {
+    .action-buttons-row .btn-approve-all,
+    .action-buttons-row .btn-reject-all {
+        min-width: 80px !important;
+        height: 30px !important;
+        padding: 5px 6px !important;
+        font-size: 9px !important;
+        gap: 3px !important;
+    }
+    
+    /* Alternatif: hide text, hanya icon pada ukuran sangat kecil */
+    @media (max-width: 360px) {
+        .action-buttons-row .btn-approve-all span,
+        .action-buttons-row .btn-reject-all span {
+            display: none !important;
+        }
+        
+        .action-buttons-row .btn-approve-all,
+        .action-buttons-row .btn-reject-all {
+            min-width: 40px !important;
+            width: 40px !important;
+            padding: 5px !important;
+            justify-content: center !important;
+        }
+        
+        .btn-approve-all i,
+        .btn-reject-all i {
+            margin: 0 !important;
+            font-size: 12px !important;
+        }
+        
+        .items-table tfoot td:last-child {
+            min-width: 100px !important;
+        }
+        
+        .items-table tfoot .action-buttons-row {
+            gap: 5px !important;
+        }
+    }
+}
+
+/* Perbaikan untuk text overflow */
+.btn-approve-all .btn-text,
+.btn-reject-all .btn-text {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    max-width: 70px !important; /* Batas maksimum teks */
+    display: inline-block !important;
+    }
