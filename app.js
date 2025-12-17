@@ -392,12 +392,13 @@ function handleMenuClick(menuId) {
             showRequestPage(); // <-- TAMBAHKAN INI
             break;
         case 'libur':
+             showLiburPage(); // <-- TAMBAHKAN INI
+            break;
         case 'top':
         case 'sertifikasi':
             // Menu lain akan diimplementasikan nanti
             const menuTitles = {
-                'libur': 'Libur & Izin',
-                'top': 'TOP (Tools Ownership Program)',
+                     'top': 'TOP (Tools Ownership Program)',
                 'sertifikasi': 'Sertifikasi'
             };
             alert(`Menu "${menuTitles[menuId]}" akan diimplementasikan nanti.`);
