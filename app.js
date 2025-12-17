@@ -10879,9 +10879,9 @@ function createRequestPage() {
             <h2><i class="fas fa-comment-dots"></i> Request Barang</h2>
             <div class="header-actions">
                 ${isKasir ? `
-                    <button class="refresh-btn" id="refreshRequestsKasir">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
+                   <button class="refresh-btn" id="refreshRequestsKasir" title="Refresh">
+                    <i class="fas fa-sync-alt"></i>
+                    </button>`
                 ` : `
                     <button class="refresh-btn" id="refreshRequests">
                         <i class="fas fa-sync-alt"></i>
