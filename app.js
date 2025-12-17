@@ -12188,8 +12188,7 @@ function displayPendingRequestsForRequestModule(groupedRequests) {
     });
     
     pendingGrid.innerHTML = html;
-    // Setup event listeners
-    setupRequestTableActions();
+
     // Setup event listeners untuk tombol baru
     setupRequestItemActionButtons();
 }
@@ -12338,12 +12337,9 @@ async function approveSelectedItems(batchId) {
 
 // [28] Fungsi untuk approve all items
 async function approveAllItems(batchId) {
+    if (!confirm('Approve semua item dalam batch ini?')) return;
+    
     try {
-        const approveAll = confirm('Approve semua item dalam batch ini?');
-        
-        if (!approveAll) return;
-        
-        // Update all items in batch
         const { error } = await supabase
             .from('request_barang')
             .update({ 
@@ -12356,16 +12352,15 @@ async function approveAllItems(batchId) {
         
         if (error) throw error;
         
-        // Reload requests
-        await loadRequestsForOwner();
-        
-        showToast('✅ Semua item dalam batch berhasil di-approve!', 'success');
+        alert('Semua item dalam batch approved!');
+        loadRequestsForOwner();
         
     } catch (error) {
         console.error('Error approving all items:', error);
-        showToast(`❌ Gagal approve semua items: ${error.message}`, 'error');
+        alert('Gagal approve semua items: ' + error.message);
     }
 }
+
 
 // [29] Fungsi untuk reject selected items - BARU
 async function rejectSelectedItems(batchId) {
@@ -12414,35 +12409,36 @@ async function rejectSelectedItems(batchId) {
 
 // [30] Fungsi untuk reject request
 async function rejectRequest(batchId) {
+    const reason = prompt('Masukkan alasan penolakan untuk semua item:');
+    if (reason === null) return;
+    
+    if (!reason.trim()) {
+        alert('Harap masukkan alasan penolakan');
+        return;
+    }
+    
     try {
-        const rejectAll = confirm('Tolak semua item dalam batch ini?\n\nSemua item akan berstatus rejected.');
-        
-        if (!rejectAll) return;
-        
-        // Update all items in batch
         const { error } = await supabase
             .from('request_barang')
             .update({ 
                 status: 'rejected',
                 approved_at: new Date().toISOString(),
-                approved_by: currentKaryawanRequest.nama_karyawan
+                approved_by: currentKaryawanRequest.nama_karyawan,
+                notes: reason
             })
             .eq('batch_id', batchId)
             .eq('status', 'pending');
         
         if (error) throw error;
         
-        // Reload requests
-        await loadRequestsForOwner();
-        
-        showToast('❌ Batch request telah ditolak!', 'success');
+        alert('Batch request ditolak!');
+        loadRequestsForOwner();
         
     } catch (error) {
         console.error('Error rejecting request:', error);
-        showToast(`❌ Gagal reject request: ${error.message}`, 'error');
+        alert('Gagal reject request: ' + error.message);
     }
 }
-
 // [31] Check if batch is partially or fully approved
 async function checkBatchCompleteStatus(batchId) {
     try {
@@ -12575,7 +12571,135 @@ function formatRupiah(amount) {
     if (amount === 0 || !amount) return 'Rp 0';
     return 'Rp ' + amount.toLocaleString('id-ID');
 }
+// Setup event listeners untuk tombol item
+function setupRequestItemActionButtons() {
+    console.log('🔧 Setting up request item action buttons');
+    
+    // Approve per item
+    document.querySelectorAll('.btn-approve-item').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const itemId = this.dataset.itemId;
+            const batchId = this.dataset.batchId;
+            approveSingleItem(itemId, batchId);
+        });
+    });
+    
+    // Reject per item
+    document.querySelectorAll('.btn-reject-item').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const itemId = this.dataset.itemId;
+            const batchId = this.dataset.batchId;
+            rejectSingleItem(itemId, batchId);
+        });
+    });
+    
+    // View per item
+    document.querySelectorAll('.btn-view-item').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const itemId = this.dataset.itemId;
+            showItemDetail(itemId);
+        });
+    });
+    
+    // Approve all
+    document.querySelectorAll('.btn-approve-all').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const batchId = this.dataset.batchId;
+            approveAllItems(batchId);
+        });
+    });
+    
+    // Reject all
+    document.querySelectorAll('.btn-reject-all').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const batchId = this.dataset.batchId;
+            rejectRequest(batchId);
+        });
+    });
+}
 
+// Fungsi approve single item
+async function approveSingleItem(itemId, batchId) {
+    if (!confirm('Approve item ini?')) return;
+    
+    try {
+        const { error } = await supabase
+            .from('request_barang')
+            .update({ 
+                status: 'approved',
+                approved_at: new Date().toISOString(),
+                approved_by: currentKaryawanRequest.nama_karyawan
+            })
+            .eq('id', itemId);
+        
+        if (error) throw error;
+        
+        alert('Item approved!');
+        loadRequestsForOwner(); // Refresh data
+        
+    } catch (error) {
+        console.error('Error approving item:', error);
+        alert('Gagal approve item: ' + error.message);
+    }
+}
+
+// Fungsi reject single item
+async function rejectSingleItem(itemId, batchId) {
+    const reason = prompt('Masukkan alasan penolakan:');
+    if (reason === null) return;
+    
+    if (!reason.trim()) {
+        alert('Harap masukkan alasan penolakan');
+        return;
+    }
+    
+    try {
+        const { error } = await supabase
+            .from('request_barang')
+            .update({ 
+                status: 'rejected',
+                approved_at: new Date().toISOString(),
+                approved_by: currentKaryawanRequest.nama_karyawan,
+                notes: reason
+            })
+            .eq('id', itemId);
+        
+        if (error) throw error;
+        
+        alert('Item rejected!');
+        loadRequestsForOwner(); // Refresh data
+        
+    } catch (error) {
+        console.error('Error rejecting item:', error);
+        alert('Gagal reject item: ' + error.message);
+    }
+}
+
+// Fungsi show item detail
+async function showItemDetail(itemId) {
+    try {
+        const { data: item, error } = await supabase
+            .from('request_barang')
+            .select('*')
+            .eq('id', itemId)
+            .single();
+        
+        if (error) throw error;
+        
+        alert(`Detail Item:\n
+Nama: ${item.item}\n
+SKU: ${item.sku}\n
+Qty: ${item.qty}\n
+Harga: ${formatRupiah(item.unit_price)}\n
+Total: ${formatRupiah(item.total_price)}\n
+Status: ${item.status}\n
+Catatan: ${item.notes || '-'}`);
+        
+    } catch (error) {
+        console.error('Error showing item detail:', error);
+        alert('Gagal memuat detail item');
+    }
+}
 // [33] Global functions untuk onclick events
 window.adjustSelectedItemQty = adjustSelectedItemQty;
 window.updateSelectedItemQty = updateSelectedItemQty;
