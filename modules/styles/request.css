@@ -1514,53 +1514,102 @@
     white-space: nowrap;
 }
 
-/* Action buttons row */
+/* ========== PERBAIKAN UNTUK ACTION BUTTONS ========== */
+
+/* Action buttons container - FIXED */
 .action-buttons-row {
-    display: flex;
-    gap: 6px;
-    align-items: center;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    min-width: 180px !important;
 }
 
+/* Action button styling - FIXED */
 .btn-action {
-    width: 32px;
-    height: 32px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    transition: all 0.3s ease;
-    color: white;
+    width: 32px !important;
+    height: 32px !important;
+    border: none !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 13px !important;
+    transition: all 0.3s ease !important;
+    color: white !important;
+    flex-shrink: 0 !important; /* Penting: tidak menyusut */
+    padding: 0 !important; /* Reset padding */
+    margin: 0 !important; /* Reset margin */
 }
 
-.btn-action:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-/* Warna tombol sesuai fungsi */
+/* Warna tombol */
 .btn-approve-item {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
 }
 
 .btn-reject-item {
-    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%) !important;
 }
 
 .btn-view-item {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important;
 }
 
-.btn-approve-all {
-    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+/* Button hover effects */
+.btn-action:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
 }
 
-.btn-reject-all {
-    background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%);
+/* Perbaikan untuk sel td yang berisi action buttons */
+.items-table td:last-child {
+    min-width: 180px !important; /* Lebar minimum untuk kolom action */
+    white-space: nowrap !important;
 }
 
+/* Perbaikan untuk responsive design */
+@media (max-width: 768px) {
+    .action-buttons-row {
+        gap: 4px !important;
+        min-width: 140px !important;
+    }
+    
+    .btn-action {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 12px !important;
+    }
+    
+    /* Pastikan kolom action cukup lebar di mobile */
+    .items-table td:last-child {
+        min-width: 140px !important;
+    }
+    
+    /* Pastikan tabel tidak wrap di mobile */
+    .items-table {
+        min-width: 600px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .action-buttons-row {
+        gap: 3px !important;
+        min-width: 120px !important;
+    }
+    
+    .btn-action {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 11px !important;
+    }
+    
+    .items-table td:last-child {
+        min-width: 120px !important;
+    }
+}
 /* Item details */
 .item-name {
     font-weight: 500;
