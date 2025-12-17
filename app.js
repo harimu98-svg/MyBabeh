@@ -10951,18 +10951,17 @@ function createRequestPage() {
     </div>
     
     <!-- BARIS 2: Search + Filter Button -->
-    <div class="filter-row-bottom">
-        <div class="search-box">
-            <i class="fas fa-search"></i>
-            <input type="text" id="searchInventory" placeholder="Cari nama item atau SKU...">
-            <button class="clear-search" id="clearSearchBtn" title="Clear search">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <button class="btn-search-action" id="applyFilterBtn">
-            <i class="fas fa-filter"></i> Terapkan Filter
+<div class="filter-row-bottom" style="display: flex; gap: 10px; align-items: stretch;">
+    <div class="search-box" style="flex: 1;">
+        <i class="fas fa-search"></i>
+        <input type="text" id="searchInventory" placeholder="Cari item..." style="width: 100%;">
+        <button class="clear-search" id="clearSearchBtn" title="Clear search">
+            <i class="fas fa-times"></i>
         </button>
     </div>
+    <button class="btn-search-action" id="applyFilterBtn" style="flex-shrink: 0; min-width: 120px;">
+        <i class="fas fa-filter"></i> Terapkan
+    </button>
 </div>
             
             <!-- Inventory List Table - DIMODIFIKASI: Scroll Horizontal -->
