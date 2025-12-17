@@ -8260,8 +8260,227 @@ tr.stock-out .product-cell {
 #requestPage .btn-reject-all {
     background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%);
 }
-        
+  /* ========== FIX: TABLE FULL WIDTH DESKTOP ========== */
+/* PASTE di style.css bagian REQUEST atau di akhir file */
 
+/* Force desktop layout */
+@media (min-width: 768px) {
+    /* CONTAINER UTAMA - FULL WIDTH */
+    #requestPage .owner-request-section,
+    #requestPage .kasir-request-section {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding-left: 40px !important;
+        padding-right: 40px !important;
+        box-sizing: border-box !important;
+        position: relative !important;
+        left: 50% !important;
+        right: 50% !important;
+        margin-left: -50vw !important;
+        margin-right: -50vw !important;
+    }
+    
+    /* SECTION DALAMNYA - FULL WIDTH */
+    #requestPage .pending-requests-section,
+    #requestPage .request-history-section,
+    #requestPage .kasir-history-section {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    
+    /* TABLE CONTAINER - SCROLL HORIZONTAL */
+    #requestPage .pending-requests-container,
+    #requestPage .history-table-container,
+    #requestPage .inventory-table-container,
+    #requestPage .table-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+    
+    /* TABLE SENDIRI - VERY WIDE */
+    #requestPage table.items-table,
+    #requestPage table.pending-table,
+    #requestPage table.history-table,
+    #requestPage table.inventory-table,
+    #requestPage table {
+        min-width: calc(100vw - 80px) !important;
+        width: 100% !important;
+        table-layout: auto !important;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+    }
+    
+    /* Ensure table cells don't wrap */
+    #requestPage table th,
+    #requestPage table td {
+        white-space: nowrap !important;
+        min-width: 100px !important;
+    }
+}      
+/* ========== FIX: BUTTON COLORS & LAYOUT ========== */
+
+/* BUTTON COLORS - HIGH SPECIFICITY */
+#requestPage .action-buttons-row .btn-approve-item,
+#requestPage .action-buttons-row .btn-approve-all,
+#requestPage td .btn-approve-item,
+#requestPage td .btn-approve-all {
+    background-color: #28a745 !important;
+    background-image: none !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 6px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    margin: 0 4px !important;
+    transition: all 0.2s ease !important;
+}
+
+#requestPage .action-buttons-row .btn-reject-item,
+#requestPage .action-buttons-row .btn-reject-all,
+#requestPage td .btn-reject-item,
+#requestPage td .btn-reject-all {
+    background-color: #dc3545 !important;
+    background-image: none !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 6px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    margin: 0 4px !important;
+    transition: all 0.2s ease !important;
+}
+
+#requestPage .action-buttons-row .btn-view-item,
+#requestPage td .btn-view-item {
+    background-color: #6c757d !important;
+    background-image: none !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 6px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    margin: 0 4px !important;
+    transition: all 0.2s ease !important;
+}
+
+/* ACTION BUTTONS CONTAINER - HORIZONTAL */
+#requestPage .action-buttons-row,
+#requestPage td:has(.btn-action),
+#requestPage td:has(.btn-approve-item),
+#requestPage td:has(.btn-reject-item) {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-wrap: nowrap !important;
+    min-width: 120px !important;
+    padding: 8px 4px !important;
+}
+
+/* HOVER EFFECTS */
+#requestPage .btn-action:hover,
+#requestPage .btn-approve-item:hover,
+#requestPage .btn-reject-item:hover,
+#requestPage .btn-view-item:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+    filter: brightness(1.1) !important;
+    }
+
+    /* ========== FIX: TABLE HEADER SOLID COLOR ========== */
+
+#requestPage thead th,
+#requestPage table.items-table thead th,
+#requestPage table.pending-table thead th {
+    background-color: #667eea !important;
+    background-image: none !important;
+    color: white !important;
+    font-weight: 600 !important;
+    padding: 16px 20px !important;
+    border: none !important;
+    text-transform: uppercase !important;
+    font-size: 13px !important;
+    letter-spacing: 0.5px !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+}
+
+/* Remove gradients from all headers */
+#requestPage [style*="gradient"],
+#requestPage [style*="linear-gradient"] {
+    background-image: none !important;
+}
+    /* ========== FIX: CLEAN BORDERS ========== */
+
+/* Only 1 border on table wrapper */
+#requestPage .table-wrapper {
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+    margin: 15px 0 !important;
+}
+
+/* Remove all other borders */
+#requestPage table,
+#requestPage table td,
+#requestPage table th,
+#requestPage table tr,
+#requestPage .request-card,
+#requestPage .pending-requests-section,
+#requestPage .request-history-section {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Only bottom border for table rows */
+#requestPage table tbody tr {
+    border-bottom: 1px solid #f0f0f0 !important;
+}
+
+#requestPage table tbody tr:last-child {
+    border-bottom: none !important;
+}
 /* ========== CLOCK OUT WARNING POPUP - CSS KAS ========== */
 
 
@@ -8673,187 +8892,4 @@ tr.stock-out .product-cell {
 }
 /* ========== END OF CLOCK OUT WARNING POPUP ========== */
 
-/* ========== PERMANENT DESKTOP FIX CSS ========== */
-/* Tambahkan di akhir style.css, sebelum penutup */
 
-/* Force desktop layout */
-@media (min-width: 768px) {
-    /* TABLE FULL WIDTH FIX */
-    #requestPage .items-table,
-    #requestPage .pending-table,
-    #requestPage .history-table,
-    #requestPage .inventory-table {
-        width: 100% !important;
-        min-width: calc(100vw - 100px) !important;
-        table-layout: auto !important;
-    }
-    
-    #requestPage .table-wrapper,
-    #requestPage .pending-table-container,
-    #requestPage .history-table-container,
-    #requestPage .inventory-table-container {
-        width: 100% !important;
-        max-width: 100% !important;
-        overflow-x: auto !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    
-    /* FULL WIDTH CONTAINERS */
-    #requestPage .owner-request-section,
-    #requestPage .kasir-request-section,
-    #requestPage .stok-content {
-        width: 100% !important;
-        max-width: 100% !important;
-        padding: 20px 40px !important;
-        margin: 0 auto !important;
-        box-sizing: border-box !important;
-    }
-    
-    #requestPage .pending-requests-section,
-    #requestPage .request-history-section,
-    #requestPage .kasir-history-section {
-        width: 100% !important;
-        max-width: 100% !important;
-        margin: 0 0 30px 0 !important;
-        padding: 0 !important;
-    }
-    
-    /* BUTTON COLORS PERMANENT */
-    #requestPage .btn-approve-item,
-    #requestPage .btn-approve-all,
-    #requestPage .btn-approve {
-        background: linear-gradient(135deg, #28a745, #20c997) !important;
-        background-color: #28a745 !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 6px !important;
-        width: 36px !important;
-        height: 36px !important;
-        min-width: 36px !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin: 0 4px !important;
-        cursor: pointer !important;
-        font-size: 14px !important;
-        font-weight: 600 !important;
-        transition: all 0.2s !important;
-    }
-    
-    #requestPage .btn-reject-item,
-    #requestPage .btn-reject-all,
-    #requestPage .btn-reject {
-        background: linear-gradient(135deg, #dc3545, #fd7e14) !important;
-        background-color: #dc3545 !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 6px !important;
-        width: 36px !important;
-        height: 36px !important;
-        min-width: 36px !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin: 0 4px !important;
-        cursor: pointer !important;
-        font-size: 14px !important;
-        font-weight: 600 !important;
-        transition: all 0.2s !important;
-    }
-    
-    #requestPage .btn-view-item,
-    #requestPage .btn-view {
-        background: linear-gradient(135deg, #6c757d, #495057) !important;
-        background-color: #6c757d !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 6px !important;
-        width: 36px !important;
-        height: 36px !important;
-        min-width: 36px !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin: 0 4px !important;
-        cursor: pointer !important;
-        font-size: 14px !important;
-        font-weight: 600 !important;
-        transition: all 0.2s !important;
-    }
-    
-    /* HOVER EFFECTS */
-    #requestPage .btn-action:hover:not(:disabled),
-    #requestPage .btn-approve-item:hover:not(:disabled),
-    #requestPage .btn-reject-item:hover:not(:disabled),
-    #requestPage .btn-view-item:hover:not(:disabled) {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-        filter: brightness(1.1) !important;
-    }
-    
-    /* ACTION BUTTONS CONTAINER */
-    #requestPage .action-buttons-row,
-    #requestPage .action-buttons {
-        display: flex !important;
-        flex-direction: row !important;
-        gap: 8px !important;
-        align-items: center !important;
-        justify-content: flex-start !important;
-        flex-wrap: nowrap !important;
-        min-width: 120px !important;
-    }
-    
-    /* TABLE HEADER - SOLID COLOR */
-    #requestPage thead th {
-        background: #667eea !important;
-        background-image: none !important;
-        color: white !important;
-        font-weight: 600 !important;
-        padding: 16px 20px !important;
-        border: none !important;
-        text-transform: uppercase !important;
-        font-size: 13px !important;
-        letter-spacing: 0.5px !important;
-    }
-    
-    /* TABLE WRAPPER BORDER (1 SAJA) */
-    #requestPage .table-wrapper {
-        border: 1px solid #e0e0e0 !important;
-        border-radius: 8px !important;
-        overflow: hidden !important;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
-        margin: 15px 0 !important;
-    }
-    
-    /* REMOVE EXTRA BORDERS */
-    #requestPage table,
-    #requestPage td,
-    #requestPage th,
-    #requestPage tr {
-        border: none !important;
-        outline: none !important;
-    }
-    
-    #requestPage td {
-        border-bottom: 1px solid #f0f0f0 !important;
-    }
-}
-
-/* FORCE FULL WIDTH ON LARGE DESKTOP */
-@media (min-width: 1200px) {
-    #requestPage .items-table,
-    #requestPage .pending-table {
-        min-width: calc(100vw - 120px) !important;
-    }
-}
-
-/* IMPORTANT OVERRIDES */
-#requestPage .owner-request-section {
-    max-width: none !important;
-}
-
-#requestPage .table-wrapper {
-    max-width: none !important;
-}
-/* ========== END PERMANENT DESKTOP FIX ========== */
