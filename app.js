@@ -5503,80 +5503,174 @@ async function checkClockOutStatus() {
         return { semuaClockOut: true, karyawanBelumClockOut: [] };
     }
 }
-// [43] Fungsi untuk tampilkan popup clock out warning
+ out warning - VERSI FINAL DIPERBAIKI
 function showClockOutWarningPopup(karyawanList) {
-    // Hapus popup sebelumnya jika ada
-    const existingPopup = document.getElementById('clockOutWarningPopup');
-    if (existingPopup) existingPopup.remove();
+    console.log('🔄 showClockOutWarningPopup dipanggil dengan data:', karyawanList);
     
-    // Buat HTML untuk daftar karyawan
-    let karyawanListHTML = '';
-    karyawanList.forEach(karyawan => {
-        karyawanListHTML += `
-            <div class="karyawan-warning-item">
-                <div class="karyawan-info">
-                    <div class="karyawan-name">
-                        <i class="fas fa-user"></i> ${karyawan.nama}
+    try {
+        // ========== FIX 1: HAPUS SEMUA POPUP/MODAL SEBELUMNYA ==========
+        // Hapus berdasarkan ID
+        const existingPopup = document.getElementById('clockOutWarningPopup');
+        if (existingPopup && existingPopup.parentNode) {
+            existingPopup.remove();
+            console.log('🧹 Hapus popup sebelumnya berdasarkan ID');
+        }
+        
+        // Hapus berdasarkan class modal-overlay (kecuali setoranModal)
+        document.querySelectorAll('.modal-overlay').forEach(el => {
+            if (el && el.parentNode && el.id !== 'setoranModal' && el.id !== 'clockOutWarningPopup') {
+                el.remove();
+                console.log('🧹 Hapus modal overlay lain');
+            }
+        });
+        
+        // Validasi input
+        if (!karyawanList || karyawanList.length === 0) {
+            console.error('❌ Data karyawan kosong!');
+            return;
+        }
+        
+        // ========== FIX 2: DAPATKAN DATA KAS UNTUK DISPLAY ==========
+        const outlet = kasState.selectedOutlet || currentUserOutletKas || 'N/A';
+        const tanggal = kasState.selectedTanggal || 'N/A';
+        
+        // ========== FIX 3: BUAT POPUP DENGAN INLINE STYLE UNIK ==========
+        // Pakai class unik "clock-warning" untuk menghindari CSS conflict
+        const popupHTML = `
+            <div id="clockOutWarningPopup" class="clock-warning-overlay">
+                <div class="clock-warning-modal">
+                    <!-- Header -->
+                    <div class="clock-warning-header">
+                        <h3>
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            PERINGATAN: Clock Out Belum Lengkap
+                        </h3>
                     </div>
-                    <div class="karyawan-details">
-                        <span class="role-badge">${karyawan.role}</span>
-                        <span class="posisi-badge">${karyawan.posisi}</span>
+                    
+                    <!-- Body -->
+                    <div class="clock-warning-body">
+                        <!-- Icon & Title -->
+                        <div class="clock-warning-icon-section">
+                            <div class="clock-warning-icon">
+                                <i class="fas fa-user-clock"></i>
+                            </div>
+                            <h4 class="clock-warning-title">
+                                ${karyawanList.length} Karyawan Belum Clock Out!
+                            </h4>
+                            <div class="clock-warning-info">
+                                <p><i class="fas fa-calendar-day"></i> Tanggal: <strong>${tanggal}</strong></p>
+                                <p><i class="fas fa-store"></i> Outlet: <strong>${outlet}</strong></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Karyawan List -->
+                        <div class="clock-warning-list-container">
+                            <div class="clock-warning-list">
+                                ${karyawanList.map((karyawan, index) => `
+                                    <div class="clock-warning-item" data-index="${index}">
+                                        <div class="clock-warning-item-header">
+                                            <div class="clock-warning-name">
+                                                <i class="fas fa-user"></i> ${karyawan.nama || 'N/A'}
+                                            </div>
+                                            <div class="clock-warning-badges">
+                                                <span class="clock-warning-role">${karyawan.role || 'N/A'}</span>
+                                                <span class="clock-warning-position">${karyawan.posisi || 'N/A'}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="clock-warning-times">
+                                            <div class="clock-in-info">
+                                                <i class="fas fa-sign-in-alt"></i> Clock In: ${karyawan.clock_in || 'N/A'}
+                                            </div>
+                                            <div class="clock-out-status">
+                                                <i class="fas fa-exclamation-circle"></i> 
+                                                Clock Out: <span class="clock-out-warning">${karyawan.clock_out || 'BELUM'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <!-- Instruction -->
+                        <div class="clock-warning-instruction">
+                            <div class="clock-warning-instruction-icon">
+                                <i class="fas fa-info-circle"></i>
+                            </div>
+                            <div class="clock-warning-instruction-text">
+                                <p><strong>PENTING!</strong> Harap minta karyawan tersebut untuk melakukan <strong>Clock Out</strong> terlebih dahulu sebelum melanjutkan submit data KAS.</p>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="clock-in-time">
-                    <i class="fas fa-clock"></i> Clock In: ${karyawan.clock_in}
+                    
+                    <!-- Footer -->
+                    <div class="clock-warning-footer">
+                        <button id="closeClockOutPopup" class="clock-warning-close-btn">
+                            <i class="fas fa-times"></i> Tutup Peringatan
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
-    });
-    
-    const popupHTML = `
-        <div class="modal-overlay active" id="clockOutWarningPopup">
-            <div class="modal-content warning-modal">
-                <div class="modal-header warning-header">
-                    <h3><i class="fas fa-exclamation-triangle"></i> Peringatan Clock Out</h3>
-                </div>
-                <div class="modal-body">
-                    <div class="warning-icon">
-                        <i class="fas fa-user-clock"></i>
-                    </div>
-                    <div class="warning-message">
-                        <h4>Karyawan Belum Clock Out!</h4>
-                        <p>Berikut karyawan yang masih belum melakukan clock out untuk tanggal <strong>${kasState.selectedTanggal}</strong>:</p>
-                    </div>
-                    
-                    <div class="karyawan-warning-list">
-                        ${karyawanListHTML}
-                    </div>
-                    
-                    <div class="warning-instruction">
-                        <p><i class="fas fa-info-circle"></i> Harap minta karyawan untuk melakukan clock out terlebih dahulu sebelum submit KAS.</p>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button id="closeClockOutPopup" class="btn-modal-close">
-                        <i class="fas fa-times"></i> Tutup
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', popupHTML);
-    
-    // Event listener untuk tombol tutup
-    document.getElementById('closeClockOutPopup').addEventListener('click', () => {
-        document.getElementById('clockOutWarningPopup').remove();
-    });
-    
-    // Click outside to close
-    document.getElementById('clockOutWarningPopup').addEventListener('click', (e) => {
-        if (e.target.id === 'clockOutWarningPopup') {
-            document.getElementById('clockOutWarningPopup').remove();
-        }
-    });
+        
+        // Tambahkan ke body
+        document.body.insertAdjacentHTML('beforeend', popupHTML);
+        console.log('✅ Popup berhasil ditambahkan ke DOM');
+        
+        // ========== FIX 4: SETUP EVENT LISTENERS ==========
+        setTimeout(() => {
+            const popup = document.getElementById('clockOutWarningPopup');
+            const closeBtn = document.getElementById('closeClockOutPopup');
+            
+            if (!popup) {
+                console.error('❌ Popup tidak ditemukan setelah ditambahkan!');
+                return;
+            }
+            
+            // Close button event
+            if (closeBtn) {
+                closeBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('🔘 Tombol tutup diklik');
+                    popup.remove();
+                });
+                
+                // Auto focus untuk aksesibilitas
+                closeBtn.focus();
+            }
+            
+            // Close on click outside
+            popup.addEventListener('click', (e) => {
+                if (e.target === popup) {
+                    console.log('🌐 Klik di luar modal');
+                    popup.remove();
+                }
+            });
+            
+            // Close on ESC key
+            const escHandler = (e) => {
+                if (e.key === 'Escape' && popup.parentNode) {
+                    console.log('⌨️ ESC key pressed');
+                    popup.remove();
+                    document.removeEventListener('keydown', escHandler);
+                }
+            };
+            document.addEventListener('keydown', escHandler);
+            
+            console.log('🎯 Popup seharusnya terlihat sekarang!');
+            
+        }, 100); // Timeout untuk memastikan DOM sudah ready
+        
+    } catch (error) {
+        console.error('❌ Error dalam showClockOutWarningPopup:', error);
+        console.error('Stack trace:', error.stack);
+        
+        // Fallback: tampilkan alert jika popup gagal
+        const names = karyawanList.map(k => `• ${k.nama} (${k.role}) - Clock In: ${k.clock_in}`).join('\n');
+        alert(`⚠️ PERINGATAN CLOCK OUT\n\n${karyawanList.length} karyawan belum clock out:\n\n${names}\n\nHarap minta mereka clock out terlebih dahulu sebelum submit KAS.`);
+    }
 }
-
 // ========== SLIP PENGHASILAN ==========
 // =====================================
 
