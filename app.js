@@ -10871,8 +10871,8 @@ function createRequestPage() {
     requestPage.className = 'request-page';
     
     requestPage.innerHTML = `
-        `<!-- Header -->
-<header class="request-header">
+        <!-- Header -->
+    <header class="request-header">
     <button class="back-btn" id="backToMainFromRequest">
         <i class="fas fa-arrow-left"></i>
     </button>
@@ -10888,7 +10888,7 @@ function createRequestPage() {
             </button>
         `}
     </div>
-</header>`
+</header>
         
         <!-- Info Header -->
         <div class="request-info-header">
