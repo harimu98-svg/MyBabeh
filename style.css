@@ -8156,7 +8156,7 @@ tr.stock-out .product-cell {
     .btn-search-action {
         width: 100%;
     }
-  
+}
    /* ========== REQUEST TABLE STYLING (SAMA SEPERTI STOK) ========== */
 
 /* Container tabel */
@@ -8322,6 +8322,7 @@ tr.stock-out .product-cell {
         height: 28px;
         font-size: 11px;
     }
+}
 /* ========== CLOCK OUT WARNING POPUP - CSS KAS ========== */
 /* [1] OVERLAY - Pakai class unik */
 .clock-warning-overlay {
