@@ -8848,5 +8848,79 @@ tr.stock-out .product-cell {
     }
 }
 /* ========== END OF CLOCK OUT WARNING POPUP ========== */
+/* ========== EMERGENCY OVERRIDE FOR REQUEST MODULE ========== */
+/* EXTREME SPECIFICITY untuk pastikan styling diterapkan */
 
+#requestPage .action-buttons-row .btn-approve-item,
+#requestPage .action-buttons-row .btn-reject-item,
+#requestPage .action-buttons-row .btn-view-item,
+#requestPage .action-buttons-row .btn-approve-all,
+#requestPage .action-buttons-row .btn-reject-all {
+    all: unset !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    padding: 0 !important;
+    margin: 0 4px !important;
+    border: none !important;
+    border-radius: 6px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: white !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+#requestPage .action-buttons-row .btn-approve-item {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+}
+
+#requestPage .action-buttons-row .btn-reject-item {
+    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%) !important;
+}
+
+#requestPage .action-buttons-row .btn-view-item {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important;
+}
+
+#requestPage .action-buttons-row .btn-approve-all {
+    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%) !important;
+    padding: 8px 15px !important;
+    width: auto !important;
+    min-width: 120px !important;
+}
+
+#requestPage .action-buttons-row .btn-reject-all {
+    background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%) !important;
+    padding: 8px 15px !important;
+    width: auto !important;
+    min-width: 120px !important;
+}
+
+/* Hover effects */
+#requestPage .action-buttons-row .btn-action:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+}
+
+/* Table container fix */
+#requestPage .table-wrapper {
+    width: 100% !important;
+    overflow-x: auto !important;
+    border-radius: 8px !important;
+    border: 1px solid #e9ecef !important;
+    background: white !important;
+    margin-top: 10px !important;
+}
+
+#requestPage .items-table {
+    width: 100% !important;
+    min-width: 800px !important;
+    border-collapse: collapse !important;
+    background: white !important;
+}
 
