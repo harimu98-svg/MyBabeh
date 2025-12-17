@@ -12038,12 +12038,17 @@ function groupRequestsByBatch(requests) {
     return Object.values(grouped);
 }
 
-// [24] Display pending requests untuk OWNER - REQUEST MODULE (RENAMED)
+// [24] Display pending requests for REQUEST MODULE - PERBAIKAN
 function displayPendingRequestsForRequestModule(groupedRequests) {
+    console.log('📦 REQUEST MODULE: displayPendingRequestsForRequestModule called');
+    
     const pendingGrid = document.getElementById('pendingRequestsGrid');
     const pendingCountEl = document.getElementById('pendingCount');
     
-    if (!pendingGrid) return;
+    if (!pendingGrid) {
+        console.error('pendingRequestsGrid not found');
+        return;
+    }
     
     // Filter hanya yang status pending
     const pendingRequests = groupedRequests.filter(group => group.status === 'pending');
@@ -12071,44 +12076,33 @@ function displayPendingRequestsForRequestModule(groupedRequests) {
         const formattedDate = date.toLocaleDateString('id-ID', {
             day: 'numeric',
             month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+            year: 'numeric'
         });
         
         html += `
             <div class="request-card" data-batch-id="${group.batch_id}">
                 <div class="request-card-header">
-                    <div class="request-id">
-                        <i class="fas fa-hashtag"></i>
-                        <span>Batch: ${group.batch_id.substring(0, 8)}...</span>
-                    </div>
-                    <div class="request-date">
-                        <i class="far fa-clock"></i>
-                        <span>${formattedDate}</span>
+                    <div class="request-info-compact">
+                        <div class="request-id">
+                            <i class="fas fa-hashtag"></i>
+                            <span>Batch: ${group.batch_id.substring(0, 8)}...</span>
+                        </div>
+                        <div class="request-date">
+                            <i class="far fa-clock"></i>
+                            <span>${formattedDate}</span>
+                        </div>
+                        <div class="request-outlet">
+                            <i class="fas fa-store"></i>
+                            <span>${group.outlet || '-'}</span>
+                        </div>
+                        <div class="request-user">
+                            <i class="fas fa-user"></i>
+                            <span>${group.karyawan || '-'}</span>
+                        </div>
                     </div>
                 </div>
                 
                 <div class="request-card-body">
-                    <div class="request-info">
-                        <div class="info-item">
-                            <i class="fas fa-store"></i>
-                            <span>${group.outlet || '-'}</span>
-                        </div>
-                        <div class="info-item">
-                            <i class="fas fa-user"></i>
-                            <span>${group.karyawan || '-'}</span>
-                        </div>
-                        <div class="info-item">
-                            <i class="fas fa-box"></i>
-                            <span>${group.total_items} items</span>
-                        </div>
-                        <div class="info-item">
-                            <i class="fas fa-calculator"></i>
-                            <span>Total: ${formatRupiah(group.total_amount)}</span>
-                        </div>
-                    </div>
-                    
                     ${group.notes ? `
                     <div class="request-notes">
                         <i class="fas fa-sticky-note"></i>
@@ -12116,31 +12110,23 @@ function displayPendingRequestsForRequestModule(groupedRequests) {
                     </div>
                     ` : ''}
                     
-                    <div class="request-items">
-                        <h5>Items Requested:</h5>
+                    <div class="request-items-table">
                         <div class="table-wrapper">
-                            <table class="items-table horizontal-scroll">
+                            <table class="items-table">
                                 <thead>
                                     <tr>
-                                        <th width="30px">
-                                            <input type="checkbox" class="select-all-checkbox" 
-                                                onchange="toggleSelectAllItems('${group.batch_id}', this.checked)">
-                                        </th>
+                                        <th width="40px">#</th>
                                         <th>Item</th>
                                         <th width="80px">Qty</th>
                                         <th width="120px">Harga</th>
                                         <th width="120px">Subtotal</th>
+                                        <th width="150px">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${group.items.map(item => `
+                                    ${group.items.map((item, index) => `
                                         <tr data-item-id="${item.id}" data-batch-id="${group.batch_id}">
-                                            <td>
-                                                <input type="checkbox" class="approve-checkbox" 
-                                                    data-item-id="${item.id}"
-                                                    data-batch-id="${group.batch_id}"
-                                                    onchange="toggleItemSelection('${item.id}', '${group.batch_id}', this.checked)">
-                                            </td>
+                                            <td>${index + 1}</td>
                                             <td>
                                                 <div class="item-name">${item.item}</div>
                                                 <div class="item-sku">SKU: ${item.sku}</div>
@@ -12148,33 +12134,64 @@ function displayPendingRequestsForRequestModule(groupedRequests) {
                                             <td>${item.qty} ${item.unit_type || 'pcs'}</td>
                                             <td>${formatRupiah(item.unit_price)}</td>
                                             <td>${formatRupiah(item.total_price)}</td>
+                                            <td>
+                                                <div class="action-buttons-row">
+                                                    <button class="btn-action btn-approve-item" 
+                                                            data-item-id="${item.id}"
+                                                            data-batch-id="${group.batch_id}"
+                                                            title="Approve Item">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                    <button class="btn-action btn-reject-item" 
+                                                            data-item-id="${item.id}"
+                                                            data-batch-id="${group.batch_id}"
+                                                            title="Reject Item">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                    <button class="btn-action btn-view-item" 
+                                                            data-item-id="${item.id}"
+                                                            title="View Details">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="3"><strong>Total:</strong></td>
+                                        <td></td>
+                                        <td><strong>${formatRupiah(group.total_amount)}</strong></td>
+                                        <td>
+                                            <div class="action-buttons-row">
+                                                <button class="btn-action btn-approve-all" 
+                                                        data-batch-id="${group.batch_id}"
+                                                        title="Approve All">
+                                                    <i class="fas fa-check-double"></i>
+                                                </button>
+                                                <button class="btn-action btn-reject-all" 
+                                                        data-batch-id="${group.batch_id}"
+                                                        title="Reject All">
+                                                    <i class="fas fa-ban"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tfoot>
                             </table>
                         </div>
                     </div>
-                </div>
-                
-                <div class="request-card-footer">
-                    <button class="btn-reject" onclick="rejectSelectedItems('${group.batch_id}')">
-                        <i class="fas fa-times"></i> Reject Selected
-                    </button>
-                    <button class="btn-reject-all" onclick="rejectRequest('${group.batch_id}')">
-                        <i class="fas fa-ban"></i> Reject All
-                    </button>
-                    <button class="btn-approve" onclick="approveSelectedItems('${group.batch_id}')">
-                        <i class="fas fa-check"></i> Approve Selected
-                    </button>
-                    <button class="btn-approve-all" onclick="approveAllItems('${group.batch_id}')">
-                        <i class="fas fa-check-double"></i> Approve All
-                    </button>
                 </div>
             </div>
         `;
     });
     
     pendingGrid.innerHTML = html;
+    // Setup event listeners
+    setupRequestTableActions();
+    // Setup event listeners untuk tombol baru
+    setupRequestItemActionButtons();
 }
 // [25] Display request history untuk Owner - DIMODIFIKASI
 function displayRequestHistory(requests) {
@@ -12573,6 +12590,146 @@ window.toggleInventoryItemSelection = toggleInventoryItemSelection;
 window.addSingleItemToRequest = addSingleItemToRequest;
 window.loadKasirHistory = loadKasirHistory;
 window.loadInventoryWithFilter = loadInventoryWithFilter;
+// ========== FUNGSI UNTUK PER ITEM ACTIONS ==========
 
+// [34] Setup event listeners untuk tombol
+function setupRequestTableActions() {
+    console.log('🔧 Setting up request table action buttons');
+    
+    // Approve per item
+    document.querySelectorAll('.btn-approve[data-item-id]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const itemId = this.dataset.itemId;
+            approveRequestItem(itemId);
+        });
+    });
+    
+    // Reject per item  
+    document.querySelectorAll('.btn-reject[data-item-id]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const itemId = this.dataset.itemId;
+            rejectRequestItem(itemId);
+        });
+    });
+    
+    // View per item
+    document.querySelectorAll('.btn-view[data-item-id]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const itemId = this.dataset.itemId;
+            showRequestItemDetail(itemId);
+        });
+    });
+    
+    // Approve all
+    document.querySelectorAll('.btn-approve-all').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const batchId = this.dataset.batchId;
+            approveAllItems(batchId);
+        });
+    });
+    
+    // Reject all
+    document.querySelectorAll('.btn-reject-all').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const batchId = this.dataset.batchId;
+            rejectRequest(batchId);
+        });
+    });
+}
+
+// [35] Approve single item
+async function approveRequestItem(itemId) {
+    if (!confirm('Approve item ini?')) return;
+    
+    try {
+        const { error } = await supabase
+            .from('request_barang')
+            .update({ 
+                status: 'approved',
+                approved_at: new Date().toISOString(),
+                approved_by: currentKaryawanRequest.nama_karyawan
+            })
+            .eq('id', itemId);
+        
+        if (error) throw error;
+        
+        showToast('✅ Item approved!', 'success');
+        setTimeout(() => loadRequestsForOwner(), 500);
+        
+    } catch (error) {
+        console.error('Error approving item:', error);
+        showToast(`❌ Gagal approve item: ${error.message}`, 'error');
+    }
+}
+
+// [36] Reject single item  
+async function rejectRequestItem(itemId) {
+    const reason = prompt('Masukkan alasan penolakan:');
+    if (reason === null) return;
+    
+    if (!reason.trim()) {
+        alert('Harap masukkan alasan penolakan');
+        return;
+    }
+    
+    try {
+        const { error } = await supabase
+            .from('request_barang')
+            .update({ 
+                status: 'rejected',
+                approved_at: new Date().toISOString(),
+                approved_by: currentKaryawanRequest.nama_karyawan,
+                notes: reason
+            })
+            .eq('id', itemId);
+        
+        if (error) throw error;
+        
+        showToast('❌ Item rejected!', 'success');
+        setTimeout(() => loadRequestsForOwner(), 500);
+        
+    } catch (error) {
+        console.error('Error rejecting item:', error);
+        showToast(`❌ Gagal reject item: ${error.message}`, 'error');
+    }
+}
+
+// [37] Show item detail
+async function showRequestItemDetail(itemId) {
+    try {
+        const { data: item, error } = await supabase
+            .from('request_barang')
+            .select('*')
+            .eq('id', itemId)
+            .single();
+        
+        if (error) throw error;
+        
+        // Tampilkan dalam modal sederhana
+        const detailHtml = `
+            <div style="padding: 20px; max-width: 500px;">
+                <h3 style="margin-top: 0;"><i class="fas fa-info-circle"></i> Detail Item</h3>
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-bottom: 15px;">
+                    <strong>Nama:</strong> <span>${item.item}</span>
+                    <strong>SKU:</strong> <code>${item.sku}</code>
+                    <strong>Qty:</strong> <span>${item.qty} ${item.unit_type || 'pcs'}</span>
+                    <strong>Harga:</strong> <span>${formatRupiah(item.unit_price)}</span>
+                    <strong>Total:</strong> <span>${formatRupiah(item.total_price)}</span>
+                    <strong>Status:</strong> <span class="status-pill ${getRequestStatusClass(item.status)}">${item.status}</span>
+                    <strong>Outlet:</strong> <span>${item.outlet || '-'}</span>
+                    <strong>Request By:</strong> <span>${item.karyawan || '-'}</span>
+                </div>
+                ${item.notes ? `<div><strong>Catatan:</strong><br>${item.notes}</div>` : ''}
+            </div>
+        `;
+        
+        // Tampilkan modal
+        showCustomModal('Detail Request Item', detailHtml);
+        
+    } catch (error) {
+        console.error('Error showing item detail:', error);
+        alert('Gagal memuat detail item');
+    }
+                }
 // ========== END OF REQUEST IMPLEMENTATION ==========
 // ========== END OF FILE ==========
