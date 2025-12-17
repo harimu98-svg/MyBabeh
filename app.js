@@ -9675,96 +9675,125 @@ async function loadOwnerStats(outletFilter, dateStart, dateEnd) {
     }
 }
 
-// [15] Display pending requests untuk OWNER
+// [15] Display pending requests untuk OWNER - FIXED VERSION
 function displayPendingRequests(requests) {
+    console.log('displayPendingRequests called with:', requests?.length, 'requests');
+    
     const pendingBody = document.getElementById('pendingRequestsBody');
     const pendingCount = document.getElementById('pendingRequestsCount');
     
-    if (!pendingBody) return;
+    if (!pendingBody) {
+        console.error('pendingRequestsBody element not found!');
+        return;
+    }
     
-    if (!requests || requests.length === 0) {
+    // Filter hanya yang pending
+    const pendingRequests = Array.isArray(requests) 
+        ? requests.filter(r => r.approval_status === 'pending') 
+        : [];
+    
+    console.log('Pending requests after filter:', pendingRequests.length);
+    
+    if (pendingRequests.length === 0) {
         pendingBody.innerHTML = `
             <tr>
                 <td colspan="8" class="no-data-cell">
                     <i class="fas fa-check-circle"></i>
-                    <p>Tidak ada data request</p>
+                    <p>Tidak ada request pending</p>
                 </td>
             </tr>
         `;
-        if (pendingCount) pendingCount.textContent = '0 requests';
+        if (pendingCount) {
+            pendingCount.textContent = '0 requests';
+        }
         return;
     }
     
     // Update count
-    const pendingOnly = requests.filter(r => r.approval_status === 'pending');
     if (pendingCount) {
-        pendingCount.textContent = `${pendingOnly.length} pending`;
+        pendingCount.textContent = `${pendingRequests.length} pending`;
     }
     
-    pendingBody.innerHTML = requests.map(request => {
-        const typeClass = request.stok_type === 'masuk' ? 'type-in' : 'type-out';
-        const typeText = request.stok_type === 'masuk' ? 'Masuk' : 'Keluar';
-        const statusClass = getApprovalStatusClass(request.approval_status);
-        const statusText = getApprovalStatusText(request.approval_status);
+    // Generate HTML
+    try {
+        const html = pendingRequests.map(request => {
+            const typeClass = request.stok_type === 'masuk' ? 'type-in' : 'type-out';
+            const typeText = request.stok_type === 'masuk' ? 'Masuk' : 'Keluar';
+            const statusClass = getApprovalStatusClass(request.approval_status);
+            const statusText = getApprovalStatusText(request.approval_status);
+            
+            // Check if already approved/rejected to disable buttons
+            const isActionable = request.approval_status === 'pending';
+            
+            return `
+                <tr data-id="${request.id}" data-status="${request.approval_status}">
+                    <td>${formatDateStok(request.tanggal)}</td>
+                    <td>${request.outlet || '-'}</td>
+                    <td>
+                        <div class="product-info">
+                            <strong>${request.nama_produk || 'No Name'}</strong>
+                            ${request.group_produk ? `<div class="product-group">${request.group_produk}</div>` : ''}
+                        </div>
+                    </td>
+                    <td>${request.updated_by || '-'}</td>
+                    <td>
+                        <span class="type-badge ${typeClass}">
+                            ${typeText}
+                        </span>
+                    </td>
+                    <td>
+                        <strong class="${typeClass}">
+                            ${request.stok_type === 'masuk' ? '+' : '-'}${Math.abs(request.qty_change || 0)}
+                        </strong>
+                    </td>
+                    <td>
+                        <span class="status-badge ${statusClass}">
+                            ${statusText}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            ${isActionable ? `
+                                <button class="btn-action btn-approve" data-id="${request.id}" 
+                                        title="Approve">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn-action btn-reject" data-id="${request.id}" 
+                                        title="Reject">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <button class="btn-action btn-view" data-id="${request.id}" 
+                                        title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            ` : `
+                                <button class="btn-action btn-view" data-id="${request.id}" 
+                                        title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            `}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
         
-        // Check if already approved/rejected to disable buttons
-        const isActionable = request.approval_status === 'pending';
+        pendingBody.innerHTML = html;
         
-        return `
-            <tr data-id="${request.id}" data-status="${request.approval_status}">
-                <td>${formatDateStok(request.tanggal)}</td>
-                <td>${request.outlet}</td>
-                <td>
-                    <div class="product-info">
-                        <strong>${request.nama_produk}</strong>
-                        <div class="product-group">${request.group_produk || '-'}</div>
-                    </div>
-                </td>
-                <td>${request.updated_by}</td>
-                <td>
-                    <span class="type-badge ${typeClass}">
-                        ${typeText}
-                    </span>
-                </td>
-                <td>
-                    <strong class="${typeClass}">
-                        ${request.stok_type === 'masuk' ? '+' : '-'}${Math.abs(request.qty_change)}
-                    </strong>
-                </td>
-                <td>
-                    <span class="status-badge ${statusClass}">
-                        ${statusText}
-                    </span>
-                </td>
-                <td>
-                    <div class="action-buttons">
-                        ${isActionable ? `
-                            <button class="btn-action btn-approve" data-id="${request.id}" 
-                                    title="Approve">
-                                <i class="fas fa-check"></i>
-                            </button>
-                            <button class="btn-action btn-reject" data-id="${request.id}" 
-                                    title="Reject">
-                                <i class="fas fa-times"></i>
-                            </button>
-                            <button class="btn-action btn-view" data-id="${request.id}" 
-                                    title="View Details">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        ` : `
-                            <button class="btn-action btn-view" data-id="${request.id}" 
-                                    title="View Details">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        `}
-                    </div>
+        // Add event listeners to action buttons
+        setupRequestActionButtons();
+        
+    } catch (error) {
+        console.error('Error in displayPendingRequests:', error);
+        pendingBody.innerHTML = `
+            <tr>
+                <td colspan="8" class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Error loading data: ${error.message}</p>
                 </td>
             </tr>
         `;
-    }).join('');
-    
-    // Add event listeners to action buttons
-    setupRequestActionButtons();
+    }
 }
 
 // [16] Setup request action buttons (OWNER)
