@@ -10871,24 +10871,24 @@ function createRequestPage() {
     requestPage.className = 'request-page';
     
     requestPage.innerHTML = `
-        <!-- Header -->
-        <header class="request-header">
-            <button class="back-btn" id="backToMainFromRequest">
-                <i class="fas fa-arrow-left"></i>
+        `<!-- Header -->
+<header class="request-header">
+    <button class="back-btn" id="backToMainFromRequest">
+        <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2><i class="fas fa-comment-dots"></i> Request Barang</h2>
+    <div class="header-actions">
+        ${isKasir ? `
+            <button class="refresh-btn" id="refreshRequestsKasir" title="Refresh">
+                <i class="fas fa-sync-alt"></i>
             </button>
-            <h2><i class="fas fa-comment-dots"></i> Request Barang</h2>
-            <div class="header-actions">
-                ${isKasir ? `
-                   <button class="refresh-btn" id="refreshRequestsKasir" title="Refresh">
-                    <i class="fas fa-sync-alt"></i>
-                    </button>`
-                ` : `
-                    <button class="refresh-btn" id="refreshRequests">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                `}
-            </div>
-        </header>
+        ` : `
+            <button class="refresh-btn" id="refreshRequests" title="Refresh">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        `}
+    </div>
+</header>`
         
         <!-- Info Header -->
         <div class="request-info-header">
