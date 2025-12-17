@@ -1291,112 +1291,85 @@ function displayPendingRequestsForRequestModule(groupedRequests) {
             year: 'numeric'
         });
         
-        html += `
-            <div class="request-card" data-batch-id="${group.batch_id}">
-                <div class="request-card-header">
-                    <div class="request-info-compact">
-                        <div class="request-id">
-                            <i class="fas fa-hashtag"></i>
-                            <span>Batch: ${group.batch_id.substring(0, 8)}...</span>
-                        </div>
-                        <div class="request-date">
-                            <i class="far fa-clock"></i>
-                            <span>${formattedDate}</span>
-                        </div>
-                        <div class="request-outlet">
-                            <i class="fas fa-store"></i>
-                            <span>${group.outlet || '-'}</span>
-                        </div>
-                        <div class="request-user">
-                            <i class="fas fa-user"></i>
-                            <span>${group.karyawan || '-'}</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="request-card-body">
-                    ${group.notes ? `
-                    <div class="request-notes">
-                        <i class="fas fa-sticky-note"></i>
-                        <span>${group.notes}</span>
-                    </div>
-                    ` : ''}
-                    
-                    <div class="request-items-table">
-                        <div class="table-wrapper">
-                            <table class="items-table">
-                                <thead>
-                                    <tr>
-                                        <th width="40px">#</th>
-                                        <th>Item</th>
-                                        <th width="80px">Qty</th>
-                                        <th width="120px">Harga</th>
-                                        <th width="120px">Subtotal</th>
-                                        <th width="150px">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${group.items.map((item, index) => `
-                                        <tr data-item-id="${item.id}" data-batch-id="${group.batch_id}">
-                                            <td>${index + 1}</td>
-                                            <td>
-                                                <div class="item-name">${item.item}</div>
-                                                <div class="item-sku">SKU: ${item.sku}</div>
-                                            </td>
-                                            <td>${item.qty} ${item.unit_type || 'pcs'}</td>
-                                            <td>${formatRupiah(item.unit_price)}</td>
-                                            <td>${formatRupiah(item.total_price)}</td>
-                                            <td>
-                                                <div class="action-buttons-row">
-                                                    <button class="btn-action btn-approve-item" 
-                                                            data-item-id="${item.id}"
-                                                            data-batch-id="${group.batch_id}"
-                                                            title="Approve Item">
-                                                        <i class="fas fa-check"></i>
-                                                    </button>
-                                                    <button class="btn-action btn-reject-item" 
-                                                            data-item-id="${item.id}"
-                                                            data-batch-id="${group.batch_id}"
-                                                            title="Reject Item">
-                                                        <i class="fas fa-times"></i>
-                                                    </button>
-                                                    <button class="btn-action btn-view-item" 
-                                                            data-item-id="${item.id}"
-                                                            title="View Details">
-                                                        <i class="fas fa-eye"></i>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td colspan="3"><strong>Total:</strong></td>
-                                        <td></td>
-                                        <td><strong>${formatRupiah(group.total_amount)}</strong></td>
-                                        <td>
-                                            <div class="action-buttons-row">
-                                                <button class="btn-action btn-approve-all" 
-                                                        data-batch-id="${group.batch_id}"
-                                                        title="Approve All">
-                                                    <i class="fas fa-check-double"></i>
-                                                </button>
-                                                <button class="btn-action btn-reject-all" 
-                                                        data-batch-id="${group.batch_id}"
-                                                        title="Reject All">
-                                                    <i class="fas fa-ban"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+      html += `
+    <div class="request-items-table">
+        <div class="table-wrapper">
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px; padding: 12px 15px;">#</th>
+                        <th style="padding: 12px 15px;">Item</th>
+                        <th style="width: 80px; padding: 12px 15px;">Qty</th>
+                        <th style="width: 120px; padding: 12px 15px;">Harga</th>
+                        <th style="width: 120px; padding: 12px 15px;">Subtotal</th>
+                        <th style="width: 180px; padding: 12px 15px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${group.items.map((item, index) => `
+                        <tr data-item-id="${item.id}" data-batch-id="${group.batch_id}">
+                            <td style="padding: 12px 15px;">${index + 1}</td>
+                            <td style="padding: 12px 15px;">
+                                <div class="item-name">${item.item}</div>
+                                <div class="item-sku">SKU: ${item.sku}</div>
+                            </td>
+                            <td style="padding: 12px 15px;">${item.qty} ${item.unit_type || 'pcs'}</td>
+                            <td style="padding: 12px 15px;">${formatRupiah(item.unit_price)}</td>
+                            <td style="padding: 12px 15px;">${formatRupiah(item.total_price)}</td>
+                            <td style="padding: 12px 15px;">
+                                <div class="action-buttons-row">
+                                    <button class="btn-action btn-approve-item" 
+                                            data-item-id="${item.id}"
+                                            data-batch-id="${group.batch_id}"
+                                            title="Approve Item"
+                                            style="background: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button class="btn-action btn-reject-item" 
+                                            data-item-id="${item.id}"
+                                            data-batch-id="${group.batch_id}"
+                                            title="Reject Item"
+                                            style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    <button class="btn-action btn-view-item" 
+                                            data-item-id="${item.id}"
+                                            title="View Details"
+                                            style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+                <tfoot>
+                    <tr style="background: #f8f9fa;">
+                        <td colspan="3" style="padding: 12px 15px;"><strong>Total:</strong></td>
+                        <td style="padding: 12px 15px;"></td>
+                        <td style="padding: 12px 15px;"><strong>${formatRupiah(group.total_amount)}</strong></td>
+                        <td style="padding: 12px 15px;">
+                            <div class="action-buttons-row">
+                                <button class="btn-action btn-approve-all" 
+                                        data-batch-id="${group.batch_id}"
+                                        title="Approve All"
+                                        style="background: #20c997; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                                    <i class="fas fa-check-double"></i> Approve All
+                                </button>
+                                <button class="btn-action btn-reject-all" 
+                                        data-batch-id="${group.batch_id}"
+                                        title="Reject All"
+                                        style="background: #fd7e14; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                                    <i class="fas fa-ban"></i> Reject All
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+`;
     });
     
     pendingGrid.innerHTML = html;
