@@ -8156,9 +8156,9 @@ tr.stock-out .product-cell {
     .btn-search-action {
         width: 100%;
     }
-    /* ========== FIX CSS CONFLICTS ========== */
+   /* ========== PERBAIKAN FINAL UNTUK REQUEST MODULE ========== */
 
-/* Pastikan request page memiliki styling sendiri */
+/* Target khusus untuk request page */
 #requestPage .pending-requests-section {
     background: white;
     border-radius: 12px;
@@ -8198,6 +8198,15 @@ tr.stock-out .product-cell {
     white-space: nowrap;
 }
 
+#requestPage .items-table tbody tr {
+    border-bottom: 1px solid #e9ecef;
+    transition: background 0.3s ease;
+}
+
+#requestPage .items-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
 #requestPage .items-table td {
     padding: 14px 20px;
     color: #495057;
@@ -8205,13 +8214,51 @@ tr.stock-out .product-cell {
     white-space: nowrap;
 }
 
-/* Pastikan tidak ada conflict dengan stok */
-#stokPage .pending-requests-section {
-    /* Stok styling tetap */
+/* Action buttons row - spesifik untuk request */
+#requestPage .action-buttons-row {
+    display: flex;
+    gap: 8px;
 }
 
-#stokPage .table-wrapper {
-    /* Stok styling tetap */
+#requestPage .action-buttons-row .btn-action {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 12px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+}
+
+#requestPage .action-buttons-row .btn-action:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Warna tombol konsisten dengan stok */
+#requestPage .btn-approve-item {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+#requestPage .btn-reject-item {
+    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+}
+
+#requestPage .btn-view-item {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+}
+
+#requestPage .btn-approve-all {
+    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+}
+
+#requestPage .btn-reject-all {
+    background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%);
 }
         
 
