@@ -8157,6 +8157,172 @@ tr.stock-out .product-cell {
         width: 100%;
     }
         }
+/* ========== REQUEST TABLE STYLING (SAMA SEPERTI STOK) ========== */
+
+/* Container tabel */
+.request-table-section {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+}
+
+/* Header info */
+.table-header-info {
+    padding: 15px 20px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.header-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    font-size: 13px;
+    color: #495057;
+}
+
+.header-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Request notes */
+.request-notes {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 10px 15px;
+    margin-top: 10px;
+    border-radius: 4px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 13px;
+}
+
+/* Tabel */
+.table-container {
+    overflow-x: auto;
+}
+
+.request-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.request-table thead {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.request-table th {
+    padding: 16px 20px;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.request-table tbody tr {
+    border-bottom: 1px solid #e9ecef;
+    transition: background 0.3s ease;
+}
+
+.request-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.request-table td {
+    padding: 14px 20px;
+    color: #495057;
+    vertical-align: middle;
+}
+
+/* Action buttons - SAMA SEPERTI STOK */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.action-buttons .btn-action {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 12px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+}
+
+.action-buttons .btn-action:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.action-buttons .btn-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Tombol warna sama seperti STOK */
+.btn-approve {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.btn-reject {
+    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+}
+
+.btn-view {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+}
+
+.btn-approve-all {
+    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+}
+
+.btn-reject-all {
+    background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%);
+}
+
+/* Tabel footer */
+.request-table tfoot {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .request-table {
+        min-width: 600px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .action-buttons .btn-action {
+        width: 28px;
+        height: 28px;
+        font-size: 11px;
+    }
+}
 /* ========== CLOCK OUT WARNING POPUP - CSS KAS ========== */
 
 
