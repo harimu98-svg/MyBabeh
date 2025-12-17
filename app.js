@@ -12593,7 +12593,7 @@ window.loadInventoryWithFilter = loadInventoryWithFilter;
 // ========== FUNGSI UNTUK PER ITEM ACTIONS ==========
 
 // [34] Setup event listeners untuk tombol
-function setupRequestTableActions() {
+function setupRequestItemActionButtons() {
     console.log('🔧 Setting up request table action buttons');
     
     // Approve per item
