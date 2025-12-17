@@ -1,0 +1,1389 @@
+/* ========== CSS REQUEST ========== */
+
+/* Search Box dengan Button */
+.search-box {
+    position: relative;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.search-box input {
+    flex: 1;
+    padding: 12px 45px 12px 45px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 0.95rem;
+}
+
+.search-box i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+}
+
+.btn-search-action, .btn-apply-filter {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: all 0.3s ease;
+}
+
+.btn-search-action:hover:not(:disabled), 
+.btn-apply-filter:hover:not(:disabled) {
+    background: #0056b3;
+    transform: translateY(-2px);
+}
+
+.btn-search-action:disabled,
+.btn-apply-filter:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Filter Row */
+.filter-row {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 180px;
+}
+
+.filter-group label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+.filter-group select {
+    padding: 10px;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    background: white;
+}
+
+/* Table Wrapper untuk Scroll Horizontal */
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+/* Tabel dengan Scroll Horizontal */
+.horizontal-scroll {
+    min-width: 800px; /* Minimum width untuk memaksa scroll */
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Inventory Table Section */
+.inventory-table-section {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.inventory-table-section .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.item-count {
+    background: #e9ecef;
+    color: #495057;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* Table Styles */
+.inventory-table, .history-table, .selected-items-table {
+    width: 100%;
+    background: white;
+}
+
+.inventory-table th, 
+.history-table th, 
+.selected-items-table th {
+    background: #f8f9fa;
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #e9ecef;
+    white-space: nowrap;
+}
+
+.inventory-table td, 
+.history-table td, 
+.selected-items-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e9ecef;
+    vertical-align: middle;
+}
+
+.inventory-table tbody tr:hover,
+.history-table tbody tr:hover,
+.selected-items-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.selected-row {
+    background-color: #f0fff4 !important;
+}
+
+/* Status Pills */
+.status-pill {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-inactive {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-approved {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-partial {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.status-rejected {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Selected Items Section */
+.selected-items-section {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.selected-items-section .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.badge {
+    background: #007bff;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-left: 5px;
+}
+
+/* Quantity Control */
+.qty-control {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.qty-control.small {
+    gap: 3px;
+}
+
+.qty-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #e9ecef;
+    background: white;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #495057;
+    transition: all 0.2s;
+}
+
+.qty-btn:hover:not(:disabled) {
+    background: #f8f9fa;
+    border-color: #007bff;
+    color: #007bff;
+}
+
+.qty-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.qty-input {
+    width: 50px;
+    padding: 5px;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+/* Buttons */
+.btn-clear {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.btn-clear:hover {
+    background: #c82333;
+}
+
+.btn-add-to-request {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.btn-add-to-request:hover:not(:disabled) {
+    background: #218838;
+}
+
+.btn-add-to-request:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-remove {
+    background: #dc3545;
+    color: white;
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-remove:hover {
+    background: #c82333;
+}
+
+/* Selected Notes & Submit - DIMODIFIKASI */
+.selected-notes-submit {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.notes-section {
+    display: flex;
+    flex-direction: column;
+}
+
+.notes-section label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.notes-section textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    resize: vertical;
+    min-height: 80px;
+    transition: all 0.3s ease;
+}
+
+.notes-section textarea:focus {
+    outline: none;
+    border-color: #2575fc;
+    box-shadow: 0 0 0 3px rgba(37, 117, 252, 0.1);
+}
+
+.submit-section {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.total-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+.total-row.main-total {
+    border-top: 1px solid #e9ecef;
+    padding-top: 8px;
+    margin-top: 8px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #28a745;
+}
+
+.submit-section .submit-btn {
+    width: 100%;
+    height: 60px;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.submit-section .submit-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.submit-section .submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Kasir & Owner History */
+.kasir-history-section,
+.request-history-section {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.kasir-history-section .section-header,
+.request-history-section .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.btn-refresh-history {
+    background: #6c757d;
+    color: white;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-refresh-history:hover {
+    background: #5a6268;
+    transform: rotate(90deg);
+}
+
+/* Pending Requests untuk Owner */
+.pending-requests-section {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.request-card {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+.request-card-header {
+    background: #f8f9fa;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.request-card-body {
+    padding: 15px;
+}
+
+.request-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+}
+
+.request-notes {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 10px 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.request-items {
+    margin-top: 15px;
+}
+
+.request-items h5 {
+    margin-bottom: 10px;
+    color: #495057;
+}
+
+.request-card-footer {
+    background: #f8f9fa;
+    padding: 15px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    border-top: 1px solid #e9ecef;
+}
+
+.btn-approve, .btn-approve-all,
+.btn-reject, .btn-reject-all {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-approve {
+    background: #28a745;
+    color: white;
+}
+
+.btn-approve:hover {
+    background: #218838;
+}
+
+.btn-approve-all {
+    background: #20c997;
+    color: white;
+}
+
+.btn-approve-all:hover {
+    background: #1ba87e;
+}
+
+.btn-reject {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-reject:hover {
+    background: #c82333;
+}
+
+.btn-reject-all {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-reject-all:hover {
+    background: #5a6268;
+}
+
+/* Loading & Empty States */
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.no-data, .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
+.no-data i, .empty-state i {
+    font-size: 3rem;
+    color: #dee2e6;
+    margin-bottom: 15px;
+    display: block;
+}
+
+.no-data .hint {
+    font-size: 0.9rem;
+    color: #adb5bd;
+    margin-top: 5px;
+}
+
+.empty-message {
+    text-align: center;
+    padding: 30px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.error-message {
+    text-align: center;
+    padding: 20px;
+    color: #dc3545;
+    background: #f8d7da;
+    border-radius: 6px;
+    margin: 10px 0;
+}
+
+/* Toast Notification */
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    min-width: 300px;
+    max-width: 400px;
+    z-index: 10000;
+    transform: translateX(100%);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.toast.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+
+.toast-success {
+    border-left: 4px solid #28a745;
+}
+
+.toast-error {
+    border-left: 4px solid #dc3545;
+}
+
+.toast-info {
+    border-left: 4px solid #007bff;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toast-close:hover {
+    color: #495057;
+}
+
+/* Scrollbar Styling */
+.table-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .selected-notes-submit {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .filter-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filter-group {
+        min-width: 100%;
+    }
+    
+    .btn-search-action, .btn-apply-filter {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .request-info {
+        grid-template-columns: 1fr;
+    }
+    
+    .request-card-footer {
+        flex-wrap: wrap;
+    }
+    
+    .request-card-footer button {
+        flex: 1;
+        min-width: calc(50% - 5px);
+        justify-content: center;
+    }
+    
+    .toast {
+        left: 20px;
+        right: 20px;
+        max-width: none;
+        min-width: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .inventory-table th, 
+    .history-table th, 
+    .selected-items-table th,
+    .inventory-table td, 
+    .history-table td, 
+    .selected-items-table td {
+        padding: 8px 10px;
+        font-size: 0.85rem;
+    }
+    
+    .request-card-footer button {
+        min-width: 100%;
+        margin-bottom: 5px;
+    }
+    
+    .toast {
+        top: auto;
+        bottom: 20px;
+        left: 10px;
+        right: 10px;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.inventory-table tbody tr,
+.history-table tbody tr,
+.selected-items-table tbody tr {
+    animation: fadeIn 0.3s ease-out;
+}
+/* ========== CSS UNTUK FILTER & SEARCH SECTION ========== */
+/* ===================================================== */
+
+/* Search & Filter Section */
+.search-filter-section {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Filter Row - 3 kolom sejajar */
+.filter-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+.filter-group label i {
+    color: #2575fc;
+    width: 18px;
+    text-align: center;
+}
+
+.filter-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    background: white;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 35px;
+}
+
+.filter-group select:focus {
+    outline: none;
+    border-color: #2575fc;
+    box-shadow: 0 0 0 3px rgba(37, 117, 252, 0.1);
+}
+
+.filter-group select:disabled {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Search Box Container */
+.search-box-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.search-box {
+    flex: 1;
+    position: relative;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 12px 45px 12px 45px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: #2575fc;
+    box-shadow: 0 0 0 3px rgba(37, 117, 252, 0.1);
+}
+
+.search-box input::placeholder {
+    color: #adb5bd;
+    font-size: 0.95rem;
+}
+
+.search-box .search-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+    pointer-events: none;
+}
+
+.clear-search {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.clear-search:hover {
+    background: #f8f9fa;
+    color: #dc3545;
+}
+
+/* Search Action Button */
+.btn-search-action {
+    background: linear-gradient(135deg, #2575fc 0%, #6a11cb 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: all 0.3s ease;
+    height: 46px;
+    font-size: 0.95rem;
+}
+
+.btn-search-action:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 117, 252, 0.3);
+}
+
+.btn-search-action:disabled {
+    background: #e9ecef;
+    color: #adb5bd;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Filter Helper Text */
+.filter-helper {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-left: 3px solid #2575fc;
+}
+
+.filter-helper i {
+    color: #2575fc;
+}
+
+/* Responsive Design untuk Filter */
+@media (max-width: 992px) {
+    .filter-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .search-box-container {
+        flex-direction: column;
+    }
+    
+    .btn-search-action {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .filter-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .search-filter-section {
+        padding: 15px;
+    }
+    
+    .filter-group label {
+        font-size: 0.85rem;
+    }
+    
+    .filter-group select {
+        padding: 8px 35px 8px 12px;
+        font-size: 0.9rem;
+    }
+    
+    .search-box input {
+        padding: 10px 40px 10px 40px;
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .search-filter-section {
+        padding: 12px;
+        margin-bottom: 15px;
+    }
+    
+    .filter-row {
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .btn-search-action {
+        padding: 10px 16px;
+        font-size: 0.9rem;
+    }
+    
+    .filter-helper {
+        font-size: 0.8rem;
+        padding: 6px 10px;
+    }
+}
+
+/* Animation untuk filter */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.filter-row {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Selected Filter Badge */
+.selected-filter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #e7f5ff;
+    color: #0066cc;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+.selected-filter-badge i {
+    font-size: 0.7rem;
+}
+
+/* Active State untuk Filter */
+.filter-group select.active {
+    border-color: #28a745;
+    background-color: #f8fff9;
+}
+
+.filter-group select.warning {
+    border-color: #ffc107;
+    background-color: #fffcf3;
+}
+
+/* Loading State untuk Filter */
+.filter-group select.loading {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12a9 9 0 1 1-6.219-8.56'/%3E%3C/svg%3E");
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+/* ========== PERBAIKAN HEADER REQUEST ========== */
+
+/* Header - SAMA SEPERTI STOK */
+.request-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    padding: 16px 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100 !important;
+    width: 100% !important;
+}
+
+.request-header .back-btn {
+    background: rgba(255,255,255,0.2) !important;
+    border: none !important;
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    color: white !important;
+    font-size: 18px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.3s ease !important;
+    flex-shrink: 0 !important;
+}
+
+.request-header .back-btn:hover {
+    background: rgba(255,255,255,0.3) !important;
+    transform: scale(1.05) !important;
+}
+
+.request-header h2 {
+    margin: 0 auto !important;
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    text-align: center !important;
+    flex: 1 !important;
+    justify-content: center !important;
+    padding: 0 10px !important;
+}
+
+.request-header .refresh-btn {
+    background: rgba(255,255,255,0.2) !important;
+    border: none !important;
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    color: white !important;
+    font-size: 16px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.3s ease !important;
+    flex-shrink: 0 !important;
+}
+
+.request-header .refresh-btn:hover {
+    background: rgba(255,255,255,0.3) !important;
+    transform: rotate(180deg) !important;
+}
+/* Filter 2 baris: atas=3 filter, bawah=search */
+.search-filter-section {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Baris 1: 3 filter sejajar */
+.filter-row-top {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+/* Baris 2: Search box dan button */
+.filter-row-bottom {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+/* Search box mengambil sisa space */
+.search-box {
+    flex: 1;
+    position: relative;
+}
+
+/* Button Filter di samping search */
+.btn-search-action {
+    height: 46px; /* Sama tinggi dengan input */
+    white-space: nowrap;
+}
+
+/* Responsive: jadi 1 kolom di mobile */
+@media (max-width: 768px) {
+    .filter-row-top {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .filter-row-bottom {
+        flex-direction: column;
+    }
+    
+    .btn-search-action {
+        width: 100%;
+    }
+    /* ========== REQUEST TABLE STYLING (SAMA SEPERTI STOK) ========== */
+
+/* Container tabel */
+.request-table-section {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+}
+
+/* Header info */
+.table-header-info {
+    padding: 15px 20px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.header-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    font-size: 13px;
+    color: #495057;
+}
+
+.header-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Request notes */
+.request-notes {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 10px 15px;
+    margin-top: 10px;
+    border-radius: 4px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 13px;
+}
+
+/* Tabel */
+.table-container {
+    overflow-x: auto;
+}
+
+.request-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.request-table thead {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.request-table th {
+    padding: 16px 20px;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.request-table tbody tr {
+    border-bottom: 1px solid #e9ecef;
+    transition: background 0.3s ease;
+}
+
+.request-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.request-table td {
+    padding: 14px 20px;
+    color: #495057;
+    vertical-align: middle;
+}
+
+/* Action buttons - SAMA SEPERTI STOK */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.action-buttons .btn-action {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 12px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+}
+
+.action-buttons .btn-action:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.action-buttons .btn-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Tombol warna sama seperti STOK */
+.btn-approve {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.btn-reject {
+    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+}
+
+.btn-view {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+}
+
+.btn-approve-all {
+    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+}
+
+.btn-reject-all {
+    background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%);
+}
+
+/* Tabel footer */
+.request-table tfoot {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .request-table {
+        min-width: 600px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .action-buttons .btn-action {
+        width: 28px;
+        height: 28px;
+        font-size: 11px;
+    }
+}
