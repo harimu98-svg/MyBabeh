@@ -11984,8 +11984,8 @@ async function loadRequestsForOwner() {
         // Group requests by batch_id for pending section
         const groupedRequests = groupRequestsByBatch(requests || []);
         
-        // Display data
-        displayPendingRequests(groupedRequests);
+        // Display data - gunakan function yang sudah direname
+        displayPendingRequestsForRequestModule(groupedRequests);
         displayRequestHistory(requests || []);
         
         // Load outlet dropdown options
@@ -12039,8 +12039,8 @@ function groupRequestsByBatch(requests) {
     return Object.values(grouped);
 }
 
-// [24] Display pending requests for owner - DIMODIFIKASI: Tambah Reject Selected
-function displayPendingRequests(groupedRequests) {
+// [24] Display pending requests untuk OWNER - REQUEST MODULE (RENAMED)
+function displayPendingRequestsForRequestModule(groupedRequests) {
     const pendingGrid = document.getElementById('pendingRequestsGrid');
     const pendingCountEl = document.getElementById('pendingCount');
     
@@ -12177,7 +12177,6 @@ function displayPendingRequests(groupedRequests) {
     
     pendingGrid.innerHTML = html;
 }
-
 // [25] Display request history untuk Owner - DIMODIFIKASI
 function displayRequestHistory(requests) {
     const tbody = document.getElementById('historyBody');
