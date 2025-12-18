@@ -1024,22 +1024,27 @@ async function approveLiburRequest(liburId) {
 // Helper: Force update tanpa trigger
 async function forceUpdateAbsenStatus(liburData) {
     try {
-        const statusMap = { 'LIBUR':'Libur', 'IZIN':'Izin', 'SAKIT':'Sakit', 'CUTI':'Cuti' };
+        const statusMap = { 
+            'LIBUR': 'Libur', 
+            'IZIN': 'Izin', 
+            'SAKIT': 'Sakit', 
+            'CUTI': 'Cuti' 
+        };
         const statusValue = statusMap[liburData.jenis] || 'Izin';
         const startDate = new Date(liburData.tanggal_mulai);
         const endDate = new Date(liburData.tanggal_selesai);
         
         let currentDate = new Date(startDate);
-        let updatedCount = 0;
+        let processedCount = 0;
         const errors = [];
 
-        console.log(`🔄 Memproses absen libur: ${liburData.karyawan}, Status: ${statusValue}`);
+        console.log(`🔄 Processing absen for libur: ${liburData.karyawan}, Status: ${statusValue}`);
 
         while (currentDate <= endDate) {
-            const tanggalText = formatDateForAbsen(currentDate); // Format: DD/MM/YYYY
-            console.log(`  Mencoba tanggal: ${tanggalText}`);
+            const tanggalText = formatDateForAbsen(currentDate);
+            console.log(`  Processing date: ${tanggalText}`);
             
-            // 1. BUAT DATA untuk insert/update
+            // DATA TANPA libur_id
             const recordData = {
                 tanggal: tanggalText,
                 hari: currentDate.toLocaleDateString('id-ID', { weekday: 'long' }),
@@ -1049,45 +1054,63 @@ async function forceUpdateAbsenStatus(liburData) {
                 clockin: '00:00',
                 clockout: '00:00',
                 jamkerja: '00:00',
-                status_kehadiran: statusValue,
-                libur_id: liburData.id,
+                over_time: '00:00',
+                over_time_rp: 0,
+                status_kehadiran: statusValue, // Target status
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             };
 
             try {
-                // 2. COBA INSERT (jika gagal karena duplikat, akan lanjut ke update)
-                const { error: insertError } = await supabase
+                // COBA INSERT (UPSERT) dengan onConflict
+                const { error: upsertError } = await supabase
                     .from('absen')
-                    .insert([recordData]);
+                    .upsert([recordData], {
+                        onConflict: 'id_uniq', // atau 'tanggal,nama,outlet'
+                        ignoreDuplicates: false
+                    });
                 
-                if (insertError) {
-                    // 3. JIKA GAGAL (mungkin duplikat), COBA UPDATE
-                    console.log(`    ➤ Insert gagal, mencoba update... (${insertError.code || insertError.message})`);
+                if (upsertError) {
+                    // Fallback: COBA INSERT biasa
+                    console.log(`    ➤ Upsert failed, trying insert... (${upsertError.code})`);
                     
-                    const { error: updateError } = await supabase
+                    const { error: insertError } = await supabase
                         .from('absen')
-                        .update({
-                            clockin: '00:00',
-                            clockout: '00:00',
-                            status_kehadiran: statusValue,
-                            libur_id: liburData.id,
-                            updated_at: new Date().toISOString()
-                        })
-                        .eq('nama', liburData.karyawan)
-                        .eq('tanggal', tanggalText)
-                        .eq('outlet', liburData.outlet);
+                        .insert([recordData]);
                     
-                    if (updateError) {
-                        errors.push(`${tanggalText}: ${updateError.message}`);
-                        console.error(`    ❌ Update juga gagal:`, updateError);
+                    if (insertError) {
+                        // Fallback 2: COBA UPDATE
+                        if (insertError.code === '23505') { // Duplicate
+                            console.log(`    ➤ Duplicate, trying update...`);
+                            
+                            const { error: updateError } = await supabase
+                                .from('absen')
+                                .update({
+                                    clockin: '00:00',
+                                    clockout: '00:00',
+                                    status_kehadiran: statusValue,
+                                    updated_at: new Date().toISOString()
+                                })
+                                .eq('nama', liburData.karyawan)
+                                .eq('tanggal', tanggalText)
+                                .eq('outlet', liburData.outlet);
+                            
+                            if (updateError) {
+                                errors.push(`${tanggalText}: ${updateError.message}`);
+                            } else {
+                                processedCount++;
+                                console.log(`    ✅ Update successful`);
+                            }
+                        } else {
+                            errors.push(`${tanggalText}: ${insertError.message}`);
+                        }
                     } else {
-                        updatedCount++;
-                        console.log(`    ✅ Update berhasil`);
+                        processedCount++;
+                        console.log(`    ✅ Insert successful`);
                     }
                 } else {
-                    updatedCount++;
-                    console.log(`    ✅ Insert berhasil`);
+                    processedCount++;
+                    console.log(`    ✅ Upsert successful`);
                 }
                 
             } catch (error) {
@@ -1098,22 +1121,21 @@ async function forceUpdateAbsenStatus(liburData) {
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        // 4. LAPORAN AKHIR
-        console.log(`\n📊 **HASIL PROSES:**`);
-        console.log(`   Total tanggal dicoba: ${(endDate - startDate)/(1000*60*60*24) + 1} hari`);
-        console.log(`   Berhasil diproses: ${updatedCount}`);
+        // HASIL
+        console.log(`\n📊 **RESULT:** ${processedCount} days processed`);
         
         if (errors.length > 0) {
-            console.error(`   Gagal: ${errors.length} tanggal`, errors);
-            showToast(`⚠️ Libur disetujui, tapi ${errors.length} catatan absen gagal. Cek console.`, 'warning');
-        } else {
-            console.log(`   ✅ Semua catatan absen berhasil diproses.`);
+            console.error(`   Failed: ${errors.length} dates`, errors);
+            showToast(`⚠️ Libur approved, but ${errors.length} absen records failed. Check console.`, 'warning');
+        } else if (processedCount > 0) {
+            console.log(`   ✅ All absen records processed successfully!`);
+            showToast(`✅ Libur approved and ${processedCount} absen records updated.`, 'success');
         }
         
-        return updatedCount > 0;
+        return processedCount > 0;
         
     } catch (globalError) {
-        console.error('❌ Fatal error in forceUpdateAbsenStatus:', globalError);
+        console.error('❌ Fatal error:', globalError);
         return false;
     }
 }
@@ -1527,10 +1549,10 @@ async function sendGroupWhatsAppNotification(liburData) {
         
         // Ambil group_wa dari tabel outlet
         const { data: outletData, error } = await supabase
-            .from('outlet')
-            .select('group_wa')
-            .eq('nama_outlet', liburData.outlet)
-            .single();
+    .from('outlet')
+    .select('group_wa')
+    .eq('outlet', liburData.outlet)  // ✅ KOLOM YANG BENAR
+    .single();
         
         if (error || !outletData?.group_wa) {
             console.warn(`Group WA tidak ditemukan untuk outlet ${liburData.outlet}`);
@@ -1944,10 +1966,10 @@ async function sendCustomGroupMessage(outletName, message) {
         
         // Ambil group_wa dari tabel outlet
         const { data: outletData, error } = await supabase
-            .from('outlet')
-            .select('group_wa')
-            .eq('nama_outlet', outletName)
-            .single();
+    .from('outlet')
+    .select('group_wa')
+    .eq('outlet', outletName)  // ✅ KOLOM YANG BENAR
+    .single();
         
         if (error || !outletData?.group_wa) {
             console.warn(`Group WA tidak ditemukan untuk outlet ${outletName}`);
@@ -1991,12 +2013,12 @@ async function loadOutletDropdownForLibur(liburData) {
         const outlets = [...new Set(liburData.map(r => r.outlet).filter(Boolean))];
         
         // Juga ambil dari tabel outlet untuk opsi lengkap
-        const { data: allOutlets } = await supabase
-            .from('outlet')
-            .select('nama_outlet')
-            .order('nama_outlet');
+       const { data: allOutlets } = await supabase
+    .from('outlet')
+    .select('outlet')  // ✅ KOLOM YANG BENAR
+    .order('outlet');  // ✅ ORDER BY KOLOM YANG BENAR
         
-        const allOutletNames = allOutlets?.map(o => o.nama_outlet) || [];
+         const allOutletNames = allOutlets?.map(o => o.outlet) || [];  // ✅ PERBAIKAN: o.outlet (bukan o.nama_outlet)
         const uniqueOutlets = [...new Set([...outlets, ...allOutletNames])];
         
         select.innerHTML = `
