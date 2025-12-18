@@ -940,7 +940,7 @@ function displayOwnerLiburHistory(liburData) {
     });
 }
 
-// [12] Fungsi untuk approve libur request
+// [12] Fungsi untuk approve libur request - FINAL VERSION
 async function approveLiburRequest(liburId) {
     try {
         const reviewNotes = document.getElementById(`reviewNotes_${liburId}`)?.value || '';
@@ -954,20 +954,18 @@ async function approveLiburRequest(liburId) {
         
         if (fetchError) throw fetchError;
         
-        // Format untuk display
         const startDate = new Date(liburData.tanggal_mulai);
         const endDate = new Date(liburData.tanggal_selesai);
-        const tanggalMulaiDisplay = formatDateToDisplay(startDate);
-        const tanggalSelesaiDisplay = formatDateToDisplay(endDate);
         
-        if (!confirm(`Approve libur untuk ${liburData.karyawan}?\n\n` +
-                   `Jenis: ${liburData.jenis}\n` +
-                   `Tanggal: ${tanggalMulaiDisplay} - ${tanggalSelesaiDisplay}\n` +
-                   `Durasi: ${liburData.durasi} hari`)) {
+        // Konfirmasi
+        if (!confirm(`Approve ${liburData.jenis} untuk ${liburData.karyawan}?\n\n` +
+                   `Tanggal: ${formatDateToDisplay(startDate)} - ${formatDateToDisplay(endDate)}\n` +
+                   `Durasi: ${liburData.durasi} hari\n` +
+                   `Alasan: ${liburData.alasan.substring(0, 100)}${liburData.alasan.length > 100 ? '...' : ''}`)) {
             return;
         }
         
-        // Update status libur
+        // Update status libur di tabel libur_izin
         const { error: updateError } = await supabase
             .from('libur_izin')
             .update({
@@ -980,13 +978,36 @@ async function approveLiburRequest(liburId) {
         
         if (updateError) throw updateError;
         
-        // Insert ke tabel absen
-        await insertAbsenRecordsForLibur(liburData);
+        console.log('✅ Libur status updated to approved');
         
-        // Kirim notifikasi WhatsApp
+        // **PILIH METODE BERDASARKAN KONDISI**
+        let absenResult = false;
+        
+        // Metode 1: Update trigger dulu (jika bisa)
+        try {
+            await updateAttendanceTriggerIfPossible();
+            
+            // Gunakan metode dengan clockin khusus
+            const processedCount = await insertAbsenRecordsForLibur(liburData);
+            absenResult = processedCount > 0;
+            
+        } catch (triggerError) {
+            console.log('⚠️ Cannot update trigger, using alternative...');
+            
+            // Metode 2: Langsung update status tanpa trigger
+            absenResult = await forceUpdateAbsenStatus(liburData);
+        }
+        
+        // Kirim notifikasi
+        if (absenResult) {
+            console.log('✅ Absen records updated successfully');
+        } else {
+            console.warn('⚠️ Absen records may not be updated correctly');
+            showToast('Libur disetujui, tapi status absen mungkin perlu dicek manual', 'warning');
+        }
+        
+        // WhatsApp notifications
         await sendWhatsAppNotification(liburData, 'approved', reviewNotes);
-        
-        // Kirim ke group WhatsApp (ambil dari tabel outlet)
         await sendGroupWhatsAppNotification(liburData);
         
         showToast('✅ Libur berhasil disetujui!', 'success');
@@ -997,6 +1018,52 @@ async function approveLiburRequest(liburId) {
     } catch (error) {
         console.error('Error approving libur:', error);
         showToast(`❌ Gagal approve libur: ${error.message}`, 'error');
+    }
+}
+
+// Helper: Force update tanpa trigger
+async function forceUpdateAbsenStatus(liburData) {
+    try {
+        const clockinMap = {
+            'LIBUR': 'Libur',
+            'IZIN': 'Izin', 
+            'SAKIT': 'Sakit',
+            'CUTI': 'Cuti'
+        };
+        
+        const statusValue = clockinMap[liburData.jenis] || 'Izin';
+        const startDate = new Date(liburData.tanggal_mulai);
+        const endDate = new Date(liburData.tanggal_selesai);
+        
+        let currentDate = new Date(startDate);
+        let updatedCount = 0;
+        
+        while (currentDate <= endDate) {
+            const tanggalText = formatDateForAbsen(currentDate);
+            
+            // Update langsung status_kehadiran
+            const { error } = await supabase
+                .from('absen')
+                .update({
+                    status_kehadiran: statusValue,
+                    clockin: '00:00', // Minimal value
+                    clockout: '00:00',
+                    libur_id: liburData.id,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('nama', liburData.karyawan)
+                .eq('tanggal', tanggalText);
+            
+            if (!error) updatedCount++;
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        console.log(`✅ Force updated ${updatedCount} records`);
+        return updatedCount > 0;
+        
+    } catch (error) {
+        console.error('Force update error:', error);
+        return false;
     }
 }
 
