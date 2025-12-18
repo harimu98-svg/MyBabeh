@@ -233,7 +233,8 @@ function createLiburPage() {
         <span>Cuti</span>
     </div>
     -->
-
+    </div>
+</div>
 <!-- History Libur Saya -->
             <div class="history-libur-section">
                 <div class="section-header">
