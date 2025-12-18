@@ -388,7 +388,7 @@ function createLiburPage() {
     // Untuk kasir/barberman: setup form events dan generate kalender
     if (isKasir || isBarberman) {
         setupLiburFormEvents();
-        generateKalender();
+        // generateKalender(); // <-- HAPUS BARIS INI
     }
 }
 
@@ -608,7 +608,8 @@ async function loadKasirLiburHistory() {
         
         // Tampilkan history
         displayKasirLiburHistory(liburData || []);
-        
+        // ⭐⭐ PERBAIKAN: GENERATE KALENDER SETELAH DATA DIMUAT ⭐⭐
+        generateKalender();
     } catch (error) {
         console.error('Error loading libur history:', error);
         const tbody = document.getElementById('historyBodyLibur');
