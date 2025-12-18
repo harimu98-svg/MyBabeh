@@ -215,24 +215,25 @@ function createLiburPage() {
                 </div>
                 
                 <div class="kalender-legend">
-                    <div class="legend-item">
-                        <span class="legend-color libur"></span>
-                        <span>Libur</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color izin"></span>
-                        <span>Izin</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color sakit"></span>
-                        <span>Sakit</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color cuti"></span>
-                        <span>Cuti</span>
-                    </div>
-                </div>
-            </div>
+    <div class="legend-item">
+        <span class="legend-color libur"></span>
+        <span>Libur</span>
+    </div>
+    <div class="legend-item">
+        <span class="legend-color izin"></span>
+        <span>Izin</span>
+    </div>
+    <!--
+    <div class="legend-item">
+        <span class="legend-color sakit"></span>
+        <span>Sakit</span>
+    </div>
+    <div class="legend-item">
+        <span class="legend-color cuti"></span>
+        <span>Cuti</span>
+    </div>
+    -->
+</div>
             
             <!-- History Libur Saya -->
             <div class="history-libur-section">
