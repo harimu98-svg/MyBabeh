@@ -1024,6 +1024,22 @@ async function approveLiburRequest(liburId) {
 // Helper: Force update tanpa trigger
 async function forceUpdateAbsenStatus(liburData) {
     try {
+        // AMBIL DATA KARYAWAN TERLEBIH DAHULU untuk dapat nomor_wa
+        console.log(`🔍 Fetching karyawan data for: ${liburData.karyawan}`);
+        const { data: karyawanData, error: karyawanError } = await supabase
+            .from('karyawan')
+            .select('nomor_wa, gaji')
+            .eq('nama_karyawan', liburData.karyawan)
+            .maybeSingle();
+        
+        if (karyawanError || !karyawanData) {
+            console.error('❌ Failed to fetch karyawan data:', karyawanError);
+            showToast(`❌ Gagal mengambil data karyawan: ${liburData.karyawan}`, 'error');
+            return false;
+        }
+        
+        console.log(`✅ Got karyawan data, nomor_wa: ${karyawanData.nomor_wa || '(kosong)'}`);
+        
         const statusMap = { 
             'LIBUR': 'Libur', 
             'IZIN': 'Izin', 
@@ -1044,13 +1060,15 @@ async function forceUpdateAbsenStatus(liburData) {
             const tanggalText = formatDateForAbsen(currentDate);
             console.log(`  Date: ${tanggalText}`);
             
-            // DATA MINIMAL tanpa created_at/updated_at
+            // DATA DENGAN nomor_wa (WAJIB!)
             const recordData = {
                 tanggal: tanggalText,
                 hari: currentDate.toLocaleDateString('id-ID', { weekday: 'long' }),
                 nama: liburData.karyawan,
                 id_uniq: `LIBUR-${currentDate.getTime()}-${liburData.id.substring(0, 8)}`,
+                nomor_wa: karyawanData.nomor_wa || '', // WAJIB: isi dengan nomor_wa
                 outlet: liburData.outlet,
+                gaji_pokok: parseFloat(karyawanData.gaji) || 0, // opsional
                 clockin: '00:00',
                 clockout: '00:00',
                 jamkerja: '00:00',
@@ -1060,7 +1078,7 @@ async function forceUpdateAbsenStatus(liburData) {
             };
 
             try {
-                // STRATEGI 1: Coba INSERT biasa (tanpa upsert yang kompleks)
+                // STRATEGI 1: Coba INSERT dengan nomor_wa
                 const { error: insertError } = await supabase
                     .from('absen')
                     .insert([recordData]);
@@ -1075,7 +1093,8 @@ async function forceUpdateAbsenStatus(liburData) {
                             .update({
                                 clockin: '00:00',
                                 clockout: '00:00',
-                                status_kehadiran: statusValue
+                                status_kehadiran: statusValue,
+                                nomor_wa: karyawanData.nomor_wa || '' // Pastikan update juga nomor_wa
                             })
                             .eq('nama', liburData.karyawan)
                             .eq('tanggal', tanggalText)
@@ -1089,8 +1108,14 @@ async function forceUpdateAbsenStatus(liburData) {
                             console.log(`    ✅ Updated existing record`);
                         }
                     } else {
+                        // ERROR LAIN: tampilkan detail
                         errors.push(`${tanggalText}: ${insertError.message}`);
                         console.error(`    ❌ Insert failed:`, insertError);
+                        
+                        // Jika error karena kolom lain yang required, kita perlu tahu
+                        if (insertError.code === '23502') {
+                            console.error(`    🔍 NOT-NULL constraint failed. Check other required columns.`);
+                        }
                     }
                 } else {
                     processedCount++;
@@ -1119,6 +1144,9 @@ async function forceUpdateAbsenStatus(liburData) {
         } else if (processedCount > 0) {
             console.log(`   ✅ Success!`);
             showToast(`✅ ${processedCount} catatan absen berhasil diperbarui.`, 'success');
+            
+            // VERIFIKASI: Cek data yang berhasil disimpan
+            await verifyAbsenUpdates(liburData, startDate, endDate, statusValue);
         }
         
         return processedCount > 0;
@@ -1130,6 +1158,39 @@ async function forceUpdateAbsenStatus(liburData) {
     }
 }
 
+// FUNGSI TAMBAHAN: Verifikasi data yang sudah disimpan
+async function verifyAbsenUpdates(liburData, startDate, endDate, expectedStatus) {
+    console.log('\n🔍 Verifying saved data...');
+    
+    const { data: savedRecords, error } = await supabase
+        .from('absen')
+        .select('tanggal, status_kehadiran, clockin, nomor_wa')
+        .eq('nama', liburData.karyawan)
+        .gte('tanggal', formatDateForAbsen(startDate))
+        .lte('tanggal', formatDateForAbsen(endDate))
+        .order('tanggal');
+    
+    if (error) {
+        console.error('Verification error:', error);
+        return;
+    }
+    
+    if (savedRecords && savedRecords.length > 0) {
+        console.log(`📋 Found ${savedRecords.length} records:`);
+        savedRecords.forEach(record => {
+            const statusOk = record.status_kehadiran === expectedStatus;
+            const clockinOk = record.clockin === '00:00';
+            const hasNomorWa = record.nomor_wa && record.nomor_wa.trim() !== '';
+            
+            console.log(`   ${record.tanggal}:`);
+            console.log(`     Status: "${record.status_kehadiran}" ${statusOk ? '✅' : '❌'}`);
+            console.log(`     Clockin: "${record.clockin}" ${clockinOk ? '✅' : '❌'}`);
+            console.log(`     Nomor WA: "${record.nomor_wa}" ${hasNomorWa ? '✅' : '⚠️'}`);
+        });
+    } else {
+        console.warn('⚠️ No records found for verification');
+    }
+}
 // [13] Fungsi untuk reject libur request
 async function rejectLiburRequest(liburId) {
     try {
