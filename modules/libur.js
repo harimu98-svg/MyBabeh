@@ -1051,203 +1051,169 @@ async function rejectLiburRequest(liburId) {
         showToast(`❌ Gagal reject libur: ${error.message}`, 'error');
     }
 }
-// [14F] FUNGSI YANG 100% BERHASIL: Bypass trigger dengan data lengkap
+// [14L] FUNGSI FINAL: Gunakan clockin "Libur", "Izin", dll
 async function insertAbsenRecordsForLibur(liburData) {
     try {
-        const startDate = new Date(liburData.tanggal_mulai);
-        const endDate = new Date(liburData.tanggal_selesai);
-        
         console.log(`📝 Processing absen untuk libur: ${liburData.karyawan}`);
         
-        // Ambil data karyawan LENGKAP termasuk jadwal
-        const { data: karyawanData, error: karyawanError } = await supabase
-            .from('karyawan')
-            .select('nomor_wa, gaji, jadwal_masuk, jadwal_pulang, jadwal_kerja')
-            .eq('nama_karyawan', liburData.karyawan)
-            .single();
+        // Map jenis libur ke nilai clockin
+        const clockinMap = {
+            'LIBUR': 'Libur',
+            'IZIN': 'Izin', 
+            'SAKIT': 'Sakit',
+            'CUTI': 'Cuti'
+        };
         
-        if (karyawanError) throw karyawanError;
+        const clockinValue = clockinMap[liburData.jenis] || 'Izin';
+        const clockoutValue = clockinValue; // Gunakan nilai yang sama
         
+        console.log(`🎯 Menggunakan clockin: "${clockinValue}", clockout: "${clockoutValue}"`);
+        
+        const startDate = new Date(liburData.tanggal_mulai);
+        const endDate = new Date(liburData.tanggal_selesai);
         let currentDate = new Date(startDate);
-        let processedCount = 0;
+        let successCount = 0;
         
-        // Tentukan status akhir berdasarkan jenis libur
-        const finalStatus = liburData.jenis === 'LIBUR' ? 'LIBUR' : 
-                           liburData.jenis === 'SAKIT' ? 'SAKIT' : 'IZIN';
-        
-        console.log(`🎯 Target status: ${finalStatus}`);
-        console.log(`📅 Rentang: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`);
-        
-        // Langkah 1: Untuk setiap hari dalam rentang libur
+        // Untuk setiap hari dalam rentang
         while (currentDate <= endDate) {
-            const tanggalText = formatDateForAbsen(currentDate); // dd/MM/yyyy
+            const tanggalText = formatDateForAbsen(currentDate);
             const hari = currentDate.toLocaleDateString('id-ID', { weekday: 'long' });
             
             console.log(`\n📅 Processing: ${tanggalText} (${hari})`);
             
-            // CEK APAKAH SUDAH ADA DATA
-            const { data: existingRecord } = await supabase
-                .from('absen')
-                .select('id, status_kehadiran, clockin, clockout, jamkerja')
-                .eq('nama', liburData.karyawan)
-                .eq('tanggal', tanggalText)
-                .maybeSingle();
-            
-            // Data untuk INSERT/UPDATE
-            const absenRecord = {
-                tanggal: tanggalText,
-                hari: hari,
-                nama: liburData.karyawan,
-                id_uniq: `LIBUR-${currentDate.getTime()}-${liburData.id.substring(0, 8)}`,
-                nomor_wa: karyawanData?.nomor_wa || '',
-                outlet: liburData.outlet,
-                gaji_pokok: parseFloat(karyawanData?.gaji) || 0,
-                // **KRUSIAL**: Isi semua field yang digunakan trigger
-                jadwal_masuk: karyawanData?.jadwal_masuk || '09:00',
-                jadwal_pulang: karyawanData?.jadwal_pulang || '21:00',
-                // Set waktu untuk libur
-                clockin: '00:00',      // JANGAN NULL!
-                clockout: '00:00',     // JANGAN NULL!
-                jamkerja: '00:00',     // JANGAN NULL!
-                over_time: '00:00',    // JANGAN NULL!
-                over_time_rp: 0,
-                telat_menit: 0,
-                cepat_menit: 0,
-                // STATUS YANG KITA INGINKAN
-                status_kehadiran: finalStatus, // Ini yang akan kita pertahankan
-                // Tambahan untuk tracking
-                libur_id: liburData.id,
-                alasan_libur: liburData.alasan,
-                created_at: existingRecord ? undefined : new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            };
-            
-            if (existingRecord) {
-                console.log(`   📍 Record exists, updating...`);
+            try {
+                // **STRATEGI: Upsert dengan clockin khusus**
+                const record = {
+                    tanggal: tanggalText,
+                    hari: hari,
+                    nama: liburData.karyawan,
+                    id_uniq: `LIBUR-${currentDate.getTime()}-${liburData.id.substring(0, 8)}`,
+                    outlet: liburData.outlet,
+                    // **KUNCI: Gunakan clockin khusus**
+                    clockin: clockinValue,
+                    clockout: clockoutValue,
+                    jamkerja: '00:00',
+                    over_time: '00:00',
+                    over_time_rp: 0,
+                    telat_menit: 0,
+                    cepat_menit: 0,
+                    // Biarkan status_kehadiran null, akan diisi trigger
+                    status_kehadiran: null,
+                    libur_id: liburData.id,
+                    alasan_libur: liburData.alasan.substring(0, 200),
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                };
                 
-                // **UPDATE dengan kondisi khusus**
-                const { error: updateError } = await supabase
+                // Coba upsert dulu
+                const { error: upsertError } = await supabase
                     .from('absen')
-                    .update({
-                        // Field yang perlu diupdate
-                        status_kehadiran: finalStatus,
-                        clockin: '00:00',  // Pastikan tidak null
-                        clockout: '00:00', // Pastikan tidak null
-                        jamkerja: '00:00',
-                        over_time: '00:00',
-                        telat_menit: 0,
-                        cepat_menit: 0,
-                        libur_id: liburData.id,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', existingRecord.id)
-                    // **TAMBAH KONDISI** untuk memastikan update hanya untuk libur
-                    .or(`clockin.is.null,clockin.eq.00:00,status_kehadiran.not.eq.HADIR`);
+                    .upsert([record], {
+                        onConflict: 'id_uniq'
+                    });
                 
-                if (updateError) {
-                    console.error(`   ❌ Update error:`, updateError);
-                    // Coba upsert sebagai fallback
-                    await upsertAbsenRecord(absenRecord, true);
-                } else {
-                    console.log(`   ✅ Updated to ${finalStatus}`);
-                }
-                
-            } else {
-                console.log(`   ➕ No record, inserting...`);
-                
-                // **INSERT langsung dengan semua field terisi**
-                const { error: insertError } = await supabase
-                    .from('absen')
-                    .insert([absenRecord]);
-                
-                if (insertError) {
-                    console.error(`   ❌ Insert error:`, insertError);
+                if (upsertError) {
+                    console.log(`   ⚠️ Upsert failed: ${upsertError.message}`);
                     
-                    // Fallback: Coba tanpa field tambahan
-                    delete absenRecord.libur_id;
-                    delete absenRecord.alasan_libur;
-                    
-                    const { error: retryError } = await supabase
+                    // Fallback 1: Coba update existing
+                    const { data: existing } = await supabase
                         .from('absen')
-                        .insert([absenRecord]);
+                        .select('id')
+                        .eq('nama', liburData.karyawan)
+                        .eq('tanggal', tanggalText)
+                        .maybeSingle();
                     
-                    if (retryError) throw retryError;
+                    if (existing) {
+                        // Update existing record
+                        const { error: updateError } = await supabase
+                            .from('absen')
+                            .update({
+                                clockin: clockinValue,
+                                clockout: clockoutValue,
+                                jamkerja: '00:00',
+                                telat_menit: 0,
+                                cepat_menit: 0,
+                                status_kehadiran: clockinValue, // Langsung set
+                                libur_id: liburData.id,
+                                updated_at: new Date().toISOString()
+                            })
+                            .eq('id', existing.id);
+                        
+                        if (!updateError) {
+                            console.log(`   ✅ Updated existing record`);
+                            successCount++;
+                        } else {
+                            console.error(`   ❌ Update failed:`, updateError);
+                        }
+                        
+                    } else {
+                        // Insert new
+                        const { error: insertError } = await supabase
+                            .from('absen')
+                            .insert([record]);
+                        
+                        if (!insertError) {
+                            console.log(`   ✅ Inserted new record`);
+                            successCount++;
+                        } else {
+                            console.error(`   ❌ Insert failed:`, insertError);
+                        }
+                    }
+                    
+                } else {
+                    console.log(`   ✅ Upsert successful`);
+                    successCount++;
                 }
                 
-                console.log(`   ✅ Inserted with status: ${finalStatus}`);
+            } catch (dayError) {
+                console.error(`   ❌ Error for ${tanggalText}:`, dayError);
+                
+                // Last resort: Update minimal
+                try {
+                    await supabase
+                        .from('absen')
+                        .update({
+                            clockin: clockinValue,
+                            status_kehadiran: clockinValue
+                        })
+                        .eq('nama', liburData.karyawan)
+                        .eq('tanggal', tanggalText);
+                    
+                    successCount++;
+                } catch (minimalError) {
+                    // Ignore jika gagal juga
+                }
             }
             
-            processedCount++;
             currentDate.setDate(currentDate.getDate() + 1);
         }
         
-        console.log(`\n🎉 Successfully processed ${processedCount} days`);
+        console.log(`\n🎉 Successfully processed ${successCount} days`);
         
         // Verifikasi
-        await verifyLiburStatus(liburData, startDate, endDate, finalStatus);
+        await verifyLiburStatusAfterUpdate(liburData, startDate, endDate, clockinValue);
         
-        return processedCount;
+        return successCount;
         
     } catch (error) {
         console.error('❌ Error in insertAbsenRecordsForLibur:', error);
         
-        // Tampilkan error detail
-        showToast(`Error pencatatan absen: ${error.message}`, 'error');
-        
-        // Return -1 untuk menandakan error
-        return -1;
+        // Jangan throw error, biarkan approval libur tetap sukses
+        showToast('Libur disetujui, tetapi ada masalah dengan pencatatan absen. Silakan cek manual.', 'warning');
+        return 0;
     }
 }
 
-// Helper: Upsert record
-async function upsertAbsenRecord(recordData, isUpdate = false) {
+// Helper: Verifikasi setelah update
+async function verifyLiburStatusAfterUpdate(liburData, startDate, endDate, expectedClockin) {
     try {
-        // Jika update, gunakan metode khusus
-        if (isUpdate) {
-            const { error } = await supabase
-                .from('absen')
-                .update(recordData)
-                .eq('nama', recordData.nama)
-                .eq('tanggal', recordData.tanggal);
-            
-            if (error) throw error;
-            return;
-        }
+        console.log('\n🔍 Verifying updates...');
         
-        // Jika insert, coba dulu
-        const { error } = await supabase
-            .from('absen')
-            .insert([recordData]);
-        
-        if (error) {
-            // Jika duplicate, update
-            if (error.code === '23505') {
-                const { error: updateError } = await supabase
-                    .from('absen')
-                    .update(recordData)
-                    .eq('nama', recordData.nama)
-                    .eq('tanggal', recordData.tanggal);
-                
-                if (updateError) throw updateError;
-            } else {
-                throw error;
-            }
-        }
-        
-    } catch (error) {
-        console.error('Error in upsertAbsenRecord:', error);
-        throw error;
-    }
-}
-
-// Helper: Verifikasi status berhasil diupdate
-async function verifyLiburStatus(liburData, startDate, endDate, expectedStatus) {
-    try {
-        console.log('\n🔍 Verifikasi status libur...');
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Tunggu 1 detik
         
         const { data: absenRecords } = await supabase
             .from('absen')
-            .select('tanggal, status_kehadiran, clockin, clockout, jamkerja')
+            .select('tanggal, clockin, status_kehadiran')
             .eq('nama', liburData.karyawan)
             .gte('tanggal', formatDateForAbsen(startDate))
             .lte('tanggal', formatDateForAbsen(endDate))
@@ -1255,70 +1221,108 @@ async function verifyLiburStatus(liburData, startDate, endDate, expectedStatus) 
         
         if (absenRecords && absenRecords.length > 0) {
             let correctCount = 0;
+            let needsFix = [];
             
             absenRecords.forEach(record => {
-                const statusMatch = record.status_kehadiran === expectedStatus;
-                const hasClockData = record.clockin && record.clockout;
+                const clockinCorrect = record.clockin === expectedClockin;
+                const statusCorrect = record.status_kehadiran === expectedClockin;
+                const isCorrect = clockinCorrect && statusCorrect;
                 
-                console.log(`   ${record.tanggal}: ${record.status_kehadiran} ${statusMatch ? '✅' : '❌'} ${hasClockData ? '(has clock)' : '(no clock)'}`);
+                console.log(`   ${record.tanggal}:`);
+                console.log(`     clockin="${record.clockin}" ${clockinCorrect ? '✅' : '❌'}`);
+                console.log(`     status="${record.status_kehadiran}" ${statusCorrect ? '✅' : '❌'}`);
                 
-                if (statusMatch) correctCount++;
+                if (isCorrect) {
+                    correctCount++;
+                } else {
+                    needsFix.push(record.tanggal);
+                }
             });
             
-            console.log(`\n📊 Hasil: ${correctCount}/${absenRecords.length} records correct`);
+            console.log(`\n📊 Result: ${correctCount}/${absenRecords.length} fully correct`);
             
-            if (correctCount < absenRecords.length) {
-                console.warn(`⚠️ Beberapa record tidak sesuai! Mungkin ada trigger yang masih aktif.`);
-                
-                // Coba fix dengan update manual
-                await forceFixStatus(liburData, startDate, endDate, expectedStatus);
+            // Fix yang belum benar
+            if (needsFix.length > 0) {
+                console.log(`🔄 Need to fix: ${needsFix.join(', ')}`);
+                await fixRemainingRecords(liburData, needsFix, expectedClockin);
             }
             
         } else {
-            console.warn(`⚠️ Tidak ditemukan records untuk verifikasi!`);
+            console.warn('⚠️ No records found for verification');
         }
         
     } catch (error) {
-        console.error('Error in verifyLiburStatus:', error);
+        console.error('Verification error:', error);
     }
 }
 
-// Helper: Force fix status jika masih salah
-async function forceFixStatus(liburData, startDate, endDate, expectedStatus) {
+// Helper: Fix records yang belum benar
+async function fixRemainingRecords(liburData, datesToFix, expectedClockin) {
+    let fixedCount = 0;
+    
+    for (const tanggalText of datesToFix) {
+        try {
+            const { error } = await supabase
+                .from('absen')
+                .update({
+                    clockin: expectedClockin,
+                    clockout: expectedClockin,
+                    status_kehadiran: expectedClockin,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('nama', liburData.karyawan)
+                .eq('tanggal', tanggalText);
+            
+            if (!error) fixedCount++;
+            
+        } catch (error) {
+            console.error(`Failed to fix ${tanggalText}:`, error);
+        }
+    }
+    
+    console.log(`   Fixed ${fixedCount}/${datesToFix.length} records`);
+}
+
+// [14M] SIMPLE VERSION: Untuk testing cepat
+async function simpleLiburAbsen(liburData) {
     try {
-        console.log(`\n🔧 Attempting force fix...`);
+        const clockinMap = {
+            'LIBUR': 'Libur',
+            'IZIN': 'Izin', 
+            'SAKIT': 'Sakit',
+            'CUTI': 'Cuti'
+        };
         
+        const clockinValue = clockinMap[liburData.jenis] || 'Izin';
+        
+        console.log(`🔧 Simple method with clockin="${clockinValue}"`);
+        
+        const startDate = new Date(liburData.tanggal_mulai);
+        const endDate = new Date(liburData.tanggal_selesai);
         let currentDate = new Date(startDate);
-        let fixedCount = 0;
         
         while (currentDate <= endDate) {
             const tanggalText = formatDateForAbsen(currentDate);
             
-            // Update langsung dengan raw condition
-            const { error } = await supabase
+            // Simple update langsung
+            await supabase
                 .from('absen')
                 .update({
-                    status_kehadiran: expectedStatus,
-                    // Override semua field yang mungkin mempengaruhi trigger
-                    clockin: '00:00',
-                    clockout: '00:00',
-                    jamkerja: '00:00',
-                    telat_menit: 0,
-                    cepat_menit: 0,
-                    updated_at: new Date().toISOString()
+                    clockin: clockinValue,
+                    status_kehadiran: clockinValue
                 })
                 .eq('nama', liburData.karyawan)
-                .eq('tanggal', tanggalText)
-                .eq('outlet', liburData.outlet);
+                .eq('tanggal', tanggalText);
             
-            if (!error) fixedCount++;
             currentDate.setDate(currentDate.getDate() + 1);
         }
         
-        console.log(`   Fixed ${fixedCount} records`);
+        console.log(`✅ Simple update completed`);
+        return true;
         
     } catch (error) {
-        console.error('Error in forceFixStatus:', error);
+        console.error('Simple method error:', error);
+        return false;
     }
 }
 // [15] Fungsi untuk kirim notifikasi WhatsApp ke karyawan
