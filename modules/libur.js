@@ -1052,14 +1052,13 @@ async function rejectLiburRequest(liburId) {
     }
 }
 
-// [14] Fungsi untuk insert ke tabel absen - SESUAI STRUKTUR ANDA
 async function insertAbsenRecordsForLibur(liburData) {
     try {
         const startDate = new Date(liburData.tanggal_mulai);
         const endDate = new Date(liburData.tanggal_selesai);
         const absenRecords = [];
         
-        console.log('📝 Inserting absen for:', liburData.karyawan);
+        console.log(`📝 Inserting absen for: ${liburData.karyawan}`);
         
         // Ambil data karyawan
         const { data: karyawanData } = await supabase
@@ -1075,24 +1074,29 @@ async function insertAbsenRecordsForLibur(liburData) {
             const hari = currentDate.toLocaleDateString('id-ID', { weekday: 'long' });
             const statusKehadiran = liburData.jenis === 'LIBUR' ? 'LIBUR' : 'IZIN';
             
-            // SESUAI STRUKTUR: clockin TEXT, bisa string
+            // **SOLUSI: Set clockin ke format waktu valid**
+            // Agar trigger tidak mengubah status_kehadiran
             const absenRecord = {
-                // Text fields
-                tanggal: tanggalText,
-                hari: hari,
-                nama: liburData.karyawan,
-                id_uniq: `LIBUR-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
-                nomor_wa: karyawanData?.nomor_wa || '',
-                outlet: liburData.outlet,
-                status_kehadiran: statusKehadiran,
-                clockin: 'LIBUR',      // TEXT sesuai struktur
-                clockout: 'LIBUR',     // TEXT sesuai struktur
-                jamkerja: '00:00',     // TEXT
-                over_time: '00:00',    // TEXT
+                // Required fields
+                tanggal: tanggalText,                    // TEXT: "31/10/2025"
+                hari: hari,                              // TEXT: "Jumat"
+                nama: liburData.karyawan,                // TEXT
+                id_uniq: `LIBUR-${Date.now()}-${Math.floor(Math.random() * 10000)}`, // TEXT
+                nomor_wa: karyawanData?.nomor_wa || '',  // TEXT
+                outlet: liburData.outlet,                // TEXT
                 
-                // Numeric fields
-                gaji_pokok: parseFloat(karyawanData?.gaji) || 0,
-                over_time_rp: 0,       // NUMERIC
+                // **PERBAIKAN: Set clockin ke value khusus untuk LIBUR/IZIN**
+                clockin: '00:00',                        // TEXT: Format HH:MM
+                clockout: '00:00',                       // TEXT: Format HH:MM
+                jamkerja: '00:00',                       // TEXT: Format HH:MM
+                
+                // Status langsung set ke LIBUR/IZIN
+                status_kehadiran: statusKehadiran,       // TEXT: "LIBUR" atau "IZIN"
+                
+                // Other fields
+                over_time: '00:00',                      // TEXT
+                over_time_rp: 0,                         // NUMERIC
+                gaji_pokok: parseFloat(karyawanData?.gaji) || 0, // NUMERIC
                 
                 // Nullable fields
                 token: null,
@@ -1102,10 +1106,9 @@ async function insertAbsenRecordsForLibur(liburData) {
                 jarak: null
             };
             
-            console.log('📋 Record:', {
+            console.log(`📋 Record:`, {
                 tanggal: absenRecord.tanggal,
                 clockin: absenRecord.clockin,
-                clockout: absenRecord.clockout,
                 status: absenRecord.status_kehadiran
             });
             
@@ -1125,11 +1128,11 @@ async function insertAbsenRecordsForLibur(liburData) {
             throw error;
         }
         
-        console.log(`✅ Successfully inserted ${absenRecords.length} records`);
+        console.log(`✅ Success! Inserted ${absenRecords.length} records`);
         return absenRecords.length;
         
     } catch (error) {
-        console.error('Error in insertAbsenRecordsForLibur:', error);
+        console.error('Error inserting absen:', error);
         throw error;
     }
 }
