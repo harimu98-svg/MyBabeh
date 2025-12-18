@@ -1300,7 +1300,7 @@ async function sendGroupWhatsAppNotification(liburData) {
     }
 }
 
-// [17] Fungsi untuk generate kalender - FIXED untuk Android
+// [17] Fungsi untuk generate kalender - DIPERBAIKI untuk include hari pertama
 function generateKalender() {
     const kalenderGrid = document.getElementById('kalenderGrid');
     if (!kalenderGrid) return;
@@ -1326,7 +1326,7 @@ function generateKalender() {
     const daysInMonth = lastDay.getDate();
     
     // Offset untuk hari pertama (Minggu = 0, Senin = 1, ..., Sabtu = 6)
-    const firstDayIndex = firstDay.getDay(); // 0-6
+    const firstDayIndex = firstDay.getDay();
     
     // Tambah sel kosong sebelum tanggal pertama
     for (let i = 0; i < firstDayIndex; i++) {
@@ -1337,28 +1337,43 @@ function generateKalender() {
     
     // Tanggal-tanggal
     const today = new Date();
-    const todayDateString = formatDateToDatabase(today);
+    const todayFormatted = formatDateToDatabase(today); // YYYY-MM-DD
     
     for (let day = 1; day <= daysInMonth; day++) {
         const dateCell = document.createElement('div');
         dateCell.className = 'kalender-day';
         
         const currentDate = new Date(currentYear, currentMonth, day);
-        const currentDateString = formatDateToDatabase(currentDate);
+        const currentDateFormatted = formatDateToDatabase(currentDate); // YYYY-MM-DD
         
         // Cek apakah hari ini
-        const isToday = currentDateString === todayDateString;
+        const isToday = currentDateFormatted === todayFormatted;
         
-        // Cek apakah ada libur di tanggal ini
+        // Cek apakah ada libur di tanggal ini - PERBAIKAN DI SINI!
         const liburOnThisDay = liburHistoryData.filter(libur => {
             try {
-                // Parse tanggal dari database DATE type
+                // Parse tanggal dari database dan format ke YYYY-MM-DD untuk konsistensi
                 const liburStart = new Date(libur.tanggal_mulai);
                 const liburEnd = new Date(libur.tanggal_selesai);
                 
-                // Cek apakah tanggal saat ini berada dalam range libur
-                // INI PERBAIKAN: Termasuk hari pertama libur
-                return currentDate >= liburStart && currentDate <= liburEnd;
+                // Format ke YYYY-MM-DD untuk compare apple-to-apple
+                const liburStartFormatted = formatDateToDatabase(liburStart);
+                const liburEndFormatted = formatDateToDatabase(liburEnd);
+                const currentDateFormatted = formatDateToDatabase(currentDate);
+                
+                // Debug log untuk cek perbandingan
+                console.log(`📅 Comparing:`, {
+                    current: currentDateFormatted,
+                    liburStart: liburStartFormatted,
+                    liburEnd: liburEndFormatted,
+                    isInRange: currentDateFormatted >= liburStartFormatted && 
+                              currentDateFormatted <= liburEndFormatted
+                });
+                
+                // PERBAIKAN: Compare formatted dates (YYYY-MM-DD)
+                return currentDateFormatted >= liburStartFormatted && 
+                       currentDateFormatted <= liburEndFormatted;
+                
             } catch (error) {
                 console.error('Error parsing date:', error);
                 return false;
@@ -1375,10 +1390,16 @@ function generateKalender() {
             const jenis = liburOnThisDay[0].jenis.toLowerCase();
             dateCell.classList.add(`libur-${jenis}`);
             
+            // Tambah data attribute untuk debugging
+            dateCell.setAttribute('data-libur-start', liburOnThisDay[0].tanggal_mulai);
+            dateCell.setAttribute('data-libur-end', liburOnThisDay[0].tanggal_selesai);
+            dateCell.setAttribute('data-current-date', currentDateFormatted);
+            
             // Tooltip dengan informasi libur
             const tooltipText = liburOnThisDay.map(l => 
-                `${l.jenis}: ${l.alasan.substring(0, 30)}${l.alasan.length > 30 ? '...' : ''}`
-            ).join('\n');
+                `${l.jenis}: ${formatDateToDisplay(new Date(l.tanggal_mulai))} - ${formatDateToDisplay(new Date(l.tanggal_selesai))}\nAlasan: ${l.alasan.substring(0, 30)}${l.alasan.length > 30 ? '...' : ''}`
+            ).join('\n\n');
+            
             dateCell.setAttribute('title', tooltipText);
             dateCell.setAttribute('data-tooltip', tooltipText);
         }
@@ -1401,6 +1422,10 @@ function generateKalender() {
         
         kalenderGrid.appendChild(dateCell);
     }
+    
+    // Debug: Tampilkan data libur yang sedang diproses
+    console.log('📅 Libur data for calendar:', liburHistoryData);
+    console.log('📅 Calendar generated for:', getMonthYearDisplay());
 }
 
 // [18] Helper functions untuk format tanggal
