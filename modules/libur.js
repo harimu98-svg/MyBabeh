@@ -409,6 +409,8 @@ function createLiburPage() {
                     </div>
                 </div>
             </div>
+                 </div>
+            </div>
             
             <!-- Libur History untuk Owner -->
             <div class="libur-history-section">
