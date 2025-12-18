@@ -1452,3 +1452,76 @@ textarea.form-control {
     align-items: center;
     justify-content: center;
 }
+/* ANDROID/MOBILE OPTIMIZATION */
+@media (max-width: 768px) {
+    .history-libur-section {
+        margin: 10px auto !important;
+        width: calc(100vw - 20px);
+        padding: 15px;
+    }
+    
+    .history-libur-section .section-header {
+        margin-bottom: 12px;
+        gap: 8px;
+    }
+    
+    .history-libur-section .section-header h3 {
+        font-size: 15px;
+        gap: 6px;
+    }
+    
+    .btn-refresh-history {
+        width: 34px;
+        height: 34px;
+        font-size: 14px;
+    }
+    
+    .horizontal-scroll {
+        min-width: 750px;
+    }
+}
+
+@media (max-width: 480px) {
+    .history-libur-section {
+        margin: 8px auto !important;
+        width: calc(100vw - 16px);
+        padding: 12px;
+    }
+    
+    .history-libur-section .section-header h3 {
+        font-size: 14px;
+    }
+    
+    .btn-refresh-history {
+        width: 32px;
+        height: 32px;
+        font-size: 13px;
+        margin-left: 8px;
+    }
+    
+    /* HEADER LEBIH KOMPAK */
+    .history-libur-section .section-header h3 i {
+        font-size: 13px;
+        min-width: 16px;
+    }
+    
+    .horizontal-scroll {
+        min-width: 700px;
+    }
+}
+
+/* VERY SMALL SCREENS */
+@media (max-width: 360px) {
+    .history-libur-section .section-header h3 {
+        font-size: 13px;
+    }
+    
+    .btn-refresh-history {
+        width: 30px;
+        height: 30px;
+    }
+    
+    .horizontal-scroll {
+        min-width: 650px;
+    }
+}
