@@ -134,18 +134,19 @@ function createLiburPage() {
                     <h3><i class="fas fa-paper-plane"></i> Ajukan Libur/Izin</h3>
                 </div>
                 
-                <div class="ajukan-libur-form">
-                    <!-- Jenis Libur -->
-                    <div class="form-group">
-                        <label for="jenisLibur"><i class="fas fa-tag"></i> Jenis:</label>
-                        <select id="jenisLibur" class="form-control">
-                            <option value="LIBUR">Libur</option>
-                            <option value="IZIN">Izin</option>
-                            <option value="SAKIT">Sakit</option>
-                            <option value="CUTI">Cuti Tahunan</option>
-                        </select>
-                    </div>
-                    
+              <div class="ajukan-libur-form">
+    <!-- Jenis Libur -->
+    <div class="form-group">
+        <label for="jenisLibur"><i class="fas fa-tag"></i> Jenis:</label>
+        <select id="jenisLibur" class="form-control">
+            <option value="LIBUR">Libur</option>
+            <option value="IZIN">Izin</option>
+            <!--
+            <option value="SAKIT">Sakit</option>
+            <option value="CUTI">Cuti Tahunan</option>
+            -->
+        </select>
+    </div>
                     <!-- Tanggal Mulai & Selesai -->
                     <div class="form-row">
                         <div class="form-group">
