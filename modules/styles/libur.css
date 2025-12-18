@@ -1439,3 +1439,73 @@ textarea.form-control {
     align-items: center;
     justify-content: center;
 }
+/* MOBILE FULL WIDTH */
+@media (max-width: 768px) {
+    /* CONTAINER HISTORY - NO GAP */
+    .history-libur-section {
+        margin: 0 !important; /* ⬅️ HAPUS MARGIN */
+        width: 100vw !important; /* ⬅️ FULL WIDTH */
+        border-radius: 0 !important;
+        padding: 15px !important;
+        box-shadow: none !important;
+        border-top: 1px solid #e9ecef;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    /* HEADER 1 BARIS - NO WRAP */
+    .history-libur-section .section-header {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        width: 100% !important;
+        margin-bottom: 12px !important;
+        flex-wrap: nowrap !important;
+        white-space: nowrap !important;
+        gap: 10px !important;
+    }
+    
+    .history-libur-section .section-header h3 {
+        margin: 0 !important;
+        font-size: 15px !important;
+        flex: 1 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+    }
+    
+    /* REFRESH BUTTON */
+    .btn-refresh-history {
+        width: 32px !important;
+        height: 32px !important;
+        flex-shrink: 0 !important;
+        margin: 0 !important;
+    }
+    
+    /* TABLE CONTAINER - NO GAP */
+    .history-table-container {
+        width: 100vw !important; /* ⬅️ FULL WIDTH */
+        margin-left: -15px !important; /* ⬅️ COMPENSATE PADDING */
+        margin-right: -15px !important;
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+    }
+    
+    /* TABLE - FULL WIDTH */
+    .horizontal-scroll {
+        min-width: 100vw !important; /* ⬅️ FULL VIEWPORT */
+        width: 100vw !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* TABLE CELLS - NO EXTRA PADDING */
+    .history-table th,
+    .history-table td {
+        padding: 10px 8px !important;
+        font-size: 12px !important;
+    }
+}
