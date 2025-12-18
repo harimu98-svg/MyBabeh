@@ -168,7 +168,7 @@ function createLiburPage() {
                         <label for="durasiLibur"><i class="far fa-clock"></i> Durasi:</label>
                         <div class="durasi-display" id="durasiDisplay">
                             <span id="durasiText">1 hari</span>
-                            <small id="detailHari">(${new Date().toLocaleDateString('id-ID')})</small>
+                            <small id="detailHari">(${formatDateToDisplay(new Date())})</small>
                         </div>
                     </div>
                     
@@ -206,8 +206,10 @@ function createLiburPage() {
                 </div>
                 
                 <div class="kalender-container">
-                    <div class="kalender-grid" id="kalenderGrid">
-                        <!-- Kalender akan diisi secara dinamis -->
+                    <div class="kalender-grid-wrapper">
+                        <div class="kalender-grid" id="kalenderGrid">
+                            <!-- Kalender akan diisi secara dinamis -->
+                        </div>
                     </div>
                 </div>
                 
@@ -439,21 +441,25 @@ function setupLiburFormEvents() {
             showToast('Maksimal 500 karakter', 'warning');
         }
     });
+    
+    // Set default end date sama dengan start date
+    calculateDurasi();
 }
 
 // [5] Fungsi untuk hitung durasi libur
 function calculateDurasi() {
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
+    const startDateText = document.getElementById('startDate').value;
+    const endDateText = document.getElementById('endDate').value;
     
-    if (!startDate || !endDate) return;
+    if (!startDateText || !endDateText) return;
     
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    // Konversi dari input date (YYYY-MM-DD) ke Date object
+    const start = new Date(startDateText);
+    const end = new Date(endDateText);
     
     // Validasi: end date tidak boleh sebelum start date
     if (end < start) {
-        document.getElementById('endDate').value = startDate;
+        document.getElementById('endDate').value = startDateText;
         showToast('Tanggal selesai tidak boleh sebelum tanggal mulai', 'warning');
         return calculateDurasi();
     }
@@ -462,10 +468,9 @@ function calculateDurasi() {
     const diffTime = Math.abs(end - start);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
     
-    // Format tanggal untuk display
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const startFormatted = start.toLocaleDateString('id-ID', options);
-    const endFormatted = end.toLocaleDateString('id-ID', options);
+    // Format ke text untuk display (dd/MM/yyyy)
+    const startFormatted = formatDateToDisplay(start);
+    const endFormatted = formatDateToDisplay(end);
     
     // Update display
     document.getElementById('durasiText').textContent = `${diffDays} hari`;
@@ -478,8 +483,8 @@ function calculateDurasi() {
 async function submitLiburRequest() {
     try {
         const jenisLibur = document.getElementById('jenisLibur').value;
-        const startDate = document.getElementById('startDate').value;
-        const endDate = document.getElementById('endDate').value;
+        const startDateInput = document.getElementById('startDate').value; // Format: YYYY-MM-DD
+        const endDateInput = document.getElementById('endDate').value;     // Format: YYYY-MM-DD
         const alasan = document.getElementById('alasanLibur').value.trim();
         
         // Validasi
@@ -501,12 +506,21 @@ async function submitLiburRequest() {
             return;
         }
         
-        // Konfirmasi
-        const startFormatted = new Date(startDate).toLocaleDateString('id-ID');
-        const endFormatted = new Date(endDate).toLocaleDateString('id-ID');
+        // Konversi ke Date object
+        const startDate = new Date(startDateInput);
+        const endDate = new Date(endDateInput);
         
+        // Format untuk database: YYYY-MM-DD (DATE type)
+        const tanggalMulaiDB = formatDateToDatabase(startDate);
+        const tanggalSelesaiDB = formatDateToDatabase(endDate);
+        
+        // Format untuk display UI: dd/MM/yyyy
+        const tanggalMulaiDisplay = formatDateToDisplay(startDate);
+        const tanggalSelesaiDisplay = formatDateToDisplay(endDate);
+        
+        // Konfirmasi dengan format Indonesia
         const confirmMessage = `Ajukan ${jenisLibur} untuk:\n` +
-                              `Tanggal: ${startFormatted} - ${endFormatted}\n` +
+                              `Tanggal: ${tanggalMulaiDisplay} - ${tanggalSelesaiDisplay}\n` +
                               `Durasi: ${durasi} hari\n` +
                               `Alasan: ${alasan.substring(0, 100)}${alasan.length > 100 ? '...' : ''}\n\n` +
                               `Apakah data sudah benar?`;
@@ -522,16 +536,16 @@ async function submitLiburRequest() {
         // Generate unique ID
         const liburId = generateLiburId();
         
-        // Insert ke database
+        // Insert ke database dengan DATE type (YYYY-MM-DD)
         const { data, error } = await supabase
-            .from('libur_izin') // Ganti dengan nama tabel yang sesuai
+            .from('libur_izin')
             .insert([{
                 id: liburId,
                 karyawan: currentKaryawanLibur.nama_karyawan,
                 outlet: currentUserOutletLibur,
                 jenis: jenisLibur,
-                tanggal_mulai: startDate,
-                tanggal_selesai: endDate,
+                tanggal_mulai: tanggalMulaiDB,      // Simpan sebagai DATE: YYYY-MM-DD
+                tanggal_selesai: tanggalSelesaiDB,  // Simpan sebagai DATE: YYYY-MM-DD
                 durasi: durasi,
                 alasan: alasan,
                 status: 'pending',
@@ -635,6 +649,7 @@ function displayKasirLiburHistory(liburData) {
     }
     
     liburData.forEach(libur => {
+        // Parse tanggal dari database DATE type (YYYY-MM-DD)
         const startDate = new Date(libur.tanggal_mulai);
         const endDate = new Date(libur.tanggal_selesai);
         const approveDate = libur.approved_at ? new Date(libur.approved_at) : null;
@@ -646,19 +661,21 @@ function displayKasirLiburHistory(liburData) {
                     ${libur.jenis}
                 </span>
             </td>
-            <td>${startDate.toLocaleDateString('id-ID')}</td>
-            <td>${endDate.toLocaleDateString('id-ID')}</td>
+            <td>${formatDateToDisplay(startDate)}</td>
+            <td>${formatDateToDisplay(endDate)}</td>
             <td>${libur.durasi} hari</td>
             <td class="alasan-cell" title="${libur.alasan}">
                 ${libur.alasan.length > 50 ? libur.alasan.substring(0, 50) + '...' : libur.alasan}
             </td>
             <td>
                 <span class="status-pill ${getLiburStatusClass(libur.status)}">
-                    ${libur.status}
+                    ${libur.status === 'approved' ? 'Disetujui' : 
+                      libur.status === 'rejected' ? 'Ditolak' : 
+                      libur.status === 'pending' ? 'Menunggu' : libur.status}
                 </span>
             </td>
             <td>${libur.approved_by || '-'}</td>
-            <td>${approveDate ? approveDate.toLocaleDateString('id-ID') : '-'}</td>
+            <td>${approveDate ? formatDateToDisplay(approveDate) : '-'}</td>
             <td>
                 <button class="btn-action btn-view" onclick="showLiburDetail('${libur.id}')" title="View Detail">
                     <i class="fas fa-eye"></i>
@@ -795,7 +812,7 @@ function displayPendingLiburRequests(liburData) {
                         </div>
                         <div class="libur-date">
                             <i class="far fa-calendar"></i>
-                            <span>Diajukan: ${createdDate.toLocaleDateString('id-ID')}</span>
+                            <span>Diajukan: ${formatDateToDisplay(createdDate)}</span>
                         </div>
                         <div class="libur-jenis">
                             <span class="jenis-badge jenis-${libur.jenis.toLowerCase()}">
@@ -811,7 +828,7 @@ function displayPendingLiburRequests(liburData) {
                         <div class="info-row">
                             <div class="info-item">
                                 <i class="fas fa-calendar-day"></i>
-                                <span>Tanggal: ${startDate.toLocaleDateString('id-ID')} - ${endDate.toLocaleDateString('id-ID')}</span>
+                                <span>Tanggal: ${formatDateToDisplay(startDate)} - ${formatDateToDisplay(endDate)}</span>
                             </div>
                             <div class="info-item">
                                 <i class="far fa-clock"></i>
@@ -886,7 +903,7 @@ function displayOwnerLiburHistory(liburData) {
         
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>${createdDate.toLocaleDateString('id-ID')}</td>
+            <td>${formatDateToDisplay(createdDate)}</td>
             <td>${libur.outlet || '-'}</td>
             <td>${libur.karyawan || '-'}</td>
             <td>
@@ -894,15 +911,17 @@ function displayOwnerLiburHistory(liburData) {
                     ${libur.jenis}
                 </span>
             </td>
-            <td>${startDate.toLocaleDateString('id-ID')}</td>
-            <td>${endDate.toLocaleDateString('id-ID')}</td>
+            <td>${formatDateToDisplay(startDate)}</td>
+            <td>${formatDateToDisplay(endDate)}</td>
             <td>${libur.durasi} hari</td>
             <td class="alasan-cell" title="${libur.alasan}">
                 ${libur.alasan.length > 40 ? libur.alasan.substring(0, 40) + '...' : libur.alasan}
             </td>
             <td>
                 <span class="status-pill ${getLiburStatusClass(libur.status)}">
-                    ${libur.status}
+                    ${libur.status === 'approved' ? 'Disetujui' : 
+                      libur.status === 'rejected' ? 'Ditolak' : 
+                      libur.status === 'pending' ? 'Menunggu' : libur.status}
                 </span>
             </td>
             <td>${libur.approved_by || '-'}</td>
@@ -935,9 +954,15 @@ async function approveLiburRequest(liburId) {
         
         if (fetchError) throw fetchError;
         
+        // Format untuk display
+        const startDate = new Date(liburData.tanggal_mulai);
+        const endDate = new Date(liburData.tanggal_selesai);
+        const tanggalMulaiDisplay = formatDateToDisplay(startDate);
+        const tanggalSelesaiDisplay = formatDateToDisplay(endDate);
+        
         if (!confirm(`Approve libur untuk ${liburData.karyawan}?\n\n` +
                    `Jenis: ${liburData.jenis}\n` +
-                   `Tanggal: ${new Date(liburData.tanggal_mulai).toLocaleDateString('id-ID')} - ${new Date(liburData.tanggal_selesai).toLocaleDateString('id-ID')}\n` +
+                   `Tanggal: ${tanggalMulaiDisplay} - ${tanggalSelesaiDisplay}\n` +
                    `Durasi: ${liburData.durasi} hari`)) {
             return;
         }
@@ -961,7 +986,7 @@ async function approveLiburRequest(liburId) {
         // Kirim notifikasi WhatsApp
         await sendWhatsAppNotification(liburData, 'approved', reviewNotes);
         
-        // Kirim ke group WhatsApp
+        // Kirim ke group WhatsApp (ambil dari tabel outlet)
         await sendGroupWhatsAppNotification(liburData);
         
         showToast('✅ Libur berhasil disetujui!', 'success');
@@ -1027,49 +1052,86 @@ async function rejectLiburRequest(liburId) {
     }
 }
 
-// [14] Fungsi untuk insert ke tabel absen
+// [14] Fungsi untuk insert ke tabel absen (TEXT format: dd/MM/yyyy)
 async function insertAbsenRecordsForLibur(liburData) {
     try {
-        const startDate = new Date(liburData.tanggal_mulai);
-        const endDate = new Date(liburData.tanggal_selesai);
+        const startDate = new Date(liburData.tanggal_mulai);  // DATE type dari database
+        const endDate = new Date(liburData.tanggal_selesai);  // DATE type dari database
         const absenRecords = [];
         
         // Generate records untuk setiap hari
         let currentDate = new Date(startDate);
         while (currentDate <= endDate) {
-            const tanggal = currentDate.toISOString().split('T')[0];
+            // Format tanggal ke text: dd/MM/yyyy untuk tabel absen
+            const tanggalText = formatDateForAbsen(currentDate);
+            
+            // Format hari (hari dalam bahasa Indonesia)
             const hari = currentDate.toLocaleDateString('id-ID', { weekday: 'long' });
             
             // Ambil data karyawan lengkap
             const { data: karyawanData } = await supabase
                 .from('karyawan')
-                .select('nomor_wa, gaji, jadwal_masuk, jadwal_pulang')
+                .select('nomor_wa, gaji, jadwal_masuk, jadwal_pulang, id_uniq')
                 .eq('nama_karyawan', liburData.karyawan)
                 .single();
             
-            absenRecords.push({
-                tanggal: tanggal,
+            // Generate unique ID untuk absen
+            const absenId = `ABS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            
+            // Prepare record absen
+            const absenRecord = {
+                id: absenId,
+                tanggal: tanggalText,  // Format TEXT: "04/10/2025" untuk tabel absen
                 hari: hari,
                 nama: liburData.karyawan,
                 outlet: liburData.outlet,
                 status_kehadiran: liburData.jenis === 'LIBUR' ? 'LIBUR' : 'IZIN',
                 nomor_wa: karyawanData?.nomor_wa || '',
+                id_uniq: karyawanData?.id_uniq || '',
                 gaji_pokok: karyawanData?.gaji || 0,
                 created_at: new Date().toISOString()
+            };
+            
+            // Field opsional jika ada di tabel
+            const optionalFields = {
+                clockin: '',
+                clockout: '',
+                jamkerja: '',
+                over_time: '',
+                over_time_rp: 0,
+                token: '',
+                token_expired: null,
+                longitude: null,
+                latitude: null,
+                jarak: null
+            };
+            
+            // Gabungkan dengan optional fields
+            absenRecords.push({
+                ...absenRecord,
+                ...optionalFields
             });
+            
+            console.log(`📝 Prepared absen record: ${tanggalText} - ${liburData.karyawan}`);
             
             // Tambah 1 hari
             currentDate.setDate(currentDate.getDate() + 1);
         }
         
+        console.log('📝 Total absen records to insert:', absenRecords.length);
+        
         // Insert ke tabel absen
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('absen')
             .insert(absenRecords);
         
-        if (error) throw error;
+        if (error) {
+            console.error('❌ Error inserting absen:', error);
+            throw error;
+        }
         
         console.log(`✅ Inserted ${absenRecords.length} absen records for libur`);
+        return absenRecords.length;
         
     } catch (error) {
         console.error('Error inserting absen records:', error);
@@ -1077,7 +1139,7 @@ async function insertAbsenRecordsForLibur(liburData) {
     }
 }
 
-// [15] Fungsi untuk kirim notifikasi WhatsApp
+// [15] Fungsi untuk kirim notifikasi WhatsApp ke karyawan
 async function sendWhatsAppNotification(liburData, action, reviewNotes = '') {
     try {
         const WA_API_URL = 'https://waha-yetv8qi4e3zk.anakit.sumopod.my.id/api/sendText';
@@ -1096,6 +1158,10 @@ async function sendWhatsAppNotification(liburData, action, reviewNotes = '') {
             return;
         }
         
+        // Parse tanggal dari database DATE
+        const startDate = new Date(liburData.tanggal_mulai);
+        const endDate = new Date(liburData.tanggal_selesai);
+        
         // Buat pesan
         let message = '';
         if (action === 'approved') {
@@ -1103,23 +1169,23 @@ async function sendWhatsAppNotification(liburData, action, reviewNotes = '') {
                      `Halo ${liburData.karyawan},\n\n` +
                      `Permohonan libur/izin Anda telah *DISETUJUI*:\n\n` +
                      `• Jenis: ${liburData.jenis}\n` +
-                     `• Tanggal: ${new Date(liburData.tanggal_mulai).toLocaleDateString('id-ID')} - ${new Date(liburData.tanggal_selesai).toLocaleDateString('id-ID')}\n` +
+                     `• Tanggal: ${formatDateToDisplay(startDate)} - ${formatDateToDisplay(endDate)}\n` +
                      `• Durasi: ${liburData.durasi} hari\n` +
                      `• Alasan: ${liburData.alasan}\n\n` +
                      `${reviewNotes ? `Catatan: ${reviewNotes}\n\n` : ''}` +
                      `Disetujui oleh: ${currentKaryawanLibur.nama_karyawan}\n` +
-                     `Pada: ${new Date().toLocaleDateString('id-ID')} ${new Date().toLocaleTimeString('id-ID')}\n\n` +
+                     `Pada: ${formatDateToDisplay(new Date())} ${new Date().toLocaleTimeString('id-ID')}\n\n` +
                      `_Status kehadiran telah dicatat sebagai ${liburData.jenis === 'LIBUR' ? 'LIBUR' : 'IZIN'}_`;
         } else {
             message = `❌ *LIBUR DITOLAK*\n\n` +
                      `Halo ${liburData.karyawan},\n\n` +
                      `Permohonan libur/izin Anda *DITOLAK*:\n\n` +
                      `• Jenis: ${liburData.jenis}\n` +
-                     `• Tanggal: ${new Date(liburData.tanggal_mulai).toLocaleDateString('id-ID')} - ${new Date(liburData.tanggal_selesai).toLocaleDateString('id-ID')}\n` +
+                     `• Tanggal: ${formatDateToDisplay(startDate)} - ${formatDateToDisplay(endDate)}\n` +
                      `• Alasan Anda: ${liburData.alasan}\n\n` +
                      `*Alasan Penolakan:*\n${reviewNotes}\n\n` +
                      `Ditolak oleh: ${currentKaryawanLibur.nama_karyawan}\n` +
-                     `Pada: ${new Date().toLocaleDateString('id-ID')} ${new Date().toLocaleTimeString('id-ID')}\n\n` +
+                     `Pada: ${formatDateToDisplay(new Date())} ${new Date().toLocaleTimeString('id-ID')}\n\n` +
                      `Silakan hubungi atasan untuk informasi lebih lanjut.`;
         }
         
@@ -1149,13 +1215,27 @@ async function sendWhatsAppNotification(liburData, action, reviewNotes = '') {
     }
 }
 
-// [16] Fungsi untuk kirim ke group WhatsApp
+// [16] Fungsi untuk kirim ke group WhatsApp (ambil dari tabel outlet)
 async function sendGroupWhatsAppNotification(liburData) {
     try {
         const WA_API_URL = 'https://waha-yetv8qi4e3zk.anakit.sumopod.my.id/api/sendText';
         const WA_API_KEY = 'sfcoGbpdLDkGZhKw2rx8sbb14vf4d8V6';
-        const GROUP_CHAT_ID = '62811159429-1533260196@g.us';
         
+        // Ambil group_wa dari tabel outlet
+        const { data: outletData, error } = await supabase
+            .from('outlet')
+            .select('group_wa')
+            .eq('nama_outlet', liburData.outlet)
+            .single();
+        
+        if (error || !outletData?.group_wa) {
+            console.warn(`Group WA tidak ditemukan untuk outlet ${liburData.outlet}`);
+            return;
+        }
+        
+        const GROUP_CHAT_ID = outletData.group_wa; // Format: 62811159429-1533260196@g.us
+        
+        // Parse tanggal dari database DATE
         const startDate = new Date(liburData.tanggal_mulai);
         const endDate = new Date(liburData.tanggal_selesai);
         
@@ -1163,13 +1243,13 @@ async function sendGroupWhatsAppNotification(liburData) {
         const message = `📢 *INFORMASI LIBUR KARYAWAN*\n\n` +
                        `*${liburData.karyawan}* akan ${liburData.jenis.toLowerCase()}:\n\n` +
                        `📍 Outlet: ${liburData.outlet}\n` +
-                       `📅 Tanggal: ${startDate.toLocaleDateString('id-ID')} - ${endDate.toLocaleDateString('id-ID')}\n` +
+                       `📅 Tanggal: ${formatDateToDisplay(startDate)} - ${formatDateToDisplay(endDate)}\n` +
                        `⏱️ Durasi: ${liburData.durasi} hari\n` +
                        `📝 Alasan: ${liburData.alasan}\n\n` +
                        `👥 *Kepada seluruh karyawan:*\n` +
                        `Mohon standby dan koordinasi untuk penjadwalan ulang.\n\n` +
                        `Disetujui oleh: ${currentKaryawanLibur.nama_karyawan}\n` +
-                       `Pada: ${new Date().toLocaleDateString('id-ID')}`;
+                       `Pada: ${formatDateToDisplay(new Date())}`;
         
         // Kirim ke group
         const response = await fetch(WA_API_URL, {
@@ -1189,7 +1269,7 @@ async function sendGroupWhatsAppNotification(liburData) {
             throw new Error(`HTTP ${response.status}`);
         }
         
-        console.log('📱 Group WhatsApp notification sent');
+        console.log(`📱 Group WhatsApp notification sent to ${GROUP_CHAT_ID}`);
         
     } catch (error) {
         console.error('Error sending group WhatsApp:', error);
@@ -1197,7 +1277,7 @@ async function sendGroupWhatsAppNotification(liburData) {
     }
 }
 
-// [17] Fungsi untuk generate kalender
+// [17] Fungsi untuk generate kalender - FIXED untuk Android
 function generateKalender() {
     const kalenderGrid = document.getElementById('kalenderGrid');
     if (!kalenderGrid) return;
@@ -1209,7 +1289,7 @@ function generateKalender() {
     kalenderGrid.innerHTML = '';
     
     // Tambah header hari
-    const hariHeaders = ['Ming', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+    const hariHeaders = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
     hariHeaders.forEach(hari => {
         const headerCell = document.createElement('div');
         headerCell.className = 'kalender-header';
@@ -1222,8 +1302,10 @@ function generateKalender() {
     const lastDay = new Date(currentYear, currentMonth + 1, 0);
     const daysInMonth = lastDay.getDate();
     
-    // Offset untuk hari pertama
-    const firstDayIndex = firstDay.getDay();
+    // Offset untuk hari pertama (Minggu = 0, Senin = 1, ..., Sabtu = 6)
+    const firstDayIndex = firstDay.getDay(); // 0-6
+    
+    // Tambah sel kosong sebelum tanggal pertama
     for (let i = 0; i < firstDayIndex; i++) {
         const emptyCell = document.createElement('div');
         emptyCell.className = 'kalender-empty';
@@ -1232,22 +1314,36 @@ function generateKalender() {
     
     // Tanggal-tanggal
     const today = new Date();
+    const todayDateString = formatDateToDatabase(today);
+    
     for (let day = 1; day <= daysInMonth; day++) {
         const dateCell = document.createElement('div');
         dateCell.className = 'kalender-day';
         
         const currentDate = new Date(currentYear, currentMonth, day);
-        const dateString = currentDate.toISOString().split('T')[0];
+        const currentDateString = formatDateToDatabase(currentDate);
+        
+        // Cek apakah hari ini
+        const isToday = currentDateString === todayDateString;
         
         // Cek apakah ada libur di tanggal ini
         const liburOnThisDay = liburHistoryData.filter(libur => {
-            const liburStart = new Date(libur.tanggal_mulai);
-            const liburEnd = new Date(libur.tanggal_selesai);
-            return currentDate >= liburStart && currentDate <= liburEnd;
+            try {
+                // Parse tanggal dari database DATE type
+                const liburStart = new Date(libur.tanggal_mulai);
+                const liburEnd = new Date(libur.tanggal_selesai);
+                
+                // Cek apakah tanggal saat ini berada dalam range libur
+                // INI PERBAIKAN: Termasuk hari pertama libur
+                return currentDate >= liburStart && currentDate <= liburEnd;
+            } catch (error) {
+                console.error('Error parsing date:', error);
+                return false;
+            }
         });
         
         // Add classes
-        if (currentDate.toDateString() === today.toDateString()) {
+        if (isToday) {
             dateCell.classList.add('today');
         }
         
@@ -1256,28 +1352,54 @@ function generateKalender() {
             const jenis = liburOnThisDay[0].jenis.toLowerCase();
             dateCell.classList.add(`libur-${jenis}`);
             
-            // Tooltip
-            dateCell.title = liburOnThisDay.map(l => 
+            // Tooltip dengan informasi libur
+            const tooltipText = liburOnThisDay.map(l => 
                 `${l.jenis}: ${l.alasan.substring(0, 30)}${l.alasan.length > 30 ? '...' : ''}`
             ).join('\n');
+            dateCell.setAttribute('title', tooltipText);
+            dateCell.setAttribute('data-tooltip', tooltipText);
         }
         
         // Add content
         dateCell.innerHTML = `
             <div class="day-number">${day}</div>
             ${liburOnThisDay.length > 0 ? 
-                `<div class="libur-indicator ${liburOnThisDay[0].status}"></div>` : ''}
+                `<div class="libur-indicator ${liburOnThisDay[0].status}" 
+                      title="${liburOnThisDay[0].jenis}: ${liburOnThisDay[0].status}"></div>` : ''}
         `;
+        
+        // Tambah event click untuk detail
+        if (liburOnThisDay.length > 0) {
+            dateCell.style.cursor = 'pointer';
+            dateCell.addEventListener('click', () => {
+                showLiburDetail(liburOnThisDay[0].id);
+            });
+        }
         
         kalenderGrid.appendChild(dateCell);
     }
 }
 
-// [18] Helper functions
-function generateLiburId() {
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substring(2, 8);
-    return `LIBUR-${timestamp}-${random}`.toUpperCase();
+// [18] Helper functions untuk format tanggal
+function formatDateToDatabase(date) {
+    // Format: YYYY-MM-DD untuk database DATE type
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function formatDateToDisplay(date) {
+    // Format: dd/MM/yyyy untuk display UI
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+function formatDateForAbsen(date) {
+    // Format: dd/MM/yyyy untuk tabel absen.tanggal (TEXT)
+    return formatDateToDisplay(date);
 }
 
 function getMonthYearDisplay() {
@@ -1312,16 +1434,22 @@ function getLiburStatusClass(status) {
     }
 }
 
-function showLiburDetail(liburId) {
-    // Implement modal untuk show detail
-    const modal = document.getElementById('liburDetailModal');
-    const content = document.getElementById('liburDetailContent');
-    
-    // Cari data libur
-    const allLiburData = [...(liburHistoryData || []), ...getPendingLiburData()];
-    const libur = allLiburData.find(l => l.id === liburId);
-    
-    if (libur) {
+// [19] Fungsi untuk show libur detail modal
+async function showLiburDetail(liburId) {
+    try {
+        // Ambil data libur
+        const { data: libur, error } = await supabase
+            .from('libur_izin')
+            .select('*')
+            .eq('id', liburId)
+            .single();
+        
+        if (error) throw error;
+        
+        const modal = document.getElementById('liburDetailModal');
+        const content = document.getElementById('liburDetailContent');
+        
+        // Parse tanggal dari database DATE
         const startDate = new Date(libur.tanggal_mulai);
         const endDate = new Date(libur.tanggal_selesai);
         const createdDate = new Date(libur.created_at);
@@ -1330,7 +1458,7 @@ function showLiburDetail(liburId) {
         content.innerHTML = `
             <div class="libur-detail">
                 <div class="detail-section">
-                    <h4>Informasi Libur</h4>
+                    <h4><i class="fas fa-info-circle"></i> Informasi Libur</h4>
                     <div class="detail-grid">
                         <div class="detail-item">
                             <label>Karyawan:</label>
@@ -1349,16 +1477,18 @@ function showLiburDetail(liburId) {
                         <div class="detail-item">
                             <label>Status:</label>
                             <span class="status-pill ${getLiburStatusClass(libur.status)}">
-                                ${libur.status}
+                                ${libur.status === 'approved' ? 'Disetujui' : 
+                                  libur.status === 'rejected' ? 'Ditolak' : 
+                                  libur.status === 'pending' ? 'Menunggu' : libur.status}
                             </span>
                         </div>
                         <div class="detail-item">
                             <label>Tanggal Mulai:</label>
-                            <span>${startDate.toLocaleDateString('id-ID')}</span>
+                            <span>${formatDateToDisplay(startDate)}</span>
                         </div>
                         <div class="detail-item">
                             <label>Tanggal Selesai:</label>
-                            <span>${endDate.toLocaleDateString('id-ID')}</span>
+                            <span>${formatDateToDisplay(endDate)}</span>
                         </div>
                         <div class="detail-item">
                             <label>Durasi:</label>
@@ -1366,12 +1496,12 @@ function showLiburDetail(liburId) {
                         </div>
                         <div class="detail-item">
                             <label>Diajukan Pada:</label>
-                            <span>${createdDate.toLocaleDateString('id-ID')} ${createdDate.toLocaleTimeString('id-ID')}</span>
+                            <span>${formatDateToDisplay(createdDate)} ${createdDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</span>
                         </div>
                         ${approveDate ? `
                         <div class="detail-item">
                             <label>Disetujui Pada:</label>
-                            <span>${approveDate.toLocaleDateString('id-ID')} ${approveDate.toLocaleTimeString('id-ID')}</span>
+                            <span>${formatDateToDisplay(approveDate)} ${approveDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</span>
                         </div>
                         <div class="detail-item">
                             <label>Disetujui Oleh:</label>
@@ -1382,13 +1512,13 @@ function showLiburDetail(liburId) {
                 </div>
                 
                 <div class="detail-section">
-                    <h4>Alasan</h4>
+                    <h4><i class="fas fa-sticky-note"></i> Alasan</h4>
                     <div class="alasan-box">${libur.alasan}</div>
                 </div>
                 
                 ${libur.review_notes ? `
                 <div class="detail-section">
-                    <h4>Catatan Review</h4>
+                    <h4><i class="fas fa-edit"></i> Catatan Review</h4>
                     <div class="notes-box">${libur.review_notes}</div>
                 </div>
                 ` : ''}
@@ -1396,6 +1526,10 @@ function showLiburDetail(liburId) {
         `;
         
         modal.style.display = 'flex';
+        
+    } catch (error) {
+        console.error('Error showing libur detail:', error);
+        showToast('❌ Gagal memuat detail libur', 'error');
     }
 }
 
@@ -1403,13 +1537,17 @@ function closeLiburDetailModal() {
     document.getElementById('liburDetailModal').style.display = 'none';
 }
 
+// [20] Fungsi untuk cancel libur request (kasir/barberman)
 async function cancelLiburRequest(liburId) {
     if (!confirm('Batalkan permohonan libur ini?')) return;
     
     try {
         const { error } = await supabase
             .from('libur_izin')
-            .update({ status: 'cancelled' })
+            .update({ 
+                status: 'cancelled',
+                approved_at: new Date().toISOString()
+            })
             .eq('id', liburId);
         
         if (error) throw error;
@@ -1424,41 +1562,148 @@ async function cancelLiburRequest(liburId) {
     }
 }
 
+// [21] Fungsi untuk send libur reminder
 async function sendLiburReminder(liburId) {
-    // Implement reminder function
-    showToast('Fitur reminder akan segera tersedia', 'info');
+    try {
+        // Ambil data libur
+        const { data: libur, error } = await supabase
+            .from('libur_izin')
+            .select('*')
+            .eq('id', liburId)
+            .single();
+        
+        if (error) throw error;
+        
+        const startDate = new Date(libur.tanggal_mulai);
+        const today = new Date();
+        
+        // Cek jika libur sudah lewat
+        if (startDate < today) {
+            showToast('❌ Libur sudah lewat, tidak bisa kirim reminder', 'warning');
+            return;
+        }
+        
+        // Hitung hari menuju libur
+        const diffTime = startDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        let reminderMessage = '';
+        if (diffDays === 0) {
+            reminderMessage = `⏰ *REMINDER LIBUR HARI INI*\n\n${libur.karyawan} libur hari ini (${formatDateToDisplay(startDate)}). Mohon disiapkan penggantinya.`;
+        } else if (diffDays === 1) {
+            reminderMessage = `⏰ *REMINDER LIBUR BESOK*\n\n${libur.karyawan} akan libur besok (${formatDateToDisplay(startDate)}). Mohon disiapkan penggantinya.`;
+        } else {
+            reminderMessage = `⏰ *REMINDER LIBUR*\n\n${libur.karyawan} akan libur dalam ${diffDays} hari (${formatDateToDisplay(startDate)}). Mohon disiapkan penggantinya.`;
+        }
+        
+        // Kirim ke group WhatsApp
+        await sendCustomGroupMessage(libur.outlet, reminderMessage);
+        
+        showToast(`✅ Reminder dikirim ke group WA`, 'success');
+        
+    } catch (error) {
+        console.error('Error sending reminder:', error);
+        showToast('❌ Gagal mengirim reminder', 'error');
+    }
 }
 
+// [22] Fungsi untuk kirim custom message ke group
+async function sendCustomGroupMessage(outletName, message) {
+    try {
+        const WA_API_URL = 'https://waha-yetv8qi4e3zk.anakit.sumopod.my.id/api/sendText';
+        const WA_API_KEY = 'sfcoGbpdLDkGZhKw2rx8sbb14vf4d8V6';
+        
+        // Ambil group_wa dari tabel outlet
+        const { data: outletData, error } = await supabase
+            .from('outlet')
+            .select('group_wa')
+            .eq('nama_outlet', outletName)
+            .single();
+        
+        if (error || !outletData?.group_wa) {
+            console.warn(`Group WA tidak ditemukan untuk outlet ${outletName}`);
+            return;
+        }
+        
+        const GROUP_CHAT_ID = outletData.group_wa;
+        
+        // Kirim ke group
+        const response = await fetch(WA_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Api-Key': WA_API_KEY
+            },
+            body: JSON.stringify({
+                session: 'Session1',
+                chatId: GROUP_CHAT_ID,
+                text: message
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        console.log(`📱 Custom message sent to group ${GROUP_CHAT_ID}`);
+        
+    } catch (error) {
+        console.error('Error sending custom group message:', error);
+    }
+}
+
+// [23] Load outlet dropdown untuk owner
 async function loadOutletDropdownForLibur(liburData) {
     const select = document.getElementById('filterOutletOwnerLibur');
     if (!select) return;
     
-    // Get unique outlets dari data
-    const outlets = [...new Set(liburData.map(r => r.outlet).filter(Boolean))];
-    
-    select.innerHTML = `
-        <option value="all">Semua Outlet</option>
-        ${outlets.map(outlet => `<option value="${outlet}">${outlet}</option>`).join('')}
-    `;
+    try {
+        // Get distinct outlets dari data libur
+        const outlets = [...new Set(liburData.map(r => r.outlet).filter(Boolean))];
+        
+        // Juga ambil dari tabel outlet untuk opsi lengkap
+        const { data: allOutlets } = await supabase
+            .from('outlet')
+            .select('nama_outlet')
+            .order('nama_outlet');
+        
+        const allOutletNames = allOutlets?.map(o => o.nama_outlet) || [];
+        const uniqueOutlets = [...new Set([...outlets, ...allOutletNames])];
+        
+        select.innerHTML = `
+            <option value="all">Semua Outlet</option>
+            ${uniqueOutlets.map(outlet => `<option value="${outlet}">${outlet}</option>`).join('')}
+        `;
+        
+    } catch (error) {
+        console.error('Error loading outlets:', error);
+    }
 }
 
-// Helper untuk mendapatkan pending libur data
-function getPendingLiburData() {
-    // Ini akan diimplementasikan sesuai kebutuhan
-    return [];
+// [24] Helper function lainnya
+function generateLiburId() {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 8);
+    return `LIBUR-${timestamp}-${random}`.toUpperCase();
 }
 
-// [19] Fungsi toast (sama seperti di request)
+// [25] Fungsi toast notification
 function showToast(message, type = 'info') {
+    // Hapus toast sebelumnya jika ada
     const existingToast = document.getElementById('liburToast');
-    if (existingToast) existingToast.remove();
+    if (existingToast) {
+        existingToast.remove();
+    }
     
+    // Buat toast element
     const toast = document.createElement('div');
     toast.id = 'liburToast';
     toast.className = `toast toast-${type}`;
     toast.innerHTML = `
         <div class="toast-content">
-            <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 
+                           type === 'error' ? 'fa-exclamation-circle' : 
+                           type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'}"></i>
             <span>${message}</span>
         </div>
         <button class="toast-close" onclick="this.parentElement.remove()">
@@ -1466,16 +1711,28 @@ function showToast(message, type = 'info') {
         </button>
     `;
     
+    // Tambahkan ke body
     document.body.appendChild(toast);
     
-    setTimeout(() => toast.classList.add('show'), 10);
+    // Tampilkan toast
     setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
+        toast.classList.add('show');
+    }, 10);
+    
+    // Auto remove setelah 5 detik
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 300);
+        }
     }, 5000);
 }
 
-// [20] Global functions
+// [26] Global functions untuk window object
 window.changeLiburMonth = changeLiburMonth;
 window.showLiburDetail = showLiburDetail;
 window.closeLiburDetailModal = closeLiburDetailModal;
