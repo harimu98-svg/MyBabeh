@@ -1428,18 +1428,13 @@ textarea.form-control {
         min-width: 28px;
         min-height: 28px;
     }
- @media (max-width: 768px) {
-    .libur-info-header .info-item i {
-        width: 24px;
-        height: 24px;
-        font-size: 12px;
-    }
-}
-
-@media (max-width: 480px) {
-    .libur-info-header .info-item i {
-        width: 22px;
-        height: 22px;
-        font-size: 11px;
-    }
+.libur-info-header .info-item i {
+    background: linear-gradient(135deg, #ffd166 0%, #ff9e00 100%);
+    color: white;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px; /* ⬅️ Sudut melengkung */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
