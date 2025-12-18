@@ -234,132 +234,40 @@ function createLiburPage() {
     </div>
     -->
 
-<!-- MOBILE FULL WIDTH HISTORY SECTION -->
-<div class="history-libur-section" style="
-    /* MOBILE STYLE */
-    @media (max-width: 768px) {
-        margin: 0 !important;
-        width: 100vw !important;
-        border-radius: 0 !important;
-        padding: 15px 0 !important;
-        box-shadow: none !important;
-        border-top: 1px solid #e9ecef;
-        border-bottom: 1px solid #e9ecef;
-    }
-    
-    /* DEFAULT DESKTOP */
-    background: white;
-    border-radius: 10px;
-    margin: 15px;
-    padding: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    width: calc(100vw - 30px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-">
-
-    <!-- HEADER 1 BARIS -->
-    <div class="section-header" style="
-        @media (max-width: 768px) {
-            display: flex !important;
-            justify-content: space-between !important;
-            align-items: center !important;
-            width: 100% !important;
-            padding: 0 15px !important;
-            margin-bottom: 12px !important;
-            flex-wrap: nowrap !important;
-            gap: 10px !important;
-        }
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-        margin-bottom: 15px;
-    ">
-        <h3 style="
-            @media (max-width: 768px) {
-                margin: 0 !important;
-                font-size: 15px !important;
-                flex: 1 !important;
-                white-space: nowrap !important;
-                overflow: hidden !important;
-                text-overflow: ellipsis !important;
-            }
-            margin: 0;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex: 1;
-        ">
-            <i class="fas fa-history"></i> History Libur/Izin Saya
-        </h3>
-        
-        <button class="btn-refresh-history" onclick="loadKasirLiburHistory()" style="
-            @media (max-width: 768px) {
-                width: 32px !important;
-                height: 32px !important;
-                flex-shrink: 0 !important;
-                margin: 0 !important;
-            }
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #495057;
-            cursor: pointer;
-            flex-shrink: 0;
-            margin-left: 10px;
-        ">
-            <i class="fas fa-sync-alt"></i>
-        </button>
-    </div>
-    
-    <!-- TABLE CONTAINER FULL WIDTH -->
-    <div class="history-table-container" style="
-        @media (max-width: 768px) {
-            width: 100vw !important;
-            margin: 0 !important;
-            border-radius: 0 !important;
-            border-left: none !important;
-            border-right: none !important;
-        }
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        border-radius: 8px;
-        border: 1px solid #e9ecef;
-        display: flex;
-        justify-content: center;
-    ">
-        <div class="table-wrapper" style="
-            @media (max-width: 768px) {
-                min-width: 100vw !important;
-            }
-            min-width: 100%;
-        ">
-            <table class="history-table horizontal-scroll" id="historyTableLibur" style="
-                @media (max-width: 768px) {
-                    min-width: 100vw !important;
-                    width: 100vw !important;
-                    margin: 0 !important;
-                    padding: 0 !important;
-                }
-                min-width: 800px;
-                width: 100%;
-                margin: 0 auto;
-                display: none;
-            ">
+<!-- History Libur Saya -->
+            <div class="history-libur-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-history"></i> History Libur/Izin Saya</h3>
+                    <button class="btn-refresh-history" onclick="loadKasirLiburHistory()">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                
+                <div class="history-table-container">
+                    <div class="loading" id="loadingHistoryLibur">Memuat history libur...</div>
+                    <div class="table-wrapper">
+                        <table class="history-table horizontal-scroll" id="historyTableLibur" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th width="100px">Jenis</th>
+                                    <th width="100px">Mulai</th>
+                                    <th width="100px">Selesai</th>
+                                    <th width="80px">Durasi</th>
+                                    <th>Alasan</th>
+                                    <th width="100px">Status</th>
+                                    <th width="120px">Disetujui Oleh</th>
+                                    <th width="100px">Tanggal Approve</th>
+                                    <th width="80px">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyBodyLibur">
+                                <!-- History akan diisi di sini -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-       </div>
-    </div>
-</div>   
-</div> 
+        </div>
         ` : `
         <!-- Untuk OWNER: Approval Libur Requests -->
         <div class="owner-libur-section">
