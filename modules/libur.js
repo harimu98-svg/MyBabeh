@@ -1065,7 +1065,7 @@ async function insertAbsenRecordsForLibur(liburData) {
         // Ambil data karyawan
         const { data: karyawanData, error: karyawanError } = await supabase
             .from('karyawan')
-            .select('nomor_wa, gaji')
+            .select('nomor_wa, outlet')
             .eq('nama_karyawan', liburData.karyawan)
             .single();
         
@@ -1114,7 +1114,7 @@ async function insertAbsenRecordsForLibur(liburData) {
                 token_expired: null,
                 
                 // NUMERIC fields - HARUS ANGKA, BUKAN STRING!
-                gaji_pokok: parseFloat(karyawanData?.gaji) || 0,
+                gaji_pokok: 0,
                 over_time_rp: 0,      // NUMERIC - harus angka!
                 longitude: null,      // NUMERIC (bisa null)
                 latitude: null,       // NUMERIC (bisa null)
