@@ -1429,99 +1429,77 @@ textarea.form-control {
         min-height: 28px;
     }
     
-    /* HISTORY TABLE */
-    .horizontal-scroll {
-        min-width: 650px;
-    }
-    
-    /* SECTION PADDING */
-    .history-libur-section,
-    .kalender-libur-section {
-        padding: 15px;
-        margin: 10px;
-        width: calc(100vw - 20px);
-    }
+   /* HISTORY SECTION CENTERED */
+.history-libur-section {
+    background: white;
+    border-radius: 10px;
+    margin: 15px auto !important; /* ⬅️ CENTER */
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    width: calc(100vw - 30px);
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* ⬅️ CENTER CONTENT */
 }
-.libur-info-header .info-item i {
-    background: linear-gradient(135deg, #ffd166 0%, #ff9e00 100%);
-    color: white;
-    width: 26px;
-    height: 26px;
-    border-radius: 6px; /* ⬅️ Sudut melengkung */
+
+/* HEADER 1 BARIS */
+.history-libur-section .section-header {
+    display: flex;
+    justify-content: space-between; /* ⬅️ HEADER & BUTTON SEJAJAR */
+    align-items: center;
+    width: 100%;
+    margin-bottom: 15px;
+    flex-wrap: nowrap !important; /* ⬅️ NO WRAP */
+    white-space: nowrap !important;
+}
+
+.history-libur-section .section-header h3 {
+    margin: 0;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1; /* ⬅️ TAKE AVAILABLE SPACE */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* REFRESH BUTTON */
+.btn-refresh-history {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-}
-/* ANDROID/MOBILE OPTIMIZATION */
-@media (max-width: 768px) {
-    .history-libur-section {
-        margin: 10px auto !important;
-        width: calc(100vw - 20px);
-        padding: 15px;
-    }
-    
-    .history-libur-section .section-header {
-        margin-bottom: 12px;
-        gap: 8px;
-    }
-    
-    .history-libur-section .section-header h3 {
-        font-size: 15px;
-        gap: 6px;
-    }
-    
-    .btn-refresh-history {
-        width: 34px;
-        height: 34px;
-        font-size: 14px;
-    }
-    
-    .horizontal-scroll {
-        min-width: 750px;
-    }
+    color: #495057;
+    cursor: pointer;
+    flex-shrink: 0; /* ⬅️ DON'T SHRINK */
+    margin-left: 10px;
+    transition: all 0.3s ease;
 }
 
-@media (max-width: 480px) {
-    .history-libur-section {
-        margin: 8px auto !important;
-        width: calc(100vw - 16px);
-        padding: 12px;
-    }
-    
-    .history-libur-section .section-header h3 {
-        font-size: 14px;
-    }
-    
-    .btn-refresh-history {
-        width: 32px;
-        height: 32px;
-        font-size: 13px;
-        margin-left: 8px;
-    }
-    
-    /* HEADER LEBIH KOMPAK */
-    .history-libur-section .section-header h3 i {
-        font-size: 13px;
-        min-width: 16px;
-    }
-    
-    .horizontal-scroll {
-        min-width: 700px;
-    }
+.btn-refresh-history:hover {
+    background: #e9ecef;
+    transform: rotate(90deg);
 }
 
-/* VERY SMALL SCREENS */
-@media (max-width: 360px) {
-    .history-libur-section .section-header h3 {
-        font-size: 13px;
-    }
-    
-    .btn-refresh-history {
-        width: 30px;
-        height: 30px;
-    }
-    
-    .horizontal-scroll {
-        min-width: 650px;
-    }
+/* TABLE CONTAINER CENTERED */
+.history-table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    display: flex;
+    justify-content: center; /* ⬅️ CENTER SCROLL */
+}
+
+.table-wrapper {
+    min-width: 100%;
+    margin: 0 auto;
 }
