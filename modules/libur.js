@@ -1097,9 +1097,8 @@ async function insertAbsenRecordsForLibur(liburData) {
                 jamkerja: '00:00',
                 over_time: '00:00',
                 over_time_rp: 0,
-                status_kehadiran: statusKehadiran, // Langsung set di sini
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+                status_kehadiran: statusKehadiran
+                ()
             };
             
             console.log('   📤 Upserting data...');
