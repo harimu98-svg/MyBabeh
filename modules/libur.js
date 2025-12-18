@@ -234,9 +234,11 @@ function createLiburPage() {
     </div>
     -->
 </div>
-            
-            <!-- History Libur Saya -->
-           <!-- MOBILE FULL WIDTH HISTORY SECTION -->
+       </div>
+    </div>
+</div>   
+</div> 
+<!-- MOBILE FULL WIDTH HISTORY SECTION -->
 <div class="history-libur-section" style="
     /* MOBILE STYLE */
     @media (max-width: 768px) {
@@ -357,7 +359,7 @@ function createLiburPage() {
                 margin: 0 auto;
                 display: none;
             ">
-        </div>
+            
         ` : `
         <!-- Untuk OWNER: Approval Libur Requests -->
         <div class="owner-libur-section">
