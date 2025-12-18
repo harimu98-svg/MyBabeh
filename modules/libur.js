@@ -236,13 +236,13 @@ function createLiburPage() {
     </div>
 </div>
 <!-- History Libur Saya -->
-            <div class="history-libur-section">
-                <div class="section-header">
-                    <h3><i class="fas fa-history"></i> History Libur/Izin Saya</h3>
-                    <button class="btn-refresh-history" onclick="loadKasirLiburHistory()">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                </div>
+           <div class="history-libur-section">
+    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0;"><i class="fas fa-history"></i> History Libur/Izin Saya</h3>
+        <button class="btn-refresh-history" onclick="loadKasirLiburHistory()">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    </div>
                 
                 <div class="history-table-container">
                     <div class="loading" id="loadingHistoryLibur">Memuat history libur...</div>
