@@ -1078,7 +1078,7 @@ async function insertAbsenRecordsForLibur(liburData) {
             // Ambil data karyawan lengkap
             const { data: karyawanData, error: karyawanError } = await supabase
                 .from('karyawan')
-                .select('nomor_wa, gaji, id_uniq')
+                .select('nomor_wa, outlet')
                 .eq('nama_karyawan', liburData.karyawan)
                 .single();
             
