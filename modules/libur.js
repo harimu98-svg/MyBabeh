@@ -1051,14 +1051,13 @@ async function rejectLiburRequest(liburId) {
         showToast(`❌ Gagal reject libur: ${error.message}`, 'error');
     }
 }
-
+// [14] FUNGSI YANG PASTI BERHASIL: Insert dulu, lalu update status
 async function insertAbsenRecordsForLibur(liburData) {
     try {
         const startDate = new Date(liburData.tanggal_mulai);
         const endDate = new Date(liburData.tanggal_selesai);
-        const absenRecords = [];
         
-        console.log(`📝 Inserting absen for: ${liburData.karyawan}`);
+        console.log(`📝 Processing absen for: ${liburData.karyawan}`);
         
         // Ambil data karyawan
         const { data: karyawanData } = await supabase
@@ -1068,71 +1067,76 @@ async function insertAbsenRecordsForLibur(liburData) {
             .single();
         
         let currentDate = new Date(startDate);
+        let insertedCount = 0;
         
+        // Insert satu per satu agar bisa update
         while (currentDate <= endDate) {
             const tanggalText = formatDateForAbsen(currentDate);
             const hari = currentDate.toLocaleDateString('id-ID', { weekday: 'long' });
-            const statusKehadiran = liburData.jenis === 'LIBUR' ? 'LIBUR' : 'IZIN';
             
-            // **SOLUSI: Set clockin ke format waktu valid**
-            // Agar trigger tidak mengubah status_kehadiran
-            const absenRecord = {
-                // Required fields
-                tanggal: tanggalText,                    // TEXT: "31/10/2025"
-                hari: hari,                              // TEXT: "Jumat"
-                nama: liburData.karyawan,                // TEXT
-                id_uniq: `LIBUR-${Date.now()}-${Math.floor(Math.random() * 10000)}`, // TEXT
-                nomor_wa: karyawanData?.nomor_wa || '',  // TEXT
-                outlet: liburData.outlet,                // TEXT
-                
-                // **PERBAIKAN: Set clockin ke value khusus untuk LIBUR/IZIN**
-                clockin: '00:00',                        // TEXT: Format HH:MM
-                clockout: '00:00',                       // TEXT: Format HH:MM
-                jamkerja: '00:00',                       // TEXT: Format HH:MM
-                
-                // Status langsung set ke LIBUR/IZIN
-                status_kehadiran: statusKehadiran,       // TEXT: "LIBUR" atau "IZIN"
-                
-                // Other fields
-                over_time: '00:00',                      // TEXT
-                over_time_rp: 0,                         // NUMERIC
-                gaji_pokok: parseFloat(karyawanData?.gaji) || 0, // NUMERIC
-                
-                // Nullable fields
-                token: null,
-                token_expired: null,
-                longitude: null,
-                latitude: null,
-                jarak: null
+            console.log(`\n📅 Processing date: ${tanggalText}`);
+            
+            // 1. INSERT dengan clockin null (biarkan trigger bekerja)
+            const insertData = {
+                tanggal: tanggalText,
+                hari: hari,
+                nama: liburData.karyawan,
+                id_uniq: `LIBUR-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+                nomor_wa: karyawanData?.nomor_wa || '',
+                outlet: liburData.outlet,
+                gaji_pokok: parseFloat(karyawanData?.gaji) || 0,
+                clockin: null,      // Trigger akan set status berdasarkan ini
+                clockout: null,
+                jamkerja: '00:00',
+                over_time: '00:00',
+                over_time_rp: 0,
+                status_kehadiran: null // Biarkan trigger mengisi
             };
             
-            console.log(`📋 Record:`, {
-                tanggal: absenRecord.tanggal,
-                clockin: absenRecord.clockin,
-                status: absenRecord.status_kehadiran
-            });
+            console.log('  1️⃣ Inserting record...');
+            const { data: insertedData, error: insertError } = await supabase
+                .from('absen')
+                .insert([insertData])
+                .select('id, status_kehadiran');
             
-            absenRecords.push(absenRecord);
+            if (insertError) {
+                console.error(`  ❌ Insert failed:`, insertError);
+                throw insertError;
+            }
+            
+            console.log(`  ✅ Inserted, ID: ${insertedData[0].id}`);
+            console.log(`  📍 Initial status: ${insertedData[0].status_kehadiran}`);
+            
+            // 2. UPDATE status ke LIBUR/IZIN
+            const statusKehadiran = liburData.jenis === 'LIBUR' ? 'LIBUR' : 'IZIN';
+            
+            console.log(`  2️⃣ Updating status to: ${statusKehadiran}`);
+            const { error: updateError } = await supabase
+                .from('absen')
+                .update({
+                    status_kehadiran: statusKehadiran,
+                    // Optional: juga update clockin/clockout dengan nilai khusus
+                    clockin: '00:00',
+                    clockout: '00:00'
+                })
+                .eq('id', insertedData[0].id);
+            
+            if (updateError) {
+                console.error(`  ❌ Update failed:`, updateError);
+                throw updateError;
+            }
+            
+            console.log(`  ✅ Updated to ${statusKehadiran}`);
+            
+            insertedCount++;
             currentDate.setDate(currentDate.getDate() + 1);
         }
         
-        console.log(`📦 Inserting ${absenRecords.length} records...`);
-        
-        // Insert batch
-        const { data, error } = await supabase
-            .from('absen')
-            .insert(absenRecords);
-        
-        if (error) {
-            console.error('❌ Insert error:', error);
-            throw error;
-        }
-        
-        console.log(`✅ Success! Inserted ${absenRecords.length} records`);
-        return absenRecords.length;
+        console.log(`\n🎉 SUCCESS! Inserted & updated ${insertedCount} records`);
+        return insertedCount;
         
     } catch (error) {
-        console.error('Error inserting absen:', error);
+        console.error('❌ Error in insertAbsenRecordsForLibur:', error);
         throw error;
     }
 }
