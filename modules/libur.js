@@ -1098,8 +1098,7 @@ async function insertAbsenRecordsForLibur(liburData) {
                 over_time: '00:00',
                 over_time_rp: 0,
                 status_kehadiran: statusKehadiran
-                ()
-            };
+                };
             
             console.log('   📤 Upserting data...');
             
