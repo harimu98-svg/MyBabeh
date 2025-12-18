@@ -196,14 +196,14 @@ function createLiburPage() {
                 <div class="section-header">
                     <h3><i class="fas fa-calendar"></i> Kalender Libur Saya</h3>
                     <div class="kalender-controls">
-                        <button class="btn-prev-month" onclick="changeLiburMonth(-1)">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <span id="currentMonthYear">${getMonthYearDisplay()}</span>
-                        <button class="btn-next-month" onclick="changeLiburMonth(1)">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
+    <button class="btn-prev-month" onclick="changeLiburMonth(-1)">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+    <span id="currentMonthYear">${getMonthYearDisplay()}</span>
+    <button class="btn-next-month" onclick="changeLiburMonth(1)">
+        <i class="fas fa-chevron-right"></i>
+    </button>
+</div>
                 </div>
                 
                 <div class="kalender-container">
