@@ -1,6 +1,6 @@
 /* ========== CSS LIBUR & IZIN ========== */
 
-/* Header - SAMA SEPERTI REQUEST */
+/* Header */
 .libur-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -101,11 +101,18 @@
     text-align: center;
 }
 
+/* Main Container */
+.kasir-libur-section, .owner-libur-section {
+    padding: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
 /* Form Ajukan Libur */
 .ajukan-libur-section {
     background: white;
     border-radius: 10px;
-    margin: 20px;
+    margin: 15px;
     padding: 20px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
@@ -144,6 +151,7 @@
     font-size: 14px;
     transition: all 0.3s ease;
     background: white;
+    width: 100%;
 }
 
 .form-control:focus {
@@ -217,19 +225,23 @@ textarea.form-control {
     cursor: not-allowed;
 }
 
-/* Kalender Section */
+/* Kalender Section - FIXED untuk Android */
 .kalender-libur-section {
     background: white;
     border-radius: 10px;
-    margin: 20px;
+    margin: 15px;
     padding: 20px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    width: calc(100% - 30px);
+    overflow: hidden;
 }
 
 .kalender-controls {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 15px;
+    flex-wrap: wrap;
 }
 
 .kalender-controls button {
@@ -244,6 +256,7 @@ textarea.form-control {
     cursor: pointer;
     color: #495057;
     transition: all 0.3s ease;
+    flex-shrink: 0;
 }
 
 .kalender-controls button:hover {
@@ -257,27 +270,39 @@ textarea.form-control {
     color: #495057;
     min-width: 150px;
     text-align: center;
+    font-size: 15px;
 }
 
-/* Kalender Grid */
+/* Kalender Container - FIXED WIDTH */
 .kalender-container {
     margin-top: 20px;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scroll di iOS */
+}
+
+.kalender-grid-wrapper {
+    min-width: 100%;
+    width: fit-content;
 }
 
 .kalender-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 8px;
+    gap: 6px;
+    min-width: 100%;
+    width: 100%;
 }
 
 .kalender-header {
     text-align: center;
     font-weight: 600;
     color: #495057;
-    padding: 10px;
+    padding: 10px 5px;
     font-size: 13px;
     background: #f8f9fa;
     border-radius: 6px;
+    min-width: 40px;
 }
 
 .kalender-day {
@@ -293,6 +318,9 @@ textarea.form-control {
     cursor: pointer;
     transition: all 0.3s ease;
     background: white;
+    min-width: 40px;
+    min-height: 40px;
+    box-sizing: border-box;
 }
 
 .kalender-day:hover {
@@ -311,20 +339,25 @@ textarea.form-control {
     background: #fff9e6;
 }
 
+/* PERBAIKAN: Hari pertama libur sudah diwarnai */
 .kalender-day.libur-libur {
     border-left: 4px solid #ff6b6b;
+    background: linear-gradient(to right, rgba(255, 107, 107, 0.1), white);
 }
 
 .kalender-day.libur-izin {
     border-left: 4px solid #4ecdc4;
+    background: linear-gradient(to right, rgba(78, 205, 196, 0.1), white);
 }
 
 .kalender-day.libur-sakit {
     border-left: 4px solid #ffd166;
+    background: linear-gradient(to right, rgba(255, 209, 102, 0.1), white);
 }
 
 .kalender-day.libur-cuti {
     border-left: 4px solid #118ab2;
+    background: linear-gradient(to right, rgba(17, 138, 178, 0.1), white);
 }
 
 .day-number {
@@ -352,17 +385,23 @@ textarea.form-control {
     background: #dc3545;
 }
 
+.libur-indicator.cancelled {
+    background: #6c757d;
+}
+
 .kalender-empty {
     aspect-ratio: 1;
     background: #f8f9fa;
     border-radius: 6px;
+    min-width: 40px;
+    min-height: 40px;
 }
 
 /* Kalender Legend */
 .kalender-legend {
     display: flex;
     justify-content: center;
-    gap: 20px;
+    gap: 15px;
     margin-top: 20px;
     flex-wrap: wrap;
 }
@@ -401,14 +440,14 @@ textarea.form-control {
 .history-libur-section {
     background: white;
     border-radius: 10px;
-    margin: 20px;
+    margin: 15px;
     padding: 20px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 /* Owner Section */
 .owner-libur-section {
-    margin: 20px;
+    padding: 0 15px;
 }
 
 .owner-filter-section {
@@ -422,12 +461,13 @@ textarea.form-control {
 .owner-filter-section .filter-row {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 15px;
+    gap: 10px;
 }
 
 .btn-apply-filter {
     height: 46px;
     align-self: flex-end;
+    white-space: nowrap;
 }
 
 /* Libur Request Card */
@@ -612,6 +652,7 @@ textarea.form-control {
     display: flex;
     gap: 10px;
     justify-content: flex-end;
+    flex-wrap: wrap;
 }
 
 .libur-action-buttons button {
@@ -625,6 +666,8 @@ textarea.form-control {
     align-items: center;
     gap: 8px;
     transition: all 0.3s ease;
+    min-width: 100px;
+    justify-content: center;
 }
 
 .libur-action-buttons .btn-approve {
@@ -663,6 +706,7 @@ textarea.form-control {
     overflow-x: auto;
     border-radius: 8px;
     border: 1px solid #e9ecef;
+    -webkit-overflow-scrolling: touch;
 }
 
 .horizontal-scroll {
@@ -731,6 +775,11 @@ textarea.form-control {
     color: #721c24;
 }
 
+.status-cancelled {
+    background: #e9ecef;
+    color: #495057;
+}
+
 /* Action Buttons di Table */
 .btn-action {
     width: 28px;
@@ -745,6 +794,7 @@ textarea.form-control {
     cursor: pointer;
     transition: all 0.3s ease;
     color: white;
+    margin: 2px;
 }
 
 .btn-action:hover:not(:disabled) {
@@ -919,6 +969,7 @@ textarea.form-control {
     font-size: 12px;
     background: #f8f9fa;
     border-top: 1px solid #e9ecef;
+    margin-top: 20px;
 }
 
 .libur-footer i {
@@ -1046,18 +1097,12 @@ textarea.form-control {
     background: #a8a8a8;
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
-    .owner-filter-section .filter-row {
-        grid-template-columns: repeat(2, 1fr);
+/* Responsive untuk Mobile/Android */
+@media (max-width: 768px) {
+    .libur-page {
+        overflow-x: hidden;
     }
     
-    .detail-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 768px) {
     .form-row {
         grid-template-columns: 1fr;
     }
@@ -1069,6 +1114,7 @@ textarea.form-control {
     .libur-info-compact {
         flex-direction: column;
         align-items: flex-start;
+        gap: 10px;
     }
     
     .kalender-grid {
@@ -1077,6 +1123,18 @@ textarea.form-control {
     
     .kalender-day {
         padding: 4px;
+        min-width: 35px;
+        min-height: 35px;
+    }
+    
+    .kalender-header {
+        padding: 8px 3px;
+        min-width: 35px;
+    }
+    
+    .kalender-empty {
+        min-width: 35px;
+        min-height: 35px;
     }
     
     .detail-grid {
@@ -1087,6 +1145,21 @@ textarea.form-control {
         margin: 10px;
         max-height: 90vh;
     }
+    
+    .libur-action-buttons {
+        flex-direction: column;
+    }
+    
+    .libur-action-buttons button {
+        width: 100%;
+    }
+    
+    .toast {
+        left: 10px;
+        right: 10px;
+        max-width: none;
+        min-width: auto;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1095,14 +1168,15 @@ textarea.form-control {
     }
     
     .kalender-controls {
-        flex-wrap: wrap;
-        justify-content: center;
+        flex-direction: column;
+        gap: 10px;
     }
     
     #currentMonthYear {
         order: -1;
         width: 100%;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
+        font-size: 14px;
     }
     
     .kalender-legend {
@@ -1111,20 +1185,27 @@ textarea.form-control {
         gap: 10px;
     }
     
-    .libur-action-buttons {
-        flex-direction: column;
+    .kalender-day {
+        min-width: 30px;
+        min-height: 30px;
+        font-size: 12px;
     }
     
-    .libur-action-buttons button {
-        width: 100%;
-        justify-content: center;
+    .kalender-header {
+        min-width: 30px;
+        font-size: 11px;
+    }
+    
+    .kalender-empty {
+        min-width: 30px;
+        min-height: 30px;
     }
     
     .toast {
+        top: auto;
+        bottom: 20px;
         left: 10px;
         right: 10px;
-        max-width: none;
-        min-width: auto;
     }
 }
 
@@ -1142,4 +1223,42 @@ textarea.form-control {
 
 .history-table tbody tr {
     animation: fadeIn 0.3s ease-out;
+}
+
+/* Fix untuk kalender di Android */
+@media (max-width: 767px) {
+    .kalender-container {
+        width: 100vw;
+        margin-left: -15px;
+        margin-right: -15px;
+        padding: 0 15px;
+    }
+    
+    .kalender-grid-wrapper {
+        width: 100vw;
+        padding: 0 15px;
+    }
+    
+    .kalender-grid {
+        width: calc(100vw - 30px);
+    }
+}
+
+/* Tooltip untuk kalender */
+.kalender-day[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: pre-line;
+    z-index: 1000;
+    max-width: 200px;
+    margin-bottom: 5px;
+    pointer-events: none;
 }
