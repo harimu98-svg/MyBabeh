@@ -241,7 +241,9 @@ textarea.form-control {
     align-items: center;
     justify-content: center;
     gap: 15px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap; /* ⬅️ PENTING: jangan wrap */
+    white-space: nowrap;
+    width: 100%;
 }
 
 .kalender-controls button {
@@ -271,12 +273,12 @@ textarea.form-control {
     min-width: 150px;
     text-align: center;
     font-size: 15px;
+    white-space: nowrap;
 }
-
 /* Kalender Container - FIXED WIDTH */
 .kalender-container {
     margin-top: 20px;
-    width: 100%;
+    width: 120%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch; /* Smooth scroll di iOS */
 }
@@ -338,7 +340,40 @@ textarea.form-control {
 .kalender-day.has-libur {
     background: #fff9e6;
 }
+/* Tombol kecil untuk mobile */
+@media (max-width: 768px) {
+    .kalender-controls {
+        gap: 10px;
+    }
+    
+    .kalender-controls button {
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0; /* ⬅️ Jangan mengecil */
+    }
+    
+    #currentMonthYear {
+        min-width: 120px;
+        font-size: 14px;
+    }
+}
 
+@media (max-width: 480px) {
+    .kalender-controls {
+        gap: 8px;
+    }
+    
+    .kalender-controls button {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+    }
+    
+    #currentMonthYear {
+        min-width: 100px;
+        font-size: 13px;
+    }
+}
 /* PERBAIKAN: Hari pertama libur sudah diwarnai */
 .kalender-day.libur-libur {
     border-left: 4px solid #ff6b6b;
