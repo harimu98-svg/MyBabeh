@@ -1052,7 +1052,7 @@ async function rejectLiburRequest(liburId) {
     }
 }
 
-// [14] Fungsi untuk insert ke tabel absen - DIPERBAIKI dengan clockin khusus
+// [14] Fungsi untuk insert ke tabel absen - DIPERBAIKI dengan tipe data yang benar
 async function insertAbsenRecordsForLibur(liburData) {
     try {
         const startDate = new Date(liburData.tanggal_mulai);
@@ -1060,6 +1060,7 @@ async function insertAbsenRecordsForLibur(liburData) {
         const absenRecords = [];
         
         console.log(`📝 Memproses absen untuk: ${liburData.karyawan}`);
+        console.log(`📅 Range tanggal: ${formatDateToDisplay(startDate)} - ${formatDateToDisplay(endDate)}`);
         
         // Ambil data karyawan
         const { data: karyawanData, error: karyawanError } = await supabase
@@ -1071,51 +1072,69 @@ async function insertAbsenRecordsForLibur(liburData) {
         if (karyawanError) throw karyawanError;
         
         let currentDate = new Date(startDate);
+        let recordCount = 0;
         
         while (currentDate <= endDate) {
+            recordCount++;
+            
             // Format tanggal
             const tanggalText = formatDateForAbsen(currentDate);
             const hari = currentDate.toLocaleDateString('id-ID', { weekday: 'long' });
             
             // Generate ID unik
-            const idUniq = `LIBUR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            const timestamp = Date.now();
+            const random = Math.floor(Math.random() * 10000);
+            const idUniq = `LIBUR-${timestamp}-${random}`;
             
-            // PERBAIKAN: Set clockin ke value khusus agar trigger tidak aktif
+            // Tentukan status kehadiran
             const statusKehadiran = liburData.jenis === 'LIBUR' ? 'LIBUR' : 'IZIN';
             
-            // Record dengan clockin khusus
+            // Value khusus untuk clockin/clockout
+            const clockValue = statusKehadiran === 'LIBUR' ? 'LIBUR-AUTO' : 'IZIN-AUTO';
+            
+            // PERBAIKAN: Semua field dengan tipe data yang benar
             const absenRecord = {
+                // TEXT fields
                 tanggal: tanggalText,
                 hari: hari,
                 nama: liburData.karyawan,
                 id_uniq: idUniq,
                 nomor_wa: karyawanData?.nomor_wa || '',
                 outlet: liburData.outlet,
-                status_kehadiran: statusKehadiran, // "LIBUR" atau "IZIN"
-                gaji_pokok: karyawanData?.gaji || 0,
+                status_kehadiran: statusKehadiran,
                 
-                // SET CLOCKIN KE VALUE KHUSUS AGAR TRIGGER TIDAK AKTIF
-                clockin: 'AUTO-LIBUR',  // Bukan null atau empty string!
-                clockout: 'AUTO-LIBUR', // Bukan null atau empty string!
-                jamkerja: '00:00',      // Default value
+                // TEXT fields dengan value khusus
+                clockin: clockValue,
+                clockout: clockValue,
+                jamkerja: '00:00',
+                over_time: '00:00',  // Text, format HH:MM
                 
-                // Field lainnya
+                // TEXT fields yang bisa null
                 token: null,
                 token_expired: null,
-                longitude: null,
-                latitude: null,
-                jarak: null,
-                over_time: null,
-                over_time_rp: null
+                
+                // NUMERIC fields - HARUS ANGKA, BUKAN STRING!
+                gaji_pokok: parseFloat(karyawanData?.gaji) || 0,
+                over_time_rp: 0,      // NUMERIC - harus angka!
+                longitude: null,      // NUMERIC (bisa null)
+                latitude: null,       // NUMERIC (bisa null)
+                jarak: null           // NUMERIC (bisa null)
             };
             
-            console.log(`📋 Record: ${tanggalText} - ${statusKehadiran} - clockin: ${absenRecord.clockin}`);
+            console.log(`📋 Record ${recordCount}:`, {
+                tanggal: absenRecord.tanggal,
+                status: absenRecord.status_kehadiran,
+                clockin: absenRecord.clockin,
+                over_time_rp: absenRecord.over_time_rp,
+                tipe_over_time_rp: typeof absenRecord.over_time_rp
+            });
             
             absenRecords.push(absenRecord);
             currentDate.setDate(currentDate.getDate() + 1);
         }
         
         console.log(`📝 Total ${absenRecords.length} records siap di-insert`);
+        console.log('Sample record structure:', absenRecords[0]);
         
         // Insert ke tabel absen
         const { data, error } = await supabase
@@ -1124,18 +1143,30 @@ async function insertAbsenRecordsForLibur(liburData) {
         
         if (error) {
             console.error('❌ Error inserting absen:', error);
+            console.error('Error details:', JSON.stringify(error, null, 2));
             throw error;
         }
         
-        console.log(`✅ Sukses insert ${absenRecords.length} absen records`);
+        console.log(`✅ Sukses insert ${absenRecords.length} absen records untuk libur`);
         return absenRecords.length;
         
     } catch (error) {
-        console.error('Error inserting absen:', error);
-        throw error;
+        console.error('❌ Error inserting absen records:', error);
+        
+        // Debug error detail
+        if (error.details) {
+            console.error('Error details:', error.details);
+        }
+        if (error.hint) {
+            console.error('Error hint:', error.hint);
+        }
+        if (error.message) {
+            console.error('Error message:', error.message);
+        }
+        
+        throw new Error(`Gagal menyimpan data absen: ${error.message}`);
     }
 }
-
 // [15] Fungsi untuk kirim notifikasi WhatsApp ke karyawan
 async function sendWhatsAppNotification(liburData, action, reviewNotes = '') {
     try {
