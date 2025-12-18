@@ -233,11 +233,7 @@ function createLiburPage() {
         <span>Cuti</span>
     </div>
     -->
-</div>
-       </div>
-    </div>
-</div>   
-</div> 
+
 <!-- MOBILE FULL WIDTH HISTORY SECTION -->
 <div class="history-libur-section" style="
     /* MOBILE STYLE */
@@ -359,7 +355,11 @@ function createLiburPage() {
                 margin: 0 auto;
                 display: none;
             ">
-            
+            </div>
+       </div>
+    </div>
+</div>   
+</div> 
         ` : `
         <!-- Untuk OWNER: Approval Libur Requests -->
         <div class="owner-libur-section">
