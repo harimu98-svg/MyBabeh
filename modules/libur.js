@@ -1052,16 +1052,23 @@ async function rejectLiburRequest(liburId) {
     }
 }
 
-// [14] Fungsi untuk insert ke tabel absen (TEXT format: dd/MM/yyyy)
+// [14] Fungsi untuk insert ke tabel absen - DIPERBAIKI
 async function insertAbsenRecordsForLibur(liburData) {
     try {
-        const startDate = new Date(liburData.tanggal_mulai);  // DATE type dari database
-        const endDate = new Date(liburData.tanggal_selesai);  // DATE type dari database
+        const startDate = new Date(liburData.tanggal_mulai);
+        const endDate = new Date(liburData.tanggal_selesai);
         const absenRecords = [];
+        
+        console.log(`📝 Memproses absen untuk: ${liburData.karyawan}`);
+        console.log(`📅 Range tanggal: ${formatDateToDisplay(startDate)} - ${formatDateToDisplay(endDate)}`);
         
         // Generate records untuk setiap hari
         let currentDate = new Date(startDate);
+        let dayCount = 0;
+        
         while (currentDate <= endDate) {
+            dayCount++;
+            
             // Format tanggal ke text: dd/MM/yyyy untuk tabel absen
             const tanggalText = formatDateForAbsen(currentDate);
             
@@ -1069,73 +1076,89 @@ async function insertAbsenRecordsForLibur(liburData) {
             const hari = currentDate.toLocaleDateString('id-ID', { weekday: 'long' });
             
             // Ambil data karyawan lengkap
-            const { data: karyawanData } = await supabase
+            const { data: karyawanData, error: karyawanError } = await supabase
                 .from('karyawan')
-                .select('nomor_wa, gaji, jadwal_masuk, jadwal_pulang, id_uniq')
+                .select('nomor_wa, gaji, id_uniq')
                 .eq('nama_karyawan', liburData.karyawan)
                 .single();
             
-            // Generate unique ID untuk absen
-            const absenId = `ABS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            if (karyawanError) {
+                console.error('❌ Error mengambil data karyawan:', karyawanError);
+                throw karyawanError;
+            }
             
-            // Prepare record absen
+            // Generate ID unik sederhana
+            const timestamp = Date.now();
+            const random = Math.floor(Math.random() * 10000);
+            const absenId = `${timestamp}-${random}`;
+            
+            // Prepare record absen SESUAI STRUKTUR TABEL
             const absenRecord = {
-                id: absenId,
-                tanggal: tanggalText,  // Format TEXT: "04/10/2025" untuk tabel absen
-                hari: hari,
-                nama: liburData.karyawan,
-                outlet: liburData.outlet,
-                status_kehadiran: liburData.jenis === 'LIBUR' ? 'LIBUR' : 'IZIN',
-                nomor_wa: karyawanData?.nomor_wa || '',
-                id_uniq: karyawanData?.id_uniq || '',
-                gaji_pokok: karyawanData?.gaji || 0,
-                created_at: new Date().toISOString()
-            };
-            
-            // Field opsional jika ada di tabel
-            const optionalFields = {
-                clockin: '',
-                clockout: '',
-                jamkerja: '',
-                over_time: '',
-                over_time_rp: 0,
+                // ID akan auto-generate oleh Supabase jika primary key
+                tanggal: tanggalText,                // TEXT: "04/10/2025"
+                hari: hari,                          // VARCHAR(20): "Senin"
+                nama: liburData.karyawan,            // TEXT: nama karyawan
+                outlet: liburData.outlet,            // TEXT: nama outlet
+                status_kehadiran: liburData.jenis === 'LIBUR' ? 'LIBUR' : 'IZIN', // TEXT
+                id_uniq: karyawanData?.id_uniq || '', // TEXT
+                nomor_wa: karyawanData?.nomor_wa || '', // TEXT
+                gaji_pokok: karyawanData?.gaji || 0, // NUMERIC
+                
+                // Field opsional - bisa null/kosong
                 token: '',
                 token_expired: null,
                 longitude: null,
                 latitude: null,
-                jarak: null
+                jarak: null,
+                clockin: '',
+                clockout: '',
+                jamkerja: '',
+                over_time: '',
+                over_time_rp: 0
             };
             
-            // Gabungkan dengan optional fields
-            absenRecords.push({
-                ...absenRecord,
-                ...optionalFields
+            console.log(`📋 Absen record ${dayCount}:`, {
+                tanggal: absenRecord.tanggal,
+                nama: absenRecord.nama,
+                status: absenRecord.status_kehadiran
             });
             
-            console.log(`📝 Prepared absen record: ${tanggalText} - ${liburData.karyawan}`);
+            absenRecords.push(absenRecord);
             
             // Tambah 1 hari
             currentDate.setDate(currentDate.getDate() + 1);
         }
         
-        console.log('📝 Total absen records to insert:', absenRecords.length);
+        console.log(`📝 Total ${absenRecords.length} records siap di-insert`);
         
-        // Insert ke tabel absen
+        // Insert ke tabel absen - batch insert
         const { data, error } = await supabase
             .from('absen')
             .insert(absenRecords);
         
         if (error) {
             console.error('❌ Error inserting absen:', error);
+            console.error('Error details:', error.details);
+            console.error('Error hint:', error.hint);
+            console.error('Error message:', error.message);
             throw error;
         }
         
-        console.log(`✅ Inserted ${absenRecords.length} absen records for libur`);
+        console.log(`✅ Sukses insert ${absenRecords.length} absen records untuk libur`);
         return absenRecords.length;
         
     } catch (error) {
-        console.error('Error inserting absen records:', error);
-        throw error;
+        console.error('❌ Error inserting absen records:', error);
+        
+        // Tampilkan error detail untuk debugging
+        if (error.details) {
+            console.error('Error details:', error.details);
+        }
+        if (error.hint) {
+            console.error('Error hint:', error.hint);
+        }
+        
+        throw new Error(`Gagal menyimpan data absen: ${error.message}`);
     }
 }
 
