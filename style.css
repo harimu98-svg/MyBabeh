@@ -7343,5 +7343,55 @@ tr.stock-out .product-cell {
     }
 }
 /* ========== END OF CLOCK OUT WARNING POPUP ========== */
+/* ========== FIX KHUSUS MODAL KAS ========== */
+/* Gunakan ID + class untuk specificity tinggi */
+#setoranModal.modal-overlay {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
 
+/* Pastikan modal tetap tersembunyi saat class hidden ada */
+#setoranModal.modal-overlay.hidden {
+    display: none !important;
+}
+
+/* Pastikan modal content terlihat */
+#setoranModal .modal-content {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    animation: modalFadeIn 0.3s ease !important;
+}
+
+/* Animation untuk modal */
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Pastikan backdrop gelap */
+#setoranModal.modal-overlay:not(.hidden) {
+    background: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Fix untuk mobile responsiveness */
+@media (max-width: 768px) {
+    #setoranModal.modal-overlay {
+        padding: 10px !important;
+    }
+    
+    #setoranModal .modal-content {
+        max-width: 95% !important;
+        max-height: 85vh !important;
+    }
+}
 
