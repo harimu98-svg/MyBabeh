@@ -7515,5 +7515,9 @@ tr.stock-out .product-cell {
         width: 100%;
     }
 }
-/* TAMBAHKAN DI AKHIR FILE CSS ANDA */
-#kasPage td.text-right { text-align: right !important; }
+#kasPage table td:last-child,
+#kasPage table td:nth-last-child(2),
+#kasPage table td:nth-last-child(3) {
+    text-align: right !important;
+    font-family: monospace !important;
+}
