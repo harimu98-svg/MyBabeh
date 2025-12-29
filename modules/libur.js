@@ -1587,7 +1587,7 @@ async function sendWhatsAppNotification(liburData, action, reviewNotes = '') {
         
         // Buat pesan
        // Buat pesan dengan icon sederhana
-let message = '';
+let message = ''; 
 if (action === 'approved') {
     message = `✅ *LIBUR DISETUJUI*\n\n` +
              `👋 Halo ${liburData.karyawan},\n\n` +
