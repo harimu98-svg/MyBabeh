@@ -1931,31 +1931,34 @@
 .qty-btn, .qty-input {
     flex-shrink: 0 !important;
 }
-/* ========== FIX KHUSUS UNTUK APPROVE/REJECT ALL ========== */
+/* ========== PERMANENT FIX UNTUK TOMBOL APPROVE/REJECT ALL ========== */
 /* TAMBAHKAN DI request.css SETELAH .btn-action */
 
-/* Override khusus untuk tombol all */
-.btn-approve-all,
-.btn-reject-all {
+/* OVERRIDE .btn-action yang menyebabkan masalah */
+.btn-action {
+    flex-shrink: 0 !important; /* INI YANG PALING PENTING */
+    white-space: nowrap !important;
+    min-width: auto !important;
     width: auto !important;
+}
+
+/* Spesifik untuk tombol Approve All & Reject All */
+.btn-approve-all, .btn-reject-all {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
     min-width: 150px !important;
-    height: 42px !important;
-    padding: 10px 16px !important;
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    
-    /* Flex properties */
+    width: auto !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     gap: 8px !important;
-    flex-shrink: 0 !important;
-    white-space: nowrap !important;
-    
-    /* Appearance */
-    border: none !important;
+    height: 42px !important;
+    padding: 10px 16px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
     border-radius: 6px !important;
     cursor: pointer !important;
+    border: none !important;
     color: white !important;
 }
 
@@ -1968,24 +1971,29 @@
     background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%) !important;
 }
 
-/* Parent container harus cukup lebar */
-.action-buttons-row .btn-approve-all,
-.action-buttons-row .btn-reject-all {
-    min-width: 140px !important;
+/* Pastikan parent container cukup lebar */
+.action-buttons-row {
+    display: flex !important;
+    gap: 15px !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    min-width: fit-content !important;
+}
+
+.items-table tfoot td:last-child {
+    min-width: 320px !important;
 }
 
 /* Desktop optimization */
 @media (min-width: 769px) {
-    .btn-approve-all,
-    .btn-reject-all {
+    .btn-approve-all, .btn-reject-all {
         min-width: 160px !important;
         height: 44px !important;
         padding: 12px 20px !important;
         font-size: 15px !important;
     }
-}
-
-/* Pastikan td container cukup lebar */
-.items-table tfoot td:last-child {
-    min-width: 350px !important;
+    
+    .items-table tfoot td:last-child {
+        min-width: 350px !important;
+    }
 }
