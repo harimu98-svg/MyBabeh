@@ -1930,3 +1930,20 @@
 .qty-btn, .qty-input {
     flex-shrink: 0 !important;
 }
+/* ULTRA MINIMAL FIX - Hanya CSS */
+.btn-action.btn-approve-all,
+.btn-action.btn-reject-all {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    min-width: 150px !important;
+    width: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.items-table tfoot .btn-action {
+    min-width: 150px !important;
+    height: 42px !important;
+    padding: 10px 16px !important;
+}
