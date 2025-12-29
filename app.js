@@ -3874,14 +3874,14 @@ function renderRingkasanKas() {
         const totalSaldoClass = totalSaldo < 0 ? 'text-danger font-bold' : 'text-success font-bold';
         
         html += `
-                        <tr class="total-row">
-        <td></td> <!-- Kolom 1 -->
-        <td></td> <!-- Kolom 2 -->
-        <td></td> <!-- Kolom 3 -->
-        <td><strong>TOTAL</strong></td> <!-- Kolom 4 -->
-        <td class="text-right"><strong>${totalPemasukan}</strong></td> <!-- Kolom 5 -->
-        <td class="text-right"><strong>${totalPengeluaran}</strong></td> <!-- Kolom 6 -->
-        <td class="text-right ${saldoClass}"><strong>${totalSaldo}</strong></td> <!-- Kolom 7 -->
+                       <tr class="total-row">
+        <td></td> <!-- Kolom 1: Tanggal -->
+        <td></td> <!-- Kolom 2: Hari -->
+        <td></td> <!-- Kolom 3: Outlet -->
+        <td><strong>TOTAL</strong></td> <!-- Kolom 4: Kasir -->
+        <td class="text-right"><strong>${formatKasCurrency(totalPemasukan)}</strong></td> <!-- Kolom 5: Pemasukan -->
+        <td class="text-right"><strong>${formatKasCurrency(totalPengeluaran)}</strong></td> <!-- Kolom 6: Pengeluaran -->
+        <td class="text-right ${totalSaldoClass}"><strong>${formatKasCurrency(totalSaldo)}</strong></td> <!-- Kolom 7: Saldo -->
     </tr>
                     </tbody>
                 </table>
