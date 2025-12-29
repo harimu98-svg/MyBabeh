@@ -1932,15 +1932,6 @@
     flex-shrink: 0 !important;
 }
 /* ========== PERMANENT FIX UNTUK TOMBOL APPROVE/REJECT ALL ========== */
-/* TAMBAHKAN DI request.css SETELAH .btn-action */
-
-/* OVERRIDE .btn-action yang menyebabkan masalah */
-.btn-action {
-    flex-shrink: 0 !important; /* INI YANG PALING PENTING */
-    white-space: nowrap !important;
-    min-width: auto !important;
-    width: auto !important;
-}
 
 /* Spesifik untuk tombol Approve All & Reject All */
 .btn-approve-all, .btn-reject-all {
