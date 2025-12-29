@@ -1432,11 +1432,14 @@ textarea.form-control {
 .libur-info-header .info-item i {
     background: linear-gradient(135deg, #ffd166 0%, #ff9e00 100%);
     color: white;
-    width: 26px;
-    height: 26px;
-    border-radius: 6px; /* ⬅️ Sudut melengkung */
+    width: 32px; /* ⬅️ TAMBAH LEBAR */
+    height: 32px; /* ⬅️ TAMBAH TINGGI */
+    border-radius: 8px; /* ⬅️ SEDIKIT LEBIH BULAT */
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 0; /* Pastikan tidak ada padding */
+    font-size: 14px; /* ⬅️ UKURAN FONT YANG PAS */
+    flex-shrink: 0; /* ⬅️ JANGAN MENYUSUT */
 }
 
