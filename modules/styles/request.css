@@ -1984,16 +1984,3 @@
     min-width: 320px !important;
 }
 
-/* Desktop optimization */
-@media (min-width: 769px) {
-    .btn-approve-all, .btn-reject-all {
-        min-width: 160px !important;
-        height: 44px !important;
-        padding: 12px 20px !important;
-        font-size: 15px !important;
-    }
-    
-    .items-table tfoot td:last-child {
-        min-width: 350px !important;
-    }
-}
