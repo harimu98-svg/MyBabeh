@@ -1905,10 +1905,14 @@
     }
     
 /* SOLUSI CEPAT - Tambahkan di akhir request.css */
-.selected-items-table-container .table-wrapper {
+.selected-items-table-container {
     width: 100% !important;
-    max-width: 100% !important;
-    overflow-x: auto !important;
+    overflow-x: auto !important; /* UBAH DARI visible KE auto */
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    margin-bottom: 15px;
 }
 
 .selected-items-table {
