@@ -3875,13 +3875,13 @@ function renderRingkasanKas() {
         
         html += `
                         <tr class="total-row">
-        <td><strong>TOTAL</strong></td> <!-- Kolom 1: Tanggal - teks "TOTAL" -->
-        <td></td> <!-- Kolom 2: Hari - kosong -->
-        <td></td> <!-- Kolom 3: Outlet - kosong -->
-        <td></td> <!-- Kolom 4: Kasir - kosong -->
-        <td class="text-right"><strong>${formatKasCurrency(totalPemasukan)}</strong></td> <!-- Kolom 5: Pemasukan -->
-        <td class="text-right"><strong>${formatKasCurrency(totalPengeluaran)}</strong></td> <!-- Kolom 6: Pengeluaran -->
-        <td class="text-right ${totalSaldoClass}"><strong>${formatKasCurrency(totalSaldo)}</strong></td> <!-- Kolom 7: Saldo -->
+        <td></td> <!-- Kolom 1 -->
+        <td></td> <!-- Kolom 2 -->
+        <td></td> <!-- Kolom 3 -->
+        <td><strong>TOTAL</strong></td> <!-- Kolom 4 -->
+        <td class="text-right"><strong>${totalPemasukan}</strong></td> <!-- Kolom 5 -->
+        <td class="text-right"><strong>${totalPengeluaran}</strong></td> <!-- Kolom 6 -->
+        <td class="text-right ${saldoClass}"><strong>${totalSaldo}</strong></td> <!-- Kolom 7 -->
     </tr>
                     </tbody>
                 </table>
