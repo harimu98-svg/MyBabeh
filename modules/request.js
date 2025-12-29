@@ -1353,13 +1353,59 @@ function displayPendingRequestsForRequestModule(groupedRequests) {
                                 <button class="btn-action btn-approve-all" 
                                         data-batch-id="${group.batch_id}"
                                         title="Approve All"
-                                        style="background: #20c997; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                                        style="
+    /* FIX PROPERTIES - SAMA DENGAN YANG BERHASIL */
+    flex-shrink: 0;
+    white-space: nowrap;
+    min-width: 150px;
+    width: auto;
+    
+    /* Layout */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 42px;
+    padding: 10px 16px;
+    
+    /* Appearance */
+    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+">
                                     <i class="fas fa-check-double"></i> Approve All
                                 </button>
                                 <button class="btn-action btn-reject-all" 
                                         data-batch-id="${group.batch_id}"
                                         title="Reject All"
-                                        style="background: #fd7e14; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                                        style="
+    /* FIX PROPERTIES - SAMA DENGAN YANG BERHASIL */
+    flex-shrink: 0;
+    white-space: nowrap;
+    min-width: 150px;
+    width: auto;
+    
+    /* Layout */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 42px;
+    padding: 10px 16px;
+    
+    /* Appearance */
+    background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+">
                                     <i class="fas fa-ban"></i> Reject All
                                 </button>
                             </div>
