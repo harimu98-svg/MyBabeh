@@ -7515,9 +7515,19 @@ tr.stock-out .product-cell {
         width: 100%;
     }
 }
+
 #kasPage table td:last-child,
 #kasPage table td:nth-last-child(2),
 #kasPage table td:nth-last-child(3) {
     text-align: right !important;
     font-family: monospace !important;
+}
+/* SOLUSI PALING SIMPEL YANG PASTI BEKERJA */
+#kasPage table tr td:nth-child(4),
+#kasPage table tr td:nth-child(5),
+#kasPage table tr td:nth-child(6),
+#kasPage table tr td:nth-child(5),
+#kasPage table tr td:nth-child(6),
+#kasPage table tr td:nth-child(7) {
+    text-align: right !important;
 }
