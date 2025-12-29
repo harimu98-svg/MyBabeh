@@ -3875,7 +3875,7 @@ function renderRingkasanKas() {
         
         html += `
                         <tr class="total-row">
-                            <td colspan="4" class="text-right"><strong>TOTAL</strong></td>
+                            <td colspan="4"><strong>TOTAL</strong></td>
                             <td class="text-right"><strong>${formatKasCurrency(totalPemasukan)}</strong></td>
                             <td class="text-right"><strong>${formatKasCurrency(totalPengeluaran)}</strong></td>
                             <td class="text-right ${totalSaldoClass}"><strong>${formatKasCurrency(totalSaldo)}</strong></td>
