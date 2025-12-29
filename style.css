@@ -911,15 +911,15 @@ marquee {
 }
 
 .text-danger::after {
-    content: '';
+    content: "";
     position: absolute;
     bottom: -2px;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: #fc8181;
-    border-radius: 1px;
-    opacity: 0.5;
+    left: 10%;
+    right: 10%;
+    width: 80%;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.3;
 }
 
 /* Kolom alignment untuk tabel komisi */
