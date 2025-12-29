@@ -1050,7 +1050,28 @@ marquee {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
+.today-absensi-section .today-header .date-display {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    color: #4a5568;
+    font-size: 0.95rem;
+    font-weight: 500;
+    width: auto !important; /* Ganti dari fit-content ke auto */
+    min-width: max-content; /* Pastikan tidak terpotong */
+    white-space: nowrap; /* Hindari wrap teks */
+    margin-bottom: 0 !important; /* Reset margin jika perlu */
+}
 
+.today-absensi-section .today-header .date-display i {
+    color: #667eea;
+    font-size: 1.1rem;
+    flex-shrink: 0; /* Hindari ikon menyusut */
+}
+
+.today-absensi-section .today-header .date-display span {
+    flex-shrink: 0; /* Pastikan teks tidak menyusut */
+}
 .today-absensi-card {
     background: white;
     border-radius: 18px;
