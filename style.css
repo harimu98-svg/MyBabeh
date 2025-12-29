@@ -593,10 +593,28 @@ marquee {
 .today-komisi-section {
     padding: 16px;
 }
-.today-komisi-section .date-display {
-    margin-bottom: 10px !important;
-    display: block !important;           /* Agar margin bekerja */
-    width: fit-content !important;       /* Lebar sesuai konten */
+/* CSS baru untuk date-display di dalam today-komisi-section */
+.today-komisi-section .today-header .date-display {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    color: #4a5568;
+    font-size: 0.95rem;
+    font-weight: 500;
+    width: auto !important; /* Ganti dari fit-content ke auto */
+    min-width: max-content; /* Pastikan tidak terpotong */
+    white-space: nowrap; /* Hindari wrap teks */
+    margin-bottom: 0 !important; /* Reset margin jika perlu */
+}
+
+.today-komisi-section .today-header .date-display i {
+    color: #667eea;
+    font-size: 1.1rem;
+    flex-shrink: 0; /* Hindari ikon menyusut */
+}
+
+.today-komisi-section .today-header .date-display span {
+    flex-shrink: 0; /* Pastikan teks tidak menyusut */
 }
 .today-komisi-section h3 {
     color: #2d3748;
