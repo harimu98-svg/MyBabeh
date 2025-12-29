@@ -1903,3 +1903,26 @@
     max-width: 70px !important; /* Batas maksimum teks */
     display: inline-block !important;
     }
+    
+/* SOLUSI CEPAT - Tambahkan di akhir request.css */
+.selected-items-table-container .table-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+}
+
+.selected-items-table {
+    min-width: 800px !important;
+    width: 100% !important;
+}
+
+.qty-control {
+    min-width: 150px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+}
+
+.qty-btn, .qty-input {
+    flex-shrink: 0 !important;
+}
