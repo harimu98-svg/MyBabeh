@@ -7348,3 +7348,170 @@ tr.stock-out .product-cell {
 #setoranModal.modal-overlay { display: flex !important; }
 #setoranModal.modal-overlay.hidden { display: none !important; }
 
+/* ========== FIX KHUSUS MODAL KAS ========== */
+#setoranModal.modal-overlay { 
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+#setoranModal.modal-overlay.hidden { 
+    display: none !important;
+}
+
+/* Styling untuk sisa setoran display */
+.sisa-setoran-display {
+    background: #f3f4f6;
+    border: 2px solid #d1d5db;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1f2937;
+    text-align: center;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sisa-setoran-display .sisa-value {
+    font-family: monospace;
+    letter-spacing: 1px;
+}
+
+/* Warna berdasarkan nilai */
+.sisa-setoran-display.negative {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #dc2626;
+}
+
+.sisa-setoran-display.positive {
+    background: #fef3c7;
+    border-color: #fbbf24;
+    color: #92400e;
+}
+
+.sisa-setoran-display.zero {
+    background: #d1fae5;
+    border-color: #bbf7d0;
+    color: #065f46;
+}
+
+/* Styling untuk bukti setoran */
+.required-star {
+    color: #ef4444;
+    margin-left: 4px;
+}
+
+.form-help {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+.bukti-setoran-container {
+    border: 2px dashed #d1d5db;
+    border-radius: 10px;
+    padding: 15px;
+    background: #f9fafb;
+}
+
+.bukti-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.btn-kamera, .btn-file {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-kamera {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+}
+
+.btn-kamera:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    transform: translateY(-2px);
+}
+
+.btn-file {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.btn-file:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: translateY(-2px);
+}
+
+.bukti-preview {
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+#buktiImagePreview {
+    max-width: 100%;
+    max-height: 250px;
+    border-radius: 8px;
+    border: 2px solid #e5e7eb;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-hapus-bukti {
+    margin-top: 10px;
+    padding: 8px 16px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s ease;
+}
+
+.btn-hapus-bukti:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
+
+.bukti-status {
+    background: #d1fae5;
+    color: #065f46;
+    padding: 10px 15px;
+    border-radius: 8px;
+    border: 1px solid #bbf7d0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .bukti-actions {
+        flex-direction: column;
+    }
+    
+    .btn-kamera, .btn-file {
+        width: 100%;
+    }
+}
