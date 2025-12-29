@@ -7515,3 +7515,26 @@ tr.stock-out .product-cell {
         width: 100%;
     }
 }
+/* TEMPORARY FIX - TEST ONLY */
+.ringkasan-table {
+    border: 2px solid red !important; /* Untuk melihat batas tabel */
+}
+
+.ringkasan-table th:nth-child(5),
+.ringkasan-table th:nth-child(6),
+.ringkasan-table th:nth-child(7) {
+    background-color: yellow !important; /* Highlight kolom yang bermasalah */
+    width: 120px !important; /* Fixed width sementara */
+}
+
+.ringkasan-table .total-row td:nth-child(2) {
+    background-color: lightgreen !important; /* Highlight total pemasukan */
+}
+
+.ringkasan-table .total-row td:nth-child(3) {
+    background-color: lightblue !important; /* Highlight total pengeluaran */
+}
+
+.ringkasan-table .total-row td:nth-child(4) {
+    background-color: orange !important; /* Highlight total saldo */
+}
