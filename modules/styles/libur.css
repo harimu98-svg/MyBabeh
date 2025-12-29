@@ -1442,4 +1442,17 @@ textarea.form-control {
     font-size: 14px; /* ⬅️ UKURAN FONT YANG PAS */
     flex-shrink: 0; /* ⬅️ JANGAN MENYUSUT */
 }
-
+/* PERBAIKAN ICON HIJAU DI OWNER LIBUR PENDING */
+.owner-libur-section .libur-info-detail .info-item i {
+    background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+    color: white !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 14px !important;
+    padding: 8px !important;
+    box-sizing: border-box !important;
+}
