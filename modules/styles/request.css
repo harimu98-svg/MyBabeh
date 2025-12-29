@@ -1529,7 +1529,7 @@
 
 /* Action button styling - FIXED */
 .btn-action {
-   width: auto !important;    /* UBAH! */
+    width: auto !important;    /* UBAH! */
     height: auto !important;   /* UBAH! */
     padding: initial !important; /* UBAH! */
     flex-shrink: 0 !important; /* TAMBAH! */
@@ -1543,9 +1543,7 @@
     font-size: 13px !important;
     transition: all 0.3s ease !important;
     color: white !important;
-    flex-shrink: 0 !important; /* Penting: tidak menyusut */
-    padding: 0 !important; /* Reset padding */
-    margin: 0 !important; /* Reset margin */
+
 }
 
 /* Warna tombol */
