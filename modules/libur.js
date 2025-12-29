@@ -1584,8 +1584,7 @@ async function sendWhatsAppNotification(liburData, action, reviewNotes = '') {
         // Parse tanggal dari database DATE
         const startDate = new Date(liburData.tanggal_mulai);
         const endDate = new Date(liburData.tanggal_selesai);
-        
-        // Buat pesan
+    
        // Buat pesan dengan icon sederhana
 let message = ''; 
 if (action === 'approved') {
