@@ -910,18 +910,6 @@ marquee {
     position: relative;
 }
 
-.text-danger::after {
-    content: "";
-    position: absolute;
-    bottom: -2px;
-    left: 10%;
-    right: 10%;
-    width: 80%;
-    height: 1px;
-    background: currentColor;
-    opacity: 0.3;
-}
-
 /* Kolom alignment untuk tabel komisi */
 .weekly-komisi-table th:nth-child(5),
 .weekly-komisi-table td:nth-child(5),
