@@ -4203,6 +4203,110 @@ marquee {
         min-height: 300px !important;
     }
 }
+/* ========== PERMANENT FIX: TABLE STRUCTURE ========== */
+/* FIX untuk masalah display: flex pada tabel */
+
+/* Pastikan tabel menggunakan struktur table yang benar */
+#kasPage .ringkasan-table {
+    display: table !important;
+    table-layout: auto !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+}
+
+/* Pastikan semua TR adalah table-row */
+#kasPage .ringkasan-table tr {
+    display: table-row !important;
+    flex: none !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+}
+
+/* Pastikan semua TD dan TH adalah table-cell */
+#kasPage .ringkasan-table th,
+#kasPage .ringkasan-table td {
+    display: table-cell !important;
+    flex: none !important;
+    width: auto !important;
+    min-width: auto !important;
+    max-width: none !important;
+    position: static !important;
+    float: none !important;
+    box-sizing: border-box !important;
+}
+
+/* KHUSUS untuk total row - pastikan tidak ada flex */
+#kasPage .ringkasan-table .total-row {
+    display: table-row !important;
+    background-color: #f8fafc !important;
+    border-top: 2px solid #e5e7eb !important;
+}
+
+#kasPage .ringkasan-table .total-row td {
+    font-weight: 700 !important;
+    padding: 12px 16px !important;
+    vertical-align: middle !important;
+}
+
+/* Alignment untuk kolom angka */
+#kasPage .ringkasan-table th:nth-child(5),
+#kasPage .ringkasan-table th:nth-child(6),
+#kasPage .ringkasan-table th:nth-child(7) {
+    text-align: right !important;
+}
+
+#kasPage .ringkasan-table td:nth-child(5),
+#kasPage .ringkasan-table td:nth-child(6),
+#kasPage .ringkasan-table td:nth-child(7) {
+    text-align: right !important;
+}
+
+/* Pastikan kolom TOTAL align dengan benar */
+#kasPage .ringkasan-table .total-row td:nth-child(1) {
+    text-align: left !important;
+}
+
+#kasPage .ringkasan-table .total-row td:nth-child(2),
+#kasPage .ringkasan-table .total-row td:nth-child(3),
+#kasPage .ringkasan-table .total-row td:nth-child(4) {
+    text-align: left !important;
+    color: #6b7280 !important;
+}
+
+#kasPage .ringkasan-table .total-row td:nth-child(5),
+#kasPage .ringkasan-table .total-row td:nth-child(6) {
+    text-align: right !important;
+    color: #1f2937 !important;
+}
+
+#kasPage .ringkasan-table .total-row td:nth-child(7) {
+    text-align: right !important;
+}
+
+/* Mobile responsive - tetap jaga structure */
+@media (max-width: 768px) {
+    #kasPage .ringkasan-table {
+        min-width: 600px !important; /* Biarkan scroll horizontal */
+    }
+    
+    #kasPage .ringkasan-table th,
+    #kasPage .ringkasan-table td {
+        padding: 8px 6px !important;
+        font-size: 0.85rem !important;
+    }
+    
+    /* Tetap jaga display properties */
+    #kasPage .ringkasan-table tr {
+        display: table-row !important;
+    }
+    
+    #kasPage .ringkasan-table th,
+    #kasPage .ringkasan-table td {
+        display: table-cell !important;
+    }
+}
 /* ========== END OF CSS KAS ========== */
 
 /* ========== CSS SLIP ========== */
