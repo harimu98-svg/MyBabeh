@@ -7515,26 +7515,85 @@ tr.stock-out .product-cell {
         width: 100%;
     }
 }
-/* TEMPORARY FIX - TEST ONLY */
+/* ========== PERBAIKAN TOTAL ROW ALIGNMENT ========== */
+
+/* Pastikan tabel menggunakan table-layout: auto */
 .ringkasan-table {
-    border: 2px solid red !important; /* Untuk melihat batas tabel */
+    table-layout: auto !important;
+    width: 100% !important;
 }
 
+/* Header alignment - pastikan Pemasukan/Pengeluaran/Saldo right-aligned */
 .ringkasan-table th:nth-child(5),
 .ringkasan-table th:nth-child(6),
 .ringkasan-table th:nth-child(7) {
-    background-color: yellow !important; /* Highlight kolom yang bermasalah */
-    width: 120px !important; /* Fixed width sementara */
+    text-align: right !important;
 }
 
-.ringkasan-table .total-row td:nth-child(2) {
-    background-color: lightgreen !important; /* Highlight total pemasukan */
+/* Data cell alignment */
+.ringkasan-table td:nth-child(5),
+.ringkasan-table td:nth-child(6),
+.ringkasan-table td:nth-child(7) {
+    text-align: right !important;
 }
 
-.ringkasan-table .total-row td:nth-child(3) {
-    background-color: lightblue !important; /* Highlight total pengeluaran */
+/* ========== PERBAIKAN KHUSUS UNTUK TOTAL ROW ========== */
+
+/* Total row harus memiliki 7 sel seperti baris data */
+.ringkasan-table .total-row td {
+    background-color: #f8fafc !important;
+    border-top: 2px solid #e5e7eb !important;
+    font-weight: 700 !important;
 }
 
+/* Kolom 1-4 (Tanggal, Hari, Outlet, Kasir) untuk total */
+.ringkasan-table .total-row td:nth-child(1),
+.ringkasan-table .total-row td:nth-child(2),
+.ringkasan-table .total-row td:nth-child(3),
 .ringkasan-table .total-row td:nth-child(4) {
-    background-color: orange !important; /* Highlight total saldo */
+    text-align: left !important;
+    color: #1f2937 !important;
+}
+
+/* Kolom 5 (Pemasukan) untuk total */
+.ringkasan-table .total-row td:nth-child(5) {
+    text-align: right !important;
+    color: #1f2937 !important;
+}
+
+/* Kolom 6 (Pengeluaran) untuk total */
+.ringkasan-table .total-row td:nth-child(6) {
+    text-align: right !important;
+    color: #1f2937 !important;
+}
+
+/* Kolom 7 (Saldo) untuk total */
+.ringkasan-table .total-row td:nth-child(7) {
+    text-align: right !important;
+    /* Warna berdasarkan positif/negatif */
+}
+
+/* ========== FIX UNTUK RESPONSIVE MOBILE ========== */
+@media (max-width: 768px) {
+    /* Hapus semua width fixed untuk header */
+    .ringkasan-table th:nth-child(1),
+    .ringkasan-table th:nth-child(2),
+    .ringkasan-table th:nth-child(3),
+    .ringkasan-table th:nth-child(4),
+    .ringkasan-table th:nth-child(5),
+    .ringkasan-table th:nth-child(6),
+    .ringkasan-table th:nth-child(7) {
+        width: auto !important;
+        min-width: auto !important;
+    }
+    
+    /* Pastikan alignment tetap */
+    .ringkasan-table th:nth-child(5),
+    .ringkasan-table th:nth-child(6),
+    .ringkasan-table th:nth-child(7),
+    .ringkasan-table td:nth-child(5),
+    .ringkasan-table td:nth-child(6),
+    .ringkasan-table td:nth-child(7) {
+        text-align: right !important;
+    }
 }
