@@ -1067,6 +1067,13 @@ let currentKaryawan = null;
 let isOwner = false;
 let currentUserOutlet = null;
 
+// Helper WIB date
+function getWIBDateString(date = new Date()) {
+    // Format tanggal menjadi YYYY-MM-DD dalam waktu WIB
+    const dateWIB = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+    return dateWIB.toISOString().split('T')[0];
+}
+
 // [4.1] Fungsi untuk tampilkan halaman komisi
 async function showKomisiPage() {
     try {
@@ -1376,7 +1383,7 @@ function getFilterParams() {
 
 // [4.6] Fungsi untuk load komisi hari ini - DARI TABEL KOMISI
 async function loadTodayKomisi(filterParams) {
-    const today = new Date().toISOString().split('T')[0];
+   const today = getWIBDateString(); // Ganti toISOString()
     
     console.log('Loading today komisi from komisi table for:', {
         tanggal: today,
@@ -1453,8 +1460,8 @@ async function loadWeeklyKomisi(filterParams) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 7); // 7 hari sebelum
     
-    const startStr = startDate.toISOString().split('T')[0];
-    const endStr = endDate.toISOString().split('T')[0];
+   const startStr = getWIBDateString(startDate); // Ganti toISOString()
+const endStr = getWIBDateString(endDate); // Ganti toISOString()
     
     console.log('Date range:', startStr, 'to', endStr);
     
