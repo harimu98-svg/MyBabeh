@@ -1586,31 +1586,28 @@ async function sendWhatsAppNotification(liburData, action, reviewNotes = '') {
         const endDate = new Date(liburData.tanggal_selesai);
         
         // Buat pesan
-        let message = '';
-        if (action === 'approved') {
-            message = `✅ *LIBUR DISETUJUI*\n\n` +
-                     `Halo ${liburData.karyawan},\n\n` +
-                     `Permohonan libur/izin Anda telah *DISETUJUI*:\n\n` +
-                     `• Jenis: ${liburData.jenis}\n` +
-                     `• Tanggal: ${formatDateToDisplay(startDate)} - ${formatDateToDisplay(endDate)}\n` +
-                     `• Durasi: ${liburData.durasi} hari\n` +
-                     `• Alasan: ${liburData.alasan}\n\n` +
-                     `${reviewNotes ? `Catatan: ${reviewNotes}\n\n` : ''}` +
-                     `Disetujui oleh: ${currentKaryawanLibur.nama_karyawan}\n` +
-                     `Pada: ${formatDateToDisplay(new Date())} ${new Date().toLocaleTimeString('id-ID')}\n\n` +
-                     `_Status kehadiran telah dicatat sebagai ${liburData.jenis === 'LIBUR' ? 'LIBUR' : 'IZIN'}_`;
-        } else {
-            message = `❌ *LIBUR DITOLAK*\n\n` +
-                     `Halo ${liburData.karyawan},\n\n` +
-                     `Permohonan libur/izin Anda *DITOLAK*:\n\n` +
-                     `• Jenis: ${liburData.jenis}\n` +
-                     `• Tanggal: ${formatDateToDisplay(startDate)} - ${formatDateToDisplay(endDate)}\n` +
-                     `• Alasan Anda: ${liburData.alasan}\n\n` +
-                     `*Alasan Penolakan:*\n${reviewNotes}\n\n` +
-                     `Ditolak oleh: ${currentKaryawanLibur.nama_karyawan}\n` +
-                     `Pada: ${formatDateToDisplay(new Date())} ${new Date().toLocaleTimeString('id-ID')}\n\n` +
-                     `Silakan hubungi atasan untuk informasi lebih lanjut.`;
-        }
+       // Buat pesan dengan icon sederhana
+let message = '';
+if (action === 'approved') {
+    message = `✅ *LIBUR DISETUJUI*\n\n` +
+             `👋 Halo ${liburData.karyawan},\n\n` +
+             `🎯 Permohonan libur Anda telah *DISETUJUI*\n\n` +
+             `📅 *Periode*: ${formatDateToDisplay(startDate)} - ${formatDateToDisplay(endDate)}\n` +
+             `⏱️ *Durasi*: ${liburData.durasi} hari\n` +
+             `📝 *Alasan*: ${liburData.alasan}\n\n` +
+             `${reviewNotes ? `💭 *Catatan*: ${reviewNotes}\n\n` : ''}` +
+             `👤 *Disetujui oleh*: ${currentKaryawanLibur.nama_karyawan}\n` +
+             `⏰ *Waktu*: ${formatDateToDisplay(new Date())} ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`;
+} else {
+    message = `❌ *LIBUR DITOLAK*\n\n` +
+             `👋 Halo ${liburData.karyawan},\n\n` +
+             `⚠️ Permohonan libur Anda *DITOLAK*\n\n` +
+             `📅 *Periode*: ${formatDateToDisplay(startDate)} - ${formatDateToDisplay(endDate)}\n` +
+             `📝 *Alasan Anda*: ${liburData.alasan}\n\n` +
+             `📌 *Alasan Penolakan*:\n${reviewNotes}\n\n` +
+             `👤 *Ditolak oleh*: ${currentKaryawanLibur.nama_karyawan}\n` +
+             `⏰ *Waktu*: ${formatDateToDisplay(new Date())} ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`;
+}
         
         // Kirim via API
         const response = await fetch(WA_API_URL, {
