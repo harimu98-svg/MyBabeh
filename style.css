@@ -7515,37 +7515,5 @@ tr.stock-out .product-cell {
         width: 100%;
     }
 }
-/* ========== FIX KHUSUS UNTUK TABEL KAS ========== */
-/* Aman: hanya mempengaruhi tabel dengan class kas-ringkasan-table */
-.kas-ringkasan-table th.text-right,
-.kas-ringkasan-table td.text-right,
-.kas-ringkasan-table .kas-number {
-    text-align: right !important;
-    font-family: 'SF Mono', Monaco, monospace !important;
-    font-weight: 600 !important;
-    padding-right: 12px !important;
-}
-
-/* Kolom spesifik untuk KAS */
-.kas-ringkasan-table th:nth-child(5), /* Pemasukan */
-.kas-ringkasan-table th:nth-child(6), /* Pengeluaran */
-.kas-ringkasan-table th:nth-child(7), /* Saldo */
-.kas-ringkasan-table td:nth-child(5), /* Pemasukan */
-.kas-ringkasan-table td:nth-child(6), /* Pengeluaran */
-.kas-ringkasan-table td:nth-child(7) { /* Saldo */
-    text-align: right !important;
-    font-family: 'SF Mono', Monaco, monospace !important;
-    font-weight: 600 !important;
-}
-
-/* Untuk 6 kolom (tanpa outlet) */
-.kas-ringkasan-table th:nth-child(4), /* Pemasukan */
-.kas-ringkasan-table th:nth-child(5), /* Pengeluaran */
-.kas-ringkasan-table th:nth-child(6), /* Saldo */
-.kas-ringkasan-table td:nth-child(4), /* Pemasukan */
-.kas-ringkasan-table td:nth-child(5), /* Pengeluaran */
-.kas-ringkasan-table td:nth-child(6) { /* Saldo */
-    text-align: right !important;
-    font-family: 'SF Mono', Monaco, monospace !important;
-    font-weight: 600 !important;
-}
+/* TAMBAHKAN DI AKHIR FILE CSS ANDA */
+#kasPage td.text-right { text-align: right !important; }
