@@ -3116,6 +3116,14 @@ function createKasPage() {
                             <input type="number" id="totalSetoranInput" class="form-input" placeholder="Masukkan jumlah setoran">
                         </div>
                         
+                        <!-- TAMBAHKAN FIELD SISA SETORAN -->
+                        <div class="form-group">
+                            <label for="sisaSetoranDisplay"><i class="fas fa-calculator"></i> Sisa Setoran</label>
+                            <div class="sisa-setoran-display" id="sisaSetoranDisplay">
+                                <span class="sisa-value">0</span>
+                            </div>
+                        </div>
+                        
                         <div class="form-group">
                             <label for="metodeSetoranKas"><i class="fas fa-credit-card"></i> Metode Setoran *</label>
                             <select id="metodeSetoranKas" class="form-select">
@@ -3126,15 +3134,51 @@ function createKasPage() {
                             </select>
                         </div>
                         
+                        <!-- UPDATE BUKTI SETORAN MENJADI WAJIB DENGAN KAMERA -->
                         <div class="form-group">
-                            <label for="buktiSetoranKas"><i class="fas fa-file-image"></i> Bukti Setoran (Opsional)</label>
-                            <input type="file" id="buktiSetoranKas" class="form-input" accept="image/*">
+                            <label for="buktiSetoranKas">
+                                <i class="fas fa-camera"></i> Bukti Setoran *
+                                <span class="required-star">*</span>
+                            </label>
+                            
+                            <!-- Input file yang tersembunyi -->
+                            <input type="file" id="buktiSetoranKas" class="form-input" 
+                                   accept="image/*" capture="environment" style="display: none;">
+                            
+                            <!-- Container untuk preview dan tombol -->
+                            <div class="bukti-setoran-container">
+                                <!-- Preview gambar -->
+                                <div id="buktiPreview" class="bukti-preview" style="display: none;">
+                                    <img id="buktiImagePreview" src="" alt="Preview Bukti Setoran">
+                                    <button type="button" id="hapusBukti" class="btn-hapus-bukti">
+                                        <i class="fas fa-trash"></i> Hapus
+                                    </button>
+                                </div>
+                                
+                                <!-- Tombol aksi -->
+                                <div class="bukti-actions">
+                                    <button type="button" id="ambilFotoBtn" class="btn-kamera">
+                                        <i class="fas fa-camera"></i> Ambil Foto
+                                    </button>
+                                    <button type="button" id="pilihFileBtn" class="btn-file">
+                                        <i class="fas fa-folder-open"></i> Pilih dari Gallery
+                                    </button>
+                                </div>
+                                
+                                <!-- Status upload -->
+                                <div id="buktiStatus" class="bukti-status" style="display: none;">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Foto sudah diunggah</span>
+                                </div>
+                            </div>
+                            
+                            <small class="form-help">* Wajib: Ambil foto bukti setoran atau pilih dari gallery</small>
                         </div>
                     </div>
                 </div>
                 
                 <div class="modal-footer">
-                    <button id="submitSetoranBtnKas" class="btn-modal-submit">
+                    <button id="submitSetoranBtnKas" class="btn-modal-submit" disabled>
                         <i class="fas fa-save"></i> SUBMIT SETORAN
                     </button>
                 </div>
@@ -3184,7 +3228,7 @@ function setupKasPageEvents() {
         kasState.selectedPeriod = kasState.availablePeriods[selectedIndex];
         await loadRingkasanKas();
         await loadSetoranStatus();
-        updateSetorButton(); // FIX: Update tombol SETOR
+        updateSetorButton();
     });
     
     // Filter tanggal change
@@ -3209,7 +3253,7 @@ function setupKasPageEvents() {
     // Submit data
     document.getElementById('kasSubmitBtn').addEventListener('click', submitKasData);
     
-    // Setor button - FIX: Tambahkan debug
+    // Setor button
     document.getElementById('setorBtn').addEventListener('click', function(e) {
         console.log('🟢 Tombol SETOR diklik!', {
             disabled: this.disabled,
@@ -3220,14 +3264,6 @@ function setupKasPageEvents() {
         
         if (!this.disabled) {
             openKasSetoranModal();
-        } else {
-            console.log('🔴 Tombol SETOR disabled, alasan:', {
-                isSetoranValid: isSetoranValid(),
-                isOwnerAllOutlets: isOwnerKas && !kasState.selectedOutlet,
-                currentKasDataLength: kasState.currentKasData?.length,
-                currentSetoran: kasState.currentSetoran,
-                totalSaldo: kasState.currentKasData?.reduce((sum, row) => sum + (parseInt(row.saldo) || 0), 0)
-            });
         }
     });
     
@@ -3240,6 +3276,12 @@ function setupKasPageEvents() {
     // Modal events
     document.getElementById('closeKasModal').addEventListener('click', closeKasSetoranModal);
     document.getElementById('submitSetoranBtnKas').addEventListener('click', submitKasSetoran);
+    
+    // Setup bukti setoran events
+    setTimeout(() => {
+        setupBuktiSetoranEvents();
+        setupModalValidationEvents();
+    }, 500);
     
     // ========== EVENT DELEGATION ==========
     
@@ -3569,7 +3611,7 @@ async function loadKasData() {
         // Update button states
         updateKasButtonStates();
         
-        // FIX: Update tombol SETOR
+        // Update tombol SETOR
         updateSetorButton();
         
     } catch (error) {
@@ -3639,7 +3681,7 @@ async function loadRingkasanKas() {
     }
 }
 
-// [12] Render ringkasan KAS - DIPERBAIKI untuk tombol SETOR
+// [12] Render ringkasan KAS
 function renderRingkasanKas() {
     const container = document.getElementById('ringkasanContainer');
     
@@ -3656,9 +3698,7 @@ function renderRingkasanKas() {
             </div>
         `;
         
-        // FIX: Update tombol SETOR untuk kasus tidak ada data
         updateSetorButton();
-        
         return;
     }
     
@@ -3785,7 +3825,7 @@ function renderRingkasanKas() {
         `;
         
     } else {
-        // Render single outlet (owner pilih outlet tertentu atau non-owner)
+        // Render single outlet
         let totalPemasukan = 0;
         let totalPengeluaran = 0;
         let totalSaldo = 0;
@@ -3847,12 +3887,10 @@ function renderRingkasanKas() {
     }
     
     container.innerHTML = html;
-    
-    // FIX: Update tombol SETOR menggunakan fungsi khusus
     updateSetorButton();
 }
 
-// [13] Load data auto-generate dari berbagai tabel - FIX ERROR 406
+// [13] Load data auto-generate dari berbagai tabel
 async function loadAutoGenerateData(tanggal) {
     const outlet = kasState.selectedOutlet || currentUserOutletKas;
     if (!outlet || !tanggal) {
@@ -3871,7 +3909,7 @@ async function loadAutoGenerateData(tanggal) {
     try {
         console.log('🔍 Loading auto-generate data untuk outlet:', outlet, 'tanggal:', tanggal);
         
-        // 1. SISA SETORAN - FIX: Gunakan try-catch untuk error 406
+        // 1. SISA SETORAN
         try {
             const { data: setoranData, error } = await supabase
                 .from('setoran')
@@ -3904,7 +3942,7 @@ async function loadAutoGenerateData(tanggal) {
             }
         } catch (e) { console.warn('⚠️ Omset cash:', e.message); }
         
-        // 3. KOMISI DAN TIPS QRIS (semua karyawan)
+        // 3. KOMISI DAN TIPS QRIS
         try {
             const { data: komisiData } = await supabase
                 .from('komisi')
@@ -3922,7 +3960,6 @@ async function loadAutoGenerateData(tanggal) {
         
         // 4. UOP HANYA UNTUK BARBERMAN
         try {
-            // Step 1: Dapatkan semua barberman
             const { data: barbermanData } = await supabase
                 .from('karyawan')
                 .select('nama_karyawan')
@@ -3932,7 +3969,6 @@ async function loadAutoGenerateData(tanggal) {
             if (barbermanData && barbermanData.length > 0) {
                 const barbermanNames = barbermanData.map(b => b.nama_karyawan);
                 
-                // Step 2: Ambil UOP untuk barberman saja
                 const { data: uopData } = await supabase
                     .from('komisi')
                     .select('uop, serve_by')
@@ -3941,7 +3977,6 @@ async function loadAutoGenerateData(tanggal) {
                     .not('uop', 'is', null);
                 
                 if (uopData && uopData.length > 0) {
-                    // Filter berdasarkan serve_by yang ada di daftar barberman
                     const filteredUop = uopData.filter(item => 
                         item.serve_by && barbermanNames.includes(item.serve_by)
                     );
@@ -4019,7 +4054,6 @@ async function loadExistingKasData() {
 // Fungsi Coba query alternatif untuk KAS
 async function tryAlternativeKasQuery(outlet) {
     try {
-        // Cari data KAS tanpa filter tanggal exact
         const { data, error } = await supabase
             .from('kas')
             .select('*')
@@ -4029,7 +4063,6 @@ async function tryAlternativeKasQuery(outlet) {
         
         if (!error && data && data.length > 0) {
             console.log('📋 Data KAS terbaru:', data);
-            // Cari yang mendekati tanggal
             const targetDate = new Date(kasState.selectedTanggal);
             const matched = data.find(item => {
                 const itemDate = new Date(item.tanggal);
@@ -4402,7 +4435,7 @@ function updateKasTotals() {
     document.getElementById('totalPengeluaran').textContent = formatKasCurrency(totalPengeluaran);
 }
 
-// [24] Update button states untuk input KAS (BUKAN untuk tombol SETOR)
+// [24] Update button states untuk input KAS
 function updateKasButtonStates() {
     const isValid = isFormValidKas();
     const hasData = kasState.pemasukanItems.length > 0 || kasState.pengeluaranItems.length > 0;
@@ -4440,16 +4473,14 @@ function validateKasData() {
 
 // [26] Check apakah form input KAS valid
 function isFormValidKas() {
-    // Hanya untuk validasi form input KAS, bukan untuk setoran
     const outlet = kasState.selectedOutlet || currentUserOutletKas;
     return outlet && currentKasUser?.nama_karyawan && kasState.selectedTanggal;
 }
 
-// ========== [FIXED] FUNGSI KHUSUS UNTUK TOMBOL SETOR ==========
+// ========== FUNGSI KHUSUS UNTUK TOMBOL SETOR ==========
 
 // Fungsi validasi khusus untuk tombol SETOR
 function isSetoranValid() {
-    // Hanya butuh outlet, nama kasir, dan periode terpilih
     const outlet = kasState.selectedOutlet || currentUserOutletKas;
     const kasir = currentKasUser?.nama_karyawan;
     const periode = kasState.selectedPeriod;
@@ -4505,7 +4536,6 @@ function canPerformSetoran() {
         if (kasState.currentSetoran) {
             let setoran;
             if (Array.isArray(kasState.currentSetoran)) {
-                // Untuk owner yang melihat single outlet atau kasir
                 setoran = kasState.currentSetoran[0];
             } else {
                 setoran = kasState.currentSetoran;
@@ -4532,7 +4562,7 @@ function canPerformSetoran() {
     }
 }
 
-// Fungsi update khusus tombol SETOR - FIXED VERSION
+// Fungsi update khusus tombol SETOR
 function updateSetorButton() {
     try {
         const setorBtn = document.getElementById('setorBtn');
@@ -4553,7 +4583,6 @@ function updateSetorButton() {
         
         // Update teks dan title berdasarkan status
         if (!canSetor) {
-            // Tentukan alasan disable
             if (!isSetoranValid()) {
                 setorBtn.innerHTML = '<i class="fas fa-calendar-alt"></i> PILIH PERIODE';
                 setorBtn.title = 'Harap pilih periode terlebih dahulu';
@@ -4564,7 +4593,6 @@ function updateSetorButton() {
                 setorBtn.innerHTML = '<i class="fas fa-database"></i> TIDAK ADA DATA';
                 setorBtn.title = 'Tidak ada data KAS untuk periode ini';
             } else {
-                // Hitung total saldo untuk cek apakah <= 0
                 const totalSaldo = kasState.currentKasData.reduce((sum, row) => {
                     return sum + (parseInt(row.saldo) || 0);
                 }, 0);
@@ -4725,7 +4753,7 @@ async function submitKasData() {
         // Refresh data
         await loadRingkasanKas();
         await loadExistingKasData();
-        updateSetorButton(); // FIX: Update tombol SETOR setelah submit KAS
+        updateSetorButton();
         
     } catch (error) {
         console.error('Error submitting kas data:', error);
@@ -4765,7 +4793,7 @@ function getKasPengeluaranKey(jenis) {
     return mapping[jenis] || 'pengeluaran_lain_lain';
 }
 
-// [30] Load status setoran - FIXED VERSION
+// [30] Load status setoran
 async function loadSetoranStatus() {
     try {
         const outlet = kasState.selectedOutlet || currentUserOutletKas;
@@ -4948,7 +4976,7 @@ function renderSetoranStatus() {
         return;
     }
     
-    // Single setoran (baik owner pilih outlet tertentu atau non-owner)
+    // Single setoran
     const setoran = Array.isArray(kasState.currentSetoran) ? kasState.currentSetoran[0] : kasState.currentSetoran;
     
     // Format hari setoran
@@ -4997,7 +5025,7 @@ function renderSetoranStatus() {
     `;
 }
 
-// [32] Buka modal setoran - FIXED VERSION
+// [32] Buka modal setoran
 function openKasSetoranModal() {
     console.log('🎯 openKasSetoranModal dipanggil');
     
@@ -5007,7 +5035,7 @@ function openKasSetoranModal() {
         return;
     }
     
-    // Hitung total kewajiban (total saldo dari ringkasan)
+    // Hitung total kewajiban
     const totalKewajiban = kasState.currentKasData.reduce((sum, row) => {
         return sum + (parseInt(row.saldo) || 0);
     }, 0);
@@ -5026,17 +5054,169 @@ function openKasSetoranModal() {
     document.getElementById('modalKewajibanKas').textContent = formatKasCurrency(totalKewajiban);
     document.getElementById('totalSetoranInput').value = totalKewajiban;
     
+    // Reset sisa setoran display ke default
+    updateSisaSetoranDisplay(totalKewajiban, totalKewajiban);
+    
     // Reset form
     document.getElementById('metodeSetoranKas').value = '';
-    document.getElementById('buktiSetoranKas').value = '';
+    resetBuktiSetoran();
+    
+    // Setup event listener untuk update sisa setoran saat total setoran berubah
+    const totalSetoranInput = document.getElementById('totalSetoranInput');
+    const originalEventHandler = totalSetoranInput.oninput;
+    totalSetoranInput.oninput = function() {
+        const totalSetoran = parseInt(this.value) || 0;
+        updateSisaSetoranDisplay(totalKewajiban, totalSetoran);
+        updateSubmitButtonState();
+        
+        // Panggil original event handler jika ada
+        if (originalEventHandler) originalEventHandler.call(this);
+    };
     
     // Tampilkan modal
     const modal = document.getElementById('setoranModal');
     if (modal) {
         modal.classList.remove('hidden');
         console.log('✅ Modal setoran ditampilkan');
+    }
+}
+
+// Fungsi untuk update display sisa setoran
+function updateSisaSetoranDisplay(totalKewajiban, totalSetoran) {
+    const sisaSetoran = totalKewajiban - totalSetoran;
+    const displayElement = document.getElementById('sisaSetoranDisplay');
+    
+    // Update nilai
+    const valueElement = displayElement.querySelector('.sisa-value');
+    if (valueElement) {
+        valueElement.textContent = formatKasCurrency(sisaSetoran);
     } else {
-        console.error('❌ Modal setoran tidak ditemukan!');
+        displayElement.innerHTML = `<span class="sisa-value">${formatKasCurrency(sisaSetoran)}</span>`;
+    }
+    
+    // Update styling berdasarkan nilai
+    displayElement.className = 'sisa-setoran-display';
+    
+    if (sisaSetoran < 0) {
+        displayElement.classList.add('negative');
+        displayElement.title = 'Total setoran melebihi kewajiban';
+    } else if (sisaSetoran > 0) {
+        displayElement.classList.add('positive');
+        displayElement.title = 'Masih ada sisa yang harus disetor';
+    } else {
+        displayElement.classList.add('zero');
+        displayElement.title = 'Setoran sudah tepat';
+    }
+}
+
+// Fungsi setup bukti setoran
+function setupBuktiSetoranEvents() {
+    const fileInput = document.getElementById('buktiSetoranKas');
+    const ambilFotoBtn = document.getElementById('ambilFotoBtn');
+    const pilihFileBtn = document.getElementById('pilihFileBtn');
+    const hapusBuktiBtn = document.getElementById('hapusBukti');
+    const buktiPreview = document.getElementById('buktiPreview');
+    const buktiStatus = document.getElementById('buktiStatus');
+    
+    if (!fileInput || !ambilFotoBtn) return;
+    
+    // Ambil foto dengan kamera
+    ambilFotoBtn.addEventListener('click', function() {
+        fileInput.setAttribute('capture', 'environment');
+        fileInput.click();
+    });
+    
+    // Pilih dari gallery
+    pilihFileBtn.addEventListener('click', function() {
+        fileInput.removeAttribute('capture');
+        fileInput.click();
+    });
+    
+    // Handle file selection
+    fileInput.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            
+            // Validasi: hanya image
+            if (!file.type.startsWith('image/')) {
+                showKasNotification('Hanya file gambar yang diperbolehkan!', 'error');
+                return;
+            }
+            
+            // Validasi: ukuran maksimal 5MB
+            if (file.size > 5 * 1024 * 1024) {
+                showKasNotification('Ukuran file maksimal 5MB!', 'error');
+                return;
+            }
+            
+            // Tampilkan preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('buktiImagePreview').src = e.target.result;
+                buktiPreview.style.display = 'block';
+                buktiStatus.style.display = 'flex';
+                updateSubmitButtonState();
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // Hapus bukti
+    hapusBuktiBtn.addEventListener('click', function() {
+        fileInput.value = '';
+        document.getElementById('buktiImagePreview').src = '';
+        buktiPreview.style.display = 'none';
+        buktiStatus.style.display = 'none';
+        updateSubmitButtonState();
+    });
+}
+
+// Reset bukti setoran
+function resetBuktiSetoran() {
+    const fileInput = document.getElementById('buktiSetoranKas');
+    const buktiPreview = document.getElementById('buktiPreview');
+    const buktiStatus = document.getElementById('buktiStatus');
+    
+    if (fileInput) fileInput.value = '';
+    const imagePreview = document.getElementById('buktiImagePreview');
+    if (imagePreview) imagePreview.src = '';
+    if (buktiPreview) buktiPreview.style.display = 'none';
+    if (buktiStatus) buktiStatus.style.display = 'none';
+    
+    updateSubmitButtonState();
+}
+
+// Update state tombol submit
+function updateSubmitButtonState() {
+    const totalSetoran = parseInt(document.getElementById('totalSetoranInput')?.value) || 0;
+    const metodeSetoran = document.getElementById('metodeSetoranKas')?.value;
+    const hasBuktiSetoran = document.getElementById('buktiSetoranKas')?.files.length > 0;
+    
+    const isValid = totalSetoran > 0 && metodeSetoran && hasBuktiSetoran;
+    
+    const submitBtn = document.getElementById('submitSetoranBtnKas');
+    if (submitBtn) {
+        submitBtn.disabled = !isValid;
+        
+        if (!isValid) {
+            submitBtn.title = 'Harap lengkapi: total setoran, metode setoran, dan bukti setoran';
+        } else {
+            submitBtn.title = '';
+        }
+    }
+}
+
+// Setup event listeners untuk validasi real-time
+function setupModalValidationEvents() {
+    const totalSetoranInput = document.getElementById('totalSetoranInput');
+    const metodeSetoranSelect = document.getElementById('metodeSetoranKas');
+    
+    if (totalSetoranInput) {
+        totalSetoranInput.addEventListener('input', updateSubmitButtonState);
+    }
+    
+    if (metodeSetoranSelect) {
+        metodeSetoranSelect.addEventListener('change', updateSubmitButtonState);
     }
 }
 
@@ -5045,17 +5225,29 @@ function closeKasSetoranModal() {
     document.getElementById('setoranModal').classList.add('hidden');
 }
 
-// [34] Submit setoran
+// [34] Submit setoran dengan upload bukti
 async function submitKasSetoran() {
     try {
         const outlet = kasState.selectedOutlet || currentUserOutletKas;
         const totalSetoran = parseInt(document.getElementById('totalSetoranInput').value) || 0;
         const metodeSetoran = document.getElementById('metodeSetoranKas').value;
+        const fileInput = document.getElementById('buktiSetoranKas');
         
         console.log('📝 Submit setoran:', { outlet, totalSetoran, metodeSetoran });
         
-        if (!totalSetoran || !metodeSetoran) {
-            showKasNotification('Harap isi total setoran dan pilih metode setoran!', 'error');
+        // Validasi lengkap
+        if (!totalSetoran) {
+            showKasNotification('Harap isi total setoran!', 'error');
+            return;
+        }
+        
+        if (!metodeSetoran) {
+            showKasNotification('Harap pilih metode setoran!', 'error');
+            return;
+        }
+        
+        if (!fileInput.files || fileInput.files.length === 0) {
+            showKasNotification('Harap upload bukti setoran!', 'error');
             return;
         }
         
@@ -5064,7 +5256,9 @@ async function submitKasSetoran() {
             return sum + (parseInt(row.saldo) || 0);
         }, 0);
         
-        if (totalSetoran > totalKewajiban) {
+        // Validasi: cek apakah sisa setoran negatif
+        const sisaSetoran = totalKewajiban - totalSetoran;
+        if (sisaSetoran < 0) {
             showKasNotification('Total setoran tidak boleh lebih besar dari total kewajiban!', 'error');
             return;
         }
@@ -5083,13 +5277,52 @@ async function submitKasSetoran() {
             return;
         }
         
-        showKasLoading(true);
+        showKasLoading(true, 'Mengupload bukti setoran...');
+        
+        // Upload bukti setoran ke Supabase Storage
+        let buktiSetoranUrl = '';
+        const file = fileInput.files[0];
+        
+        try {
+            // Generate unique filename
+            const timestamp = new Date().getTime();
+            const fileName = `setoran_${outlet}_${timestamp}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+            
+            console.log('📤 Uploading file:', fileName);
+            
+            // Upload ke storage bucket 'bukti-setoran'
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('bukti-setoran')
+                .upload(fileName, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+            
+            if (uploadError) {
+                console.error('❌ Error uploading to storage:', uploadError);
+                throw uploadError;
+            }
+            
+            console.log('✅ File uploaded:', uploadData);
+            
+            // Get public URL
+            const { data: urlData } = supabase.storage
+                .from('bukti-setoran')
+                .getPublicUrl(fileName);
+            
+            buktiSetoranUrl = urlData.publicUrl;
+            console.log('🔗 Public URL:', buktiSetoranUrl);
+            
+        } catch (uploadError) {
+            console.warn('⚠️ Gagal upload bukti:', uploadError);
+            showKasNotification('Bukti setoran gagal diupload, data tetap disimpan', 'warning');
+        }
+        
+        // Lanjut menyimpan data setoran
+        showKasLoading(true, 'Menyimpan data setoran...');
         
         const now = new Date();
         const today = formatKasDate(now);
-        
-        // Hitung sisa setoran
-        const sisaSetoran = totalKewajiban - totalSetoran;
         
         // Data setoran
         const setoranData = {
@@ -5098,10 +5331,11 @@ async function submitKasSetoran() {
             kasir: currentKasUser.nama_karyawan,
             total_kewajiban: totalKewajiban,
             total_setoran: totalSetoran,
+            sisa_setoran: sisaSetoran,
             tanggal_setoran: today,
             metode_setoran: metodeSetoran,
             status_setoran: 'In Process',
-            sisa_setoran: sisaSetoran
+            bukti_setoran_url: buktiSetoranUrl || null
         };
         
         console.log('💾 Data setoran yang akan disimpan:', setoranData);
@@ -5113,7 +5347,7 @@ async function submitKasSetoran() {
         
         if (error) throw error;
         
-        // Kirim notifikasi WhatsApp dengan tanggal setoran
+        // Kirim notifikasi WhatsApp
         const notificationMessage = formatSetoranNotification(setoranData);
         await sendKasWhatsAppNotification(notificationMessage);
         
@@ -5173,7 +5407,7 @@ async function verifikasiKasSetoran() {
         
         showKasNotification('Setoran telah diverifikasi!', 'success');
         await loadSetoranStatus();
-        updateSetorButton(); // FIX: Update tombol SETOR setelah verifikasi
+        updateSetorButton();
         
     } catch (error) {
         console.error('Error verifying setoran:', error);
@@ -5313,7 +5547,7 @@ async function submitBulkVerification(setoranIds) {
         
         showKasNotification(`${setoranIds.length} setoran berhasil diverifikasi!`, 'success');
         await loadSetoranStatus();
-        updateSetorButton(); // FIX: Update tombol SETOR setelah bulk verifikasi
+        updateSetorButton();
         
     } catch (error) {
         console.error('Error in bulk verification:', error);
@@ -5392,7 +5626,7 @@ function formatSetoranNotification(setoranData) {
         day: 'numeric' 
     });
     
-    return `*SETORAN KAS BABEH BARBERSHOP*
+    return `*SETORAN WEEKLY BABEH BARBERSHOP*
 =============================
 💈 Outlet : ${setoranData.outlet}
 📅 Hari/Tanggal : ${hariTanggal}
@@ -5439,8 +5673,14 @@ function formatKasDisplayDate(dateString) {
 }
 
 // [40] Loading functions
-function showKasLoading(show) {
+function showKasLoading(show, message = 'Memuat data...') {
     const overlay = document.getElementById('kasLoadingOverlay');
+    const messageEl = overlay.querySelector('p');
+    
+    if (messageEl) {
+        messageEl.textContent = message;
+    }
+    
     if (show) {
         overlay.classList.remove('hidden');
     } else {
@@ -5499,7 +5739,7 @@ async function checkClockOutStatus() {
         
         console.log(`📅 Tanggal format: ${tanggal} → ${tanggalAbsenFormat}`);
         
-        // 2. Query langsung ke tabel absen (HANYA ambil kolom yang ada: nama, clockin, clockout)
+        // 2. Query langsung ke tabel absen
         const { data: absenData, error } = await supabase
             .from('absen')
             .select('nama, clockin, clockout')
@@ -5721,6 +5961,7 @@ function showClockOutWarningPopup(karyawanList) {
         alert(`⚠️ PERINGATAN CLOCK OUT\n\n${karyawanList.length} karyawan belum clock out:\n\n${names}\n\nHarap minta mereka clock out terlebih dahulu sebelum submit KAS.`);
     }
 }
+
 // ========== SLIP PENGHASILAN ==========
 // =====================================
 
