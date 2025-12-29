@@ -7515,14 +7515,3 @@ tr.stock-out .product-cell {
         width: 100%;
     }
 }
-
-/* FIX TOTAL KAS - 100% WORK */
-#kasPage .total-row td {
-    text-align: right !important;
-    background: #f8fafc !important;
-}
-
-#kasPage .ringkasan-table td:not(:first-child):not(:nth-child(2)):not(:nth-child(3)):not(:nth-child(4)) {
-    text-align: right !important;
-    font-family: monospace !important;
-}
