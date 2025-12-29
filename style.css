@@ -7593,3 +7593,93 @@ tr.stock-out .product-cell {
         font-size: 0.9rem !important;
     }
 }
+/* ========== EMERGENCY FIX - OVERRIDE SEMUA MOBILE CSS ========== */
+
+/* RESET SEMUA width fixed untuk ringkasan table */
+.ringkasan-table th,
+.ringkasan-table td {
+    width: auto !important;
+    min-width: auto !important;
+    max-width: none !important;
+}
+
+/* Force proper table layout */
+.ringkasan-table {
+    table-layout: auto !important;
+    width: 100% !important;
+}
+
+/* Pastikan semua kolom visible dan proper width */
+.ringkasan-table th:nth-child(1), /* Tanggal */
+.ringkasan-table td:nth-child(1) {
+    min-width: 100px !important;
+    width: auto !important;
+}
+
+.ringkasan-table th:nth-child(2), /* Hari */
+.ringkasan-table td:nth-child(2) {
+    min-width: 80px !important;
+    width: auto !important;
+}
+
+.ringkasan-table th:nth-child(3), /* Outlet */
+.ringkasan-table td:nth-child(3) {
+    min-width: 100px !important;
+    width: auto !important;
+}
+
+.ringkasan-table th:nth-child(4), /* Kasir */
+.ringkasan-table td:nth-child(4) {
+    min-width: 150px !important;
+    width: auto !important;
+}
+
+.ringkasan-table th:nth-child(5), /* Pemasukan */
+.ringkasan-table td:nth-child(5) {
+    min-width: 120px !important;
+    width: auto !important;
+    text-align: right !important;
+}
+
+.ringkasan-table th:nth-child(6), /* Pengeluaran */
+.ringkasan-table td:nth-child(6) {
+    min-width: 120px !important;
+    width: auto !important;
+    text-align: right !important;
+}
+
+.ringkasan-table th:nth-child(7), /* Saldo */
+.ringkasan-table td:nth-child(7) {
+    min-width: 120px !important;
+    width: auto !important;
+    text-align: right !important;
+}
+
+/* TOTAL ROW STYLING */
+.ringkasan-table .total-row {
+    background-color: #f8fafc !important;
+}
+
+.ringkasan-table .total-row td {
+    border-top: 2px solid #e5e7eb !important;
+    font-weight: 700 !important;
+    padding: 12px 16px !important;
+}
+
+/* Alignment khusus untuk total row */
+.ringkasan-table .total-row td:nth-child(1) {
+    text-align: left !important;
+}
+
+.ringkasan-table .total-row td:nth-child(2),
+.ringkasan-table .total-row td:nth-child(3),
+.ringkasan-table .total-row td:nth-child(4) {
+    text-align: left !important;
+    color: #6b7280 !important; /* warna abu untuk kosong */
+}
+
+.ringkasan-table .total-row td:nth-child(5),
+.ringkasan-table .total-row td:nth-child(6),
+.ringkasan-table .total-row td:nth-child(7) {
+    text-align: right !important;
+}
