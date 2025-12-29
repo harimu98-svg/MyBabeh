@@ -3875,11 +3875,11 @@ function renderRingkasanKas() {
         
         html += `
                         <tr class="total-row">
-                            <td colspan="4" class="text-right"><strong>TOTAL</strong></td>
-                            <td class="text-right"><strong>${formatKasCurrency(totalPemasukan)}</strong></td>
-                            <td class="text-right"><strong>${formatKasCurrency(totalPengeluaran)}</strong></td>
-                            <td class="text-right ${totalSaldoClass}"><strong>${formatKasCurrency(totalSaldo)}</strong></td>
-                        </tr>
+        <td colspan="4"></td> <!-- 4 kolom pertama kosong -->
+        <td class="text-right"><strong>${formatKasCurrency(totalPemasukan)}</strong></td>
+        <td class="text-right"><strong>${formatKasCurrency(totalPengeluaran)}</strong></td>
+        <td class="text-right ${totalSaldoClass}"><strong>${formatKasCurrency(totalSaldo)}</strong></td>
+    </tr>
                     </tbody>
                 </table>
             </div>
