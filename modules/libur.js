@@ -1076,22 +1076,23 @@ async function forceUpdateAbsenStatus(liburData) {
             
             // 4. DATA UNTUK INSERT
             const recordData = {
-                tanggal: tanggalText,
-                hari: hari,
-                nama: liburData.karyawan,
-                id_uniq: `LIBUR-${currentDate.getTime()}-${liburData.id}`,
-                nomor_wa: karyawanData.nomor_wa || '',
-                outlet: liburData.outlet,
-                gaji_pokok: parseFloat(karyawanData.gaji) || 0,
-                // ⭐ CLOCKIN KHUSUS - akan diproses trigger
-                clockin: clockinValue,
-                clockout: clockoutValue,
-                jamkerja: '00:00',
-                // Biarkan null, akan diisi trigger
-                status_kehadiran: null,
-                over_time: null,
-                over_time_rp: null
-            };
+    tanggal: tanggalText,
+    hari: hari,
+    nama: liburData.karyawan,
+    id_uniq: `LIBUR-${currentDate.getTime()}-${liburData.id}`,
+    nomor_wa: karyawanData.nomor_wa || '',
+    outlet: liburData.outlet,
+    // ⭐ PERBAIKAN: gaji_pokok = 0 untuk libur
+    gaji_pokok: 0,  // ⭐ DARI karyawanData.gaji menjadi 0
+    clockin: clockinValue,
+    clockout: clockoutValue,
+    jamkerja: '00:00',
+    // ⭐ PERBAIKAN: Set over_time dan over_time_rp ke 0
+    over_time: '00:00',
+    over_time_rp: 0,
+    // Biarkan status_kehadiran null, akan diisi trigger
+    status_kehadiran: null
+};
 
             try {
                 // 5. INSERT (biarkan trigger bekerja)
