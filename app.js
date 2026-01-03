@@ -93,25 +93,48 @@ async function checkAuthStatus() {
     const { data: { session } } = await supabase.auth.getSession();
     
     if (session) {
-        showAppScreen();
-        loadUserData(session.user);
+        // Cek apakah email user memiliki domain @babeh.com
+        if (session.user.email && session.user.email.endsWith('@babeh.com')) {
+            showAppScreen();
+            loadUserData(session.user);
+        } else {
+            // Jika bukan domain @babeh.com, logout otomatis
+            await handleLogout();
+            showLoginScreenWithMessage('Hanya email dengan domain @babeh.com yang diizinkan');
+        }
     } else {
         showLoginScreen();
     }
 }
 
-// Fungsi untuk handle login
+// Fungsi untuk handle login dengan validasi domain email
 async function handleLogin() {
-    const email = document.getElementById('loginEmail').value.trim();
+    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
     const password = document.getElementById('loginPassword').value.trim();
     const errorElement = document.getElementById('loginError');
+    
+    // Reset error message
+    errorElement.textContent = '';
+    errorElement.className = 'text-red-500 text-sm mt-2';
     
     if (!email || !password) {
         errorElement.textContent = 'Email dan password harus diisi';
         return;
     }
     
-    errorElement.textContent = '';
+    // Validasi domain email
+    if (!email.endsWith('@babeh.com')) {
+        errorElement.textContent = 'Hanya email dengan domain @babeh.com yang diizinkan';
+        errorElement.className = 'text-red-500 text-sm mt-2 font-semibold';
+        return;
+    }
+    
+    // Validasi format email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        errorElement.textContent = 'Format email tidak valid';
+        return;
+    }
     
     try {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -125,20 +148,50 @@ async function handleLogin() {
             throw error;
         }
         
-        showAppScreen();
-        loadUserData(data.user);
+        // Double check domain setelah login berhasil
+        if (data.user.email && data.user.email.endsWith('@babeh.com')) {
+            showAppScreen();
+            loadUserData(data.user);
+            showToast('success', 'Login Berhasil', `Selamat datang, ${data.user.email.split('@')[0]}`);
+        } else {
+            // Jika ternyata bukan domain @babeh.com, logout
+            await handleLogout();
+            errorElement.textContent = 'Email tidak memiliki domain @babeh.com yang valid';
+        }
         
     } catch (error) {
-        errorElement.textContent = 'Login gagal. Periksa email dan password Anda.';
         console.error('Login error:', error.message);
+        
+        // Pesan error spesifik berdasarkan jenis error
+        if (error.message.includes('Invalid login credentials')) {
+            errorElement.textContent = 'Email atau password salah';
+        } else if (error.message.includes('Email not confirmed')) {
+            errorElement.textContent = 'Email belum dikonfirmasi';
+        } else {
+            errorElement.textContent = 'Login gagal. Periksa koneksi dan coba lagi.';
+        }
     }
 }
 
 // Fungsi untuk handle logout
 async function handleLogout() {
-    await supabase.auth.signOut();
+    try {
+        await supabase.auth.signOut();
+        showLoginScreen();
+        clearForm();
+        showToast('info', 'Logout Berhasil', 'Anda telah keluar dari sistem');
+    } catch (error) {
+        console.error('Logout error:', error);
+        showToast('error', 'Logout Gagal', 'Terjadi kesalahan saat logout');
+    }
+}
+
+// Fungsi untuk menampilkan login screen dengan pesan khusus
+function showLoginScreenWithMessage(message) {
     showLoginScreen();
-    clearForm();
+    const errorElement = document.getElementById('loginError');
+    errorElement.textContent = message;
+    errorElement.className = 'text-red-500 text-sm mt-2 font-semibold';
 }
 
 // Fungsi untuk menampilkan login screen
@@ -158,6 +211,19 @@ function clearForm() {
     document.getElementById('loginEmail').value = '';
     document.getElementById('loginPassword').value = '';
     document.getElementById('loginError').textContent = '';
+}
+
+// Fungsi untuk cek domain email (bisa dipanggil dari mana saja)
+function isValidBabehEmail(email) {
+    if (!email) return false;
+    const cleanEmail = email.trim().toLowerCase();
+    return cleanEmail.endsWith('@babeh.com');
+}
+
+// Fungsi helper untuk mendapatkan username dari email
+function getUsernameFromEmail(email) {
+    if (!email || !isValidBabehEmail(email)) return null;
+    return email.split('@')[0];
 }
 
 // ========== BAGIAN 3: FUNGSI UTAMA APP ==========
