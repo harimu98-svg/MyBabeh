@@ -7369,6 +7369,27 @@ function displaySlipData(slipData, dataSource) {
 function renderFinalSlip(data) {
     const isFinal = true;
     
+    // DETEKSI ROLE DARI DATA FINAL
+    const role = data.role || (data.posisi?.toLowerCase().includes('barber') ? 'barberman' : 'kasir');
+    
+    console.log('🔍 Render final slip for role:', role, data);
+    
+    if (role === 'barberman') {
+        return `
+            <div class="slip-container final-slip">
+                <div class="final-banner">
+                    <i class="fas fa-lock"></i>
+                    <span>DATA FINAL - Tidak dapat diubah</span>
+                    <small>Difinalisasi pada: ${formatDateTime(data.finalized_at)}</small>
+                </div>
+                
+                <!-- Gunakan renderBarbermanSlip untuk barberman -->
+                ${renderBarbermanSlip(data, 'final')}
+            </div>
+        `;
+    }
+    
+    // Default untuk kasir/owner
     return `
         <div class="slip-container final-slip">
             <div class="final-banner">
@@ -7377,7 +7398,7 @@ function renderFinalSlip(data) {
                 <small>Difinalisasi pada: ${formatDateTime(data.finalized_at)}</small>
             </div>
             
-            <!-- Gunakan renderKasirSlip dengan parameter final -->
+            <!-- Gunakan renderKasirSlip untuk kasir/owner -->
             ${renderKasirSlip(data, 'final')}
         </div>
     `;
