@@ -6,7 +6,7 @@ const TOP_CONFIG = {
     SUBSIDI_PERCENT: 0.20,      // 20%
     MAX_HARGA: 500000,          // Rp 500.000
     MIN_PERIODE: 1,
-    MAX_PERIODE: 25
+    MAX_PERIODE: 24
 };
 
 // Variabel global
@@ -538,7 +538,7 @@ function createTOPPage() {
                 font-weight: 600;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
-                min-width: 85px; /* PERBAIKAN: Lebarkan status pill */
+                min-width: 85px;
                 text-align: center;
                 white-space: nowrap;
                 overflow: hidden;
@@ -605,26 +605,28 @@ function createTOPPage() {
                 font-size: 0.75rem;
             }
             
-            /* PERBAIKAN: Container cicilan untuk kasir */
+            /* PERBAIKAN: Container cicilan untuk kasir - FIXED */
             .cicilan-container {
                 display: flex;
                 flex-wrap: wrap;
                 gap: 6px;
                 margin-top: 10px;
+                justify-content: center;
             }
             
             .cicilan-item {
-                padding: 4px 10px;
+                padding: 4px 8px;
                 border-radius: 12px;
-                font-size: 0.75rem;
+                font-size: 0.7rem;
                 font-weight: 500;
-                min-width: 60px;
-                max-width: 80px;
+                min-width: 50px;
+                max-width: 65px;
                 text-align: center;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 border: 1px solid #ddd;
+                box-sizing: border-box;
             }
             
             .cicilan-paid {
@@ -645,6 +647,40 @@ function createTOPPage() {
                 max-width: 200px !important;
                 white-space: normal !important;
                 word-wrap: break-word !important;
+            }
+            
+            /* PERBAIKAN: Untuk kasir - layout responsive */
+            .kasir-status-container {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                align-items: center;
+            }
+            
+            .kasir-status-item {
+                padding: 6px 10px;
+                border-radius: 6px;
+                font-size: 0.8rem;
+                font-weight: 600;
+                min-width: 80px;
+                text-align: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                background: white;
+                border: 1px solid #f0f0f0;
+            }
+            
+            .kasir-status-berikutnya {
+                background: #e3f2fd;
+                color: #1565c0;
+                border-color: #bbdefb;
+            }
+            
+            .kasir-status-selesai {
+                background: #e8f5e9;
+                color: #2e7d32;
+                border-color: #c8e6c9;
             }
             
             /* Responsive styles */
@@ -712,9 +748,16 @@ function createTOPPage() {
                 }
                 
                 .cicilan-item {
-                    max-width: 70px !important;
-                    font-size: 0.7rem !important;
-                    padding: 3px 8px !important;
+                    max-width: 60px !important;
+                    font-size: 0.65rem !important;
+                    padding: 3px 6px !important;
+                    min-width: 45px !important;
+                }
+                
+                .kasir-status-item {
+                    min-width: 70px !important;
+                    font-size: 0.75rem !important;
+                    padding: 5px 8px !important;
                 }
             }
             
@@ -744,8 +787,36 @@ function createTOPPage() {
                 }
                 
                 .cicilan-item {
-                    max-width: 65px !important;
-                    font-size: 0.65rem !important;
+                    max-width: 55px !important;
+                    font-size: 0.6rem !important;
+                    padding: 2px 5px !important;
+                    min-width: 40px !important;
+                }
+                
+                .kasir-status-item {
+                    min-width: 60px !important;
+                    font-size: 0.7rem !important;
+                    padding: 4px 6px !important;
+                }
+            }
+            
+            /* PERBAIKAN untuk layar sangat kecil */
+            @media (max-width: 360px) {
+                .cicilan-item {
+                    max-width: 50px !important;
+                    font-size: 0.55rem !important;
+                    padding: 2px 4px !important;
+                    min-width: 35px !important;
+                }
+                
+                .kasir-status-container {
+                    flex-direction: column !important;
+                    align-items: stretch !important;
+                }
+                
+                .kasir-status-item {
+                    width: 100% !important;
+                    box-sizing: border-box;
                 }
             }
         </style>
@@ -894,7 +965,7 @@ function createBarbermanTOPContent() {
                             </div>
                         </div>
                         
-                        <!-- LINE 4: Periode Cicilan (DIUBAH KE "X") -->
+                        <!-- LINE 4: Periode Cicilan -->
                         <div style="margin-bottom: 20px;">
                             <label for="periodeCicilan" style="
                                 display: block;
@@ -957,7 +1028,7 @@ function createBarbermanTOPContent() {
                                     border-radius: 6px;
                                     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
                                 ">
-                                    <span style="color: #666; font-weight: 500; font-size: 0.85rem;">Subsidi (25%):</span>
+                                    <span style="color: #666; font-weight: 500; font-size: 0.85rem;">Subsidi (20%):</span>
                                     <span id="calcSubsidi" style="font-weight: 600; color: #333; font-size: 0.85rem;">Rp 0</span>
                                 </div>
                                 <div style="
@@ -1027,7 +1098,7 @@ function createBarbermanTOPContent() {
                 </div>
             </div>
             
-            <!-- Riwayat Pengajuan - DIPERBAIKI KOLOM STATUS -->
+            <!-- Riwayat Pengajuan -->
             <div style="
                 background: white;
                 border-radius: 10px;
@@ -1189,7 +1260,7 @@ function createOwnerTOPContent() {
                 </div>
             </div>
             
-            <!-- Pengajuan Menunggu Approval - DIUBAH: "X" bukan "bulan" -->
+            <!-- Pengajuan Menunggu Approval -->
             <div style="
                 background: white;
                 border-radius: 10px;
@@ -1231,7 +1302,7 @@ function createOwnerTOPContent() {
                 </div>
             </div>
             
-            <!-- Riwayat Semua TOP - DIPERBAIKI: Kolom lebih lebar -->
+            <!-- Riwayat Semua TOP -->
             <div style="
                 background: white;
                 border-radius: 10px;
@@ -1772,7 +1843,7 @@ async function loadMyTOPRiwayat() {
     }
 }
 
-// [15] Display riwayat Barberman - DIPERBAIKI: Kolom status lebih lebar
+// [15] Display riwayat Barberman - PERBAIKAN: Link foto untuk semua status termasuk LUNAS
 function displayMyTOPRiwayat(topList) {
     const tbody = document.getElementById('topHistoryBody');
     const tableEl = document.getElementById('topHistoryTable');
@@ -1793,7 +1864,7 @@ function displayMyTOPRiwayat(topList) {
         const createdDate = new Date(top.created_at);
         const progress = calculateProgress(top);
         
-        // PERBAIKAN: Status text yang lebih baik untuk "1/5 cicilan (20%)"
+        // Status text
         let statusText = getTOPStatusText(top);
         let progressText = '';
         
@@ -1807,6 +1878,11 @@ function displayMyTOPRiwayat(topList) {
             progressText = `${cicilanKe}/${top.periode_cicilan} (${persentase}%)`;
         }
         
+        // PERBAIKAN: Tampilkan link foto untuk SEMUA status, termasuk LUNAS
+        const fotoLink = top.foto_url ? 
+            `<small><a href="${top.foto_url}" target="_blank" style="color: #667eea; font-size: 0.75rem; display: block; margin-top: 2px;">Lihat foto</a></small>` : 
+            '';
+        
         html += `
             <tr style="${index % 2 === 0 ? 'background: #f9f9f9;' : ''}">
                 <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
@@ -1815,7 +1891,7 @@ function displayMyTOPRiwayat(topList) {
                 </td>
                 <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
                     <div style="font-weight: 500;">${top.nama_alat}</div>
-                    ${top.foto_url ? `<small><a href="${top.foto_url}" target="_blank" style="color: #667eea; font-size: 0.75rem;">Lihat foto</a></small>` : ''}
+                    ${fotoLink}
                 </td>
                 <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${formatRupiah(top.harga_alat)}</td>
                 <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${top.periode_cicilan} X</td>
@@ -1871,7 +1947,7 @@ function displayMyTOPRiwayat(topList) {
     if (noDataEl) noDataEl.style.display = 'none';
 }
 
-// [16] Load data untuk Owner - DIPERBAIKI: Include yang lunas
+// [16] Load data untuk Owner
 async function loadTOPForOwner() {
     try {
         // Tampilkan loading
@@ -1921,7 +1997,7 @@ async function loadTOPForOwner() {
         
         // Display data
         displayPendingTOP(pendingData || []);
-        displayAllTOPRiwayat(allData || []); // PERBAIKAN: Tampilkan semua data termasuk lunas
+        displayAllTOPRiwayat(allData || []);
         
         // Load outlet options
         await loadOutletDropdownForTOP(allData || []);
@@ -1968,6 +2044,20 @@ function displayPendingTOP(topList) {
     pendingList.forEach(top => {
         const createdDate = new Date(top.created_at);
         
+        // PERBAIKAN: Tampilkan link foto untuk semua
+        const fotoPreview = top.foto_url ? `
+            <div style="flex-shrink: 0;">
+                <img src="${top.foto_url}" alt="Foto Alat" onclick="previewImage('${top.foto_url}')" style="
+                    width: 60px;
+                    height: 60px;
+                    object-fit: cover;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    border: 2px solid #f0f0f0;
+                ">
+            </div>
+        ` : '';
+        
         html += `
             <div style="
                 background: white;
@@ -2003,18 +2093,7 @@ function displayPendingTOP(topList) {
                         </div>
                     </div>
                     
-                    ${top.foto_url ? `
-                        <div style="flex-shrink: 0;">
-                            <img src="${top.foto_url}" alt="Foto Alat" onclick="previewImage('${top.foto_url}')" style="
-                                width: 60px;
-                                height: 60px;
-                                object-fit: cover;
-                                border-radius: 6px;
-                                cursor: pointer;
-                                border: 2px solid #f0f0f0;
-                            ">
-                        </div>
-                    ` : ''}
+                    ${fotoPreview}
                 </div>
                 
                 <div style="
@@ -2034,7 +2113,7 @@ function displayPendingTOP(topList) {
                             <span style="font-weight: 600;">${top.periode_cicilan} X</span>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
-                            <span style="color: #666;">Subsidi 25%:</span>
+                            <span style="color: #666;">Subsidi 20%:</span>
                             <span style="color: #4CAF50; font-weight: 600;">${formatRupiah(top.subsidi)}</span>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
@@ -2170,7 +2249,7 @@ async function rejectTOP(topId) {
     }
 }
 
-// [20] Display all TOP riwayat untuk Owner - DIPERBAIKI: Tampilkan semua data termasuk lunas
+// [20] Display all TOP riwayat untuk Owner - PERBAIKAN: Link foto untuk semua status termasuk LUNAS
 function displayAllTOPRiwayat(topList) {
     const tbody = document.getElementById('allHistoryBody');
     const tableEl = document.getElementById('allHistoryTable');
@@ -2205,6 +2284,11 @@ function displayAllTOPRiwayat(topList) {
             progressPercentage = 100;
         }
         
+        // PERBAIKAN: Tampilkan link foto untuk SEMUA status, termasuk LUNAS
+        const fotoLink = top.foto_url ? 
+            `<small><a href="${top.foto_url}" target="_blank" style="color: #667eea; font-size: 0.75rem; display: block; margin-top: 2px;">foto</a></small>` : 
+            '';
+        
         html += `
             <tr style="${index % 2 === 0 ? 'background: #f9f9f9;' : ''}">
                 <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
@@ -2215,7 +2299,7 @@ function displayAllTOPRiwayat(topList) {
                 <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${top.karyawan}</td>
                 <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
                     <div style="font-weight: 500;">${top.nama_alat}</div>
-                    ${top.foto_url ? `<small><a href="${top.foto_url}" target="_blank" style="color: #667eea; font-size: 0.75rem;">foto</a></small>` : ''}
+                    ${fotoLink}
                 </td>
                 <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${formatRupiah(top.harga_alat)}</td>
                 <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${top.periode_cicilan} X</td>
@@ -2346,22 +2430,14 @@ async function loadTOPForKasir() {
         
         if (error) throw error;
         
-        // PERBAIKAN: Tampilkan semua data (termasuk lunas) di riwayat
-        // Tapi untuk payment list, hanya tampilkan yang belum lunas
-        const activeTOP = (topList || []).filter(top => 
-            top.status !== 'pending' && 
-            top.status !== 'rejected' && 
-            top.status !== 'lunas'
-        );
-        
-        // PERBAIKAN: Untuk payment list, juga tampilkan yang sudah lunas tapi dengan status terakhir
+        // Tampilkan semua data (termasuk lunas) untuk payment list
         const allTOPForDisplay = (topList || []).filter(top => 
             top.status !== 'pending' && 
             top.status !== 'rejected'
         );
         
         // Display
-        displayTOPForPayment(allTOPForDisplay); // PERBAIKAN: Tampilkan termasuk yang lunas
+        displayTOPForPayment(allTOPForDisplay);
         displayPaymentHistory(topList || []);
         
     } catch (error) {
@@ -2376,7 +2452,7 @@ async function loadTOPForKasir() {
     }
 }
 
-// [23] Display TOP untuk pembayaran (Kasir) - DIPERBAIKI: "X" bukan "Bulan"
+// [23] Display TOP untuk pembayaran (Kasir) - PERBAIKAN BESAR: Layout responsive untuk status
 function displayTOPForPayment(topList) {
     const container = document.getElementById('topPaymentList');
     const countEl = document.getElementById('activeTopCount');
@@ -2407,7 +2483,7 @@ function displayTOPForPayment(topList) {
         const progress = calculateProgress(top);
         const nextCicilan = getNextCicilan(top);
         
-        // PERBAIKAN: Buat daftar cicilan yang lebih kompak
+        // PERBAIKAN: Buat daftar cicilan yang lebih kompak dengan size lebih kecil
         const cicilanItems = [];
         const totalCicilan = top.periode_cicilan;
         const currentCicilan = top.status.startsWith('cicilan_') ? parseInt(top.status.split('_')[1]) : 0;
@@ -2417,14 +2493,29 @@ function displayTOPForPayment(topList) {
             const isPaid = i <= currentCicilan || top.status === 'lunas';
             const cicilanText = i === 1 ? 'Cicilan 1' : `Cicilan ${i}`;
             
+            // PERBAIKAN: Ukuran lebih kecil untuk "Cicilan 1"
+            const cicilanClass = i === 1 ? 'cicilan-item cicilan-1' : 'cicilan-item';
+            
             cicilanItems.push(`
-                <div class="cicilan-item ${isPaid ? 'cicilan-paid' : 'cicilan-pending'}" 
-                     style="${i === 1 ? 'max-width: 75px; font-size: 0.7rem;' : ''}"
+                <div class="${cicilanClass} ${isPaid ? 'cicilan-paid' : 'cicilan-pending'}" 
                      title="${cicilanText} ${isPaid ? 'Sudah bayar' : 'Belum bayar'}">
                     ${i === 1 ? 'Cicilan 1' : i}
                 </div>
             `);
         }
+        
+        // PERBAIKAN: Layout status yang tidak keluar container
+        const statusInfo = top.status === 'lunas' ? 
+            `<div class="kasir-status-container">
+                <div class="kasir-status-item kasir-status-selesai">
+                    Selesai
+                </div>
+            </div>` : 
+            `<div class="kasir-status-container">
+                <div class="kasir-status-item" style="background: #e3f2fd; color: #1565c0; border-color: #bbdefb;">
+                    Berikutnya: Cicilan ${nextCicilan}
+                </div>
+            </div>`;
         
         html += `
             <div style="
@@ -2443,7 +2534,7 @@ function displayTOPForPayment(topList) {
                     gap: 10px;
                     flex-wrap: wrap;
                 ">
-                    <div style="flex: 1;">
+                    <div style="flex: 1; min-width: 200px;">
                         <h4 style="margin: 0 0 5px 0; color: #333; font-size: 0.95rem;">${top.nama_alat}</h4>
                         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                             <span style="font-size: 0.85rem; color: #666;">
@@ -2454,6 +2545,8 @@ function displayTOPForPayment(topList) {
                                 border-radius: 12px;
                                 font-size: 0.75rem;
                                 font-weight: 600;
+                                min-width: 85px;
+                                text-align: center;
                             ">
                                 ${getTOPStatusText(top)}
                             </span>
@@ -2473,6 +2566,7 @@ function displayTOPForPayment(topList) {
                             gap: 6px;
                             font-size: 0.85rem;
                             flex-shrink: 0;
+                            min-width: 100px;
                         ">
                             <i class="fas fa-credit-card" style="font-size: 0.8rem;"></i> Bayar
                         </button>
@@ -2488,6 +2582,8 @@ function displayTOPForPayment(topList) {
                             display: flex;
                             align-items: center;
                             gap: 6px;
+                            min-width: 100px;
+                            justify-content: center;
                         ">
                             <i class="fas fa-check-circle" style="font-size: 0.8rem;"></i> Lunas
                         </span>
@@ -2502,7 +2598,7 @@ function displayTOPForPayment(topList) {
                                 <div>${formatRupiah(top.harga_alat)}</div>
                             </div>
                             <div style="background: #f8f9fa; padding: 10px; border-radius: 6px;">
-                                <div style="color: #666; font-size: 0.8rem; margin-bottom: 4px;">Subsidi 25%:</div>
+                                <div style="color: #666; font-size: 0.8rem; margin-bottom: 4px;">Subsidi 20%:</div>
                                 <div style="color: #4CAF50;">${formatRupiah(top.subsidi)}</div>
                             </div>
                             <div style="background: #f8f9fa; padding: 10px; border-radius: 6px;">
@@ -2543,36 +2639,56 @@ function displayTOPForPayment(topList) {
                             <div class="progress-text">${progress.text}</div>
                         </div>
                         
-                        <!-- PERBAIKAN: Container cicilan yang lebih rapi -->
+                        <!-- PERBAIKAN: Container cicilan yang lebih rapi dan kecil -->
                         <div class="cicilan-container">
                             ${cicilanItems.join('')}
                             ${totalCicilan > 6 ? `
-                                <div class="cicilan-item" style="background: #e9ecef; color: #6c757d;">
+                                <div class="cicilan-item" style="background: #e9ecef; color: #6c757d; font-size: 0.65rem;">
                                     +${totalCicilan - 6}
                                 </div>
                             ` : ''}
                         </div>
                         
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; font-size: 0.85rem;">
-                            <div style="display: flex; justify-content: space-between; padding: 8px; background: white; border-radius: 6px;">
-                                <span>Sudah Bayar:</span>
-                                <span style="color: #4CAF50; font-weight: 600;">${formatRupiah(top.total_dibayar || 0)}</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; padding: 8px; background: white; border-radius: 6px;">
-                                <span>Sisa:</span>
-                                <span style="color: #ff9800; font-weight: 600;">${formatRupiah(top.sisa_cicilan || top.total_cicilan)}</span>
-                            </div>
-                            ${nextCicilan > 0 ? `
-                                <div style="display: flex; justify-content: space-between; padding: 8px; background: white; border-radius: 6px;">
-                                    <span>Berikutnya:</span>
-                                    <span style="color: #667eea; font-weight: 600;">Cicilan ${nextCicilan}</span>
+                        <!-- PERBAIKAN: Layout grid untuk status info yang responsif -->
+                        <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 12px; font-size: 0.85rem;">
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between;">
+                                <div style="
+                                    display: flex;
+                                    justify-content: space-between;
+                                    align-items: center;
+                                    padding: 8px;
+                                    background: white;
+                                    border-radius: 6px;
+                                    flex: 1;
+                                    min-width: 120px;
+                                ">
+                                    <span style="white-space: nowrap;">Sudah Bayar:</span>
+                                    <span style="color: #4CAF50; font-weight: 600;">${formatRupiah(top.total_dibayar || 0)}</span>
                                 </div>
-                            ` : `
-                                <div style="display: flex; justify-content: space-between; padding: 8px; background: white; border-radius: 6px;">
-                                    <span>Status:</span>
-                                    <span style="color: #28a745; font-weight: 600;">Selesai</span>
+                                <div style="
+                                    display: flex;
+                                    justify-content: space-between;
+                                    align-items: center;
+                                    padding: 8px;
+                                    background: white;
+                                    border-radius: 6px;
+                                    flex: 1;
+                                    min-width: 120px;
+                                ">
+                                    <span style="white-space: nowrap;">Sisa:</span>
+                                    <span style="color: #ff9800; font-weight: 600;">${formatRupiah(top.sisa_cicilan || top.total_cicilan)}</span>
                                 </div>
-                            `}
+                            </div>
+                            
+                            <!-- PERBAIKAN: Status info yang responsif -->
+                            <div style="
+                                padding: 10px;
+                                background: white;
+                                border-radius: 6px;
+                                border: 1px solid #f0f0f0;
+                            ">
+                                ${statusInfo}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -3031,7 +3147,7 @@ async function showTOPDetail(topId) {
         detail += `• Barberman: ${top.karyawan}\n`;
         detail += `• Outlet: ${top.outlet}\n`;
         detail += `• Harga: ${formatRupiah(top.harga_alat)}\n`;
-        detail += `• Subsidi 25%: ${formatRupiah(top.subsidi)}\n`;
+        detail += `• Subsidi 20%: ${formatRupiah(top.subsidi)}\n`;
         detail += `• Total Cicilan: ${formatRupiah(top.total_cicilan)}\n`;
         detail += `• Periode: ${top.periode_cicilan} X\n`;
         detail += `• Cicilan per X: ${formatRupiah(top.cicilan_per_periode)} / X\n`;
