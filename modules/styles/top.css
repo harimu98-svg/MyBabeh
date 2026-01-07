@@ -886,3 +886,33 @@
         gap: 5px;
     }
 }
+/* Badge untuk cicilan ke- */
+.badge {
+    display: inline-block;
+    padding: 3px 8px;
+    background: #667eea;
+    color: white;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    min-width: 30px;
+    text-align: center;
+}
+
+.empty-message {
+    text-align: center;
+    padding: 30px;
+    color: #666;
+}
+
+.empty-message i {
+    font-size: 2rem;
+    color: #ddd;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.info-row td {
+    background: #f8f9fa;
+    color: #6c757d;
+}
