@@ -1429,7 +1429,189 @@ function getTOPFooterMessage() {
     if (isKasirTOP) return 'Proses pembayaran cicilan TOP untuk barberman';
     return 'Tools Ownership Program';
 }
-
+// [24.1] Display payment history untuk Kasir
+function displayPaymentHistory(topList) {
+    const tbody = document.getElementById('paymentHistoryBody');
+    const tableEl = document.getElementById('paymentHistoryTable');
+    
+    if (!tbody) return;
+    
+    // Collect all payments from all TOP
+    const allPayments = [];
+    
+    topList.forEach(top => {
+        const payments = top.pembayaran || [];
+        payments.forEach(payment => {
+            allPayments.push({
+                ...payment,
+                barberman: top.karyawan,
+                alat: top.nama_alat,
+                sisa_cicilan: top.sisa_cicilan || top.total_cicilan
+            });
+        });
+    });
+    
+    // Sort by tanggal bayar (newest first)
+    allPayments.sort((a, b) => new Date(b.tanggal_bayar) - new Date(a.tanggal_bayar));
+    
+    if (allPayments.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="empty-message">
+                    <i class="fas fa-receipt"></i>
+                    Belum ada riwayat pembayaran
+                </td>
+            </tr>
+        `;
+        if (tableEl) tableEl.style.display = 'table';
+        return;
+    }
+    
+    // Limit to 20 entries for performance
+    const displayPayments = allPayments.slice(0, 20);
+    
+    let html = '';
+    
+    displayPayments.forEach(payment => {
+        const tanggal = new Date(payment.tanggal_bayar);
+        
+        html += `
+            <tr>
+                <td>
+                    ${formatDate(tanggal)}<br>
+                    <small>${tanggal.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>
+                </td>
+                <td>${payment.barberman}</td>
+                <td>
+                    <div class="item-name">${payment.alat}</div>
+                </td>
+                <td>
+                    <span class="badge">${payment.cicilan_ke}</span>
+                </td>
+                <td>${formatRupiah(payment.jumlah_bayar)}</td>
+                <td>${payment.penerima || '-'}</td>
+                <td>${formatRupiah(payment.sisa_cicilan)}</td>
+            </tr>
+        `;
+    });
+    
+    // Jika ada lebih dari 20 pembayaran, tambahkan note
+    if (allPayments.length > 20) {
+        html += `
+            <tr class="info-row">
+                <td colspan="7" style="text-align: center; color: #6c757d; font-style: italic;">
+                    <i class="fas fa-info-circle"></i> Menampilkan 20 dari ${allPayments.length} pembayaran.
+                </td>
+            </tr>
+        `;
+    }
+    
+    tbody.innerHTML = html;
+    if (tableEl) tableEl.style.display = 'table';
+}
+// [24.2] Display all TOP riwayat untuk Owner
+function displayAllTOPRiwayat(topList) {
+    const tbody = document.getElementById('allHistoryBody');
+    const tableEl = document.getElementById('allHistoryTable');
+    
+    if (!tbody) return;
+    
+    if (!topList || topList.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="empty-message">
+                    <i class="fas fa-history"></i>
+                    Tidak ada data TOP
+                </td>
+            </tr>
+        `;
+        if (tableEl) tableEl.style.display = 'table';
+        return;
+    }
+    
+    // Limit to 20 entries
+    const displayList = topList.slice(0, 20);
+    
+    let html = '';
+    
+    displayList.forEach(top => {
+        const createdDate = new Date(top.created_at);
+        const progress = calculateProgress(top);
+        
+        html += `
+            <tr>
+                <td>${formatDate(createdDate)}</td>
+                <td>${top.outlet}</td>
+                <td>${top.karyawan}</td>
+                <td>
+                    <div class="item-name">${top.nama_alat}</div>
+                    ${top.foto_url ? `<small><a href="${top.foto_url}" target="_blank">Lihat foto</a></small>` : ''}
+                </td>
+                <td>${formatRupiah(top.harga_alat)}</td>
+                <td>${top.periode_cicilan} bln</td>
+                <td>
+                    <span class="status-pill ${getTOPStatusClass(top.status)}">
+                        ${getTOPStatusText(top)}
+                    </span>
+                </td>
+                <td>
+                    <div class="progress-small">
+                        <div class="progress-bar" style="width: ${progress.percentage}%"></div>
+                        <span>${progress.text}</span>
+                    </div>
+                </td>
+                <td>
+                    <button class="btn-action" onclick="showTOPDetail('${top.id}')" title="Detail">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    ${top.status === 'pending' ? `
+                        <button class="btn-action btn-approve" onclick="approveTOP('${top.id}')" title="Approve">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn-action btn-reject" onclick="rejectTOP('${top.id}')" title="Reject">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    ` : ''}
+                </td>
+            </tr>
+        `;
+    });
+    
+    // Jika ada lebih dari 20 item
+    if (topList.length > 20) {
+        html += `
+            <tr class="info-row">
+                <td colspan="9" style="text-align: center; color: #6c757d; font-style: italic;">
+                    <i class="fas fa-info-circle"></i> Menampilkan 20 dari ${topList.length} data TOP.
+                </td>
+            </tr>
+        `;
+    }
+    
+    tbody.innerHTML = html;
+    if (tableEl) tableEl.style.display = 'table';
+}
+// [24.3] Load outlet dropdown untuk Owner
+async function loadOutletDropdownForTOP(topList) {
+    const select = document.getElementById('filterOutletOwnerTOP');
+    if (!select) return;
+    
+    try {
+        // Get unique outlets from existing data
+        const outlets = [...new Set(topList.map(top => top.outlet).filter(Boolean))];
+        
+        let options = '<option value="all">Semua Outlet</option>';
+        
+        outlets.forEach(outlet => {
+            options += `<option value="${outlet}">${outlet}</option>`;
+        });
+        
+        select.innerHTML = options;
+        
+    } catch (error) {
+        console.error('Error loading outlets:', error);
+    }
+}
 // [25] Setup events untuk Owner dan Kasir
 function setupOwnerEvents() {
     // Filter events sudah di-handle di HTML
@@ -1451,6 +1633,11 @@ window.showCicilanDetail = showCicilanDetail;
 window.showTOPDetail = showTOPDetail;
 window.cancelTOP = cancelTOP;
 window.previewImage = previewImage;
+
+// Tambahkan fungsi baru
+window.displayPaymentHistory = displayPaymentHistory;
+window.displayAllTOPRiwayat = displayAllTOPRiwayat;
+window.loadOutletDropdownForTOP = loadOutletDropdownForTOP;
 
 // Placeholder functions for features to be implemented
 async function showCicilanDetail(topId) {
