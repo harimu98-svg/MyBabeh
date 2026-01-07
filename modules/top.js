@@ -3,10 +3,10 @@
 
 // Konfigurasi
 const TOP_CONFIG = {
-    SUBSIDI_PERCENT: 0.25,      // 25%
+    SUBSIDI_PERCENT: 0.20,      // 20%
     MAX_HARGA: 500000,          // Rp 500.000
     MIN_PERIODE: 1,
-    MAX_PERIODE: 24
+    MAX_PERIODE: 25
 };
 
 // Variabel global
@@ -105,17 +105,18 @@ function createTOPPage() {
                      createKasirTOPContent();
     
     topPage.innerHTML = `
-        <!-- Header dengan inline styling - UKURAN DIKECILKAN -->
+        <!-- Header dengan inline styling - UKURAN DIKECILKAN & RATA TENGAH -->
         <header style="
             background: rgba(255, 255, 255, 0.95);
             padding: 10px 15px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             position: sticky;
             top: 0;
             z-index: 100;
+            gap: 15px;
         ">
             <button class="back-btn" id="backToMainFromTOP" style="
                 background: #667eea;
@@ -131,28 +132,39 @@ function createTOPPage() {
                 font-size: 1rem;
                 transition: all 0.3s;
                 flex-shrink: 0;
+                position: absolute;
+                left: 15px;
             ">
                 <i class="fas fa-arrow-left"></i>
             </button>
             
-            <h2 style="
-                margin: 0;
-                color: #333;
-                font-size: 1.1rem;
+            <!-- JUDUL RATA TENGAH -->
+            <div style="
                 display: flex;
+                flex-direction: column;
                 align-items: center;
-                gap: 8px;
+                justify-content: center;
+                gap: 4px;
                 flex: 1;
-                padding: 0 10px;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
+                text-align: center;
             ">
-                <i class="fas fa-tools" style="color: #FF9800; font-size: 0.9rem;"></i>
-                <span style="font-size: 0.95rem;">TOP Program</span>
-            </h2>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-tools" style="color: #FF9800; font-size: 1.2rem;"></i>
+                    <h2 style="
+                        margin: 0;
+                        color: #333;
+                        font-size: 1.1rem;
+                        white-space: nowrap;
+                    ">TOP Program</h2>
+                </div>
+                <small style="font-size: 0.8rem; color: #666;">Tools Ownership Program</small>
+            </div>
             
-            <div class="header-actions" style="flex-shrink: 0;">
+            <div class="header-actions" style="
+                flex-shrink: 0;
+                position: absolute;
+                right: 15px;
+            ">
                 <button class="refresh-btn" id="refreshTOP" title="Refresh" style="
                     background: #4CAF50;
                     color: white;
@@ -322,7 +334,7 @@ function createTOPPage() {
             </div>
         </div>
         
-        <!-- Modal Pembayaran - DIPERBAIKI TOMBOL BATAL -->
+        <!-- Modal Pembayaran -->
         <div id="paymentModal" style="
             display: none;
             position: fixed;
@@ -526,6 +538,11 @@ function createTOPPage() {
                 font-weight: 600;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
+                min-width: 85px; /* PERBAIKAN: Lebarkan status pill */
+                text-align: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
             
             .status-pending {
@@ -588,6 +605,48 @@ function createTOPPage() {
                 font-size: 0.75rem;
             }
             
+            /* PERBAIKAN: Container cicilan untuk kasir */
+            .cicilan-container {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+                margin-top: 10px;
+            }
+            
+            .cicilan-item {
+                padding: 4px 10px;
+                border-radius: 12px;
+                font-size: 0.75rem;
+                font-weight: 500;
+                min-width: 60px;
+                max-width: 80px;
+                text-align: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                border: 1px solid #ddd;
+            }
+            
+            .cicilan-paid {
+                background: #d4edda;
+                color: #155724;
+                border-color: #c3e6cb;
+            }
+            
+            .cicilan-pending {
+                background: #fff3cd;
+                color: #856404;
+                border-color: #ffeaa7;
+            }
+            
+            /* PERBAIKAN: Kolom tabel yang lebih lebar */
+            .table-cell-wide {
+                min-width: 120px !important;
+                max-width: 200px !important;
+                white-space: normal !important;
+                word-wrap: break-word !important;
+            }
+            
             /* Responsive styles */
             @media (max-width: 768px) {
                 .top-page {
@@ -645,6 +704,18 @@ function createTOPPage() {
                 th, td {
                     padding: 8px 10px !important;
                 }
+                
+                /* PERBAIKAN untuk mobile: Lebarkan kolom status */
+                .status-cell {
+                    min-width: 130px !important;
+                    white-space: normal !important;
+                }
+                
+                .cicilan-item {
+                    max-width: 70px !important;
+                    font-size: 0.7rem !important;
+                    padding: 3px 8px !important;
+                }
             }
             
             @media (max-width: 480px) {
@@ -664,6 +735,18 @@ function createTOPPage() {
                     width: 95% !important;
                     max-height: 80vh !important;
                 }
+                
+                /* PERBAIKAN untuk ponsel kecil */
+                .status-pill {
+                    min-width: 100px !important;
+                    font-size: 0.7rem !important;
+                    padding: 2px 8px !important;
+                }
+                
+                .cicilan-item {
+                    max-width: 65px !important;
+                    font-size: 0.65rem !important;
+                }
             }
         </style>
     `;
@@ -672,11 +755,11 @@ function createTOPPage() {
     setupTOPEvents();
 }
 
-// [3] Buat konten untuk Barberman - DIPERBAIKI 4 LINE FORM
+// [3] Buat konten untuk Barberman
 function createBarbermanTOPContent() {
     return `
         <div style="margin: 10px;">
-            <!-- Form Pengajuan - 4 LINE FORM -->
+            <!-- Form Pengajuan -->
             <div style="
                 background: white;
                 margin-bottom: 15px;
@@ -811,7 +894,7 @@ function createBarbermanTOPContent() {
                             </div>
                         </div>
                         
-                        <!-- LINE 4: Periode Cicilan (UBAH KE "KALI") -->
+                        <!-- LINE 4: Periode Cicilan (DIUBAH KE "X") -->
                         <div style="margin-bottom: 20px;">
                             <label for="periodeCicilan" style="
                                 display: block;
@@ -824,7 +907,7 @@ function createBarbermanTOPContent() {
                                 font-size: 0.9rem;
                             ">
                                 <i class="fas fa-calendar-alt" style="color: #667eea; font-size: 0.9rem;"></i>
-                                Periode Cicilan (1-24 Kali)
+                                Periode Cicilan (1-24 X)
                             </label>
                             <select id="periodeCicilan" required style="
                                 width: 100%;
@@ -836,7 +919,7 @@ function createBarbermanTOPContent() {
                             ">
                                 <option value="">Pilih periode...</option>
                                 ${Array.from({length: TOP_CONFIG.MAX_PERIODE}, (_, i) => 
-                                    `<option value="${i+1}">${i+1} Kali (X)</option>`
+                                    `<option value="${i+1}">${i+1} X</option>`
                                 ).join('')}
                             </select>
                         </div>
@@ -898,8 +981,8 @@ function createBarbermanTOPContent() {
                                     border-radius: 6px;
                                     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
                                 ">
-                                    <span style="color: #666; font-weight: 500; font-size: 0.85rem;">Cicilan per Kali:</span>
-                                    <span id="calcPerBulan" style="font-weight: 600; color: #ff9800; font-size: 0.9rem;">Rp 0</span>
+                                    <span style="color: #666; font-weight: 500; font-size: 0.85rem;">Cicilan per X:</span>
+                                    <span id="calcPerBulan" style="font-weight: 600; color: #ff9800; font-size: 0.9rem;">Rp 0 / X</span>
                                 </div>
                             </div>
                         </div>
@@ -944,7 +1027,7 @@ function createBarbermanTOPContent() {
                 </div>
             </div>
             
-            <!-- Riwayat Pengajuan -->
+            <!-- Riwayat Pengajuan - DIPERBAIKI KOLOM STATUS -->
             <div style="
                 background: white;
                 border-radius: 10px;
@@ -1000,8 +1083,8 @@ function createBarbermanTOPContent() {
                                     <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Alat</th>
                                     <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Harga</th>
                                     <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Periode</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Cicilan/Kali</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Status</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Cicilan/X</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem; min-width: 140px;">Status & Progress</th>
                                     <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Aksi</th>
                                 </tr>
                             </thead>
@@ -1020,7 +1103,7 @@ function createBarbermanTOPContent() {
     `;
 }
 
-// [4] Buat konten untuk Owner - DIPERBAIKI FILTER OUTLET
+// [4] Buat konten untuk Owner
 function createOwnerTOPContent() {
     return `
         <div style="margin: 10px;">
@@ -1106,7 +1189,7 @@ function createOwnerTOPContent() {
                 </div>
             </div>
             
-            <!-- Daftar Pending -->
+            <!-- Pengajuan Menunggu Approval - DIUBAH: "X" bukan "bulan" -->
             <div style="
                 background: white;
                 border-radius: 10px;
@@ -1148,7 +1231,7 @@ function createOwnerTOPContent() {
                 </div>
             </div>
             
-            <!-- Riwayat Semua TOP - DIPERBAIKI TAMPIL SEMUA DATA -->
+            <!-- Riwayat Semua TOP - DIPERBAIKI: Kolom lebih lebar -->
             <div style="
                 background: white;
                 border-radius: 10px;
@@ -1167,6 +1250,24 @@ function createOwnerTOPContent() {
                         <i class="fas fa-history" style="color: #FF9800; font-size: 0.9rem;"></i>
                         Riwayat Semua TOP
                     </h3>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <small style="color: #666; font-size: 0.8rem;">Termasuk yang lunas</small>
+                        <button onclick="loadTOPForOwner()" style="
+                            background: #4CAF50;
+                            color: white;
+                            border: none;
+                            width: 34px;
+                            height: 34px;
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            cursor: pointer;
+                            font-size: 0.9rem;
+                        ">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
                 </div>
                 <div>
                     <div class="loading" id="loadingAllHistory" style="text-align: center; padding: 20px; color: #666; font-size: 0.9rem;">
@@ -1182,18 +1283,19 @@ function createOwnerTOPContent() {
                             overflow: hidden;
                             display: none;
                             font-size: 0.85rem;
+                            table-layout: fixed;
                         ">
                             <thead>
                                 <tr>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Tanggal</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Outlet</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Karyawan</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Alat</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Harga</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Periode</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Status</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Progress</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Aksi</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem; width: 90px;">Tanggal</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem; width: 100px;">Outlet</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem; width: 100px;">Karyawan</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem; min-width: 120px;">Alat</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem; width: 100px;">Harga</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem; width: 80px;">Periode</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem; min-width: 140px;" class="table-cell-wide">Status</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem; min-width: 150px;" class="table-cell-wide">Progress</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem; width: 100px;">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="allHistoryBody">
@@ -1480,7 +1582,7 @@ function showPhotoPreview(imageSrc) {
     }
 }
 
-// [11] Calculate TOP values - DIPERBAIKI: "Kali" bukan "Bulan"
+// [11] Calculate TOP values
 function calculateTOP() {
     const hargaInput = document.getElementById('hargaAlat');
     const periodeSelect = document.getElementById('periodeCicilan');
@@ -1512,7 +1614,7 @@ function calculateTOP() {
     if (calcHarga) calcHarga.textContent = formatRupiah(harga);
     if (calcSubsidi) calcSubsidi.textContent = formatRupiah(subsidi);
     if (calcTotalCicilan) calcTotalCicilan.textContent = formatRupiah(totalCicilan);
-    if (calcPerBulan) calcPerBulan.textContent = formatRupiah(cicilanPerKali);
+    if (calcPerBulan) calcPerBulan.textContent = formatRupiah(cicilanPerKali) + ' / X';
     
     // Enable/disable submit button
     const namaAlat = document.getElementById('namaAlat')?.value.trim() || '';
@@ -1670,7 +1772,7 @@ async function loadMyTOPRiwayat() {
     }
 }
 
-// [15] Display riwayat Barberman - DIPERBAIKI: "Kali" bukan "Bulan"
+// [15] Display riwayat Barberman - DIPERBAIKI: Kolom status lebih lebar
 function displayMyTOPRiwayat(topList) {
     const tbody = document.getElementById('topHistoryBody');
     const tableEl = document.getElementById('topHistoryTable');
@@ -1691,6 +1793,20 @@ function displayMyTOPRiwayat(topList) {
         const createdDate = new Date(top.created_at);
         const progress = calculateProgress(top);
         
+        // PERBAIKAN: Status text yang lebih baik untuk "1/5 cicilan (20%)"
+        let statusText = getTOPStatusText(top);
+        let progressText = '';
+        
+        if (top.status === 'lunas') {
+            statusText = 'LUNAS';
+            progressText = '100% selesai';
+        } else if (top.status.startsWith('cicilan_')) {
+            const cicilanKe = parseInt(top.status.split('_')[1]) || 0;
+            const persentase = Math.round((cicilanKe / top.periode_cicilan) * 100);
+            statusText = `Cicilan ${cicilanKe}`;
+            progressText = `${cicilanKe}/${top.periode_cicilan} (${persentase}%)`;
+        }
+        
         html += `
             <tr style="${index % 2 === 0 ? 'background: #f9f9f9;' : ''}">
                 <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
@@ -1702,18 +1818,15 @@ function displayMyTOPRiwayat(topList) {
                     ${top.foto_url ? `<small><a href="${top.foto_url}" target="_blank" style="color: #667eea; font-size: 0.75rem;">Lihat foto</a></small>` : ''}
                 </td>
                 <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${formatRupiah(top.harga_alat)}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${top.periode_cicilan} Kali</td>
-                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${formatRupiah(top.cicilan_per_periode)}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${top.periode_cicilan} X</td>
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${formatRupiah(top.cicilan_per_periode)} / X</td>
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem; min-width: 140px;" class="table-cell-wide">
                     <span class="status-pill ${getTOPStatusClass(top.status)}">
-                        ${getTOPStatusText(top)}
+                        ${statusText}
                     </span>
                     ${top.status !== 'pending' && top.status !== 'rejected' ? `
-                        <div style="margin-top: 4px;">
-                            <div class="progress-bar-container">
-                                <div class="progress-bar" style="width: ${progress.percentage}%"></div>
-                                <div class="progress-text">${progress.text}</div>
-                            </div>
+                        <div style="margin-top: 4px; font-size: 0.75rem; color: #666;">
+                            ${progressText}
                         </div>
                     ` : ''}
                 </td>
@@ -1758,7 +1871,7 @@ function displayMyTOPRiwayat(topList) {
     if (noDataEl) noDataEl.style.display = 'none';
 }
 
-// [16] Load data untuk Owner - DIPERBAIKI: Load semua data untuk riwayat
+// [16] Load data untuk Owner - DIPERBAIKI: Include yang lunas
 async function loadTOPForOwner() {
     try {
         // Tampilkan loading
@@ -1772,32 +1885,29 @@ async function loadTOPForOwner() {
         const outletFilter = document.getElementById('filterOutletOwnerTOP')?.value || 'all';
         const statusFilter = document.getElementById('filterStatusOwnerTOP')?.value || 'pending';
         
+        // Build query untuk SEMUA DATA (termasuk yang lunas)
+        let allQuery = supabase
+            .from('top_program')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
         // Build query untuk PENDING (filtered)
         let pendingQuery = supabase
             .from('top_program')
             .select('*')
             .order('created_at', { ascending: false });
         
-        // Build query untuk SEMUA RIWAYAT (semua data)
-        let allQuery = supabase
-            .from('top_program')
-            .select('*')
-            .order('created_at', { ascending: false });
-        
-        // Apply filters untuk pending
+        // Apply filters untuk all history (semua data termasuk lunas)
         if (outletFilter !== 'all') {
+            allQuery = allQuery.eq('outlet', outletFilter);
             pendingQuery = pendingQuery.eq('outlet', outletFilter);
         }
         
+        // Untuk pending section: hanya tampilkan pending jika filter status bukan "all"
         if (statusFilter !== 'all') {
             pendingQuery = pendingQuery.eq('status', statusFilter);
         } else {
             pendingQuery = pendingQuery.eq('status', 'pending'); // Default untuk pending section
-        }
-        
-        // Apply filters untuk all history (hanya outlet)
-        if (outletFilter !== 'all') {
-            allQuery = allQuery.eq('outlet', outletFilter);
         }
         
         // Execute queries
@@ -1811,7 +1921,7 @@ async function loadTOPForOwner() {
         
         // Display data
         displayPendingTOP(pendingData || []);
-        displayAllTOPRiwayat(allData || []);
+        displayAllTOPRiwayat(allData || []); // PERBAIKAN: Tampilkan semua data termasuk lunas
         
         // Load outlet options
         await loadOutletDropdownForTOP(allData || []);
@@ -1921,7 +2031,7 @@ function displayPendingTOP(topList) {
                         </div>
                         <div style="display: flex; justify-content: space-between;">
                             <span style="color: #666;">Periode:</span>
-                            <span style="font-weight: 600;">${top.periode_cicilan} Kali</span>
+                            <span style="font-weight: 600;">${top.periode_cicilan} X</span>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
                             <span style="color: #666;">Subsidi 25%:</span>
@@ -1933,8 +2043,8 @@ function displayPendingTOP(topList) {
                         </div>
                     </div>
                     <div style="text-align: center; padding: 8px; background: white; border-radius: 4px;">
-                        <span style="color: #666; font-size: 0.8rem;">Cicilan per Kali:</span>
-                        <span style="color: #667eea; font-weight: 700; font-size: 1rem;">${formatRupiah(top.cicilan_per_periode)}</span>
+                        <span style="color: #666; font-size: 0.8rem;">Cicilan per X:</span>
+                        <span style="color: #667eea; font-weight: 700; font-size: 1rem;">${formatRupiah(top.cicilan_per_periode)} / X</span>
                     </div>
                 </div>
                 
@@ -2060,7 +2170,7 @@ async function rejectTOP(topId) {
     }
 }
 
-// [20] Display all TOP riwayat untuk Owner - DIPERBAIKI: Tampilkan semua data
+// [20] Display all TOP riwayat untuk Owner - DIPERBAIKI: Tampilkan semua data termasuk lunas
 function displayAllTOPRiwayat(topList) {
     const tbody = document.getElementById('allHistoryBody');
     const tableEl = document.getElementById('allHistoryTable');
@@ -2086,6 +2196,15 @@ function displayAllTOPRiwayat(topList) {
         const createdDate = new Date(top.created_at);
         const progress = calculateProgress(top);
         
+        // PERBAIKAN: Progress text yang lebih jelas
+        let progressText = progress.text;
+        let progressPercentage = progress.percentage;
+        
+        if (top.status === 'lunas') {
+            progressText = 'LUNAS 100%';
+            progressPercentage = 100;
+        }
+        
         html += `
             <tr style="${index % 2 === 0 ? 'background: #f9f9f9;' : ''}">
                 <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
@@ -2099,17 +2218,17 @@ function displayAllTOPRiwayat(topList) {
                     ${top.foto_url ? `<small><a href="${top.foto_url}" target="_blank" style="color: #667eea; font-size: 0.75rem;">foto</a></small>` : ''}
                 </td>
                 <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${formatRupiah(top.harga_alat)}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${top.periode_cicilan} Kali</td>
-                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${top.periode_cicilan} X</td>
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem; min-width: 140px;" class="table-cell-wide">
                     <span class="status-pill ${getTOPStatusClass(top.status)}">
                         ${getTOPStatusText(top)}
                     </span>
                 </td>
-                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem; min-width: 150px;" class="table-cell-wide">
                     <div style="margin-top: 4px;">
                         <div class="progress-bar-container">
-                            <div class="progress-bar" style="width: ${progress.percentage}%"></div>
-                            <div class="progress-text">${progress.text}</div>
+                            <div class="progress-bar" style="width: ${progressPercentage}%"></div>
+                            <div class="progress-text">${progressText}</div>
                         </div>
                     </div>
                 </td>
@@ -2173,7 +2292,7 @@ async function loadOutletDropdownForTOP(topList) {
     if (!select) return;
     
     try {
-        // Query distinct outlets dari database (bukan dari data yang sudah di-filter)
+        // Query distinct outlets dari database
         const { data: outletsData, error } = await supabase
             .from('top_program')
             .select('outlet')
@@ -2209,7 +2328,7 @@ async function loadOutletDropdownForTOP(topList) {
     }
 }
 
-// [22] Load data untuk Kasir
+// [22] Load data untuk Kasir - DIPERBAIKI: Tampilkan yang lunas juga
 async function loadTOPForKasir() {
     try {
         const loadingPayment = document.getElementById('loadingPayment');
@@ -2218,22 +2337,32 @@ async function loadTOPForKasir() {
         if (loadingPayment) loadingPayment.style.display = 'block';
         if (loadingHistory) loadingHistory.style.display = 'block';
         
-        // Get TOP yang approved untuk outlet yang sama dengan kasir
+        // Get TOP untuk outlet yang sama dengan kasir - SEMUA STATUS termasuk lunas
         const { data: topList, error } = await supabase
             .from('top_program')
             .select('*')
             .eq('outlet', currentUserOutletTOP)
-            .in('status', ['approved', 'cicilan_1', 'cicilan_2', 'cicilan_3', 'cicilan_4', 'cicilan_5', 'cicilan_6', 'cicilan_7', 'cicilan_8', 'cicilan_9', 'cicilan_10', 'cicilan_11', 'cicilan_12', 'cicilan_13', 'cicilan_14', 'cicilan_15', 'cicilan_16', 'cicilan_17', 'cicilan_18', 'cicilan_19', 'cicilan_20', 'cicilan_21', 'cicilan_22', 'cicilan_23'])
             .order('created_at', { ascending: false });
         
         if (error) throw error;
         
-        // Filter hanya yang belum lunas
-        const activeTOP = (topList || []).filter(top => top.status !== 'lunas');
+        // PERBAIKAN: Tampilkan semua data (termasuk lunas) di riwayat
+        // Tapi untuk payment list, hanya tampilkan yang belum lunas
+        const activeTOP = (topList || []).filter(top => 
+            top.status !== 'pending' && 
+            top.status !== 'rejected' && 
+            top.status !== 'lunas'
+        );
+        
+        // PERBAIKAN: Untuk payment list, juga tampilkan yang sudah lunas tapi dengan status terakhir
+        const allTOPForDisplay = (topList || []).filter(top => 
+            top.status !== 'pending' && 
+            top.status !== 'rejected'
+        );
         
         // Display
-        displayTOPForPayment(activeTOP);
-        displayPaymentHistory(activeTOP);
+        displayTOPForPayment(allTOPForDisplay); // PERBAIKAN: Tampilkan termasuk yang lunas
+        displayPaymentHistory(topList || []);
         
     } catch (error) {
         console.error('Error loading TOP for kasir:', error);
@@ -2247,23 +2376,26 @@ async function loadTOPForKasir() {
     }
 }
 
-// [23] Display TOP untuk pembayaran (Kasir) - DIPERBAIKI: "Kali" bukan "Bulan"
+// [23] Display TOP untuk pembayaran (Kasir) - DIPERBAIKI: "X" bukan "Bulan"
 function displayTOPForPayment(topList) {
     const container = document.getElementById('topPaymentList');
     const countEl = document.getElementById('activeTopCount');
     
     if (!container) return;
     
+    // Hitung yang belum lunas untuk count
+    const notLunasCount = topList.filter(top => top.status !== 'lunas').length;
+    
     if (countEl) {
-        countEl.textContent = `${topList.length} TOP aktif`;
+        countEl.textContent = `${notLunasCount} TOP aktif`;
     }
     
     if (topList.length === 0) {
         container.innerHTML = `
             <div style="text-align: center; padding: 30px 15px; color: #666;">
                 <i class="fas fa-check-circle" style="font-size: 2rem; color: #ddd; margin-bottom: 10px;"></i>
-                <h4 style="margin: 0 0 8px 0; color: #666; font-size: 0.95rem;">Tidak ada TOP aktif</h4>
-                <p style="margin: 0; color: #999; font-size: 0.85rem;">Semua TOP sudah lunas</p>
+                <h4 style="margin: 0 0 8px 0; color: #666; font-size: 0.95rem;">Tidak ada TOP</h4>
+                <p style="margin: 0; color: #999; font-size: 0.85rem;">Belum ada data TOP untuk outlet ini</p>
             </div>
         `;
         return;
@@ -2275,6 +2407,25 @@ function displayTOPForPayment(topList) {
         const progress = calculateProgress(top);
         const nextCicilan = getNextCicilan(top);
         
+        // PERBAIKAN: Buat daftar cicilan yang lebih kompak
+        const cicilanItems = [];
+        const totalCicilan = top.periode_cicilan;
+        const currentCicilan = top.status.startsWith('cicilan_') ? parseInt(top.status.split('_')[1]) : 0;
+        
+        // Buat 6 item cicilan pertama
+        for (let i = 1; i <= Math.min(totalCicilan, 6); i++) {
+            const isPaid = i <= currentCicilan || top.status === 'lunas';
+            const cicilanText = i === 1 ? 'Cicilan 1' : `Cicilan ${i}`;
+            
+            cicilanItems.push(`
+                <div class="cicilan-item ${isPaid ? 'cicilan-paid' : 'cicilan-pending'}" 
+                     style="${i === 1 ? 'max-width: 75px; font-size: 0.7rem;' : ''}"
+                     title="${cicilanText} ${isPaid ? 'Sudah bayar' : 'Belum bayar'}">
+                    ${i === 1 ? 'Cicilan 1' : i}
+                </div>
+            `);
+        }
+        
         html += `
             <div style="
                 background: white;
@@ -2282,7 +2433,7 @@ function displayTOPForPayment(topList) {
                 padding: 15px;
                 margin-bottom: 15px;
                 box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-                border-left: 4px solid #4CAF50;
+                border-left: 4px solid ${top.status === 'lunas' ? '#28a745' : '#4CAF50'};
             " data-top-id="${top.id}">
                 <div style="
                     display: flex;
@@ -2298,7 +2449,7 @@ function displayTOPForPayment(topList) {
                             <span style="font-size: 0.85rem; color: #666;">
                                 <i class="fas fa-user" style="color: #667eea;"></i> ${top.karyawan}
                             </span>
-                            <span class="payment-status ${getTOPStatusClass(top.status)}" style="
+                            <span class="${getTOPStatusClass(top.status)}" style="
                                 padding: 2px 8px;
                                 border-radius: 12px;
                                 font-size: 0.75rem;
@@ -2308,22 +2459,39 @@ function displayTOPForPayment(topList) {
                             </span>
                         </div>
                     </div>
-                    <button onclick="showPaymentForm('${top.id}')" style="
-                        padding: 8px 15px;
-                        background: linear-gradient(135deg, #FF9800 0%, #FF5722 100%);
-                        color: white;
-                        border: none;
-                        border-radius: 6px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        display: flex;
-                        align-items: center;
-                        gap: 6px;
-                        font-size: 0.85rem;
-                        flex-shrink: 0;
-                    ">
-                        <i class="fas fa-credit-card" style="font-size: 0.8rem;"></i> Bayar
-                    </button>
+                    ${top.status !== 'lunas' ? `
+                        <button onclick="showPaymentForm('${top.id}')" style="
+                            padding: 8px 15px;
+                            background: linear-gradient(135deg, #FF9800 0%, #FF5722 100%);
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            gap: 6px;
+                            font-size: 0.85rem;
+                            flex-shrink: 0;
+                        ">
+                            <i class="fas fa-credit-card" style="font-size: 0.8rem;"></i> Bayar
+                        </button>
+                    ` : `
+                        <span style="
+                            padding: 8px 15px;
+                            background: #28a745;
+                            color: white;
+                            border-radius: 6px;
+                            font-weight: 600;
+                            font-size: 0.85rem;
+                            flex-shrink: 0;
+                            display: flex;
+                            align-items: center;
+                            gap: 6px;
+                        ">
+                            <i class="fas fa-check-circle" style="font-size: 0.8rem;"></i> Lunas
+                        </span>
+                    `}
                 </div>
                 
                 <div>
@@ -2342,8 +2510,8 @@ function displayTOPForPayment(topList) {
                                 <div>${formatRupiah(top.total_cicilan)}</div>
                             </div>
                             <div style="background: #f8f9fa; padding: 10px; border-radius: 6px;">
-                                <div style="color: #666; font-size: 0.8rem; margin-bottom: 4px;">Cicilan per Kali:</div>
-                                <div style="color: #ff9800; font-weight: 600;">${formatRupiah(top.cicilan_per_periode)}</div>
+                                <div style="color: #666; font-size: 0.8rem; margin-bottom: 4px;">Cicilan per X:</div>
+                                <div style="color: #ff9800; font-weight: 600;">${formatRupiah(top.cicilan_per_periode)} / X</div>
                             </div>
                         </div>
                     </div>
@@ -2374,6 +2542,17 @@ function displayTOPForPayment(topList) {
                             <div class="progress-bar" style="width: ${progress.percentage}%"></div>
                             <div class="progress-text">${progress.text}</div>
                         </div>
+                        
+                        <!-- PERBAIKAN: Container cicilan yang lebih rapi -->
+                        <div class="cicilan-container">
+                            ${cicilanItems.join('')}
+                            ${totalCicilan > 6 ? `
+                                <div class="cicilan-item" style="background: #e9ecef; color: #6c757d;">
+                                    +${totalCicilan - 6}
+                                </div>
+                            ` : ''}
+                        </div>
+                        
                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; font-size: 0.85rem;">
                             <div style="display: flex; justify-content: space-between; padding: 8px; background: white; border-radius: 6px;">
                                 <span>Sudah Bayar:</span>
@@ -2388,7 +2567,12 @@ function displayTOPForPayment(topList) {
                                     <span>Berikutnya:</span>
                                     <span style="color: #667eea; font-weight: 600;">Cicilan ${nextCicilan}</span>
                                 </div>
-                            ` : ''}
+                            ` : `
+                                <div style="display: flex; justify-content: space-between; padding: 8px; background: white; border-radius: 6px;">
+                                    <span>Status:</span>
+                                    <span style="color: #28a745; font-weight: 600;">Selesai</span>
+                                </div>
+                            `}
                         </div>
                     </div>
                 </div>
@@ -2416,7 +2600,8 @@ function displayPaymentHistory(topList) {
                 ...payment,
                 barberman: top.karyawan,
                 alat: top.nama_alat,
-                sisa_cicilan: top.sisa_cicilan || top.total_cicilan
+                sisa_cicilan: top.sisa_cicilan || top.total_cicilan,
+                status_top: top.status
             });
         });
     });
@@ -2490,7 +2675,7 @@ function displayPaymentHistory(topList) {
     if (tableEl) tableEl.style.display = 'table';
 }
 
-// [25] Show payment form (Kasir) - DIPERBAIKI TOMBOL BATAL
+// [25] Show payment form (Kasir)
 async function showPaymentForm(topId) {
     try {
         // Get TOP data
@@ -2523,8 +2708,8 @@ async function showPaymentForm(topId) {
                 </p>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.85rem;">
                     <div style="background: #f8f9fa; padding: 8px; border-radius: 6px;">
-                        <div style="color: #666; font-size: 0.8rem;">Cicilan per Kali:</div>
-                        <div style="font-weight: 600;">${formatRupiah(top.cicilan_per_periode)}</div>
+                        <div style="color: #666; font-size: 0.8rem;">Cicilan per X:</div>
+                        <div style="font-weight: 600;">${formatRupiah(top.cicilan_per_periode)} / X</div>
                     </div>
                     <div style="background: #f8f9fa; padding: 8px; border-radius: 6px;">
                         <div style="color: #666; font-size: 0.8rem;">Sudah Dibayar:</div>
@@ -2757,7 +2942,7 @@ function calculateProgress(top) {
         const percentage = (cicilanKe / top.periode_cicilan) * 100;
         return {
             percentage: percentage,
-            text: `${cicilanKe}/${top.periode_cicilan} cicilan (${Math.round(percentage)}%)`
+            text: `${cicilanKe}/${top.periode_cicilan} (${Math.round(percentage)}%)`
         };
     }
     
@@ -2848,8 +3033,8 @@ async function showTOPDetail(topId) {
         detail += `• Harga: ${formatRupiah(top.harga_alat)}\n`;
         detail += `• Subsidi 25%: ${formatRupiah(top.subsidi)}\n`;
         detail += `• Total Cicilan: ${formatRupiah(top.total_cicilan)}\n`;
-        detail += `• Periode: ${top.periode_cicilan} Kali\n`;
-        detail += `• Cicilan per Kali: ${formatRupiah(top.cicilan_per_periode)}\n`;
+        detail += `• Periode: ${top.periode_cicilan} X\n`;
+        detail += `• Cicilan per X: ${formatRupiah(top.cicilan_per_periode)} / X\n`;
         detail += `• Status: ${getTOPStatusText(top)}\n`;
         detail += `• Progress: ${progress.text}\n`;
         detail += `• Dibuat: ${formatDate(createdDate)}\n`;
