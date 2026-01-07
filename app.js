@@ -17,7 +17,8 @@ const menuItems = {
         { id: 'absensi', title: 'Absensi', icon: 'fa-fingerprint', colorClass: 'menu-absensi' },
         { id: 'kas', title: 'Kas & Setoran', icon: 'fa-cash-register', colorClass: 'menu-kas' },
         { id: 'request', title: 'Request', icon: 'fa-comment-dots', colorClass: 'menu-request' },
-        { id: 'stok', title: 'Tambah Stok', icon: 'fa-boxes', colorClass: 'menu-stok' }
+        { id: 'stok', title: 'Tambah Stok', icon: 'fa-boxes', colorClass: 'menu-stok' },
+        { id: 'top', title: 'TOP', icon: 'fa-tools', colorClass: 'menu-top' } // <-- TAMBAHKAN INI
     ],
     barberman: [
         { id: 'komisi', title: 'Komisi', icon: 'fa-money-bill-wave', colorClass: 'menu-komisi' },
@@ -460,14 +461,13 @@ function handleMenuClick(menuId) {
         case 'libur':
              showLiburPage(); // <-- TAMBAHKAN INI
             break;
-        case 'top':
+       case 'top':
+            showTOPPage(); // <-- INI SUDAH BENAR
+            break;
         case 'sertifikasi':
             // Menu lain akan diimplementasikan nanti
-            const menuTitles = {
-                     'top': 'TOP (Tools Ownership Program)',
-                'sertifikasi': 'Sertifikasi'
-            };
-            alert(`Menu "${menuTitles[menuId]}" akan diimplementasikan nanti.`);
+        case 'sertifikasi':
+            alert('Menu "Sertifikasi" akan diimplementasikan nanti.');
             break;
         default:
             console.log('Menu tidak dikenali:', menuId);
