@@ -78,7 +78,7 @@ async function showTOPPage() {
     }
 }
 
-// [2] Buat halaman TOP dengan inline styling
+// [2] Buat halaman TOP dengan inline styling dan responsive
 function createTOPPage() {
     // Hapus halaman sebelumnya
     const existingPage = document.getElementById('topPage');
@@ -96,6 +96,7 @@ function createTOPPage() {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         overflow-y: auto;
         z-index: 1000;
+        font-size: 14px;
     `;
     
     // Tentukan konten berdasarkan role
@@ -104,10 +105,10 @@ function createTOPPage() {
                      createKasirTOPContent();
     
     topPage.innerHTML = `
-        <!-- Header dengan inline styling -->
+        <!-- Header dengan inline styling - UKURAN DIKECILKAN -->
         <header style="
             background: rgba(255, 255, 255, 0.95);
-            padding: 15px 20px;
+            padding: 10px 15px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -120,15 +121,16 @@ function createTOPPage() {
                 background: #667eea;
                 color: white;
                 border: none;
-                width: 40px;
-                height: 40px;
+                width: 36px;
+                height: 36px;
                 border-radius: 50%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 cursor: pointer;
-                font-size: 1.2rem;
+                font-size: 1rem;
                 transition: all 0.3s;
+                flex-shrink: 0;
             ">
                 <i class="fas fa-arrow-left"></i>
             </button>
@@ -136,28 +138,33 @@ function createTOPPage() {
             <h2 style="
                 margin: 0;
                 color: #333;
-                font-size: 1.4rem;
+                font-size: 1.1rem;
                 display: flex;
                 align-items: center;
-                gap: 10px;
+                gap: 8px;
+                flex: 1;
+                padding: 0 10px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             ">
-                <i class="fas fa-tools" style="color: #FF9800;"></i>
-                Tools Ownership Program (TOP)
+                <i class="fas fa-tools" style="color: #FF9800; font-size: 0.9rem;"></i>
+                <span style="font-size: 0.95rem;">TOP Program</span>
             </h2>
             
-            <div class="header-actions">
+            <div class="header-actions" style="flex-shrink: 0;">
                 <button class="refresh-btn" id="refreshTOP" title="Refresh" style="
                     background: #4CAF50;
                     color: white;
                     border: none;
-                    width: 40px;
-                    height: 40px;
+                    width: 36px;
+                    height: 36px;
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     cursor: pointer;
-                    font-size: 1.2rem;
+                    font-size: 0.9rem;
                     transition: all 0.3s;
                 ">
                     <i class="fas fa-sync-alt"></i>
@@ -168,29 +175,30 @@ function createTOPPage() {
         <!-- Info Header -->
         <div style="
             background: rgba(255, 255, 255, 0.9);
-            margin: 15px;
-            border-radius: 10px;
-            padding: 15px;
+            margin: 10px;
+            border-radius: 8px;
+            padding: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 0.85rem;
         ">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
-                    <i class="fas fa-calendar-day" style="color: #667eea; width: 20px;"></i>
-                    <span id="currentDateTOP">${formatDateDisplay(new Date())}</span>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 5px;">
+                <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 140px;">
+                    <i class="fas fa-calendar-day" style="color: #667eea; width: 16px; font-size: 0.8rem;"></i>
+                    <span id="currentDateTOP" style="font-size: 0.8rem;">${formatDateDisplay(new Date())}</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
-                    <i class="fas fa-user" style="color: #667eea; width: 20px;"></i>
-                    <span id="userNameTOP">${currentKaryawanTOP?.nama_karyawan || '-'}</span>
+                <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 140px;">
+                    <i class="fas fa-user" style="color: #667eea; width: 16px; font-size: 0.8rem;"></i>
+                    <span id="userNameTOP" style="font-size: 0.8rem;">${currentKaryawanTOP?.nama_karyawan || '-'}</span>
                 </div>
             </div>
-            <div style="display: flex; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
-                    <i class="fas fa-briefcase" style="color: #667eea; width: 20px;"></i>
-                    <span id="userPositionTOP">${currentKaryawanTOP?.posisi || '-'}</span>
+            <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 5px;">
+                <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 140px;">
+                    <i class="fas fa-briefcase" style="color: #667eea; width: 16px; font-size: 0.8rem;"></i>
+                    <span id="userPositionTOP" style="font-size: 0.8rem;">${currentKaryawanTOP?.posisi || '-'}</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
-                    <i class="fas fa-store" style="color: #667eea; width: 20px;"></i>
-                    <span id="userOutletTOP">${currentUserOutletTOP || '-'}</span>
+                <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 140px;">
+                    <i class="fas fa-store" style="color: #667eea; width: 16px; font-size: 0.8rem;"></i>
+                    <span id="userOutletTOP" style="font-size: 0.8rem;">${currentUserOutletTOP || '-'}</span>
                 </div>
             </div>
         </div>
@@ -201,15 +209,16 @@ function createTOPPage() {
         <!-- Footer -->
         <div style="
             background: rgba(255, 255, 255, 0.9);
-            margin: 15px;
-            border-radius: 10px;
-            padding: 15px;
+            margin: 10px;
+            border-radius: 8px;
+            padding: 12px;
             text-align: center;
             color: #666;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 0.8rem;
         ">
-            <p style="margin: 0;">
-                <i class="fas fa-info-circle" style="color: #667eea; margin-right: 8px;"></i>
+            <p style="margin: 0; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                <i class="fas fa-info-circle" style="color: #667eea; font-size: 0.8rem;"></i>
                 ${getTOPFooterMessage()}
             </p>
         </div>
@@ -222,17 +231,18 @@ function createTOPPage() {
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.7);
             z-index: 1100;
             align-items: center;
             justify-content: center;
+            padding: 10px;
         ">
             <div style="
                 background: white;
                 border-radius: 10px;
-                width: 90%;
-                max-width: 500px;
-                max-height: 90vh;
+                width: 100%;
+                max-width: 450px;
+                max-height: 85vh;
                 overflow: auto;
                 animation: modalSlideIn 0.3s ease;
             ">
@@ -240,14 +250,18 @@ function createTOPPage() {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    padding: 20px;
+                    padding: 15px;
                     border-bottom: 1px solid #f0f0f0;
+                    position: sticky;
+                    top: 0;
+                    background: white;
+                    z-index: 1;
                 ">
-                    <h3 style="margin: 0; color: #333;">Preview Foto Alat</h3>
-                    <button class="modal-close" style="
+                    <h3 style="margin: 0; color: #333; font-size: 1rem;">Preview Foto Alat</h3>
+                    <button class="modal-close" onclick="document.getElementById('photoPreviewModal').style.display='none'" style="
                         background: none;
                         border: none;
-                        font-size: 1.5rem;
+                        font-size: 1.2rem;
                         cursor: pointer;
                         color: #999;
                         width: 30px;
@@ -255,17 +269,20 @@ function createTOPPage() {
                         display: flex;
                         align-items: center;
                         justify-content: center;
+                        padding: 0;
                     ">&times;</button>
                 </div>
-                <div style="padding: 20px;">
+                <div style="padding: 15px;">
                     <img id="previewImage" src="" alt="Preview Foto" style="
                         width: 100%;
-                        max-height: 400px;
+                        max-height: 300px;
                         object-fit: contain;
+                        border-radius: 6px;
+                        margin-bottom: 15px;
                     ">
-                    <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
-                        <button id="changePhotoBtn" class="btn-secondary" style="
-                            padding: 10px 20px;
+                    <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px; flex-wrap: wrap;">
+                        <button id="changePhotoBtn" style="
+                            padding: 10px 15px;
                             background: #f0f0f0;
                             color: #666;
                             border: none;
@@ -274,12 +291,16 @@ function createTOPPage() {
                             cursor: pointer;
                             display: flex;
                             align-items: center;
-                            gap: 8px;
+                            gap: 6px;
+                            font-size: 0.9rem;
+                            flex: 1;
+                            min-width: 120px;
+                            justify-content: center;
                         ">
-                            <i class="fas fa-sync"></i> Ganti Foto
+                            <i class="fas fa-sync" style="font-size: 0.9rem;"></i> Ganti Foto
                         </button>
-                        <button id="usePhotoBtn" class="btn-primary" style="
-                            padding: 10px 20px;
+                        <button id="usePhotoBtn" onclick="document.getElementById('photoPreviewModal').style.display='none'" style="
+                            padding: 10px 15px;
                             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                             color: white;
                             border: none;
@@ -288,16 +309,20 @@ function createTOPPage() {
                             cursor: pointer;
                             display: flex;
                             align-items: center;
-                            gap: 8px;
+                            gap: 6px;
+                            font-size: 0.9rem;
+                            flex: 1;
+                            min-width: 120px;
+                            justify-content: center;
                         ">
-                            <i class="fas fa-check"></i> Gunakan Foto Ini
+                            <i class="fas fa-check" style="font-size: 0.9rem;"></i> Gunakan Foto
                         </button>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Modal Pembayaran -->
+        <!-- Modal Pembayaran - DIPERBAIKI TOMBOL BATAL -->
         <div id="paymentModal" style="
             display: none;
             position: fixed;
@@ -305,31 +330,36 @@ function createTOPPage() {
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.7);
             z-index: 1100;
             align-items: center;
             justify-content: center;
+            padding: 10px;
         ">
             <div style="
                 background: white;
                 border-radius: 10px;
-                width: 90%;
-                max-width: 500px;
-                max-height: 90vh;
+                width: 100%;
+                max-width: 450px;
+                max-height: 85vh;
                 overflow: auto;
             ">
                 <div style="
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    padding: 20px;
+                    padding: 15px;
                     border-bottom: 1px solid #f0f0f0;
+                    position: sticky;
+                    top: 0;
+                    background: white;
+                    z-index: 1;
                 ">
-                    <h3 style="margin: 0; color: #333;">Pembayaran Cicilan</h3>
-                    <button class="modal-close" style="
+                    <h3 style="margin: 0; color: #333; font-size: 1rem;">Pembayaran Cicilan</h3>
+                    <button class="modal-close" onclick="closePaymentModal()" style="
                         background: none;
                         border: none;
-                        font-size: 1.5rem;
+                        font-size: 1.2rem;
                         cursor: pointer;
                         color: #999;
                         width: 30px;
@@ -337,120 +367,145 @@ function createTOPPage() {
                         display: flex;
                         align-items: center;
                         justify-content: center;
+                        padding: 0;
                     ">&times;</button>
                 </div>
-                <div style="padding: 20px;">
+                <div style="padding: 15px;">
                     <div id="paymentInfo"></div>
                     <form id="paymentForm">
-                        <div class="form-group" style="margin-bottom: 20px;">
+                        <div class="form-group" style="margin-bottom: 15px;">
                             <label for="cicilanKe" style="
                                 display: block;
-                                margin-bottom: 8px;
+                                margin-bottom: 6px;
                                 font-weight: 600;
                                 color: #444;
                                 display: flex;
                                 align-items: center;
-                                gap: 8px;
+                                gap: 6px;
+                                font-size: 0.9rem;
                             ">
-                                <i class="fas fa-list-ol" style="color: #667eea;"></i>
+                                <i class="fas fa-list-ol" style="color: #667eea; font-size: 0.9rem;"></i>
                                 Bayar Cicilan ke-
                             </label>
                             <input type="number" id="cicilanKe" min="1" required style="
                                 width: 100%;
-                                padding: 12px 15px;
+                                padding: 10px 12px;
                                 border: 2px solid #e0e0e0;
                                 border-radius: 6px;
                                 font-size: 14px;
+                                box-sizing: border-box;
                             ">
-                            <small style="display: block; margin-top: 5px; color: #666;">Masukkan cicilan yang akan dibayar</small>
+                            <small style="display: block; margin-top: 4px; color: #666; font-size: 0.8rem;">Masukkan cicilan yang akan dibayar</small>
                         </div>
-                        <div class="form-group" style="margin-bottom: 20px;">
+                        <div class="form-group" style="margin-bottom: 15px;">
                             <label for="jumlahCicilan" style="
                                 display: block;
-                                margin-bottom: 8px;
+                                margin-bottom: 6px;
                                 font-weight: 600;
                                 color: #444;
                                 display: flex;
                                 align-items: center;
-                                gap: 8px;
+                                gap: 6px;
+                                font-size: 0.9rem;
                             ">
-                                <i class="fas fa-money-bill-wave" style="color: #667eea;"></i>
+                                <i class="fas fa-money-bill-wave" style="color: #667eea; font-size: 0.9rem;"></i>
                                 Jumlah Cicilan yang Dibayar
                             </label>
                             <input type="number" id="jumlahCicilan" min="1" required style="
                                 width: 100%;
-                                padding: 12px 15px;
+                                padding: 10px 12px;
                                 border: 2px solid #e0e0e0;
                                 border-radius: 6px;
                                 font-size: 14px;
+                                box-sizing: border-box;
                             ">
-                            <small style="display: block; margin-top: 5px; color: #666;">Bisa bayar lebih dari 1 cicilan sekaligus</small>
+                            <small style="display: block; margin-top: 4px; color: #666; font-size: 0.8rem;">Bisa bayar lebih dari 1 cicilan sekaligus</small>
                         </div>
-                        <div class="form-group" style="margin-bottom: 20px;">
+                        <div class="form-group" style="margin-bottom: 15px;">
                             <label for="jumlahBayar" style="
                                 display: block;
-                                margin-bottom: 8px;
+                                margin-bottom: 6px;
                                 font-weight: 600;
                                 color: #444;
                                 display: flex;
                                 align-items: center;
-                                gap: 8px;
+                                gap: 6px;
+                                font-size: 0.9rem;
                             ">
-                                <i class="fas fa-calculator" style="color: #667eea;"></i>
+                                <i class="fas fa-calculator" style="color: #667eea; font-size: 0.9rem;"></i>
                                 Total Bayar
                             </label>
                             <input type="text" id="jumlahBayar" readonly style="
                                 width: 100%;
-                                padding: 12px 15px;
+                                padding: 10px 12px;
                                 border: 2px solid #e0e0e0;
                                 border-radius: 6px;
                                 font-size: 14px;
                                 background: #f9f9f9;
+                                box-sizing: border-box;
                             ">
                         </div>
                         <div class="form-group" style="margin-bottom: 20px;">
                             <label for="metodeBayar" style="
                                 display: block;
-                                margin-bottom: 8px;
+                                margin-bottom: 6px;
                                 font-weight: 600;
                                 color: #444;
                                 display: flex;
                                 align-items: center;
-                                gap: 8px;
+                                gap: 6px;
+                                font-size: 0.9rem;
                             ">
-                                <i class="fas fa-wallet" style="color: #667eea;"></i>
+                                <i class="fas fa-wallet" style="color: #667eea; font-size: 0.9rem;"></i>
                                 Metode Pembayaran
                             </label>
                             <select id="metodeBayar" style="
                                 width: 100%;
-                                padding: 12px 15px;
+                                padding: 10px 12px;
                                 border: 2px solid #e0e0e0;
                                 border-radius: 6px;
                                 font-size: 14px;
+                                box-sizing: border-box;
                             ">
                                 <option value="cash">Cash</option>
                                 <option value="transfer">Transfer</option>
                             </select>
                         </div>
-                        <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 20px;">
-                            <button type="button" class="btn-secondary modal-close" style="
-                                padding: 12px 24px;
+                        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                            <button type="button" onclick="closePaymentModal()" style="
+                                padding: 10px 20px;
                                 background: #f0f0f0;
                                 color: #666;
                                 border: none;
                                 border-radius: 6px;
                                 font-weight: 600;
                                 cursor: pointer;
-                            ">Batal</button>
-                            <button type="submit" class="btn-primary" style="
-                                padding: 12px 24px;
+                                font-size: 0.9rem;
+                                flex: 1;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                gap: 6px;
+                            ">
+                                <i class="fas fa-times" style="font-size: 0.9rem;"></i> Batal
+                            </button>
+                            <button type="submit" style="
+                                padding: 10px 20px;
                                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                                 color: white;
                                 border: none;
                                 border-radius: 6px;
                                 font-weight: 600;
                                 cursor: pointer;
-                            ">Proses Pembayaran</button>
+                                font-size: 0.9rem;
+                                flex: 1;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                gap: 6px;
+                            ">
+                                <i class="fas fa-credit-card" style="font-size: 0.9rem;"></i> Bayar
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -459,28 +514,15 @@ function createTOPPage() {
         
         <style>
             @keyframes modalSlideIn {
-                from { opacity: 0; transform: translateY(-50px); }
+                from { opacity: 0; transform: translateY(-30px); }
                 to { opacity: 1; transform: translateY(0); }
-            }
-            
-            .top-section-container {
-                margin: 15px;
-            }
-            
-            .btn-primary:hover:not(:disabled) {
-                transform: translateY(-2px);
-                box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-            }
-            
-            .btn-secondary:hover {
-                background: #e0e0e0;
             }
             
             .status-pill {
                 display: inline-block;
-                padding: 4px 12px;
-                border-radius: 20px;
-                font-size: 0.85rem;
+                padding: 3px 10px;
+                border-radius: 15px;
+                font-size: 0.75rem;
                 font-weight: 600;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
@@ -517,10 +559,10 @@ function createTOPPage() {
             }
             
             .progress-bar-container {
-                height: 20px;
+                height: 18px;
                 background: #e0e0e0;
-                border-radius: 10px;
-                margin: 10px 0;
+                border-radius: 9px;
+                margin: 8px 0;
                 position: relative;
                 overflow: hidden;
             }
@@ -528,7 +570,7 @@ function createTOPPage() {
             .progress-bar {
                 height: 100%;
                 background: linear-gradient(90deg, #4CAF50, #8BC34A);
-                border-radius: 10px;
+                border-radius: 9px;
                 transition: width 0.5s ease;
             }
             
@@ -543,12 +585,84 @@ function createTOPPage() {
                 justify-content: center;
                 color: #333;
                 font-weight: 600;
-                font-size: 0.85rem;
+                font-size: 0.75rem;
             }
             
+            /* Responsive styles */
             @media (max-width: 768px) {
-                .form-row, .calculation-grid, .info-grid {
+                .top-page {
+                    font-size: 13px !important;
+                }
+                
+                .top-header h2 span {
+                    font-size: 0.9rem !important;
+                }
+                
+                .section-header h3 {
+                    font-size: 1rem !important;
+                }
+                
+                .form-row {
+                    flex-direction: column !important;
+                    gap: 15px !important;
+                }
+                
+                .info-grid, .calculation-grid {
                     grid-template-columns: 1fr !important;
+                }
+                
+                .card-body {
+                    grid-template-columns: 1fr !important;
+                }
+                
+                .progress-info, .summary-grid {
+                    grid-template-columns: 1fr !important;
+                }
+                
+                .payment-header {
+                    flex-direction: column !important;
+                    align-items: flex-start !important;
+                    gap: 10px !important;
+                }
+                
+                .btn-pay, .btn-approve, .btn-reject, .btn-view {
+                    width: 100% !important;
+                    justify-content: center !important;
+                }
+                
+                .form-actions {
+                    flex-direction: column !important;
+                }
+                
+                .form-actions button {
+                    width: 100% !important;
+                }
+                
+                table {
+                    font-size: 0.8rem !important;
+                }
+                
+                th, td {
+                    padding: 8px 10px !important;
+                }
+            }
+            
+            @media (max-width: 480px) {
+                .top-header {
+                    padding: 8px 10px !important;
+                }
+                
+                .top-header h2 {
+                    font-size: 0.9rem !important;
+                }
+                
+                .info-item {
+                    min-width: 100% !important;
+                }
+                
+                .modal-content {
+                    width: 95% !important;
+                    max-height: 80vh !important;
                 }
             }
         </style>
@@ -558,232 +672,241 @@ function createTOPPage() {
     setupTOPEvents();
 }
 
-// [3] Buat konten untuk Barberman dengan inline styling
+// [3] Buat konten untuk Barberman - DIPERBAIKI 4 LINE FORM
 function createBarbermanTOPContent() {
     return `
-        <div class="top-section-container">
-            <!-- Form Pengajuan -->
+        <div style="margin: 10px;">
+            <!-- Form Pengajuan - 4 LINE FORM -->
             <div style="
                 background: white;
-                margin-bottom: 20px;
+                margin-bottom: 15px;
                 border-radius: 10px;
-                padding: 20px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                padding: 15px;
+                box-shadow: 0 3px 10px rgba(0,0,0,0.1);
             ">
                 <div style="
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-bottom: 20px;
+                    margin-bottom: 15px;
                     padding-bottom: 10px;
                     border-bottom: 2px solid #f0f0f0;
                 ">
-                    <h3 style="margin: 0; color: #333; font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-plus-circle" style="color: #FF9800;"></i>
+                    <h3 style="margin: 0; color: #333; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-plus-circle" style="color: #FF9800; font-size: 0.9rem;"></i>
                         Pengajuan Alat Baru
                     </h3>
                 </div>
                 <div>
                     <form id="topForm">
-                        <div style="display: flex; gap: 20px; margin-bottom: 20px;">
-                            <div style="flex: 1;">
-                                <label for="namaAlat" style="
-                                    display: block;
-                                    margin-bottom: 8px;
-                                    font-weight: 600;
-                                    color: #444;
-                                    display: flex;
-                                    align-items: center;
-                                    gap: 8px;
-                                ">
-                                    <i class="fas fa-toolbox" style="color: #667eea;"></i>
-                                    Nama Alat
-                                </label>
-                                <input type="text" id="namaAlat" placeholder="Contoh: Hair Clipper Philips" required style="
-                                    width: 100%;
-                                    padding: 12px 15px;
-                                    border: 2px solid #e0e0e0;
-                                    border-radius: 6px;
-                                    font-size: 14px;
-                                ">
+                        <!-- LINE 1: Nama Alat -->
+                        <div style="margin-bottom: 15px;">
+                            <label for="namaAlat" style="
+                                display: block;
+                                margin-bottom: 6px;
+                                font-weight: 600;
+                                color: #444;
+                                display: flex;
+                                align-items: center;
+                                gap: 6px;
+                                font-size: 0.9rem;
+                            ">
+                                <i class="fas fa-toolbox" style="color: #667eea; font-size: 0.9rem;"></i>
+                                Nama Alat
+                            </label>
+                            <input type="text" id="namaAlat" placeholder="Contoh: Hair Clipper Philips" required style="
+                                width: 100%;
+                                padding: 10px 12px;
+                                border: 2px solid #e0e0e0;
+                                border-radius: 6px;
+                                font-size: 14px;
+                                box-sizing: border-box;
+                            ">
+                        </div>
+                        
+                        <!-- LINE 2: Harga Alat -->
+                        <div style="margin-bottom: 15px;">
+                            <label for="hargaAlat" style="
+                                display: block;
+                                margin-bottom: 6px;
+                                font-weight: 600;
+                                color: #444;
+                                display: flex;
+                                align-items: center;
+                                gap: 6px;
+                                font-size: 0.9rem;
+                            ">
+                                <i class="fas fa-tag" style="color: #667eea; font-size: 0.9rem;"></i>
+                                Harga Alat (Maks Rp ${TOP_CONFIG.MAX_HARGA.toLocaleString('id-ID')})
+                            </label>
+                            <input type="number" id="hargaAlat" min="1000" max="${TOP_CONFIG.MAX_HARGA}" step="500" placeholder="Contoh: 350000" required style="
+                                width: 100%;
+                                padding: 10px 12px;
+                                border: 2px solid #e0e0e0;
+                                border-radius: 6px;
+                                font-size: 14px;
+                                box-sizing: border-box;
+                            ">
+                        </div>
+                        
+                        <!-- LINE 3: Foto Alat -->
+                        <div style="margin-bottom: 15px;">
+                            <label for="fotoAlat" style="
+                                display: block;
+                                margin-bottom: 6px;
+                                font-weight: 600;
+                                color: #444;
+                                display: flex;
+                                align-items: center;
+                                gap: 6px;
+                                font-size: 0.9rem;
+                            ">
+                                <i class="fas fa-camera" style="color: #667eea; font-size: 0.9rem;"></i>
+                                Foto Alat
+                            </label>
+                            <div id="uploadArea" style="
+                                border: 2px dashed #667eea;
+                                border-radius: 6px;
+                                padding: 20px;
+                                text-align: center;
+                                cursor: pointer;
+                                transition: all 0.3s;
+                                background: rgba(102, 126, 234, 0.05);
+                            ">
+                                <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: #667eea; margin-bottom: 8px;"></i>
+                                <p style="margin: 3px 0; color: #666; font-size: 0.9rem;">Klik untuk upload foto alat</p>
+                                <p style="font-size: 0.8rem; color: #999;">Format: JPG, PNG (Maks 5MB)</p>
+                                <input type="file" id="fotoAlat" accept="image/*" hidden>
                             </div>
-                            <div style="flex: 1;">
-                                <label for="hargaAlat" style="
-                                    display: block;
-                                    margin-bottom: 8px;
-                                    font-weight: 600;
-                                    color: #444;
+                            <div id="photoPreview" style="
+                                position: relative;
+                                margin-top: 10px;
+                                display: none;
+                            ">
+                                <img id="previewThumbnail" src="" alt="Preview" style="
+                                    width: 100%;
+                                    max-height: 150px;
+                                    object-fit: contain;
+                                    border-radius: 6px;
+                                    border: 2px solid #e0e0e0;
+                                ">
+                                <button type="button" id="removePhotoBtn" style="
+                                    position: absolute;
+                                    top: -8px;
+                                    right: -8px;
+                                    background: #ff4757;
+                                    color: white;
+                                    border: none;
+                                    border-radius: 50%;
+                                    width: 26px;
+                                    height: 26px;
+                                    cursor: pointer;
+                                    font-size: 12px;
                                     display: flex;
                                     align-items: center;
-                                    gap: 8px;
+                                    justify-content: center;
                                 ">
-                                    <i class="fas fa-tag" style="color: #667eea;"></i>
-                                    Harga Alat (Maks Rp ${TOP_CONFIG.MAX_HARGA.toLocaleString('id-ID')})
-                                </label>
-                                <input type="number" id="hargaAlat" min="1000" max="${TOP_CONFIG.MAX_HARGA}" step="500" placeholder="Contoh: 350000" required style="
-                                    width: 100%;
-                                    padding: 12px 15px;
-                                    border: 2px solid #e0e0e0;
-                                    border-radius: 6px;
-                                    font-size: 14px;
-                                ">
+                                    <i class="fas fa-times"></i>
+                                </button>
                             </div>
                         </div>
                         
-                        <div style="display: flex; gap: 20px; margin-bottom: 20px;">
-                            <div style="flex: 1;">
-                                <label for="periodeCicilan" style="
-                                    display: block;
-                                    margin-bottom: 8px;
-                                    font-weight: 600;
-                                    color: #444;
-                                    display: flex;
-                                    align-items: center;
-                                    gap: 8px;
-                                ">
-                                    <i class="fas fa-calendar-alt" style="color: #667eea;"></i>
-                                    Periode Cicilan (1-24)
-                                </label>
-                                <select id="periodeCicilan" required style="
-                                    width: 100%;
-                                    padding: 12px 15px;
-                                    border: 2px solid #e0e0e0;
-                                    border-radius: 6px;
-                                    font-size: 14px;
-                                ">
-                                    <option value="">Pilih periode...</option>
-                                    ${Array.from({length: TOP_CONFIG.MAX_PERIODE}, (_, i) => 
-                                        `<option value="${i+1}">${i+1} bulan</option>`
-                                    ).join('')}
-                                </select>
-                            </div>
-                            <div style="flex: 1;">
-                                <label for="fotoAlat" style="
-                                    display: block;
-                                    margin-bottom: 8px;
-                                    font-weight: 600;
-                                    color: #444;
-                                    display: flex;
-                                    align-items: center;
-                                    gap: 8px;
-                                ">
-                                    <i class="fas fa-camera" style="color: #667eea;"></i>
-                                    Foto Alat
-                                </label>
-                                <div id="uploadArea" style="
-                                    border: 2px dashed #667eea;
-                                    border-radius: 8px;
-                                    padding: 30px;
-                                    text-align: center;
-                                    cursor: pointer;
-                                    transition: all 0.3s;
-                                    background: rgba(102, 126, 234, 0.05);
-                                ">
-                                    <i class="fas fa-cloud-upload-alt" style="font-size: 2.5rem; color: #667eea; margin-bottom: 10px;"></i>
-                                    <p style="margin: 5px 0; color: #666;">Klik untuk upload foto alat</p>
-                                    <p style="font-size: 0.9rem; color: #999;">Format: JPG, PNG (Maks 5MB)</p>
-                                    <input type="file" id="fotoAlat" accept="image/*" hidden>
-                                </div>
-                                <div id="photoPreview" style="
-                                    position: relative;
-                                    margin-top: 10px;
-                                    display: none;
-                                ">
-                                    <img id="previewThumbnail" src="" alt="Preview" style="
-                                        width: 100%;
-                                        max-height: 200px;
-                                        object-fit: contain;
-                                        border-radius: 6px;
-                                        border: 2px solid #e0e0e0;
-                                    ">
-                                    <button type="button" id="removePhotoBtn" style="
-                                        position: absolute;
-                                        top: -10px;
-                                        right: -10px;
-                                        background: #ff4757;
-                                        color: white;
-                                        border: none;
-                                        border-radius: 50%;
-                                        width: 30px;
-                                        height: 30px;
-                                        cursor: pointer;
-                                        font-size: 14px;
-                                        display: flex;
-                                        align-items: center;
-                                        justify-content: center;
-                                    ">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
+                        <!-- LINE 4: Periode Cicilan (UBAH KE "KALI") -->
+                        <div style="margin-bottom: 20px;">
+                            <label for="periodeCicilan" style="
+                                display: block;
+                                margin-bottom: 6px;
+                                font-weight: 600;
+                                color: #444;
+                                display: flex;
+                                align-items: center;
+                                gap: 6px;
+                                font-size: 0.9rem;
+                            ">
+                                <i class="fas fa-calendar-alt" style="color: #667eea; font-size: 0.9rem;"></i>
+                                Periode Cicilan (1-24 Kali)
+                            </label>
+                            <select id="periodeCicilan" required style="
+                                width: 100%;
+                                padding: 10px 12px;
+                                border: 2px solid #e0e0e0;
+                                border-radius: 6px;
+                                font-size: 14px;
+                                box-sizing: border-box;
+                            ">
+                                <option value="">Pilih periode...</option>
+                                ${Array.from({length: TOP_CONFIG.MAX_PERIODE}, (_, i) => 
+                                    `<option value="${i+1}">${i+1} Kali (X)</option>`
+                                ).join('')}
+                            </select>
                         </div>
                         
                         <!-- Auto Calculation -->
                         <div style="
                             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
                             border-radius: 8px;
-                            padding: 20px;
-                            margin: 20px 0;
+                            padding: 15px;
+                            margin: 15px 0;
                         ">
-                            <h4 style="margin: 0 0 15px 0; color: #333; display: flex; align-items: center; gap: 10px;">
-                                <i class="fas fa-calculator" style="color: #667eea;"></i>
+                            <h4 style="margin: 0 0 12px 0; color: #333; display: flex; align-items: center; gap: 8px; font-size: 0.95rem;">
+                                <i class="fas fa-calculator" style="color: #667eea; font-size: 0.9rem;"></i>
                                 Perhitungan Cicilan
                             </h4>
-                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
                                 <div style="
                                     display: flex;
                                     justify-content: space-between;
                                     align-items: center;
-                                    padding: 12px;
+                                    padding: 10px;
                                     background: white;
                                     border-radius: 6px;
-                                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
                                 ">
-                                    <span style="color: #666; font-weight: 500;">Harga Alat:</span>
-                                    <span id="calcHarga" style="font-weight: 600; color: #333;">Rp 0</span>
+                                    <span style="color: #666; font-weight: 500; font-size: 0.85rem;">Harga Alat:</span>
+                                    <span id="calcHarga" style="font-weight: 600; color: #333; font-size: 0.85rem;">Rp 0</span>
                                 </div>
                                 <div style="
                                     display: flex;
                                     justify-content: space-between;
                                     align-items: center;
-                                    padding: 12px;
+                                    padding: 10px;
                                     background: white;
                                     border-radius: 6px;
-                                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
                                 ">
-                                    <span style="color: #666; font-weight: 500;">Subsidi (25%):</span>
-                                    <span id="calcSubsidi" style="font-weight: 600; color: #333;">Rp 0</span>
+                                    <span style="color: #666; font-weight: 500; font-size: 0.85rem;">Subsidi (25%):</span>
+                                    <span id="calcSubsidi" style="font-weight: 600; color: #333; font-size: 0.85rem;">Rp 0</span>
                                 </div>
                                 <div style="
                                     display: flex;
                                     justify-content: space-between;
                                     align-items: center;
-                                    padding: 12px;
+                                    padding: 10px;
                                     background: white;
                                     border-radius: 6px;
-                                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
                                 ">
-                                    <span style="color: #666; font-weight: 500;">Total Cicilan:</span>
-                                    <span id="calcTotalCicilan" style="font-weight: 600; color: #ff9800; font-size: 1.1rem;">Rp 0</span>
+                                    <span style="color: #666; font-weight: 500; font-size: 0.85rem;">Total Cicilan:</span>
+                                    <span id="calcTotalCicilan" style="font-weight: 600; color: #ff9800; font-size: 0.9rem;">Rp 0</span>
                                 </div>
                                 <div style="
                                     display: flex;
                                     justify-content: space-between;
                                     align-items: center;
-                                    padding: 12px;
+                                    padding: 10px;
                                     background: white;
                                     border-radius: 6px;
-                                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
                                 ">
-                                    <span style="color: #666; font-weight: 500;">Cicilan per Bulan:</span>
-                                    <span id="calcPerBulan" style="font-weight: 600; color: #ff9800; font-size: 1.1rem;">Rp 0</span>
+                                    <span style="color: #666; font-weight: 500; font-size: 0.85rem;">Cicilan per Kali:</span>
+                                    <span id="calcPerBulan" style="font-weight: 600; color: #ff9800; font-size: 0.9rem;">Rp 0</span>
                                 </div>
                             </div>
                         </div>
                         
-                        <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 20px;">
-                            <button type="button" id="resetFormBtn" class="btn-secondary" style="
-                                padding: 12px 24px;
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button type="button" id="resetFormBtn" style="
+                                padding: 10px 15px;
                                 background: #f0f0f0;
                                 color: #666;
                                 border: none;
@@ -792,12 +915,15 @@ function createBarbermanTOPContent() {
                                 cursor: pointer;
                                 display: flex;
                                 align-items: center;
-                                gap: 8px;
+                                gap: 6px;
+                                font-size: 0.9rem;
+                                flex: 1;
+                                justify-content: center;
                             ">
-                                <i class="fas fa-redo"></i> Reset
+                                <i class="fas fa-redo" style="font-size: 0.9rem;"></i> Reset
                             </button>
-                            <button type="submit" id="submitTOPBtn" class="btn-primary" disabled style="
-                                padding: 12px 24px;
+                            <button type="submit" id="submitTOPBtn" disabled style="
+                                padding: 10px 15px;
                                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                                 color: white;
                                 border: none;
@@ -806,9 +932,12 @@ function createBarbermanTOPContent() {
                                 cursor: pointer;
                                 display: flex;
                                 align-items: center;
-                                gap: 8px;
+                                gap: 6px;
+                                font-size: 0.9rem;
+                                flex: 1;
+                                justify-content: center;
                             ">
-                                <i class="fas fa-paper-plane"></i> Ajukan TOP
+                                <i class="fas fa-paper-plane" style="font-size: 0.9rem;"></i> Ajukan TOP
                             </button>
                         </div>
                     </form>
@@ -819,40 +948,40 @@ function createBarbermanTOPContent() {
             <div style="
                 background: white;
                 border-radius: 10px;
-                padding: 20px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                padding: 15px;
+                box-shadow: 0 3px 10px rgba(0,0,0,0.1);
             ">
                 <div style="
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-bottom: 20px;
+                    margin-bottom: 15px;
                     padding-bottom: 10px;
                     border-bottom: 2px solid #f0f0f0;
                 ">
-                    <h3 style="margin: 0; color: #333; font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-history" style="color: #FF9800;"></i>
+                    <h3 style="margin: 0; color: #333; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-history" style="color: #FF9800; font-size: 0.9rem;"></i>
                         Riwayat Pengajuan TOP
                     </h3>
                     <button onclick="loadMyTOPRiwayat()" style="
                         background: #4CAF50;
                         color: white;
                         border: none;
-                        width: 40px;
-                        height: 40px;
+                        width: 34px;
+                        height: 34px;
                         border-radius: 50%;
                         display: flex;
                         align-items: center;
                         justify-content: center;
                         cursor: pointer;
-                        font-size: 1.2rem;
+                        font-size: 0.9rem;
                     ">
                         <i class="fas fa-sync-alt"></i>
                     </button>
                 </div>
                 <div>
-                    <div class="loading" id="loadingHistory" style="text-align: center; padding: 30px; color: #666;">
-                        <i class="fas fa-spinner fa-spin" style="margin-right: 10px; color: #667eea;"></i>
+                    <div class="loading" id="loadingHistory" style="text-align: center; padding: 20px; color: #666; font-size: 0.9rem;">
+                        <i class="fas fa-spinner fa-spin" style="margin-right: 8px; color: #667eea; font-size: 0.9rem;"></i>
                         Memuat riwayat...
                     </div>
                     <div style="overflow-x: auto;">
@@ -862,18 +991,18 @@ function createBarbermanTOPContent() {
                             background: white;
                             border-radius: 8px;
                             overflow: hidden;
-                            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
                             display: none;
+                            font-size: 0.85rem;
                         ">
                             <thead>
                                 <tr>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Tanggal</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Nama Alat</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Harga</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Periode</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Cicilan/Bulan</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Status</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Aksi</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Tanggal</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Alat</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Harga</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Periode</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Cicilan/Kali</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Status</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="topHistoryBody">
@@ -881,9 +1010,9 @@ function createBarbermanTOPContent() {
                             </tbody>
                         </table>
                     </div>
-                    <div id="noHistoryData" style="text-align: center; padding: 40px 20px; color: #666; display: none;">
-                        <i class="fas fa-inbox" style="font-size: 3rem; color: #ddd; margin-bottom: 15px;"></i>
-                        <p style="margin: 0;">Belum ada pengajuan TOP</p>
+                    <div id="noHistoryData" style="text-align: center; padding: 30px 15px; color: #666; display: none;">
+                        <i class="fas fa-inbox" style="font-size: 2rem; color: #ddd; margin-bottom: 10px;"></i>
+                        <p style="margin: 0; font-size: 0.9rem;">Belum ada pengajuan TOP</p>
                     </div>
                 </div>
             </div>
@@ -891,61 +1020,65 @@ function createBarbermanTOPContent() {
     `;
 }
 
-// [4] Buat konten untuk Owner dengan inline styling
+// [4] Buat konten untuk Owner - DIPERBAIKI FILTER OUTLET
 function createOwnerTOPContent() {
     return `
-        <div style="margin: 15px;">
+        <div style="margin: 10px;">
             <!-- Filter -->
             <div style="
                 background: white;
                 border-radius: 10px;
-                padding: 20px;
-                margin-bottom: 20px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                padding: 15px;
+                margin-bottom: 15px;
+                box-shadow: 0 3px 10px rgba(0,0,0,0.1);
             ">
-                <div style="display: flex; gap: 15px; align-items: flex-end;">
-                    <div style="flex: 1;">
+                <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 150px;">
                         <label for="filterOutletOwnerTOP" style="
                             display: block;
-                            margin-bottom: 8px;
+                            margin-bottom: 6px;
                             font-weight: 600;
                             color: #444;
                             display: flex;
                             align-items: center;
-                            gap: 8px;
+                            gap: 6px;
+                            font-size: 0.9rem;
                         ">
-                            <i class="fas fa-store" style="color: #667eea;"></i>
+                            <i class="fas fa-store" style="color: #667eea; font-size: 0.9rem;"></i>
                             Outlet:
                         </label>
                         <select id="filterOutletOwnerTOP" style="
                             width: 100%;
-                            padding: 12px 15px;
+                            padding: 10px 12px;
                             border: 2px solid #e0e0e0;
                             border-radius: 6px;
                             font-size: 14px;
+                            box-sizing: border-box;
                         ">
                             <option value="all">Semua Outlet</option>
                         </select>
                     </div>
-                    <div style="flex: 1;">
+                    <div style="flex: 1; min-width: 150px;">
                         <label for="filterStatusOwnerTOP" style="
                             display: block;
-                            margin-bottom: 8px;
+                            margin-bottom: 6px;
                             font-weight: 600;
                             color: #444;
                             display: flex;
                             align-items: center;
-                            gap: 8px;
+                            gap: 6px;
+                            font-size: 0.9rem;
                         ">
-                            <i class="fas fa-filter" style="color: #667eea;"></i>
+                            <i class="fas fa-filter" style="color: #667eea; font-size: 0.9rem;"></i>
                             Status:
                         </label>
                         <select id="filterStatusOwnerTOP" style="
                             width: 100%;
-                            padding: 12px 15px;
+                            padding: 10px 12px;
                             border: 2px solid #e0e0e0;
                             border-radius: 6px;
                             font-size: 14px;
+                            box-sizing: border-box;
                         ">
                             <option value="pending">Pending</option>
                             <option value="approved">Approved</option>
@@ -954,7 +1087,7 @@ function createOwnerTOPContent() {
                         </select>
                     </div>
                     <button onclick="loadTOPForOwner()" style="
-                        padding: 12px 24px;
+                        padding: 10px 20px;
                         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                         color: white;
                         border: none;
@@ -963,10 +1096,12 @@ function createOwnerTOPContent() {
                         cursor: pointer;
                         display: flex;
                         align-items: center;
-                        gap: 8px;
-                        height: 44px;
+                        gap: 6px;
+                        height: 40px;
+                        font-size: 0.9rem;
+                        flex-shrink: 0;
                     ">
-                        <i class="fas fa-filter"></i> Terapkan
+                        <i class="fas fa-filter" style="font-size: 0.9rem;"></i> Terapkan
                     </button>
                 </div>
             </div>
@@ -975,36 +1110,36 @@ function createOwnerTOPContent() {
             <div style="
                 background: white;
                 border-radius: 10px;
-                padding: 20px;
-                margin-bottom: 20px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                padding: 15px;
+                margin-bottom: 15px;
+                box-shadow: 0 3px 10px rgba(0,0,0,0.1);
             ">
                 <div style="
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-bottom: 20px;
+                    margin-bottom: 15px;
                     padding-bottom: 10px;
                     border-bottom: 2px solid #f0f0f0;
                 ">
-                    <h3 style="margin: 0; color: #333; font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-clock" style="color: #FF9800;"></i>
+                    <h3 style="margin: 0; color: #333; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-clock" style="color: #FF9800; font-size: 0.9rem;"></i>
                         Pengajuan Menunggu Approval
                     </h3>
-                    <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
                         <span id="pendingCountTOP" style="
                             background: #ff9800;
                             color: white;
-                            padding: 4px 12px;
-                            border-radius: 20px;
-                            font-size: 0.9rem;
+                            padding: 3px 10px;
+                            border-radius: 15px;
+                            font-size: 0.8rem;
                             font-weight: 600;
                         ">0 pengajuan</span>
                     </div>
                 </div>
                 <div>
-                    <div class="loading" id="loadingPending" style="text-align: center; padding: 30px; color: #666;">
-                        <i class="fas fa-spinner fa-spin" style="margin-right: 10px; color: #667eea;"></i>
+                    <div class="loading" id="loadingPending" style="text-align: center; padding: 20px; color: #666; font-size: 0.9rem;">
+                        <i class="fas fa-spinner fa-spin" style="margin-right: 8px; color: #667eea; font-size: 0.9rem;"></i>
                         Memuat data...
                     </div>
                     <div id="pendingTOPList" class="pending-list">
@@ -1013,29 +1148,29 @@ function createOwnerTOPContent() {
                 </div>
             </div>
             
-            <!-- Riwayat Semua TOP -->
+            <!-- Riwayat Semua TOP - DIPERBAIKI TAMPIL SEMUA DATA -->
             <div style="
                 background: white;
                 border-radius: 10px;
-                padding: 20px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                padding: 15px;
+                box-shadow: 0 3px 10px rgba(0,0,0,0.1);
             ">
                 <div style="
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-bottom: 20px;
+                    margin-bottom: 15px;
                     padding-bottom: 10px;
                     border-bottom: 2px solid #f0f0f0;
                 ">
-                    <h3 style="margin: 0; color: #333; font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-history" style="color: #FF9800;"></i>
+                    <h3 style="margin: 0; color: #333; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-history" style="color: #FF9800; font-size: 0.9rem;"></i>
                         Riwayat Semua TOP
                     </h3>
                 </div>
                 <div>
-                    <div class="loading" id="loadingAllHistory" style="text-align: center; padding: 30px; color: #666;">
-                        <i class="fas fa-spinner fa-spin" style="margin-right: 10px; color: #667eea;"></i>
+                    <div class="loading" id="loadingAllHistory" style="text-align: center; padding: 20px; color: #666; font-size: 0.9rem;">
+                        <i class="fas fa-spinner fa-spin" style="margin-right: 8px; color: #667eea; font-size: 0.9rem;"></i>
                         Memuat riwayat...
                     </div>
                     <div style="overflow-x: auto;">
@@ -1045,20 +1180,20 @@ function createOwnerTOPContent() {
                             background: white;
                             border-radius: 8px;
                             overflow: hidden;
-                            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
                             display: none;
+                            font-size: 0.85rem;
                         ">
                             <thead>
                                 <tr>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Tanggal</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Outlet</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Karyawan</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Alat</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Harga</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Periode</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Status</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Progress</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Aksi</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Tanggal</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Outlet</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Karyawan</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Alat</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Harga</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Periode</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Status</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Progress</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="allHistoryBody">
@@ -1072,44 +1207,44 @@ function createOwnerTOPContent() {
     `;
 }
 
-// [5] Buat konten untuk Kasir dengan inline styling
+// [5] Buat konten untuk Kasir
 function createKasirTOPContent() {
     return `
-        <div style="margin: 15px;">
+        <div style="margin: 10px;">
             <!-- Daftar TOP untuk Pembayaran -->
             <div style="
                 background: white;
                 border-radius: 10px;
-                padding: 20px;
-                margin-bottom: 20px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                padding: 15px;
+                margin-bottom: 15px;
+                box-shadow: 0 3px 10px rgba(0,0,0,0.1);
             ">
                 <div style="
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-bottom: 20px;
+                    margin-bottom: 15px;
                     padding-bottom: 10px;
                     border-bottom: 2px solid #f0f0f0;
                 ">
-                    <h3 style="margin: 0; color: #333; font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-credit-card" style="color: #FF9800;"></i>
+                    <h3 style="margin: 0; color: #333; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-credit-card" style="color: #FF9800; font-size: 0.9rem;"></i>
                         Pembayaran Cicilan TOP
                     </h3>
-                    <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
                         <span id="activeTopCount" style="
                             background: #4CAF50;
                             color: white;
-                            padding: 4px 12px;
-                            border-radius: 20px;
-                            font-size: 0.9rem;
+                            padding: 3px 10px;
+                            border-radius: 15px;
+                            font-size: 0.8rem;
                             font-weight: 600;
                         ">0 TOP aktif</span>
                     </div>
                 </div>
                 <div>
-                    <div class="loading" id="loadingPayment" style="text-align: center; padding: 30px; color: #666;">
-                        <i class="fas fa-spinner fa-spin" style="margin-right: 10px; color: #667eea;"></i>
+                    <div class="loading" id="loadingPayment" style="text-align: center; padding: 20px; color: #666; font-size: 0.9rem;">
+                        <i class="fas fa-spinner fa-spin" style="margin-right: 8px; color: #667eea; font-size: 0.9rem;"></i>
                         Memuat data TOP...
                     </div>
                     <div id="topPaymentList" class="payment-list">
@@ -1122,40 +1257,40 @@ function createKasirTOPContent() {
             <div style="
                 background: white;
                 border-radius: 10px;
-                padding: 20px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                padding: 15px;
+                box-shadow: 0 3px 10px rgba(0,0,0,0.1);
             ">
                 <div style="
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-bottom: 20px;
+                    margin-bottom: 15px;
                     padding-bottom: 10px;
                     border-bottom: 2px solid #f0f0f0;
                 ">
-                    <h3 style="margin: 0; color: #333; font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-receipt" style="color: #FF9800;"></i>
+                    <h3 style="margin: 0; color: #333; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-receipt" style="color: #FF9800; font-size: 0.9rem;"></i>
                         Riwayat Pembayaran
                     </h3>
                     <button onclick="loadTOPForKasir()" style="
                         background: #4CAF50;
                         color: white;
                         border: none;
-                        width: 40px;
-                        height: 40px;
+                        width: 34px;
+                        height: 34px;
                         border-radius: 50%;
                         display: flex;
                         align-items: center;
                         justify-content: center;
                         cursor: pointer;
-                        font-size: 1.2rem;
+                        font-size: 0.9rem;
                     ">
                         <i class="fas fa-sync-alt"></i>
                     </button>
                 </div>
                 <div>
-                    <div class="loading" id="loadingPaymentHistory" style="text-align: center; padding: 30px; color: #666;">
-                        <i class="fas fa-spinner fa-spin" style="margin-right: 10px; color: #667eea;"></i>
+                    <div class="loading" id="loadingPaymentHistory" style="text-align: center; padding: 20px; color: #666; font-size: 0.9rem;">
+                        <i class="fas fa-spinner fa-spin" style="margin-right: 8px; color: #667eea; font-size: 0.9rem;"></i>
                         Memuat riwayat...
                     </div>
                     <div style="overflow-x: auto;">
@@ -1165,18 +1300,18 @@ function createKasirTOPContent() {
                             background: white;
                             border-radius: 8px;
                             overflow: hidden;
-                            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
                             display: none;
+                            font-size: 0.85rem;
                         ">
                             <thead>
                                 <tr>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Tanggal</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Barberman</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Alat</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Cicilan ke</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Jumlah</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Penerima</th>
-                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">Sisa</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Tanggal</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Barberman</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Alat</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Cicilan ke</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Jumlah</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Penerima</th>
+                                    <th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 0.8rem;">Sisa</th>
                                 </tr>
                             </thead>
                             <tbody id="paymentHistoryBody">
@@ -1218,7 +1353,7 @@ function setupTOPEvents() {
         setupKasirEvents();
     }
     
-    // Modal close buttons
+    // Modal events
     setupModalEvents();
 }
 
@@ -1226,18 +1361,14 @@ function setupTOPEvents() {
 function setupModalEvents() {
     // Close semua modal dengan class modal-close
     document.querySelectorAll('.modal-close').forEach(btn => {
-        btn.addEventListener('click', function() {
-            this.closest('.modal').style.display = 'none';
-        });
-    });
-    
-    // Close modal dengan klik di luar
-    document.querySelectorAll('.modal').forEach(modal => {
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                this.style.display = 'none';
-            }
-        });
+        if (btn.id !== 'removePhotoBtn') { // Jangan include remove photo button
+            btn.addEventListener('click', function() {
+                const modal = this.closest('.modal');
+                if (modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
     });
 }
 
@@ -1258,23 +1389,32 @@ function setupBarbermanEvents() {
     periodeSelect.addEventListener('change', calculateTOP);
     
     // File upload
-    uploadArea.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', handlePhotoUpload);
+    if (uploadArea) {
+        uploadArea.addEventListener('click', () => fileInput.click());
+    }
+    
+    if (fileInput) {
+        fileInput.addEventListener('change', handlePhotoUpload);
+    }
     
     // Form submission
     form.addEventListener('submit', handleTOPSubmission);
     
     // Reset form
-    document.getElementById('resetFormBtn')?.addEventListener('click', resetTOPForm);
+    const resetBtn = document.getElementById('resetFormBtn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', resetTOPForm);
+    }
     
     // Remove photo
     const removeBtn = document.getElementById('removePhotoBtn');
     if (removeBtn) {
         removeBtn.addEventListener('click', () => {
             selectedPhotoFile = null;
-            previewArea.style.display = 'none';
-            uploadArea.style.display = 'block';
-            fileInput.value = '';
+            if (previewArea) previewArea.style.display = 'none';
+            if (uploadArea) uploadArea.style.display = 'block';
+            if (fileInput) fileInput.value = '';
+            calculateTOP(); // Update submit button state
         });
     }
     
@@ -1331,17 +1471,16 @@ function showPhotoPreview(imageSrc) {
     modal.style.display = 'block';
     
     // Setup buttons
-    document.getElementById('changePhotoBtn')?.addEventListener('click', () => {
-        modal.style.display = 'none';
-        document.getElementById('fotoAlat').click();
-    });
-    
-    document.getElementById('usePhotoBtn')?.addEventListener('click', () => {
-        modal.style.display = 'none';
-    });
+    const changeBtn = document.getElementById('changePhotoBtn');
+    if (changeBtn) {
+        changeBtn.onclick = () => {
+            modal.style.display = 'none';
+            document.getElementById('fotoAlat').click();
+        };
+    }
 }
 
-// [11] Calculate TOP values
+// [11] Calculate TOP values - DIPERBAIKI: "Kali" bukan "Bulan"
 function calculateTOP() {
     const hargaInput = document.getElementById('hargaAlat');
     const periodeSelect = document.getElementById('periodeCicilan');
@@ -1362,7 +1501,7 @@ function calculateTOP() {
     // Hitung
     const subsidi = harga * TOP_CONFIG.SUBSIDI_PERCENT;
     const totalCicilan = harga - subsidi;
-    const cicilanPerBulan = periode > 0 ? totalCicilan / periode : 0;
+    const cicilanPerKali = periode > 0 ? totalCicilan / periode : 0;
     
     // Update display
     const calcHarga = document.getElementById('calcHarga');
@@ -1373,7 +1512,7 @@ function calculateTOP() {
     if (calcHarga) calcHarga.textContent = formatRupiah(harga);
     if (calcSubsidi) calcSubsidi.textContent = formatRupiah(subsidi);
     if (calcTotalCicilan) calcTotalCicilan.textContent = formatRupiah(totalCicilan);
-    if (calcPerBulan) calcPerBulan.textContent = formatRupiah(cicilanPerBulan);
+    if (calcPerBulan) calcPerBulan.textContent = formatRupiah(cicilanPerKali);
     
     // Enable/disable submit button
     const namaAlat = document.getElementById('namaAlat')?.value.trim() || '';
@@ -1398,7 +1537,7 @@ function resetTOPForm() {
     calculateTOP();
 }
 
-// [13] Handle TOP submission
+// [13] Handle TOP submission dengan fallback jika upload gagal
 async function handleTOPSubmission(event) {
     event.preventDefault();
     
@@ -1427,48 +1566,60 @@ async function handleTOPSubmission(event) {
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengupload...';
         
-        // 1. Upload foto ke Supabase Storage
-        const fileName = `top_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('top_photos')
-            .upload(fileName, selectedPhotoFile);
+        let publicUrl = null;
         
-        if (uploadError) throw uploadError;
+        // Coba upload foto (dengan error handling)
+        try {
+            const fileName = `top_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
+            
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('top_photos')
+                .upload(fileName, selectedPhotoFile);
+            
+            if (!uploadError && uploadData) {
+                // Get public URL
+                const { data: urlData } = supabase.storage
+                    .from('top_photos')
+                    .getPublicUrl(fileName);
+                
+                publicUrl = urlData?.publicUrl || null;
+            }
+        } catch (uploadErr) {
+            console.warn('Upload foto gagal, lanjut tanpa foto:', uploadErr);
+            publicUrl = null;
+        }
         
-        // 2. Get public URL
-        const { data: { publicUrl } } = supabase.storage
-            .from('top_photos')
-            .getPublicUrl(fileName);
-        
-        // 3. Calculate values
+        // Calculate values
         const subsidi = hargaAlat * TOP_CONFIG.SUBSIDI_PERCENT;
         const totalCicilan = hargaAlat - subsidi;
-        const cicilanPerBulan = totalCicilan / periodeCicilan;
+        const cicilanPerKali = totalCicilan / periodeCicilan;
         
-        // 4. Insert ke database
+        // Insert ke database
+        const topData = {
+            batch_id: topBatchId,
+            karyawan: currentKaryawanTOP.nama_karyawan,
+            outlet: currentUserOutletTOP,
+            nama_alat: namaAlat,
+            harga_alat: hargaAlat,
+            foto_url: publicUrl,
+            periode_cicilan: periodeCicilan,
+            subsidi: subsidi,
+            total_cicilan: totalCicilan,
+            cicilan_per_periode: cicilanPerKali,
+            status: 'pending',
+            sisa_cicilan: totalCicilan,
+            pembayaran: [],
+            created_at: new Date().toISOString()
+        };
+        
         const { data, error } = await supabase
             .from('top_program')
-            .insert([{
-                batch_id: topBatchId,
-                karyawan: currentKaryawanTOP.nama_karyawan,
-                outlet: currentUserOutletTOP,
-                nama_alat: namaAlat,
-                harga_alat: hargaAlat,
-                foto_url: publicUrl,
-                periode_cicilan: periodeCicilan,
-                subsidi: subsidi,
-                total_cicilan: totalCicilan,
-                cicilan_per_periode: cicilanPerBulan,
-                status: 'pending',
-                sisa_cicilan: totalCicilan,
-                pembayaran: [],
-                created_at: new Date().toISOString()
-            }]);
+            .insert([topData]);
         
         if (error) throw error;
         
         // Success
-        alert('✅ Pengajuan TOP berhasil dikirim!');
+        alert('✅ Pengajuan TOP berhasil dikirim!' + (publicUrl ? '' : '\n\nCatatan: Foto tidak tersimpan karena error upload.'));
         
         // Reset form dan reload data
         resetTOPForm();
@@ -1481,7 +1632,7 @@ async function handleTOPSubmission(event) {
     } finally {
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = originalText;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Ajukan TOP';
         }
     }
 }
@@ -1511,7 +1662,7 @@ async function loadMyTOPRiwayat() {
         console.error('Error loading TOP riwayat:', error);
         const tbody = document.getElementById('topHistoryBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="7" style="padding: 20px; text-align: center; color: #666;">Gagal memuat data</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="padding: 15px; text-align: center; color: #666; font-size: 0.9rem;">Gagal memuat data</td></tr>`;
         }
     } finally {
         const loadingEl = document.getElementById('loadingHistory');
@@ -1519,7 +1670,7 @@ async function loadMyTOPRiwayat() {
     }
 }
 
-// [15] Display riwayat Barberman
+// [15] Display riwayat Barberman - DIPERBAIKI: "Kali" bukan "Bulan"
 function displayMyTOPRiwayat(topList) {
     const tbody = document.getElementById('topHistoryBody');
     const tableEl = document.getElementById('topHistoryTable');
@@ -1542,23 +1693,23 @@ function displayMyTOPRiwayat(topList) {
         
         html += `
             <tr style="${index % 2 === 0 ? 'background: #f9f9f9;' : ''}">
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
                     ${formatDate(createdDate)}<br>
-                    <small style="color: #999;">${createdDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>
+                    <small style="color: #999; font-size: 0.75rem;">${createdDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>
                 </td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
                     <div style="font-weight: 500;">${top.nama_alat}</div>
-                    ${top.foto_url ? `<small><a href="${top.foto_url}" target="_blank" style="color: #667eea;">Lihat foto</a></small>` : ''}
+                    ${top.foto_url ? `<small><a href="${top.foto_url}" target="_blank" style="color: #667eea; font-size: 0.75rem;">Lihat foto</a></small>` : ''}
                 </td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">${formatRupiah(top.harga_alat)}</td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">${top.periode_cicilan} bln</td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">${formatRupiah(top.cicilan_per_periode)}</td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${formatRupiah(top.harga_alat)}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${top.periode_cicilan} Kali</td>
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${formatRupiah(top.cicilan_per_periode)}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
                     <span class="status-pill ${getTOPStatusClass(top.status)}">
                         ${getTOPStatusText(top)}
                     </span>
                     ${top.status !== 'pending' && top.status !== 'rejected' ? `
-                        <div style="margin-top: 5px;">
+                        <div style="margin-top: 4px;">
                             <div class="progress-bar-container">
                                 <div class="progress-bar" style="width: ${progress.percentage}%"></div>
                                 <div class="progress-text">${progress.text}</div>
@@ -1566,29 +1717,35 @@ function displayMyTOPRiwayat(topList) {
                         </div>
                     ` : ''}
                 </td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
                     <button onclick="showTOPDetail('${top.id}')" style="
-                        padding: 6px 12px;
+                        padding: 4px 8px;
                         background: #6c757d;
                         color: white;
                         border: none;
                         border-radius: 4px;
                         cursor: pointer;
-                        margin: 0 2px;
+                        font-size: 0.75rem;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 4px;
                     ">
-                        <i class="fas fa-eye"></i>
+                        <i class="fas fa-eye" style="font-size: 0.7rem;"></i>
                     </button>
                     ${top.status === 'pending' ? `
                         <button onclick="cancelTOP('${top.id}')" style="
-                            padding: 6px 12px;
+                            padding: 4px 8px;
                             background: #ff4757;
                             color: white;
                             border: none;
                             border-radius: 4px;
                             cursor: pointer;
-                            margin: 0 2px;
+                            font-size: 0.75rem;
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 4px;
                         ">
-                            <i class="fas fa-times"></i>
+                            <i class="fas fa-times" style="font-size: 0.7rem;"></i>
                         </button>
                     ` : ''}
                 </td>
@@ -1601,7 +1758,7 @@ function displayMyTOPRiwayat(topList) {
     if (noDataEl) noDataEl.style.display = 'none';
 }
 
-// [16] Load data untuk Owner
+// [16] Load data untuk Owner - DIPERBAIKI: Load semua data untuk riwayat
 async function loadTOPForOwner() {
     try {
         // Tampilkan loading
@@ -1615,31 +1772,49 @@ async function loadTOPForOwner() {
         const outletFilter = document.getElementById('filterOutletOwnerTOP')?.value || 'all';
         const statusFilter = document.getElementById('filterStatusOwnerTOP')?.value || 'pending';
         
-        // Build query
-        let query = supabase
+        // Build query untuk PENDING (filtered)
+        let pendingQuery = supabase
             .from('top_program')
             .select('*')
             .order('created_at', { ascending: false });
         
-        // Apply filters
+        // Build query untuk SEMUA RIWAYAT (semua data)
+        let allQuery = supabase
+            .from('top_program')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        // Apply filters untuk pending
         if (outletFilter !== 'all') {
-            query = query.eq('outlet', outletFilter);
+            pendingQuery = pendingQuery.eq('outlet', outletFilter);
         }
         
         if (statusFilter !== 'all') {
-            query = query.eq('status', statusFilter);
+            pendingQuery = pendingQuery.eq('status', statusFilter);
+        } else {
+            pendingQuery = pendingQuery.eq('status', 'pending'); // Default untuk pending section
         }
         
-        const { data: topList, error } = await query;
+        // Apply filters untuk all history (hanya outlet)
+        if (outletFilter !== 'all') {
+            allQuery = allQuery.eq('outlet', outletFilter);
+        }
         
-        if (error) throw error;
+        // Execute queries
+        const [{ data: pendingData, error: pendingError }, { data: allData, error: allError }] = await Promise.all([
+            pendingQuery,
+            allQuery
+        ]);
+        
+        if (pendingError) throw pendingError;
+        if (allError) throw allError;
         
         // Display data
-        displayPendingTOP(topList || []);
-        displayAllTOPRiwayat(topList || []);
+        displayPendingTOP(pendingData || []);
+        displayAllTOPRiwayat(allData || []);
         
         // Load outlet options
-        await loadOutletDropdownForTOP(topList || []);
+        await loadOutletDropdownForTOP(allData || []);
         
     } catch (error) {
         console.error('Error loading TOP for owner:', error);
@@ -1669,10 +1844,10 @@ function displayPendingTOP(topList) {
     
     if (pendingList.length === 0) {
         container.innerHTML = `
-            <div style="text-align: center; padding: 40px 20px; color: #666;">
-                <i class="fas fa-check-circle" style="font-size: 3rem; color: #ddd; margin-bottom: 15px;"></i>
-                <h4 style="margin: 0 0 10px 0; color: #666;">Tidak ada pengajuan pending</h4>
-                <p style="margin: 0; color: #999;">Semua pengajuan sudah diproses</p>
+            <div style="text-align: center; padding: 30px 15px; color: #666;">
+                <i class="fas fa-check-circle" style="font-size: 2rem; color: #ddd; margin-bottom: 10px;"></i>
+                <h4 style="margin: 0 0 8px 0; color: #666; font-size: 0.95rem;">Tidak ada pengajuan pending</h4>
+                <p style="margin: 0; color: #999; font-size: 0.85rem;">Semua pengajuan sudah diproses</p>
             </div>
         `;
         return;
@@ -1686,88 +1861,44 @@ function displayPendingTOP(topList) {
         html += `
             <div style="
                 background: white;
-                border-radius: 10px;
-                padding: 20px;
-                margin-bottom: 20px;
-                box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 15px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                border-left: 4px solid #ff9800;
             " data-top-id="${top.id}">
                 <div style="
                     display: flex;
                     justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 15px;
-                    padding-bottom: 15px;
-                    border-bottom: 1px solid #f0f0f0;
+                    align-items: flex-start;
+                    margin-bottom: 12px;
+                    gap: 10px;
                 ">
-                    <div>
-                        <h4 style="margin: 0; color: #333;">${top.nama_alat}</h4>
-                        <span style="font-size: 0.9rem; color: #999;">${formatDate(createdDate)}</span>
-                    </div>
-                    <div style="
-                        background: #667eea;
-                        color: white;
-                        padding: 4px 12px;
-                        border-radius: 20px;
-                        font-size: 0.9rem;
-                    ">
-                        <i class="fas fa-store"></i> ${top.outlet}
-                    </div>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px;">
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-                        <div style="
-                            display: flex;
-                            align-items: center;
-                            gap: 8px;
-                            padding: 8px;
-                            background: #f9f9f9;
-                            border-radius: 6px;
-                        ">
-                            <i class="fas fa-user" style="color: #667eea;"></i>
-                            <span>${top.karyawan}</span>
-                        </div>
-                        <div style="
-                            display: flex;
-                            align-items: center;
-                            gap: 8px;
-                            padding: 8px;
-                            background: #f9f9f9;
-                            border-radius: 6px;
-                        ">
-                            <i class="fas fa-tag" style="color: #667eea;"></i>
-                            <span>${formatRupiah(top.harga_alat)}</span>
-                        </div>
-                        <div style="
-                            display: flex;
-                            align-items: center;
-                            gap: 8px;
-                            padding: 8px;
-                            background: #f9f9f9;
-                            border-radius: 6px;
-                        ">
-                            <i class="fas fa-calendar-alt" style="color: #667eea;"></i>
-                            <span>${top.periode_cicilan} bulan</span>
-                        </div>
-                        <div style="
-                            display: flex;
-                            align-items: center;
-                            gap: 8px;
-                            padding: 8px;
-                            background: #f9f9f9;
-                            border-radius: 6px;
-                        ">
-                            <i class="fas fa-money-bill-wave" style="color: #667eea;"></i>
-                            <span>${formatRupiah(top.cicilan_per_periode)}/bln</span>
+                    <div style="flex: 1;">
+                        <h4 style="margin: 0 0 5px 0; color: #333; font-size: 0.95rem;">${top.nama_alat}</h4>
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <span style="font-size: 0.8rem; color: #999;">${formatDate(createdDate)}</span>
+                            <span style="
+                                background: #667eea;
+                                color: white;
+                                padding: 2px 8px;
+                                border-radius: 12px;
+                                font-size: 0.75rem;
+                            ">
+                                <i class="fas fa-store" style="font-size: 0.7rem;"></i> ${top.outlet}
+                            </span>
+                            <span style="font-size: 0.8rem; color: #666;">
+                                <i class="fas fa-user" style="color: #667eea;"></i> ${top.karyawan}
+                            </span>
                         </div>
                     </div>
                     
                     ${top.foto_url ? `
-                        <div>
+                        <div style="flex-shrink: 0;">
                             <img src="${top.foto_url}" alt="Foto Alat" onclick="previewImage('${top.foto_url}')" style="
-                                width: 100%;
-                                max-height: 150px;
-                                object-fit: contain;
+                                width: 60px;
+                                height: 60px;
+                                object-fit: cover;
                                 border-radius: 6px;
                                 cursor: pointer;
                                 border: 2px solid #f0f0f0;
@@ -1778,48 +1909,38 @@ function displayPendingTOP(topList) {
                 
                 <div style="
                     background: #f8f9fa;
-                    padding: 15px;
+                    padding: 12px;
                     border-radius: 6px;
-                    margin-bottom: 20px;
+                    margin-bottom: 15px;
+                    font-size: 0.85rem;
                 ">
-                    <h5 style="margin: 0 0 10px 0; color: #333;">Perhitungan:</h5>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 10px;">
-                        <div style="
-                            display: flex;
-                            justify-content: space-between;
-                            padding: 8px 12px;
-                            background: white;
-                            border-radius: 4px;
-                        ">
-                            <span>Harga:</span>
-                            <span>${formatRupiah(top.harga_alat)}</span>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #666;">Harga:</span>
+                            <span style="font-weight: 600;">${formatRupiah(top.harga_alat)}</span>
                         </div>
-                        <div style="
-                            display: flex;
-                            justify-content: space-between;
-                            padding: 8px 12px;
-                            background: white;
-                            border-radius: 4px;
-                        ">
-                            <span>Subsidi (25%):</span>
-                            <span>${formatRupiah(top.subsidi)}</span>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #666;">Periode:</span>
+                            <span style="font-weight: 600;">${top.periode_cicilan} Kali</span>
                         </div>
-                        <div style="
-                            display: flex;
-                            justify-content: space-between;
-                            padding: 8px 12px;
-                            background: white;
-                            border-radius: 4px;
-                        ">
-                            <span>Total Cicilan:</span>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #666;">Subsidi 25%:</span>
+                            <span style="color: #4CAF50; font-weight: 600;">${formatRupiah(top.subsidi)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #666;">Total Cicilan:</span>
                             <span style="color: #ff9800; font-weight: 600;">${formatRupiah(top.total_cicilan)}</span>
                         </div>
                     </div>
+                    <div style="text-align: center; padding: 8px; background: white; border-radius: 4px;">
+                        <span style="color: #666; font-size: 0.8rem;">Cicilan per Kali:</span>
+                        <span style="color: #667eea; font-weight: 700; font-size: 1rem;">${formatRupiah(top.cicilan_per_periode)}</span>
+                    </div>
                 </div>
                 
-                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
                     <button onclick="approveTOP('${top.id}')" style="
-                        padding: 10px 20px;
+                        padding: 8px 15px;
                         background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
                         color: white;
                         border: none;
@@ -1828,12 +1949,15 @@ function displayPendingTOP(topList) {
                         cursor: pointer;
                         display: flex;
                         align-items: center;
-                        gap: 8px;
+                        gap: 6px;
+                        font-size: 0.85rem;
+                        flex: 1;
+                        justify-content: center;
                     ">
-                        <i class="fas fa-check"></i> Approve
+                        <i class="fas fa-check" style="font-size: 0.8rem;"></i> Approve
                     </button>
                     <button onclick="rejectTOP('${top.id}')" style="
-                        padding: 10px 20px;
+                        padding: 8px 15px;
                         background: linear-gradient(135deg, #ff4757 0%, #ff6b81 100%);
                         color: white;
                         border: none;
@@ -1842,12 +1966,15 @@ function displayPendingTOP(topList) {
                         cursor: pointer;
                         display: flex;
                         align-items: center;
-                        gap: 8px;
+                        gap: 6px;
+                        font-size: 0.85rem;
+                        flex: 1;
+                        justify-content: center;
                     ">
-                        <i class="fas fa-times"></i> Reject
+                        <i class="fas fa-times" style="font-size: 0.8rem;"></i> Reject
                     </button>
                     <button onclick="showTOPDetail('${top.id}')" style="
-                        padding: 10px 20px;
+                        padding: 8px 15px;
                         background: #6c757d;
                         color: white;
                         border: none;
@@ -1856,9 +1983,13 @@ function displayPendingTOP(topList) {
                         cursor: pointer;
                         display: flex;
                         align-items: center;
-                        gap: 8px;
+                        gap: 6px;
+                        font-size: 0.85rem;
+                        flex-shrink: 0;
+                        width: 40px;
+                        justify-content: center;
                     ">
-                        <i class="fas fa-eye"></i> Detail
+                        <i class="fas fa-eye" style="font-size: 0.8rem;"></i>
                     </button>
                 </div>
             </div>
@@ -1929,7 +2060,7 @@ async function rejectTOP(topId) {
     }
 }
 
-// [20] Display all TOP riwayat untuk Owner
+// [20] Display all TOP riwayat untuk Owner - DIPERBAIKI: Tampilkan semua data
 function displayAllTOPRiwayat(topList) {
     const tbody = document.getElementById('allHistoryBody');
     const tableEl = document.getElementById('allHistoryTable');
@@ -1939,7 +2070,7 @@ function displayAllTOPRiwayat(topList) {
     if (!topList || topList.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="9" style="padding: 20px; text-align: center; color: #666;">
+                <td colspan="9" style="padding: 20px; text-align: center; color: #666; font-size: 0.9rem;">
                     <i class="fas fa-history"></i>
                     Tidak ada data TOP
                 </td>
@@ -1949,93 +2080,88 @@ function displayAllTOPRiwayat(topList) {
         return;
     }
     
-    // Limit to 20 entries
-    const displayList = topList.slice(0, 20);
-    
     let html = '';
     
-    displayList.forEach((top, index) => {
+    topList.forEach((top, index) => {
         const createdDate = new Date(top.created_at);
         const progress = calculateProgress(top);
         
         html += `
             <tr style="${index % 2 === 0 ? 'background: #f9f9f9;' : ''}">
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
                     ${formatDate(createdDate)}<br>
-                    <small style="color: #999;">${createdDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>
+                    <small style="color: #999; font-size: 0.75rem;">${createdDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>
                 </td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">${top.outlet}</td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">${top.karyawan}</td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${top.outlet}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${top.karyawan}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
                     <div style="font-weight: 500;">${top.nama_alat}</div>
-                    ${top.foto_url ? `<small><a href="${top.foto_url}" target="_blank" style="color: #667eea;">Lihat foto</a></small>` : ''}
+                    ${top.foto_url ? `<small><a href="${top.foto_url}" target="_blank" style="color: #667eea; font-size: 0.75rem;">foto</a></small>` : ''}
                 </td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">${formatRupiah(top.harga_alat)}</td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">${top.periode_cicilan} bln</td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${formatRupiah(top.harga_alat)}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${top.periode_cicilan} Kali</td>
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
                     <span class="status-pill ${getTOPStatusClass(top.status)}">
                         ${getTOPStatusText(top)}
                     </span>
                 </td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
-                    <div style="margin-top: 5px;">
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
+                    <div style="margin-top: 4px;">
                         <div class="progress-bar-container">
                             <div class="progress-bar" style="width: ${progress.percentage}%"></div>
                             <div class="progress-text">${progress.text}</div>
                         </div>
                     </div>
                 </td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
                     <button onclick="showTOPDetail('${top.id}')" style="
-                        padding: 6px 12px;
+                        padding: 4px 8px;
                         background: #6c757d;
                         color: white;
                         border: none;
                         border-radius: 4px;
                         cursor: pointer;
-                        margin: 0 2px;
+                        font-size: 0.75rem;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 4px;
                     ">
-                        <i class="fas fa-eye"></i>
+                        <i class="fas fa-eye" style="font-size: 0.7rem;"></i>
                     </button>
                     ${top.status === 'pending' ? `
                         <button onclick="approveTOP('${top.id}')" style="
-                            padding: 6px 12px;
+                            padding: 4px 8px;
                             background: #4CAF50;
                             color: white;
                             border: none;
                             border-radius: 4px;
                             cursor: pointer;
-                            margin: 0 2px;
+                            font-size: 0.75rem;
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 4px;
                         ">
-                            <i class="fas fa-check"></i>
+                            <i class="fas fa-check" style="font-size: 0.7rem;"></i>
                         </button>
                         <button onclick="rejectTOP('${top.id}')" style="
-                            padding: 6px 12px;
+                            padding: 4px 8px;
                             background: #ff4757;
                             color: white;
                             border: none;
                             border-radius: 4px;
                             cursor: pointer;
-                            margin: 0 2px;
+                            font-size: 0.75rem;
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 4px;
                         ">
-                            <i class="fas fa-times"></i>
+                            <i class="fas fa-times" style="font-size: 0.7rem;"></i>
                         </button>
                     ` : ''}
                 </td>
             </tr>
         `;
     });
-    
-    // Jika ada lebih dari 20 item
-    if (topList.length > 20) {
-        html += `
-            <tr style="background: #f8f9fa;">
-                <td colspan="9" style="text-align: center; padding: 15px; color: #6c757d; font-style: italic;">
-                    <i class="fas fa-info-circle"></i> Menampilkan 20 dari ${topList.length} data TOP.
-                </td>
-            </tr>
-        `;
-    }
     
     tbody.innerHTML = html;
     if (tableEl) tableEl.style.display = 'table';
@@ -2047,9 +2173,32 @@ async function loadOutletDropdownForTOP(topList) {
     if (!select) return;
     
     try {
-        // Get unique outlets from existing data
-        const outlets = [...new Set(topList.map(top => top.outlet).filter(Boolean))];
+        // Query distinct outlets dari database (bukan dari data yang sudah di-filter)
+        const { data: outletsData, error } = await supabase
+            .from('top_program')
+            .select('outlet')
+            .not('outlet', 'is', null);
         
+        if (error) {
+            console.error('Error loading outlets:', error);
+            // Fallback: use provided topList
+            const outlets = [...new Set(topList.map(top => top.outlet).filter(Boolean))];
+            updateOutletDropdown(outlets);
+            return;
+        }
+        
+        // Get unique outlets
+        const outlets = [...new Set(outletsData.map(top => top.outlet).filter(Boolean))];
+        updateOutletDropdown(outlets);
+        
+    } catch (error) {
+        console.error('Error loading outlets:', error);
+        // Fallback: use provided topList
+        const outlets = [...new Set(topList.map(top => top.outlet).filter(Boolean))];
+        updateOutletDropdown(outlets);
+    }
+    
+    function updateOutletDropdown(outlets) {
         let options = '<option value="all">Semua Outlet</option>';
         
         outlets.forEach(outlet => {
@@ -2057,9 +2206,6 @@ async function loadOutletDropdownForTOP(topList) {
         });
         
         select.innerHTML = options;
-        
-    } catch (error) {
-        console.error('Error loading outlets:', error);
     }
 }
 
@@ -2101,7 +2247,7 @@ async function loadTOPForKasir() {
     }
 }
 
-// [23] Display TOP untuk pembayaran (Kasir)
+// [23] Display TOP untuk pembayaran (Kasir) - DIPERBAIKI: "Kali" bukan "Bulan"
 function displayTOPForPayment(topList) {
     const container = document.getElementById('topPaymentList');
     const countEl = document.getElementById('activeTopCount');
@@ -2114,10 +2260,10 @@ function displayTOPForPayment(topList) {
     
     if (topList.length === 0) {
         container.innerHTML = `
-            <div style="text-align: center; padding: 40px 20px; color: #666;">
-                <i class="fas fa-check-circle" style="font-size: 3rem; color: #ddd; margin-bottom: 15px;"></i>
-                <h4 style="margin: 0 0 10px 0; color: #666;">Tidak ada TOP aktif</h4>
-                <p style="margin: 0; color: #999;">Semua TOP sudah lunas</p>
+            <div style="text-align: center; padding: 30px 15px; color: #666;">
+                <i class="fas fa-check-circle" style="font-size: 2rem; color: #ddd; margin-bottom: 10px;"></i>
+                <h4 style="margin: 0 0 8px 0; color: #666; font-size: 0.95rem;">Tidak ada TOP aktif</h4>
+                <p style="margin: 0; color: #999; font-size: 0.85rem;">Semua TOP sudah lunas</p>
             </div>
         `;
         return;
@@ -2132,29 +2278,30 @@ function displayTOPForPayment(topList) {
         html += `
             <div style="
                 background: white;
-                border-radius: 10px;
-                padding: 20px;
-                margin-bottom: 20px;
-                box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 15px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                border-left: 4px solid #4CAF50;
             " data-top-id="${top.id}">
                 <div style="
                     display: flex;
                     justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 20px;
-                    padding-bottom: 15px;
-                    border-bottom: 1px solid #f0f0f0;
+                    align-items: flex-start;
+                    margin-bottom: 12px;
+                    gap: 10px;
+                    flex-wrap: wrap;
                 ">
-                    <div>
-                        <h4 style="margin: 0; color: #333;">${top.nama_alat}</h4>
-                        <div style="display: flex; gap: 15px; margin-top: 5px;">
-                            <span style="color: #666; font-size: 0.95rem;">
-                                <i class="fas fa-user"></i> ${top.karyawan}
+                    <div style="flex: 1;">
+                        <h4 style="margin: 0 0 5px 0; color: #333; font-size: 0.95rem;">${top.nama_alat}</h4>
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <span style="font-size: 0.85rem; color: #666;">
+                                <i class="fas fa-user" style="color: #667eea;"></i> ${top.karyawan}
                             </span>
                             <span class="payment-status ${getTOPStatusClass(top.status)}" style="
-                                padding: 3px 10px;
+                                padding: 2px 8px;
                                 border-radius: 12px;
-                                font-size: 0.8rem;
+                                font-size: 0.75rem;
                                 font-weight: 600;
                             ">
                                 ${getTOPStatusText(top)}
@@ -2162,7 +2309,7 @@ function displayTOPForPayment(topList) {
                         </div>
                     </div>
                     <button onclick="showPaymentForm('${top.id}')" style="
-                        padding: 10px 20px;
+                        padding: 8px 15px;
                         background: linear-gradient(135deg, #FF9800 0%, #FF5722 100%);
                         color: white;
                         border: none;
@@ -2171,29 +2318,31 @@ function displayTOPForPayment(topList) {
                         cursor: pointer;
                         display: flex;
                         align-items: center;
-                        gap: 8px;
+                        gap: 6px;
+                        font-size: 0.85rem;
+                        flex-shrink: 0;
                     ">
-                        <i class="fas fa-credit-card"></i> Bayar Cicilan
+                        <i class="fas fa-credit-card" style="font-size: 0.8rem;"></i> Bayar
                     </button>
                 </div>
                 
                 <div>
-                    <div style="margin-bottom: 20px;">
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
-                            <div style="background: #f8f9fa; padding: 12px; border-radius: 6px;">
-                                <div style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">Harga Alat:</div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 0.85rem;">
+                            <div style="background: #f8f9fa; padding: 10px; border-radius: 6px;">
+                                <div style="color: #666; font-size: 0.8rem; margin-bottom: 4px;">Harga:</div>
                                 <div>${formatRupiah(top.harga_alat)}</div>
                             </div>
-                            <div style="background: #f8f9fa; padding: 12px; border-radius: 6px;">
-                                <div style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">Subsidi 25%:</div>
-                                <div>${formatRupiah(top.subsidi)}</div>
+                            <div style="background: #f8f9fa; padding: 10px; border-radius: 6px;">
+                                <div style="color: #666; font-size: 0.8rem; margin-bottom: 4px;">Subsidi 25%:</div>
+                                <div style="color: #4CAF50;">${formatRupiah(top.subsidi)}</div>
                             </div>
-                            <div style="background: #f8f9fa; padding: 12px; border-radius: 6px;">
-                                <div style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">Total Cicilan:</div>
+                            <div style="background: #f8f9fa; padding: 10px; border-radius: 6px;">
+                                <div style="color: #666; font-size: 0.8rem; margin-bottom: 4px;">Total Cicilan:</div>
                                 <div>${formatRupiah(top.total_cicilan)}</div>
                             </div>
-                            <div style="background: #f8f9fa; padding: 12px; border-radius: 6px;">
-                                <div style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">Cicilan/Bulan:</div>
+                            <div style="background: #f8f9fa; padding: 10px; border-radius: 6px;">
+                                <div style="color: #666; font-size: 0.8rem; margin-bottom: 4px;">Cicilan per Kali:</div>
                                 <div style="color: #ff9800; font-weight: 600;">${formatRupiah(top.cicilan_per_periode)}</div>
                             </div>
                         </div>
@@ -2201,43 +2350,43 @@ function displayTOPForPayment(topList) {
                     
                     <div style="
                         background: #f8f9fa;
-                        padding: 20px;
+                        padding: 15px;
                         border-radius: 8px;
                     ">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h5 style="margin: 0; color: #333;">Progress Cicilan</h5>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                            <h5 style="margin: 0; color: #333; font-size: 0.9rem;">Progress Cicilan</h5>
                             <button onclick="showCicilanDetail('${top.id}')" style="
-                                padding: 6px 12px;
+                                padding: 4px 10px;
                                 background: transparent;
                                 border: 1px solid #667eea;
                                 color: #667eea;
                                 border-radius: 4px;
                                 cursor: pointer;
-                                font-size: 0.9rem;
+                                font-size: 0.8rem;
                                 display: flex;
                                 align-items: center;
-                                gap: 5px;
+                                gap: 4px;
                             ">
-                                <i class="fas fa-list"></i> Lihat Detail
+                                <i class="fas fa-list" style="font-size: 0.7rem;"></i> Detail
                             </button>
                         </div>
                         <div class="progress-bar-container">
                             <div class="progress-bar" style="width: ${progress.percentage}%"></div>
                             <div class="progress-text">${progress.text}</div>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px;">
-                            <div style="display: flex; justify-content: space-between; padding: 10px; background: white; border-radius: 6px;">
-                                <span>Sudah Dibayar:</span>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; font-size: 0.85rem;">
+                            <div style="display: flex; justify-content: space-between; padding: 8px; background: white; border-radius: 6px;">
+                                <span>Sudah Bayar:</span>
                                 <span style="color: #4CAF50; font-weight: 600;">${formatRupiah(top.total_dibayar || 0)}</span>
                             </div>
-                            <div style="display: flex; justify-content: space-between; padding: 10px; background: white; border-radius: 6px;">
-                                <span>Sisa Cicilan:</span>
+                            <div style="display: flex; justify-content: space-between; padding: 8px; background: white; border-radius: 6px;">
+                                <span>Sisa:</span>
                                 <span style="color: #ff9800; font-weight: 600;">${formatRupiah(top.sisa_cicilan || top.total_cicilan)}</span>
                             </div>
                             ${nextCicilan > 0 ? `
-                                <div style="display: flex; justify-content: space-between; padding: 10px; background: white; border-radius: 6px;">
-                                    <span>Cicilan Berikutnya:</span>
-                                    <span style="color: #667eea; font-weight: 600;">Cicilan ke-${nextCicilan}</span>
+                                <div style="display: flex; justify-content: space-between; padding: 8px; background: white; border-radius: 6px;">
+                                    <span>Berikutnya:</span>
+                                    <span style="color: #667eea; font-weight: 600;">Cicilan ${nextCicilan}</span>
                                 </div>
                             ` : ''}
                         </div>
@@ -2278,7 +2427,7 @@ function displayPaymentHistory(topList) {
     if (allPayments.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" style="padding: 20px; text-align: center; color: #666;">
+                <td colspan="7" style="padding: 20px; text-align: center; color: #666; font-size: 0.9rem;">
                     <i class="fas fa-receipt"></i>
                     Belum ada riwayat pembayaran
                 </td>
@@ -2288,8 +2437,8 @@ function displayPaymentHistory(topList) {
         return;
     }
     
-    // Limit to 20 entries for performance
-    const displayPayments = allPayments.slice(0, 20);
+    // Limit to 15 entries for mobile
+    const displayPayments = allPayments.slice(0, 15);
     
     let html = '';
     
@@ -2298,40 +2447,40 @@ function displayPaymentHistory(topList) {
         
         html += `
             <tr style="${index % 2 === 0 ? 'background: #f9f9f9;' : ''}">
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
                     ${formatDate(tanggal)}<br>
-                    <small style="color: #999;">${tanggal.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>
+                    <small style="color: #999; font-size: 0.75rem;">${tanggal.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>
                 </td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">${payment.barberman}</td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${payment.barberman}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
                     <div style="font-weight: 500;">${payment.alat}</div>
                 </td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">
                     <span style="
                         display: inline-block;
-                        padding: 3px 8px;
+                        padding: 2px 6px;
                         background: #667eea;
                         color: white;
-                        border-radius: 12px;
-                        font-size: 0.8rem;
+                        border-radius: 10px;
+                        font-size: 0.75rem;
                         font-weight: 600;
-                        min-width: 30px;
+                        min-width: 26px;
                         text-align: center;
                     ">${payment.cicilan_ke}</span>
                 </td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">${formatRupiah(payment.jumlah_bayar)}</td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">${payment.penerima || '-'}</td>
-                <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">${formatRupiah(payment.sisa_cicilan)}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${formatRupiah(payment.jumlah_bayar)}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${payment.penerima || '-'}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem;">${formatRupiah(payment.sisa_cicilan)}</td>
             </tr>
         `;
     });
     
-    // Jika ada lebih dari 20 pembayaran, tambahkan note
-    if (allPayments.length > 20) {
+    // Jika ada lebih dari 15 pembayaran, tambahkan note
+    if (allPayments.length > 15) {
         html += `
             <tr style="background: #f8f9fa;">
-                <td colspan="7" style="text-align: center; padding: 15px; color: #6c757d; font-style: italic;">
-                    <i class="fas fa-info-circle"></i> Menampilkan 20 dari ${allPayments.length} pembayaran.
+                <td colspan="7" style="text-align: center; padding: 10px; color: #6c757d; font-style: italic; font-size: 0.8rem;">
+                    <i class="fas fa-info-circle"></i> Menampilkan 15 dari ${allPayments.length} pembayaran.
                 </td>
             </tr>
         `;
@@ -2341,7 +2490,7 @@ function displayPaymentHistory(topList) {
     if (tableEl) tableEl.style.display = 'table';
 }
 
-// [25] Show payment form (Kasir)
+// [25] Show payment form (Kasir) - DIPERBAIKI TOMBOL BATAL
 async function showPaymentForm(topId) {
     try {
         // Get TOP data
@@ -2367,26 +2516,26 @@ async function showPaymentForm(topId) {
         
         // Set payment info
         paymentInfo.innerHTML = `
-            <div style="margin-bottom: 20px;">
-                <h4 style="margin: 0 0 10px 0; color: #333;">${top.nama_alat}</h4>
-                <p style="margin: 0 0 15px 0; color: #666; display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-user" style="color: #667eea;"></i> ${top.karyawan}
+            <div style="margin-bottom: 15px;">
+                <h4 style="margin: 0 0 8px 0; color: #333; font-size: 0.95rem;">${top.nama_alat}</h4>
+                <p style="margin: 0 0 12px 0; color: #666; display: flex; align-items: center; gap: 6px; font-size: 0.85rem;">
+                    <i class="fas fa-user" style="color: #667eea; font-size: 0.8rem;"></i> ${top.karyawan}
                 </p>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-                    <div style="background: #f8f9fa; padding: 10px; border-radius: 6px;">
-                        <div style="color: #666; font-size: 0.9rem;">Cicilan per Bulan:</div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.85rem;">
+                    <div style="background: #f8f9fa; padding: 8px; border-radius: 6px;">
+                        <div style="color: #666; font-size: 0.8rem;">Cicilan per Kali:</div>
                         <div style="font-weight: 600;">${formatRupiah(top.cicilan_per_periode)}</div>
                     </div>
-                    <div style="background: #f8f9fa; padding: 10px; border-radius: 6px;">
-                        <div style="color: #666; font-size: 0.9rem;">Sudah Dibayar:</div>
+                    <div style="background: #f8f9fa; padding: 8px; border-radius: 6px;">
+                        <div style="color: #666; font-size: 0.8rem;">Sudah Dibayar:</div>
                         <div style="font-weight: 600;">${formatRupiah(top.total_dibayar || 0)}</div>
                     </div>
-                    <div style="background: #f8f9fa; padding: 10px; border-radius: 6px;">
-                        <div style="color: #666; font-size: 0.9rem;">Sisa Cicilan:</div>
+                    <div style="background: #f8f9fa; padding: 8px; border-radius: 6px;">
+                        <div style="color: #666; font-size: 0.8rem;">Sisa Cicilan:</div>
                         <div style="font-weight: 600;">${formatRupiah(top.sisa_cicilan || top.total_cicilan)}</div>
                     </div>
-                    <div style="background: #f8f9fa; padding: 10px; border-radius: 6px;">
-                        <div style="color: #666; font-size: 0.9rem;">Cicilan Berikutnya:</div>
+                    <div style="background: #f8f9fa; padding: 8px; border-radius: 6px;">
+                        <div style="color: #666; font-size: 0.8rem;">Cicilan Berikutnya:</div>
                         <div style="font-weight: 600; color: #ff9800;">Cicilan ke-${nextCicilan}</div>
                     </div>
                 </div>
@@ -2434,7 +2583,20 @@ async function showPaymentForm(topId) {
     }
 }
 
-// [26] Calculate payment total
+// [26] Close payment modal function
+function closePaymentModal() {
+    const modal = document.getElementById('paymentModal');
+    if (modal) {
+        modal.style.display = 'none';
+        // Reset form
+        const form = document.getElementById('paymentForm');
+        if (form) {
+            form.reset();
+        }
+    }
+}
+
+// [27] Calculate payment total
 function calculatePaymentTotal(cicilanPerPeriode) {
     const cicilanKe = parseInt(document.getElementById('cicilanKe')?.value) || 1;
     const jumlahCicilan = parseInt(document.getElementById('jumlahCicilan')?.value) || 1;
@@ -2446,7 +2608,7 @@ function calculatePaymentTotal(cicilanPerPeriode) {
     }
 }
 
-// [27] Process payment
+// [28] Process payment
 async function processPayment(topId, topData) {
     try {
         const cicilanKe = parseInt(document.getElementById('cicilanKe')?.value) || 1;
@@ -2503,9 +2665,8 @@ async function processPayment(topId, topData) {
         
         if (error) throw error;
         
-        // Close modal and refresh
-        const modal = document.getElementById('paymentModal');
-        if (modal) modal.style.display = 'none';
+        // Close modal dan refresh
+        closePaymentModal();
         
         alert(`✅ Pembayaran berhasil! Cicilan ke-${cicilanKe}-${cicilanTerakhir}`);
         await loadTOPForKasir();
@@ -2516,7 +2677,7 @@ async function processPayment(topId, topData) {
     }
 }
 
-// [28] Setup events untuk Owner dan Kasir
+// [29] Setup events untuk Owner dan Kasir
 function setupOwnerEvents() {
     // Filter events sudah di-handle di HTML
 }
@@ -2525,7 +2686,7 @@ function setupKasirEvents() {
     // Events sudah di-handle di HTML
 }
 
-// [29] Helper functions
+// [30] Helper functions
 function generateBatchId() {
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).substr(2, 6);
@@ -2573,7 +2734,7 @@ function getTOPStatusText(top) {
     if (top.status === 'rejected') return 'Ditolak';
     if (top.status.startsWith('cicilan_')) {
         const cicilanKe = parseInt(top.status.split('_')[1]) || 0;
-        return `Cicilan ke-${cicilanKe}`;
+        return `Cicilan ${cicilanKe}`;
     }
     return top.status;
 }
@@ -2619,18 +2780,131 @@ function getTOPFooterMessage() {
     return 'Tools Ownership Program';
 }
 
-// [30] Placeholder functions untuk fitur tambahan
+// [31] Placeholder functions untuk fitur tambahan
 async function showCicilanDetail(topId) {
-    alert('Detail cicilan akan ditampilkan di sini');
+    try {
+        const { data: top, error } = await supabase
+            .from('top_program')
+            .select('*')
+            .eq('id', topId)
+            .single();
+        
+        if (error) throw error;
+        
+        const payments = top.pembayaran || [];
+        let detailHtml = `<h4 style="margin: 0 0 10px 0; color: #333;">Detail Cicilan: ${top.nama_alat}</h4>`;
+        detailHtml += `<p style="margin: 0 0 15px 0; color: #666;"><i class="fas fa-user"></i> ${top.karyawan}</p>`;
+        
+        if (payments.length === 0) {
+            detailHtml += `<p style="color: #999; text-align: center; padding: 20px;">Belum ada pembayaran</p>`;
+        } else {
+            detailHtml += `<div style="max-height: 300px; overflow-y: auto;">`;
+            payments.forEach(payment => {
+                const date = new Date(payment.tanggal_bayar);
+                detailHtml += `
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 600; color: #667eea;">Cicilan ke-${payment.cicilan_ke}</span>
+                            <span style="font-weight: 600;">${formatRupiah(payment.jumlah_bayar)}</span>
+                        </div>
+                        <div style="font-size: 0.85rem; color: #666; margin-top: 5px;">
+                            <div>Tanggal: ${formatDate(date)} ${date.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</div>
+                            <div>Penerima: ${payment.penerima || '-'}</div>
+                            <div>Metode: ${payment.metode_bayar || 'cash'}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            detailHtml += `</div>`;
+        }
+        
+        alert(detailHtml.replace(/<[^>]*>/g, '')); // Simple text alert
+        
+    } catch (error) {
+        console.error('Error showing cicilan detail:', error);
+        alert('Gagal memuat detail cicilan');
+    }
 }
 
 async function showTOPDetail(topId) {
-    alert('Detail TOP akan ditampilkan di sini');
+    try {
+        const { data: top, error } = await supabase
+            .from('top_program')
+            .select('*')
+            .eq('id', topId)
+            .single();
+        
+        if (error) throw error;
+        
+        const createdDate = new Date(top.created_at);
+        const approvedDate = top.approved_at ? new Date(top.approved_at) : null;
+        const progress = calculateProgress(top);
+        
+        let detail = `📋 DETAIL TOP\n`;
+        detail += `════════════════════\n`;
+        detail += `• Alat: ${top.nama_alat}\n`;
+        detail += `• Barberman: ${top.karyawan}\n`;
+        detail += `• Outlet: ${top.outlet}\n`;
+        detail += `• Harga: ${formatRupiah(top.harga_alat)}\n`;
+        detail += `• Subsidi 25%: ${formatRupiah(top.subsidi)}\n`;
+        detail += `• Total Cicilan: ${formatRupiah(top.total_cicilan)}\n`;
+        detail += `• Periode: ${top.periode_cicilan} Kali\n`;
+        detail += `• Cicilan per Kali: ${formatRupiah(top.cicilan_per_periode)}\n`;
+        detail += `• Status: ${getTOPStatusText(top)}\n`;
+        detail += `• Progress: ${progress.text}\n`;
+        detail += `• Dibuat: ${formatDate(createdDate)}\n`;
+        
+        if (top.approved_by) {
+            detail += `• Disetujui oleh: ${top.approved_by}\n`;
+            if (approvedDate) {
+                detail += `• Tanggal approve: ${formatDate(approvedDate)}\n`;
+            }
+        }
+        
+        if (top.approve_note) {
+            detail += `• Catatan approve: ${top.approve_note}\n`;
+        }
+        
+        if (top.reject_note) {
+            detail += `• Alasan reject: ${top.reject_note}\n`;
+        }
+        
+        if (top.foto_url) {
+            detail += `\n📸 Foto tersedia\n`;
+        }
+        
+        alert(detail);
+        
+    } catch (error) {
+        console.error('Error showing TOP detail:', error);
+        alert('Gagal memuat detail TOP');
+    }
 }
 
 async function cancelTOP(topId) {
     if (confirm('Batalkan pengajuan TOP ini?')) {
-        alert('Fitur pembatalan akan diimplementasikan');
+        try {
+            const { error } = await supabase
+                .from('top_program')
+                .update({
+                    status: 'rejected',
+                    reject_note: 'Dibatalkan oleh pengaju',
+                    approved_at: new Date().toISOString(),
+                    approved_by: currentKaryawanTOP.nama_karyawan
+                })
+                .eq('id', topId)
+                .eq('status', 'pending')
+                .eq('karyawan', currentKaryawanTOP.nama_karyawan);
+            
+            if (error) throw error;
+            
+            alert('Pengajuan TOP dibatalkan!');
+            await loadMyTOPRiwayat();
+            
+        } catch (error) {
+            console.error('Error canceling TOP:', error);
+            alert('Gagal membatalkan TOP: ' + error.message);
+        }
     }
 }
 
@@ -2638,7 +2912,7 @@ function previewImage(url) {
     window.open(url, '_blank');
 }
 
-// [31] Global functions
+// [32] Global functions
 window.showTOPPage = showTOPPage;
 window.loadMyTOPRiwayat = loadMyTOPRiwayat;
 window.loadTOPForOwner = loadTOPForOwner;
@@ -2650,5 +2924,6 @@ window.showCicilanDetail = showCicilanDetail;
 window.showTOPDetail = showTOPDetail;
 window.cancelTOP = cancelTOP;
 window.previewImage = previewImage;
+window.closePaymentModal = closePaymentModal;
 
 // ========== END OF TOP MODULE ==========
