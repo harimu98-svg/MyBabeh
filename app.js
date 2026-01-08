@@ -465,9 +465,7 @@ function handleMenuClick(menuId) {
             showTOPPage(); // <-- INI SUDAH BENAR
             break;
         case 'sertifikasi':
-            // Menu lain akan diimplementasikan nanti
-        case 'sertifikasi':
-            alert('Menu "Sertifikasi" akan diimplementasikan nanti.');
+          showCertificationPage();
             break;
         default:
             console.log('Menu tidak dikenali:', menuId);
