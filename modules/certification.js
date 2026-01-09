@@ -212,6 +212,7 @@ function createCertificationPage() {
             padding: 16px;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 16px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             position: sticky;
