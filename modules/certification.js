@@ -205,56 +205,65 @@ function createCertificationPage() {
     const isOwner = currentKaryawanCertification?.role === 'owner';
     
     certificationPage.innerHTML = `
-        <!-- Header -->
-        <header style="
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 16px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        ">
-            <button id="backToMainFromCertification" style="
-                background: rgba(255,255,255,0.2);
-                border: none;
-                color: white;
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                font-size: 18px;
-                transition: background 0.3s;
-            ">
-                <i class="fas fa-arrow-left"></i>
-            </button>
-            <h2 style="margin: 0; flex: 1; font-size: 20px; font-weight: 600;">
-                <i class="fas fa-award" style="margin-right: 10px;"></i>Sertifikasi Barber
-            </h2>
-            <button id="refreshCertification" style="
-                background: rgba(255,255,255,0.2);
-                border: none;
-                color: white;
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                font-size: 18px;
-                transition: background 0.3s;
-            " title="Refresh">
-                <i class="fas fa-sync-alt"></i>
-            </button>
-        </header>
+       <!-- Header -->
+<header style="
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: 40px 1fr 40px;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+">
+    <button id="backToMainFromCertification" style="
+        background: rgba(255,255,255,0.2);
+        border: none;
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 18px;
+        transition: background 0.3s;
+    ">
+        <i class="fas fa-arrow-left"></i>
+    </button>
+    
+    <h2 style="
+        margin: 0; 
+        font-size: 20px; 
+        font-weight: 600;
+        text-align: center;
+        grid-column: 2;
+    ">
+        <i class="fas fa-award" style="margin-right: 10px;"></i>Sertifikasi Barber
+    </h2>
+    
+    <button id="refreshCertification" style="
+        background: rgba(255,255,255,0.2);
+        border: none;
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 18px;
+        transition: background 0.3s;
+        grid-column: 3;
+    " title="Refresh">
+        <i class="fas fa-sync-alt"></i>
+    </button>
+</header>
         
         <!-- Info Header -->
         <div style="
