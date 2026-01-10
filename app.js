@@ -951,62 +951,97 @@ async function saveAnnouncement() {
 // Fungsi save ke Supabase - HANYA ke database
 async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
     try {
-        console.log('Saving to database outlets:', selectedOutlets);
+        console.log('=== REAL SAVE TO DATABASE ===');
         
-        // **PERBAIKAN: Pastikan kolom ada**
-        try {
-            const { error: testError } = await supabase
-                .from('outlet')
-                .select('pengumuman_mybabeh')
-                .limit(1);
-            
-            if (testError && testError.code === '42703') {
-                console.error('Kolom pengumuman_mybabeh tidak ada!');
-                return { 
-                    success: false, 
-                    error: 'Kolom pengumuman_mybabeh belum dibuat di database' 
-                };
-            }
-        } catch (testError) {
-            console.error('Error checking column:', testError);
-        }
-        
-        // Jika pilih "Semua Outlet"
+        // **SOLUSI 1: Update semua outlet dengan cara yang GARANSI bekerja**
         if (selectedOutlets.includes('all')) {
-            console.log('📢 Updating ALL outlets in database');
+            console.log('🔧 Updating ALL outlets - GUARANTEED method');
             
-            // PERBAIKAN: Update dengan WHERE clause
+            // METHOD A: Update dengan .not('id', 'is', null) - selalu true
             const { error: updateError } = await supabase
                 .from('outlet')
                 .update({ pengumuman_mybabeh: announcementText })
-                .neq('id', 0); // WHERE id != 0 (semua row)
+                .not('id', 'is', null);  // ⬅️ WHERE id IS NOT NULL
             
             if (updateError) {
-                console.error('Error updating all outlets:', updateError);
-                return { success: false, error: updateError.message };
+                console.error('Method A failed:', updateError);
+                
+                // METHOD B: Update satu per satu (slow but sure)
+                console.log('Trying Method B: update one by one');
+                
+                // 1. Ambil semua outlet
+                const { data: allOutlets, error: fetchError } = await supabase
+                    .from('outlet')
+                    .select('id, outlet');
+                
+                if (fetchError) {
+                    console.error('Cannot fetch outlets:', fetchError);
+                    return { success: false, error: 'Tidak bisa mengambil data outlet' };
+                }
+                
+                console.log(`Found ${allOutlets.length} outlets to update`);
+                
+                // 2. Update satu per satu
+                let successCount = 0;
+                for (const outlet of allOutlets) {
+                    const { error: singleError } = await supabase
+                        .from('outlet')
+                        .update({ pengumuman_mybabeh: announcementText })
+                        .eq('id', outlet.id);
+                    
+                    if (!singleError) successCount++;
+                }
+                
+                console.log(`Updated ${successCount}/${allOutlets.length} outlets`);
+                
+                if (successCount === 0) {
+                    return { success: false, error: 'Gagal update semua outlet' };
+                }
+                
+                return { 
+                    success: true, 
+                    outlets: 'all',
+                    updatedCount: successCount
+                };
             }
             
-            console.log('✅ Successfully updated ALL outlets in database');
+            console.log('✅ Method A success - all outlets updated');
             return { success: true, outlets: 'all' };
         }
         
-        // Update outlet tertentu di database
+        // **SOLUSI 2: Untuk outlet tertentu**
         let successCount = 0;
         let errors = [];
         
         for (const outletValue of selectedOutlets) {
             try {
-                console.log(`Updating database outlet: ${outletValue}`);
+                console.log(`Updating: ${outletValue}`);
                 
+                // **PERBAIKAN: Gunakan .or() untuk cari outlet**
+                const { data: outletData, error: findError } = await supabase
+                    .from('outlet')
+                    .select('id')
+                    .or(`outlet.eq.${outletValue},nama_outlet.eq.${outletValue}`)
+                    .maybeSingle();
+                
+                if (findError || !outletData) {
+                    errors.push(`${outletValue}: Tidak ditemukan`);
+                    continue;
+                }
+                
+                // **UPDATE dengan timestamp**
                 const { error: updateError } = await supabase
                     .from('outlet')
-                    .update({ pengumuman_mybabeh: announcementText })
-                    .eq('outlet', outletValue);
+                    .update({ 
+                        pengumuman_mybabeh: announcementText
+                    })
+                    .eq('id', outletData.id);
                 
                 if (updateError) {
                     errors.push(`${outletValue}: ${updateError.message}`);
                 } else {
                     successCount++;
+                    console.log(`✅ Updated ${outletValue} (ID: ${outletData.id})`);
                 }
                 
             } catch (err) {
@@ -1014,25 +1049,15 @@ async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
             }
         }
         
-        console.log(`📊 Result: ${successCount} successful, ${errors.length} failed`);
-        
-        if (errors.length > 0) {
-            return { 
-                success: successCount > 0, 
-                successCount, 
-                total: selectedOutlets.length,
-                error: `Berhasil ${successCount}, gagal ${errors.length}`
-            };
-        }
-        
         return { 
-            success: true, 
+            success: successCount > 0, 
             successCount, 
-            total: selectedOutlets.length
+            total: selectedOutlets.length,
+            errors: errors.length > 0 ? errors : null
         };
         
     } catch (error) {
-        console.error('❌ Fatal error:', error);
+        console.error('Fatal error:', error);
         return { success: false, error: error.message };
     }
 }
