@@ -955,18 +955,16 @@ async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
         
         // **PERBAIKAN: Pastikan kolom ada**
         try {
-            // Cek apakah kolom pengumuman_mybabeh ada
             const { error: testError } = await supabase
                 .from('outlet')
                 .select('pengumuman_mybabeh')
                 .limit(1);
             
             if (testError && testError.code === '42703') {
-                // Kolom tidak ada, harus buat dulu
                 console.error('Kolom pengumuman_mybabeh tidak ada!');
                 return { 
                     success: false, 
-                    error: 'Kolom pengumuman_mybabeh belum dibuat di database. Hubungi developer!' 
+                    error: 'Kolom pengumuman_mybabeh belum dibuat di database' 
                 };
             }
         } catch (testError) {
@@ -977,13 +975,11 @@ async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
         if (selectedOutlets.includes('all')) {
             console.log('📢 Updating ALL outlets in database');
             
-            // Update semua outlet di database
+            // PERBAIKAN: Update dengan WHERE clause
             const { error: updateError } = await supabase
                 .from('outlet')
-                .update({ 
-                    pengumuman_mybabeh: announcementText,
-              
-                });
+                .update({ pengumuman_mybabeh: announcementText })
+                .neq('id', 0); // WHERE id != 0 (semua row)
             
             if (updateError) {
                 console.error('Error updating all outlets:', updateError);
@@ -991,10 +987,7 @@ async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
             }
             
             console.log('✅ Successfully updated ALL outlets in database');
-            return { 
-                success: true, 
-                outlets: 'all'
-            };
+            return { success: true, outlets: 'all' };
         }
         
         // Update outlet tertentu di database
@@ -1005,38 +998,30 @@ async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
             try {
                 console.log(`Updating database outlet: ${outletValue}`);
                 
-                // Update langsung ke database
                 const { error: updateError } = await supabase
                     .from('outlet')
-                    .update({ 
-                        pengumuman_mybabeh: announcementText,
-                      
-                    })
+                    .update({ pengumuman_mybabeh: announcementText })
                     .eq('outlet', outletValue);
                 
                 if (updateError) {
                     errors.push(`${outletValue}: ${updateError.message}`);
-                    console.error(`Failed ${outletValue}:`, updateError);
                 } else {
                     successCount++;
-                    console.log(`✅ Updated database outlet ${outletValue}`);
                 }
                 
             } catch (err) {
                 errors.push(`${outletValue}: ${err.message}`);
-                console.error(`Error updating ${outletValue}:`, err);
             }
         }
         
-        console.log(`📊 Database result: ${successCount} successful, ${errors.length} failed`);
+        console.log(`📊 Result: ${successCount} successful, ${errors.length} failed`);
         
         if (errors.length > 0) {
-            console.error('Database errors:', errors);
             return { 
                 success: successCount > 0, 
                 successCount, 
                 total: selectedOutlets.length,
-                error: `Berhasil ${successCount}, gagal ${errors.length}. ${errors.join(', ')}`
+                error: `Berhasil ${successCount}, gagal ${errors.length}`
             };
         }
         
@@ -1047,11 +1032,8 @@ async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
         };
         
     } catch (error) {
-        console.error('❌ Fatal error saving to database:', error);
-        return { 
-            success: false, 
-            error: error.message 
-        };
+        console.error('❌ Fatal error:', error);
+        return { success: false, error: error.message };
     }
 }
 
