@@ -516,6 +516,7 @@ function createBasicServiceWorker() {
             });
     }
 }
+
 // ========== FUNGSI PENGUMUMAN DATABASE ==========
 // ==============================================
 
@@ -527,6 +528,7 @@ async function loadOutletList() {
     try {
         console.log('Loading outlet list from database...');
         
+        // Query untuk ambil semua outlet dari tabel outlet
         const { data: outlets, error } = await supabase
             .from('outlet')
             .select('outlet, id')
@@ -537,6 +539,7 @@ async function loadOutletList() {
             return [];
         }
         
+        // Format data outlet
         outletList = outlets.map(outlet => ({
             id: outlet.id,
             name: outlet.outlet || `Outlet ${outlet.id}`,
@@ -558,23 +561,14 @@ async function getCurrentUserOutlet() {
         const { data: { user } } = await supabase.auth.getUser();
         const namaKaryawan = user?.user_metadata?.nama_karyawan;
         
-        if (!namaKaryawan) {
-            console.log('User not found or no nama_karyawan metadata');
-            return null;
-        }
+        if (!namaKaryawan) return null;
         
-        const { data: karyawanData, error } = await supabase
+        const { data: karyawanData } = await supabase
             .from('karyawan')
             .select('outlet')
             .eq('nama_karyawan', namaKaryawan)
             .single();
         
-        if (error) {
-            console.error('Error fetching karyawan data:', error);
-            return null;
-        }
-        
-        console.log('Current user outlet:', karyawanData?.outlet);
         return karyawanData?.outlet || null;
         
     } catch (error) {
@@ -583,7 +577,7 @@ async function getCurrentUserOutlet() {
     }
 }
 
-// FUNGSI YANG HILANG: Load announcement dari Supabase
+// Fungsi untuk load announcement dari Supabase
 async function loadAnnouncementFromSupabase() {
     try {
         const currentOutlet = await getCurrentUserOutlet();
@@ -594,6 +588,7 @@ async function loadAnnouncementFromSupabase() {
         
         console.log('Loading announcement for outlet:', currentOutlet);
         
+        // Query langsung ke database tanpa cache
         const { data: outletData, error } = await supabase
             .from('outlet')
             .select('pengumuman_mybabeh')
@@ -622,9 +617,13 @@ async function showEditPopup() {
     
     console.log('showEditPopup called, current text:', currentText);
     
+    // Load daftar outlet
     const outlets = await loadOutletList();
+    
+    // Ambil outlet user saat ini
     const currentOutlet = await getCurrentUserOutlet();
     
+    // Buat HTML untuk checklist outlet
     let outletCheckboxes = '';
     
     if (outlets.length > 0) {
@@ -644,6 +643,7 @@ async function showEditPopup() {
             </div>
             
             <div class="outlet-checklist-container">
+                <!-- Opsi Semua Outlet -->
                 <div class="checklist-item all-outlets">
                     <label class="checklist-label">
                         <input type="checkbox" id="checkAllOutlets" class="checklist-checkbox" value="all">
@@ -654,6 +654,7 @@ async function showEditPopup() {
                     </label>
                 </div>
                 
+                <!-- Daftar Outlet -->
                 ${outlets.map(outlet => {
                     const isChecked = outlet.value === currentOutlet;
                     return `
@@ -684,6 +685,7 @@ async function showEditPopup() {
         `;
     }
     
+    // Buat popup
     const popupHTML = `
         <div class="edit-popup" id="editPopup">
             <div class="popup-content">
@@ -692,10 +694,12 @@ async function showEditPopup() {
                     <button class="close-popup" id="closePopup">&times;</button>
                 </div>
                 
+                <!-- Pilihan Outlet dengan Checklist -->
                 <div class="outlet-checklist-section">
                     ${outletCheckboxes}
                 </div>
                 
+                <!-- Textarea untuk pengumuman -->
                 <div class="announcement-input-section">
                     <label for="announcementInput">
                         <i class="fas fa-edit"></i> Teks Pengumuman:
@@ -711,6 +715,7 @@ async function showEditPopup() {
                     </div>
                 </div>
                 
+                <!-- Tombol Action -->
                 <div class="popup-buttons">
                     <button class="btn-cancel" id="cancelEdit">
                         <i class="fas fa-times"></i> Batal
@@ -724,14 +729,27 @@ async function showEditPopup() {
     `;
     
     document.body.insertAdjacentHTML('beforeend', popupHTML);
+    
+    // Setup event listeners
     setupAnnouncementPopupEvents();
     
+    // Inisialisasi karakter counter dan selection stats
     setTimeout(() => {
         const input = document.getElementById('announcementInput');
         if (input) {
             input.focus();
             input.select();
-            updateCharCounter(input.value.length);
+            
+            // Inisialisasi karakter counter
+            const charCount = document.getElementById('charCount');
+            if (charCount) {
+                const length = input.value.length;
+                charCount.textContent = length;
+                charCount.style.color = length > 450 ? '#e74c3c' : 
+                                       length > 400 ? '#f39c12' : '#27ae60';
+            }
+            
+            // Inisialisasi selection stats
             updateSelectionStats();
         }
     }, 100);
@@ -750,6 +768,7 @@ function setupAnnouncementPopupEvents() {
     
     if (!popup || !input) return;
     
+    // Fungsi update character counter
     function updateCharCounter(length) {
         const charCount = document.getElementById('charCount');
         if (charCount) {
@@ -758,6 +777,7 @@ function setupAnnouncementPopupEvents() {
         }
     }
     
+    // Fungsi update selection stats
     function updateSelectionStats() {
         const checkboxes = document.querySelectorAll('.outlet-checkbox:checked');
         const selectedCount = checkboxes.length;
@@ -770,6 +790,7 @@ function setupAnnouncementPopupEvents() {
             statsContainer.style.color = selectedCount === 0 ? '#721c24' : '#155724';
         }
         
+        // Update "Semua Outlet" checkbox state
         const allCheckboxes = document.querySelectorAll('.outlet-checkbox');
         if (checkAllOutlets && allCheckboxes.length > 0) {
             const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
@@ -780,10 +801,12 @@ function setupAnnouncementPopupEvents() {
         }
     }
     
+    // Character counter event
     input.addEventListener('input', (e) => {
         updateCharCounter(e.target.value.length);
     });
     
+    // Event untuk "Semua Outlet" checkbox
     if (checkAllOutlets) {
         checkAllOutlets.addEventListener('change', function() {
             const checkboxes = document.querySelectorAll('.outlet-checkbox');
@@ -794,12 +817,14 @@ function setupAnnouncementPopupEvents() {
         });
     }
     
+    // Event untuk outlet checkboxes
     document.addEventListener('change', (e) => {
         if (e.target.classList.contains('outlet-checkbox')) {
             updateSelectionStats();
         }
     });
     
+    // Tombol Pilih Semua
     if (selectAllBtn) {
         selectAllBtn.addEventListener('click', () => {
             const checkboxes = document.querySelectorAll('.outlet-checkbox');
@@ -812,6 +837,7 @@ function setupAnnouncementPopupEvents() {
         });
     }
     
+    // Tombol Hapus Semua
     if (clearAllBtn) {
         clearAllBtn.addEventListener('click', () => {
             const checkboxes = document.querySelectorAll('.checklist-checkbox');
@@ -823,19 +849,27 @@ function setupAnnouncementPopupEvents() {
         });
     }
     
+    // Close button
     if (closeBtn) closeBtn.addEventListener('click', () => popup.remove());
+    
+    // Cancel button
     cancelBtn.addEventListener('click', () => popup.remove());
+    
+    // Save button
     saveBtn.addEventListener('click', saveAnnouncement);
     
+    // ESC key untuk close
     const escHandler = (e) => {
         if (e.key === 'Escape') popup.remove();
     };
     document.addEventListener('keydown', escHandler);
     
+    // Click outside to close
     popup.addEventListener('click', (e) => {
         if (e.target === popup) popup.remove();
     });
     
+    // Inisialisasi
     updateCharCounter(input.value.length);
     updateSelectionStats();
 }
@@ -858,6 +892,7 @@ async function saveAnnouncement() {
         return;
     }
     
+    // Ambil outlet yang dipilih
     const checkboxes = document.querySelectorAll('.checklist-checkbox:checked');
     const selectedOutlets = Array.from(checkboxes).map(cb => cb.value);
     
@@ -867,6 +902,7 @@ async function saveAnnouncement() {
     }
     
     try {
+        // Cek role user
         const { data: { user } } = await supabase.auth.getUser();
         const namaKaryawan = user?.user_metadata?.nama_karyawan;
         
@@ -879,30 +915,41 @@ async function saveAnnouncement() {
             .single();
         
         if (karyawanData?.role === 'owner') {
+            // Tampilkan loading
             const saveBtn = document.getElementById('saveAnnouncement');
             const originalText = saveBtn.innerHTML;
             saveBtn.disabled = true;
             saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
             
-            console.log('Owner saving to database...');
+            console.log('Owner saving announcement to database...');
+            console.log('Text:', newText);
+            console.log('Selected outlets:', selectedOutlets);
+            
+            // Simpan ke database
             const result = await saveAnnouncementToSupabase(newText, selectedOutlets);
             
             saveBtn.disabled = false;
             saveBtn.innerHTML = originalText;
             
             if (result.success) {
+                console.log('Save successful:', result);
+                
+                // Update UI langsung
                 const announcementText = document.getElementById('announcementText');
                 if (announcementText) {
                     announcementText.innerHTML = `<marquee>${newText}</marquee>`;
                 }
                 
+                // Simpan ke localStorage sebagai cache
                 localStorage.setItem('babeh_announcement', newText);
                 
-                // Force reload dari database setelah beberapa detik
+                // Force clear cache dan reload
                 setTimeout(async () => {
-                    await loadSavedAnnouncement();
-                }, 1000);
+                    console.log('Force reloading announcement from database...');
+                    await loadSavedAnnouncement(true);
+                }, 300);
                 
+                // Tampilkan pesan sukses
                 let successMessage = 'Pengumuman berhasil disimpan!';
                 if (selectedOutlets.includes('all')) {
                     successMessage = 'Pengumuman berhasil dikirim ke semua outlet!';
@@ -910,30 +957,36 @@ async function saveAnnouncement() {
                     successMessage = `Pengumuman berhasil dikirim ke ${selectedOutlets.length} outlet`;
                 }
                 
-                alert(successMessage);
-                popup.remove();
+                // Tampilkan toast atau alert
+                showToast(successMessage, 'success');
+                
+                // Tutup popup setelah 1 detik
+                setTimeout(() => {
+                    popup.remove();
+                }, 1000);
                 
             } else {
-                alert(`Gagal menyimpan: ${result.error}`);
+                showToast(`Gagal menyimpan: ${result.error}`, 'error');
             }
         } else {
             // Non-owner: hanya simpan ke localStorage
-            console.log('Non-owner saving to localStorage only');
             localStorage.setItem('babeh_announcement', newText);
             
+            // Update UI
             const announcementText = document.getElementById('announcementText');
             if (announcementText) {
                 announcementText.innerHTML = `<marquee>${newText}</marquee>`;
             }
             
-            alert('Pengumuman berhasil disimpan (hanya untuk sesi ini)!');
+            showToast('Pengumuman berhasil disimpan (hanya untuk sesi ini)!', 'info');
             popup.remove();
         }
         
     } catch (error) {
         console.error('Error saving announcement:', error);
-        alert('Terjadi kesalahan: ' + error.message);
+        showToast('Terjadi kesalahan: ' + error.message, 'error');
         
+        // Reset button
         const saveBtn = document.getElementById('saveAnnouncement');
         if (saveBtn) {
             saveBtn.disabled = false;
@@ -942,47 +995,108 @@ async function saveAnnouncement() {
     }
 }
 
+// Fungsi toast notification
+function showToast(message, type = 'info') {
+    // Hapus toast sebelumnya
+    const existingToast = document.querySelector('.custom-toast');
+    if (existingToast) existingToast.remove();
+    
+    const colors = {
+        success: '#28a745',
+        error: '#dc3545',
+        info: '#17a2b8',
+        warning: '#ffc107'
+    };
+    
+    const toastHTML = `
+        <div class="custom-toast" style="
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${colors[type] || '#17a2b8'};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+            font-family: Arial, sans-serif;
+        ">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}" 
+               style="margin-right: 8px;"></i>
+            ${message}
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', toastHTML);
+    
+    // Auto remove setelah 3 detik
+    setTimeout(() => {
+        const toast = document.querySelector('.custom-toast');
+        if (toast) {
+            toast.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, 3000);
+}
+
 // Fungsi save ke Supabase - VERSI PERBAIKAN
 async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
     try {
         console.log('Saving announcement to Supabase...');
-        console.log('Text:', announcementText);
-        console.log('Selected outlets:', selectedOutlets);
         
+        // Jika pilih "Semua Outlet"
         if (selectedOutlets.includes('all')) {
-            // Update semua outlet
-            const { error } = await supabase
+            console.log('Updating ALL outlets...');
+            
+            // Langsung update semua tanpa where clause
+            const { data, error } = await supabase
                 .from('outlet')
                 .update({ pengumuman_mybabeh: announcementText })
-                .not('id', 'is', null);
+                .select('id, outlet, pengumuman_mybabeh'); // Return data untuk verifikasi
             
             if (error) {
                 console.error('Error updating all outlets:', error);
                 throw error;
             }
             
-            console.log('Successfully updated all outlets');
+            console.log('All outlets update result:', data);
             return { 
                 success: true, 
-                outlets: 'all'
+                outlets: 'all',
+                data: data 
             };
         }
         
         // Update outlet yang dipilih
-        const { error } = await supabase
+        console.log('Updating selected outlets:', selectedOutlets);
+        
+        // Pastikan kita menggunakan nama outlet yang benar
+        // Query untuk debug: lihat data outlet yang akan diupdate
+        const { data: outletData } = await supabase
+            .from('outlet')
+            .select('outlet')
+            .in('outlet', selectedOutlets);
+        
+        console.log('Matching outlets found:', outletData);
+        
+        // Gunakan update dengan .in()
+        const { data, error } = await supabase
             .from('outlet')
             .update({ pengumuman_mybabeh: announcementText })
-            .in('outlet', selectedOutlets);
+            .in('outlet', selectedOutlets)
+            .select('id, outlet, pengumuman_mybabeh'); // Return data untuk verifikasi
         
         if (error) {
             console.error('Error updating selected outlets:', error);
             throw error;
         }
         
-        console.log(`Successfully updated ${selectedOutlets.length} outlets`);
+        console.log('Selected outlets update result:', data);
         return { 
             success: true, 
-            successCount: selectedOutlets.length
+            successCount: selectedOutlets.length,
+            data: data 
         };
         
     } catch (error) {
@@ -995,7 +1109,7 @@ async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
 }
 
 // Load saved announcement
-async function loadSavedAnnouncement() {
+async function loadSavedAnnouncement(forceRefresh = false) {
     const announcementText = document.getElementById('announcementText');
     if (!announcementText) {
         console.log('announcementText element not found');
@@ -1003,12 +1117,44 @@ async function loadSavedAnnouncement() {
     }
     
     try {
-        console.log('Loading announcement...');
+        console.log('Loading announcement...', forceRefresh ? '(force refresh)' : '');
+        
+        // Jika force refresh, hapus cache
+        if (forceRefresh) {
+            localStorage.removeItem('babeh_announcement_cache');
+            
+            // Query database langsung tanpa cache
+            const { data: { user } } = await supabase.auth.getUser();
+            const namaKaryawan = user?.user_metadata?.nama_karyawan;
+            
+            if (namaKaryawan) {
+                const { data: karyawanData } = await supabase
+                    .from('karyawan')
+                    .select('outlet')
+                    .eq('nama_karyawan', namaKaryawan)
+                    .single();
+                
+                if (karyawanData?.outlet) {
+                    const { data: freshData } = await supabase
+                        .from('outlet')
+                        .select('pengumuman_mybabeh')
+                        .eq('outlet', karyawanData.outlet)
+                        .single();
+                    
+                    if (freshData?.pengumuman_mybabeh) {
+                        console.log('Force refreshed from DB:', freshData.pengumuman_mybabeh);
+                        announcementText.innerHTML = `<marquee>${freshData.pengumuman_mybabeh}</marquee>`;
+                        localStorage.setItem('babeh_announcement', freshData.pengumuman_mybabeh);
+                        return;
+                    }
+                }
+            }
+        }
         
         // Coba dari database terlebih dahulu
         const dbAnnouncement = await loadAnnouncementFromSupabase();
         
-        if (dbAnnouncement && dbAnnouncement.trim() !== '') {
+        if (dbAnnouncement !== null && dbAnnouncement !== undefined) {
             console.log('Loaded from database:', dbAnnouncement);
             announcementText.innerHTML = `<marquee>${dbAnnouncement}</marquee>`;
             localStorage.setItem('babeh_announcement', dbAnnouncement);
@@ -1039,6 +1185,33 @@ async function loadSavedAnnouncement() {
         }
     }
 }
+
+// Tambahkan CSS untuk animasi toast
+const toastStyles = document.createElement('style');
+toastStyles.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(toastStyles);
 
 // Fungsi untuk menampilkan notifikasi (hanya untuk owner)
 function showNotifications() {
