@@ -528,7 +528,6 @@ async function loadOutletList() {
     try {
         console.log('Loading outlet list from database...');
         
-        // Query untuk ambil semua outlet dari tabel outlet
         const { data: outlets, error } = await supabase
             .from('outlet')
             .select('outlet, id')
@@ -539,7 +538,6 @@ async function loadOutletList() {
             return [];
         }
         
-        // Format data outlet
         outletList = outlets.map(outlet => ({
             id: outlet.id,
             name: outlet.outlet || `Outlet ${outlet.id}`,
@@ -588,7 +586,6 @@ async function loadAnnouncementFromSupabase() {
         
         console.log('Loading announcement for outlet:', currentOutlet);
         
-        // Query langsung ke database tanpa cache
         const { data: outletData, error } = await supabase
             .from('outlet')
             .select('pengumuman_mybabeh')
@@ -608,6 +605,89 @@ async function loadAnnouncementFromSupabase() {
         return null;
     }
 }
+
+// ========== FUNGSI UTILITAS ==========
+
+// Fungsi update selection stats (dipindah ke global scope)
+function updateSelectionStats() {
+    const checkAllOutlets = document.getElementById('checkAllOutlets');
+    if (!checkAllOutlets) return;
+    
+    const checkboxes = document.querySelectorAll('.outlet-checkbox:checked');
+    const selectedCount = checkboxes.length;
+    const statsEl = document.getElementById('selectedCount');
+    const statsContainer = document.getElementById('selectionStats');
+    
+    if (statsEl) statsEl.textContent = selectedCount;
+    if (statsContainer) {
+        statsContainer.style.background = selectedCount === 0 ? '#f8d7da' : '#d4edda';
+        statsContainer.style.color = selectedCount === 0 ? '#721c24' : '#155724';
+    }
+    
+    // Update "Semua Outlet" checkbox state
+    const allCheckboxes = document.querySelectorAll('.outlet-checkbox');
+    if (checkAllOutlets && allCheckboxes.length > 0) {
+        const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+        const noneChecked = Array.from(allCheckboxes).every(cb => !cb.checked);
+        
+        checkAllOutlets.checked = allChecked;
+        checkAllOutlets.indeterminate = !allChecked && !noneChecked;
+    }
+}
+
+// Fungsi update character counter
+function updateCharCounter(length) {
+    const charCount = document.getElementById('charCount');
+    if (charCount) {
+        charCount.textContent = length;
+        charCount.style.color = length > 450 ? '#e74c3c' : length > 400 ? '#f39c12' : '#27ae60';
+    }
+}
+
+// Fungsi toast notification
+function showToast(message, type = 'info') {
+    const existingToast = document.querySelector('.custom-toast');
+    if (existingToast) existingToast.remove();
+    
+    const colors = {
+        success: '#28a745',
+        error: '#dc3545',
+        info: '#17a2b8',
+        warning: '#ffc107'
+    };
+    
+    const toastHTML = `
+        <div class="custom-toast" style="
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${colors[type] || '#17a2b8'};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+            font-family: Arial, sans-serif;
+        ">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}" 
+               style="margin-right: 8px;"></i>
+            ${message}
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', toastHTML);
+    
+    setTimeout(() => {
+        const toast = document.querySelector('.custom-toast');
+        if (toast) {
+            toast.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, 3000);
+}
+
+// ========== FUNGSI POPUP ==========
 
 // Fungsi untuk tampilkan modal edit dengan checklist outlet
 async function showEditPopup() {
@@ -741,13 +821,7 @@ async function showEditPopup() {
             input.select();
             
             // Inisialisasi karakter counter
-            const charCount = document.getElementById('charCount');
-            if (charCount) {
-                const length = input.value.length;
-                charCount.textContent = length;
-                charCount.style.color = length > 450 ? '#e74c3c' : 
-                                       length > 400 ? '#f39c12' : '#27ae60';
-            }
+            updateCharCounter(input.value.length);
             
             // Inisialisasi selection stats
             updateSelectionStats();
@@ -767,39 +841,6 @@ function setupAnnouncementPopupEvents() {
     const checkAllOutlets = document.getElementById('checkAllOutlets');
     
     if (!popup || !input) return;
-    
-    // Fungsi update character counter
-    function updateCharCounter(length) {
-        const charCount = document.getElementById('charCount');
-        if (charCount) {
-            charCount.textContent = length;
-            charCount.style.color = length > 450 ? '#e74c3c' : length > 400 ? '#f39c12' : '#27ae60';
-        }
-    }
-    
-    // Fungsi update selection stats
-    function updateSelectionStats() {
-        const checkboxes = document.querySelectorAll('.outlet-checkbox:checked');
-        const selectedCount = checkboxes.length;
-        const statsEl = document.getElementById('selectedCount');
-        const statsContainer = document.getElementById('selectionStats');
-        
-        if (statsEl) statsEl.textContent = selectedCount;
-        if (statsContainer) {
-            statsContainer.style.background = selectedCount === 0 ? '#f8d7da' : '#d4edda';
-            statsContainer.style.color = selectedCount === 0 ? '#721c24' : '#155724';
-        }
-        
-        // Update "Semua Outlet" checkbox state
-        const allCheckboxes = document.querySelectorAll('.outlet-checkbox');
-        if (checkAllOutlets && allCheckboxes.length > 0) {
-            const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
-            const noneChecked = Array.from(allCheckboxes).every(cb => !cb.checked);
-            
-            checkAllOutlets.checked = allChecked;
-            checkAllOutlets.indeterminate = !allChecked && !noneChecked;
-        }
-    }
     
     // Character counter event
     input.addEventListener('input', (e) => {
@@ -853,10 +894,10 @@ function setupAnnouncementPopupEvents() {
     if (closeBtn) closeBtn.addEventListener('click', () => popup.remove());
     
     // Cancel button
-    cancelBtn.addEventListener('click', () => popup.remove());
+    if (cancelBtn) cancelBtn.addEventListener('click', () => popup.remove());
     
     // Save button
-    saveBtn.addEventListener('click', saveAnnouncement);
+    if (saveBtn) saveBtn.addEventListener('click', saveAnnouncement);
     
     // ESC key untuk close
     const escHandler = (e) => {
@@ -872,6 +913,100 @@ function setupAnnouncementPopupEvents() {
     // Inisialisasi
     updateCharCounter(input.value.length);
     updateSelectionStats();
+}
+
+// ========== FUNGSI SAVE ==========
+
+// Fungsi save ke Supabase - VERSI FIXED
+async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
+    try {
+        console.log('Saving announcement to Supabase...');
+        
+        // Jika pilih "Semua Outlet"
+        if (selectedOutlets.includes('all')) {
+            console.log('Updating ALL outlets...');
+            
+            // CARA 1: Update semua outlet dengan query yang benar
+            // Supabase tidak mengizinkan update tanpa WHERE clause,
+            // jadi kita perlu ambil semua ID dulu
+            
+            // Ambil semua outlet ID
+            const { data: allOutlets, error: fetchError } = await supabase
+                .from('outlet')
+                .select('id');
+                
+            if (fetchError) {
+                console.error('Error fetching outlets:', fetchError);
+                throw fetchError;
+            }
+            
+            if (!allOutlets || allOutlets.length === 0) {
+                throw new Error('Tidak ada outlet ditemukan');
+            }
+            
+            const outletIds = allOutlets.map(outlet => outlet.id);
+            
+            // Update berdasarkan ID
+            const { data, error } = await supabase
+                .from('outlet')
+                .update({ pengumuman_mybabeh: announcementText })
+                .in('id', outletIds)
+                .select('id, outlet, pengumuman_mybabeh');
+            
+            if (error) {
+                console.error('Error updating all outlets:', error);
+                throw error;
+            }
+            
+            console.log('All outlets update result:', data);
+            return { 
+                success: true, 
+                outlets: 'all',
+                data: data 
+            };
+        }
+        
+        // Update outlet yang dipilih
+        console.log('Updating selected outlets:', selectedOutlets);
+        
+        // Pastikan kita menggunakan nama outlet yang benar
+        const { data: outletData } = await supabase
+            .from('outlet')
+            .select('outlet')
+            .in('outlet', selectedOutlets);
+        
+        console.log('Matching outlets found:', outletData);
+        
+        if (!outletData || outletData.length === 0) {
+            throw new Error('Tidak ada outlet yang cocok ditemukan');
+        }
+        
+        // Gunakan update dengan .in()
+        const { data, error } = await supabase
+            .from('outlet')
+            .update({ pengumuman_mybabeh: announcementText })
+            .in('outlet', selectedOutlets)
+            .select('id, outlet, pengumuman_mybabeh');
+        
+        if (error) {
+            console.error('Error updating selected outlets:', error);
+            throw error;
+        }
+        
+        console.log('Selected outlets update result:', data);
+        return { 
+            success: true, 
+            successCount: selectedOutlets.length,
+            data: data 
+        };
+        
+    } catch (error) {
+        console.error('Error in saveAnnouncementToSupabase:', error);
+        return { 
+            success: false, 
+            error: error.message 
+        };
+    }
 }
 
 // Fungsi save announcement
@@ -943,11 +1078,11 @@ async function saveAnnouncement() {
                 // Simpan ke localStorage sebagai cache
                 localStorage.setItem('babeh_announcement', newText);
                 
-                // Force clear cache dan reload
+                // Force clear cache dan reload setelah 1 detik
                 setTimeout(async () => {
                     console.log('Force reloading announcement from database...');
                     await loadSavedAnnouncement(true);
-                }, 300);
+                }, 1000);
                 
                 // Tampilkan pesan sukses
                 let successMessage = 'Pengumuman berhasil disimpan!';
@@ -957,13 +1092,15 @@ async function saveAnnouncement() {
                     successMessage = `Pengumuman berhasil dikirim ke ${selectedOutlets.length} outlet`;
                 }
                 
-                // Tampilkan toast atau alert
+                // Tampilkan toast
                 showToast(successMessage, 'success');
                 
-                // Tutup popup setelah 1 detik
+                // Tutup popup setelah 1.5 detik
                 setTimeout(() => {
-                    popup.remove();
-                }, 1000);
+                    if (popup && popup.parentNode) {
+                        popup.remove();
+                    }
+                }, 1500);
                 
             } else {
                 showToast(`Gagal menyimpan: ${result.error}`, 'error');
@@ -979,7 +1116,9 @@ async function saveAnnouncement() {
             }
             
             showToast('Pengumuman berhasil disimpan (hanya untuk sesi ini)!', 'info');
-            popup.remove();
+            if (popup && popup.parentNode) {
+                popup.remove();
+            }
         }
         
     } catch (error) {
@@ -995,118 +1134,7 @@ async function saveAnnouncement() {
     }
 }
 
-// Fungsi toast notification
-function showToast(message, type = 'info') {
-    // Hapus toast sebelumnya
-    const existingToast = document.querySelector('.custom-toast');
-    if (existingToast) existingToast.remove();
-    
-    const colors = {
-        success: '#28a745',
-        error: '#dc3545',
-        info: '#17a2b8',
-        warning: '#ffc107'
-    };
-    
-    const toastHTML = `
-        <div class="custom-toast" style="
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: ${colors[type] || '#17a2b8'};
-            color: white;
-            padding: 12px 20px;
-            border-radius: 5px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 9999;
-            animation: slideIn 0.3s ease;
-            font-family: Arial, sans-serif;
-        ">
-            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}" 
-               style="margin-right: 8px;"></i>
-            ${message}
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', toastHTML);
-    
-    // Auto remove setelah 3 detik
-    setTimeout(() => {
-        const toast = document.querySelector('.custom-toast');
-        if (toast) {
-            toast.style.animation = 'slideOut 0.3s ease';
-            setTimeout(() => toast.remove(), 300);
-        }
-    }, 3000);
-}
-
-// Fungsi save ke Supabase - VERSI PERBAIKAN
-async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
-    try {
-        console.log('Saving announcement to Supabase...');
-        
-        // Jika pilih "Semua Outlet"
-        if (selectedOutlets.includes('all')) {
-            console.log('Updating ALL outlets...');
-            
-            // Langsung update semua tanpa where clause
-            const { data, error } = await supabase
-                .from('outlet')
-                .update({ pengumuman_mybabeh: announcementText })
-                .select('id, outlet, pengumuman_mybabeh'); // Return data untuk verifikasi
-            
-            if (error) {
-                console.error('Error updating all outlets:', error);
-                throw error;
-            }
-            
-            console.log('All outlets update result:', data);
-            return { 
-                success: true, 
-                outlets: 'all',
-                data: data 
-            };
-        }
-        
-        // Update outlet yang dipilih
-        console.log('Updating selected outlets:', selectedOutlets);
-        
-        // Pastikan kita menggunakan nama outlet yang benar
-        // Query untuk debug: lihat data outlet yang akan diupdate
-        const { data: outletData } = await supabase
-            .from('outlet')
-            .select('outlet')
-            .in('outlet', selectedOutlets);
-        
-        console.log('Matching outlets found:', outletData);
-        
-        // Gunakan update dengan .in()
-        const { data, error } = await supabase
-            .from('outlet')
-            .update({ pengumuman_mybabeh: announcementText })
-            .in('outlet', selectedOutlets)
-            .select('id, outlet, pengumuman_mybabeh'); // Return data untuk verifikasi
-        
-        if (error) {
-            console.error('Error updating selected outlets:', error);
-            throw error;
-        }
-        
-        console.log('Selected outlets update result:', data);
-        return { 
-            success: true, 
-            successCount: selectedOutlets.length,
-            data: data 
-        };
-        
-    } catch (error) {
-        console.error('Error in saveAnnouncementToSupabase:', error);
-        return { 
-            success: false, 
-            error: error.message 
-        };
-    }
-}
+// ========== FUNGSI LOAD ==========
 
 // Load saved announcement
 async function loadSavedAnnouncement(forceRefresh = false) {
@@ -1118,38 +1146,6 @@ async function loadSavedAnnouncement(forceRefresh = false) {
     
     try {
         console.log('Loading announcement...', forceRefresh ? '(force refresh)' : '');
-        
-        // Jika force refresh, hapus cache
-        if (forceRefresh) {
-            localStorage.removeItem('babeh_announcement_cache');
-            
-            // Query database langsung tanpa cache
-            const { data: { user } } = await supabase.auth.getUser();
-            const namaKaryawan = user?.user_metadata?.nama_karyawan;
-            
-            if (namaKaryawan) {
-                const { data: karyawanData } = await supabase
-                    .from('karyawan')
-                    .select('outlet')
-                    .eq('nama_karyawan', namaKaryawan)
-                    .single();
-                
-                if (karyawanData?.outlet) {
-                    const { data: freshData } = await supabase
-                        .from('outlet')
-                        .select('pengumuman_mybabeh')
-                        .eq('outlet', karyawanData.outlet)
-                        .single();
-                    
-                    if (freshData?.pengumuman_mybabeh) {
-                        console.log('Force refreshed from DB:', freshData.pengumuman_mybabeh);
-                        announcementText.innerHTML = `<marquee>${freshData.pengumuman_mybabeh}</marquee>`;
-                        localStorage.setItem('babeh_announcement', freshData.pengumuman_mybabeh);
-                        return;
-                    }
-                }
-            }
-        }
         
         // Coba dari database terlebih dahulu
         const dbAnnouncement = await loadAnnouncementFromSupabase();
@@ -1186,32 +1182,50 @@ async function loadSavedAnnouncement(forceRefresh = false) {
     }
 }
 
-// Tambahkan CSS untuk animasi toast
-const toastStyles = document.createElement('style');
-toastStyles.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
+// ========== INISIALISASI ==========
+
+// Tambahkan CSS untuk animasi toast jika belum ada
+if (!document.querySelector('#toast-styles')) {
+    const toastStyles = document.createElement('style');
+    toastStyles.id = 'toast-styles';
+    toastStyles.textContent = `
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
-        to {
-            transform: translateX(0);
-            opacity: 1;
+        
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
         }
-    }
-    
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
+        
+        .custom-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+            font-family: Arial, sans-serif;
+            color: white;
         }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(toastStyles);
+    `;
+    document.head.appendChild(toastStyles);
+}
 
 // Fungsi untuk menampilkan notifikasi (hanya untuk owner)
 function showNotifications() {
