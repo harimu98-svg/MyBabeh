@@ -951,114 +951,53 @@ async function saveAnnouncement() {
 // Fungsi save ke Supabase - HANYA ke database
 async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
     try {
-        console.log('=== REAL SAVE TO DATABASE ===');
+        console.log('Saving announcement to outlets:', selectedOutlets);
         
-        // **SOLUSI 1: Update semua outlet dengan cara yang GARANSI bekerja**
+        // Jika pilih "Semua Outlet"
         if (selectedOutlets.includes('all')) {
-            console.log('🔧 Updating ALL outlets - GUARANTEED method');
-            
-            // METHOD A: Update dengan .not('id', 'is', null) - selalu true
-            const { error: updateError } = await supabase
+            // Update semua outlet sekaligus
+            const { error } = await supabase
                 .from('outlet')
                 .update({ pengumuman_mybabeh: announcementText })
-                .not('id', 'is', null);  // ⬅️ WHERE id IS NOT NULL
+                .not('id', 'is', null); // Update semua record
             
-            if (updateError) {
-                console.error('Method A failed:', updateError);
-                
-                // METHOD B: Update satu per satu (slow but sure)
-                console.log('Trying Method B: update one by one');
-                
-                // 1. Ambil semua outlet
-                const { data: allOutlets, error: fetchError } = await supabase
-                    .from('outlet')
-                    .select('id, outlet');
-                
-                if (fetchError) {
-                    console.error('Cannot fetch outlets:', fetchError);
-                    return { success: false, error: 'Tidak bisa mengambil data outlet' };
-                }
-                
-                console.log(`Found ${allOutlets.length} outlets to update`);
-                
-                // 2. Update satu per satu
-                let successCount = 0;
-                for (const outlet of allOutlets) {
-                    const { error: singleError } = await supabase
-                        .from('outlet')
-                        .update({ pengumuman_mybabeh: announcementText })
-                        .eq('id', outlet.id);
-                    
-                    if (!singleError) successCount++;
-                }
-                
-                console.log(`Updated ${successCount}/${allOutlets.length} outlets`);
-                
-                if (successCount === 0) {
-                    return { success: false, error: 'Gagal update semua outlet' };
-                }
-                
-                return { 
-                    success: true, 
-                    outlets: 'all',
-                    updatedCount: successCount
-                };
+            if (error) {
+                console.error('Error updating all outlets:', error);
+                throw error;
             }
             
-            console.log('✅ Method A success - all outlets updated');
-            return { success: true, outlets: 'all' };
+            console.log('Successfully updated all outlets');
+            return { 
+                success: true, 
+                outlets: 'all',
+                message: 'Berhasil update semua outlet' 
+            };
         }
         
-        // **SOLUSI 2: Untuk outlet tertentu**
-        let successCount = 0;
-        let errors = [];
+        // Simpan ke outlet yang dipilih - VERSI FIXED
+        const { error } = await supabase
+            .from('outlet')
+            .update({ pengumuman_mybabeh: announcementText })
+            .in('outlet', selectedOutlets); // Gunakan 'in' untuk multiple values
         
-        for (const outletValue of selectedOutlets) {
-            try {
-                console.log(`Updating: ${outletValue}`);
-                
-                // **PERBAIKAN: Gunakan .or() untuk cari outlet**
-                const { data: outletData, error: findError } = await supabase
-                    .from('outlet')
-                    .select('id')
-                    .or(`outlet.eq.${outletValue},nama_outlet.eq.${outletValue}`)
-                    .maybeSingle();
-                
-                if (findError || !outletData) {
-                    errors.push(`${outletValue}: Tidak ditemukan`);
-                    continue;
-                }
-                
-                // **UPDATE dengan timestamp**
-                const { error: updateError } = await supabase
-                    .from('outlet')
-                    .update({ 
-                        pengumuman_mybabeh: announcementText
-                    })
-                    .eq('id', outletData.id);
-                
-                if (updateError) {
-                    errors.push(`${outletValue}: ${updateError.message}`);
-                } else {
-                    successCount++;
-                    console.log(`✅ Updated ${outletValue} (ID: ${outletData.id})`);
-                }
-                
-            } catch (err) {
-                errors.push(`${outletValue}: ${err.message}`);
-            }
+        if (error) {
+            console.error('Error updating selected outlets:', error);
+            throw error;
         }
         
+        console.log(`Successfully updated ${selectedOutlets.length} outlets`);
         return { 
-            success: successCount > 0, 
-            successCount, 
-            total: selectedOutlets.length,
-            errors: errors.length > 0 ? errors : null
+            success: true, 
+            successCount: selectedOutlets.length,
+            total: selectedOutlets.length 
         };
         
     } catch (error) {
-        console.error('Fatal error:', error);
-        return { success: false, error: error.message };
+        console.error('Error saving to Supabase:', error);
+        return { 
+            success: false, 
+            error: error.message 
+        };
     }
 }
 
@@ -1066,77 +1005,42 @@ async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
 // ===============================================
 
 // Fungsi load announcement dari database sesuai outlet user
-async function loadAnnouncementFromSupabase() {
-    try {
-        const currentOutlet = await getCurrentUserOutlet();
-        if (!currentOutlet) {
-            console.log('❌ Current outlet not found');
-            return null;
-        }
-        
-        console.log(`🔍 Loading announcement from database for outlet: ${currentOutlet}`);
-        
-        // Load langsung dari database
-        const { data: outletData, error } = await supabase
-            .from('outlet')
-            .select('pengumuman_mybabeh')
-            .eq('outlet', currentOutlet)
-            .maybeSingle();
-        
-        if (error) {
-            console.error('Error querying database:', error);
-            return null;
-        }
-        
-        if (!outletData) {
-            console.log('Outlet data not found in database');
-            return null;
-        }
-        
-        const announcement = outletData.pengumuman_mybabeh;
-        console.log('📢 Database announcement found:', announcement ? announcement.substring(0, 50) + '...' : 'empty');
-        
-        return announcement || null;
-        
-    } catch (error) {
-        console.error('Exception loading from database:', error);
-        return null;
-    }
-}
-
-// Load saved announcement - HANYA dari database
 async function loadSavedAnnouncement() {
     const announcementText = document.getElementById('announcementText');
     if (!announcementText) return;
     
-    console.log('=== LOADING ANNOUNCEMENT FROM DATABASE ===');
-    
     try {
-        // 1. Load langsung dari database
+        // SELALU ambil dari database dulu
         const dbAnnouncement = await loadAnnouncementFromSupabase();
         
         if (dbAnnouncement && dbAnnouncement.trim() !== '') {
             announcementText.innerHTML = `<marquee>${dbAnnouncement}</marquee>`;
-            console.log('✅ Loaded from database');
-            return;
+            localStorage.setItem('babeh_announcement', dbAnnouncement);
+            console.log('Loaded from database:', dbAnnouncement);
+        } else {
+            // Fallback ke localStorage
+            const savedText = localStorage.getItem('babeh_announcement');
+            if (savedText && savedText.trim() !== '') {
+                announcementText.innerHTML = `<marquee>${savedText}</marquee>`;
+                console.log('Loaded from localStorage:', savedText);
+            } else {
+                // Default message
+                const now = new Date();
+                const defaultMsg = `Selamat datang di MyBabeh App - ${now.toLocaleDateString('id-ID')}`;
+                announcementText.innerHTML = `<marquee>${defaultMsg}</marquee>`;
+                console.log('Loaded default message');
+            }
         }
         
-        // 2. Jika database kosong, pakai default
-        console.log('Database empty, using default');
-        const now = new Date();
-        const defaultMsg = `Selamat datang di MyBabeh App - ${now.toLocaleDateString('id-ID')}`;
-        announcementText.innerHTML = `<marquee>${defaultMsg}</marquee>`;
-        
     } catch (error) {
-        console.error('❌ Error loading from database:', error);
-        
-        // Fallback
-        const now = new Date();
-        const defaultMsg = `System error - ${now.toLocaleDateString('id-ID')}`;
-        announcementText.innerHTML = `<marquee>${defaultMsg}</marquee>`;
+        console.error('Error loading announcement:', error);
+        // Fallback ke localStorage
+        const savedText = localStorage.getItem('babeh_announcement');
+        if (savedText) {
+            announcementText.innerHTML = `<marquee>${savedText}</marquee>`;
+        }
     }
 }
-
 // ========== FUNGSI TAMBAHAN ==========
 // =====================================
 
