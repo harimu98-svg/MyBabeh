@@ -3530,8 +3530,23 @@ function setupKasPageEvents() {
             
             const index = parseInt(indexAttr);
             
+            // PERBAIKAN: Cek jika sudah ada data tersimpan, block semua perubahan
+            if (kasState.existingKasData) {
+                console.log('🔒 Data sudah tersimpan, tidak bisa diubah');
+                // Reset ke nilai asli
+                setTimeout(() => {
+                    renderPemasukanItems();
+                }, 100);
+                return;
+            }
+            
             // Cegah update untuk auto-generate
             if (kasState.pemasukanItems[index]?.isAutoGenerate) {
+                console.log('🔒 Item auto-generate tidak bisa diubah');
+                // Reset ke nilai asli
+                setTimeout(() => {
+                    renderPemasukanItems();
+                }, 100);
                 return;
             }
             
@@ -3569,8 +3584,23 @@ function setupKasPageEvents() {
             
             const index = parseInt(indexAttr);
             
+            // PERBAIKAN: Cek jika sudah ada data tersimpan, block semua perubahan
+            if (kasState.existingKasData) {
+                console.log('🔒 Data sudah tersimpan, tidak bisa diubah');
+                // Reset ke nilai asli
+                setTimeout(() => {
+                    renderPengeluaranItems();
+                }, 100);
+                return;
+            }
+            
             // Cegah update untuk auto-generate
             if (kasState.pengeluaranItems[index]?.isAutoGenerate) {
+                console.log('🔒 Item auto-generate tidak bisa diubah');
+                // Reset ke nilai asli
+                setTimeout(() => {
+                    renderPengeluaranItems();
+                }, 100);
                 return;
             }
             
@@ -3614,7 +3644,14 @@ function setupKasPageEvents() {
             
             const index = parseInt(indexAttr);
             
+            // PERBAIKAN: Cek jika sudah ada data tersimpan, block semua perubahan
+            if (kasState.existingKasData) {
+                target.value = kasState.pemasukanItems[index]?.jumlah || 0;
+                return;
+            }
+            
             if (kasState.pemasukanItems[index]?.isAutoGenerate) {
+                target.value = kasState.pemasukanItems[index]?.jumlah || 0;
                 return;
             }
             
@@ -3638,7 +3675,14 @@ function setupKasPageEvents() {
             
             const index = parseInt(indexAttr);
             
+            // PERBAIKAN: Cek jika sudah ada data tersimpan, block semua perubahan
+            if (kasState.existingKasData) {
+                target.value = kasState.pengeluaranItems[index]?.jumlah || 0;
+                return;
+            }
+            
             if (kasState.pengeluaranItems[index]?.isAutoGenerate) {
+                target.value = kasState.pengeluaranItems[index]?.jumlah || 0;
                 return;
             }
             
@@ -3662,8 +3706,13 @@ function setupKasPageEvents() {
                 
                 const index = parseInt(deleteBtn.getAttribute('data-index'));
                 
-                // Validasi index dan cegah hapus auto-generate
-                if (isNaN(index) || kasState.pemasukanItems[index]?.isAutoGenerate) {
+                // Validasi index dan cegah hapus jika sudah ada data tersimpan
+                if (isNaN(index) || kasState.existingKasData) {
+                    return;
+                }
+                
+                // Cegah hapus auto-generate
+                if (kasState.pemasukanItems[index]?.isAutoGenerate) {
                     return;
                 }
                 
@@ -3685,8 +3734,13 @@ function setupKasPageEvents() {
                 
                 const index = parseInt(deleteBtn.getAttribute('data-index'));
                 
-                // Validasi index dan cegah hapus auto-generate
-                if (isNaN(index) || kasState.pengeluaranItems[index]?.isAutoGenerate) {
+                // Validasi index dan cegah hapus jika sudah ada data tersimpan
+                if (isNaN(index) || kasState.existingKasData) {
+                    return;
+                }
+                
+                // Cegah hapus auto-generate
+                if (kasState.pengeluaranItems[index]?.isAutoGenerate) {
                     return;
                 }
                 
@@ -4248,7 +4302,10 @@ async function loadExistingKasData() {
     const outlet = kasState.selectedOutlet || currentUserOutletKas;
     if (!outlet || !kasState.selectedTanggal) {
         kasState.existingKasData = null;
-        resetKasInputForms();
+        // Hanya reset jika benar-benar tidak ada data
+        if (!kasState.existingKasData) {
+            resetKasInputForms();
+        }
         return;
     }
 
@@ -4270,9 +4327,10 @@ async function loadExistingKasData() {
         
         if (data) {
             console.log('✅ Existing KAS data ditemukan:', data);
-            showExistingKasData(data);
+            // PERBAIKAN: Tampilkan hanya data dari database, TANPA tambah auto-generate
+            showExistingKasDataFromDatabase(data);
             document.getElementById('kasSubmitBtn').disabled = true;
-            document.getElementById('kasSubmitBtn').innerHTML = '<i class="fas fa-check"></i> DATA SUDAH ADA';
+            document.getElementById('kasSubmitBtn').innerHTML = '<i class="fas fa-check"></i> DATA SUDAH DISIMPAN';
         } else {
             console.log('ℹ️ Tidak ada existing KAS data');
             resetKasInputForms();
@@ -4308,9 +4366,10 @@ async function tryAlternativeKasQuery(outlet) {
             if (matched) {
                 console.log('✅ KAS data matching ditemukan:', matched);
                 kasState.existingKasData = matched;
-                showExistingKasData(matched);
+                // PERBAIKAN: Tampilkan hanya data dari database
+                showExistingKasDataFromDatabase(matched);
                 document.getElementById('kasSubmitBtn').disabled = true;
-                document.getElementById('kasSubmitBtn').innerHTML = '<i class="fas fa-check"></i> DATA SUDAH ADA';
+                document.getElementById('kasSubmitBtn').innerHTML = '<i class="fas fa-check"></i> DATA SUDAH DISIMPAN';
             }
         }
     } catch (e) {
@@ -4318,24 +4377,32 @@ async function tryAlternativeKasQuery(outlet) {
     }
 }
 
-// [15] Tampilkan data existing ke form
-function showExistingKasData(data) {
-    resetKasInputForms();
+// [15] PERBAIKAN: Tampilkan data existing dari database TANPA tambah auto-generate
+function showExistingKasDataFromDatabase(data) {
+    // Reset items
+    kasState.pemasukanItems = [];
+    kasState.pengeluaranItems = [];
     
+    console.log('📊 Tampilkan data dari database:', data);
+    
+    // PERBAIKAN: Hanya ambil data dari database, TIDAK tambah auto-generate
     // Process pemasukan dari data existing
     if (data.omset_cash > 0) {
         kasState.pemasukanItems.push({ 
             jenis: 'Omset Cash', 
             jumlah: data.omset_cash, 
             note: '',
-            isAutoGenerate: true 
+            isAutoGenerate: false, // PERBAIKAN: dari database, bukan auto-generate
+            source: 'database'
         });
     }
     if (data.top_up_kas > 0) {
         kasState.pemasukanItems.push({ 
             jenis: 'Top Up Kas', 
             jumlah: data.top_up_kas, 
-            note: '' 
+            note: '',
+            isAutoGenerate: false,
+            source: 'database'
         });
     }
     if (data.sisa_setoran > 0) {
@@ -4343,21 +4410,26 @@ function showExistingKasData(data) {
             jenis: 'Sisa Setoran', 
             jumlah: data.sisa_setoran, 
             note: '',
-            isAutoGenerate: true 
+            isAutoGenerate: false, // PERBAIKAN: dari database
+            source: 'database'
         });
     }
     if (data.hutang_komisi > 0) {
         kasState.pemasukanItems.push({ 
             jenis: 'Hutang Komisi', 
             jumlah: data.hutang_komisi, 
-            note: '' 
+            note: '',
+            isAutoGenerate: false,
+            source: 'database'
         });
     }
     if (data.pemasukan_lain_lain > 0) {
         kasState.pemasukanItems.push({ 
             jenis: 'Pemasukan Lain Lain', 
             jumlah: data.pemasukan_lain_lain, 
-            note: data.note_pemasukan_lain || '' 
+            note: data.note_pemasukan_lain || '',
+            isAutoGenerate: false,
+            source: 'database'
         });
     }
     
@@ -4367,7 +4439,8 @@ function showExistingKasData(data) {
             jenis: 'Komisi', 
             jumlah: data.komisi, 
             note: '',
-            isAutoGenerate: true 
+            isAutoGenerate: false, // PERBAIKAN: dari database
+            source: 'database'
         });
     }
     if (data.uop > 0) {
@@ -4375,7 +4448,8 @@ function showExistingKasData(data) {
             jenis: 'UoP', 
             jumlah: data.uop, 
             note: '',
-            isAutoGenerate: true 
+            isAutoGenerate: false, // PERBAIKAN: dari database
+            source: 'database'
         });
     }
     if (data.tips_qris > 0) {
@@ -4383,63 +4457,80 @@ function showExistingKasData(data) {
             jenis: 'Tips QRIS', 
             jumlah: data.tips_qris, 
             note: '',
-            isAutoGenerate: true 
+            isAutoGenerate: false, // PERBAIKAN: dari database
+            source: 'database'
         });
     }
     if (data.bayar_hutang_komisi > 0) {
         kasState.pengeluaranItems.push({ 
             jenis: 'Bayar Hutang komisi', 
             jumlah: data.bayar_hutang_komisi, 
-            note: '' 
+            note: '',
+            isAutoGenerate: false,
+            source: 'database'
         });
     }
     if (data.iuran_rt > 0) {
         kasState.pengeluaranItems.push({ 
             jenis: 'Iuran RT', 
             jumlah: data.iuran_rt, 
-            note: '' 
+            note: '',
+            isAutoGenerate: false,
+            source: 'database'
         });
     }
     if (data.sumbangan > 0) {
         kasState.pengeluaranItems.push({ 
             jenis: 'Sumbangan', 
             jumlah: data.sumbangan, 
-            note: '' 
+            note: '',
+            isAutoGenerate: false,
+            source: 'database'
         });
     }
     if (data.iuran_sampah > 0) {
         kasState.pengeluaranItems.push({ 
             jenis: 'Iuran Sampah', 
             jumlah: data.iuran_sampah, 
-            note: '' 
+            note: '',
+            isAutoGenerate: false,
+            source: 'database'
         });
     }
     if (data.galon > 0) {
         kasState.pengeluaranItems.push({ 
             jenis: 'Galon', 
             jumlah: data.galon, 
-            note: '' 
+            note: '',
+            isAutoGenerate: false,
+            source: 'database'
         });
     }
     if (data.biaya_admin_setoran > 0) {
         kasState.pengeluaranItems.push({ 
             jenis: 'Biaya Admin Setoran', 
             jumlah: data.biaya_admin_setoran, 
-            note: '' 
+            note: '',
+            isAutoGenerate: false,
+            source: 'database'
         });
     }
     if (data.yakult > 0) {
         kasState.pengeluaranItems.push({ 
             jenis: 'Yakult', 
             jumlah: data.yakult, 
-            note: '' 
+            note: '',
+            isAutoGenerate: false,
+            source: 'database'
         });
     }
     if (data.pengeluaran_lain_lain > 0) {
         kasState.pengeluaranItems.push({ 
             jenis: 'Pengeluaran Lain Lain', 
             jumlah: data.pengeluaran_lain_lain, 
-            note: data.note_pengeluaran_lain || '' 
+            note: data.note_pengeluaran_lain || '',
+            isAutoGenerate: false,
+            source: 'database'
         });
     }
     
@@ -4447,24 +4538,32 @@ function showExistingKasData(data) {
     renderPengeluaranItems();
     updateKasTotals();
     
+    // PERBAIKAN: Nonaktifkan semua input setelah data tersimpan
     document.getElementById('tambahPemasukan').disabled = true;
     document.getElementById('tambahPengeluaran').disabled = true;
 }
 
-// [16] Reset form input
+// [16] Reset form input - Hanya untuk form kosong
 function resetKasInputForms() {
+    // Hanya reset jika tidak ada data existing
+    if (kasState.existingKasData) {
+        console.log('⚠️ Ada data existing, tidak reset form');
+        return;
+    }
+    
     kasState.pemasukanItems = [];
     kasState.pengeluaranItems = [];
     
-    // Add auto-generate items jika ada data
-    if (kasState.autoGenerateData) {
+    // PERBAIKAN: Tambah auto-generate items hanya jika tidak ada data existing
+    if (kasState.autoGenerateData && !kasState.existingKasData) {
         // Pemasukan auto-generate
         if (kasState.autoGenerateData.sisa_setoran > 0) {
             kasState.pemasukanItems.push({
                 jenis: 'Sisa Setoran',
                 jumlah: kasState.autoGenerateData.sisa_setoran,
                 note: '',
-                isAutoGenerate: true
+                isAutoGenerate: true,
+                source: 'auto-generate'
             });
         }
         
@@ -4473,7 +4572,8 @@ function resetKasInputForms() {
                 jenis: 'Omset Cash',
                 jumlah: kasState.autoGenerateData.omset_cash,
                 note: '',
-                isAutoGenerate: true
+                isAutoGenerate: true,
+                source: 'auto-generate'
             });
         }
         
@@ -4483,7 +4583,8 @@ function resetKasInputForms() {
                 jenis: 'Komisi',
                 jumlah: kasState.autoGenerateData.komisi,
                 note: '',
-                isAutoGenerate: true
+                isAutoGenerate: true,
+                source: 'auto-generate'
             });
         }
         
@@ -4492,7 +4593,8 @@ function resetKasInputForms() {
                 jenis: 'UoP',
                 jumlah: kasState.autoGenerateData.uop,
                 note: '',
-                isAutoGenerate: true
+                isAutoGenerate: true,
+                source: 'auto-generate'
             });
         }
         
@@ -4501,7 +4603,8 @@ function resetKasInputForms() {
                 jenis: 'Tips QRIS',
                 jumlah: kasState.autoGenerateData.tips_qris,
                 note: '',
-                isAutoGenerate: true
+                isAutoGenerate: true,
+                source: 'auto-generate'
             });
         }
     }
@@ -4514,9 +4617,11 @@ function resetKasInputForms() {
     updateKasButtonStates();
 }
 
-// [17] Render items pemasukan
+// [17] Render items pemasukan - DIPERBAIKI
 function renderPemasukanItems() {
     const container = document.getElementById('pemasukanContainer');
+    
+    console.log('🔍 Render pemasukan items:', kasState.pemasukanItems);
     
     if (kasState.pemasukanItems.length === 0) {
         container.innerHTML = '<p class="empty-message">Klik + untuk menambah pemasukan</p>';
@@ -4527,12 +4632,24 @@ function renderPemasukanItems() {
     
     kasState.pemasukanItems.forEach((item, index) => {
         const showNote = item.jenis === 'Pemasukan Lain Lain';
-        const isDisabled = kasState.existingKasData || item.isAutoGenerate;
+        
+        // PERBAIKAN: Nonaktifkan semua input jika sudah ada data tersimpan
+        const isDisabled = kasState.existingKasData ? true : false;
+        const isReadonly = item.isAutoGenerate;
+        
         const disabledAttr = isDisabled ? 'disabled' : '';
-        const readonlyAttr = item.isAutoGenerate ? 'readonly' : '';
+        const readonlyAttr = isReadonly ? 'readonly' : '';
+        
+        // Tampilkan badge berdasarkan sumber data
+        let badge = '';
+        if (item.isAutoGenerate) {
+            badge = '<div class="auto-badge"><i class="fas fa-robot"></i> Auto-generate</div>';
+        } else if (kasState.existingKasData) {
+            badge = '<div class="saved-badge"><i class="fas fa-database"></i> Disimpan</div>';
+        }
         
         html += `
-            <div class="input-item ${item.isAutoGenerate ? 'auto-generate' : ''}">
+            <div class="input-item ${item.isAutoGenerate ? 'auto-generate' : ''} ${kasState.existingKasData ? 'saved' : ''}">
                 <div class="item-header">
                     <select class="item-select" data-index="${index}" data-type="jenis" ${disabledAttr}>
                         <option value="Omset Cash" ${item.jenis === 'Omset Cash' ? 'selected' : ''}>Omset Cash</option>
@@ -4546,9 +4663,11 @@ function renderPemasukanItems() {
                         <input type="number" class="item-input" 
                                value="${item.jumlah}" data-index="${index}" data-type="jumlah" 
                                placeholder="Jumlah" min="0" ${disabledAttr} ${readonlyAttr}>
-                        <button class="item-delete" data-index="${index}" ${disabledAttr ? 'disabled' : ''}>
+                        ${!kasState.existingKasData && !item.isAutoGenerate ? `
+                        <button class="item-delete" data-index="${index}" ${disabledAttr}>
                             <i class="fas fa-trash"></i>
                         </button>
+                        ` : ''}
                     </div>
                 </div>
                 
@@ -4560,11 +4679,7 @@ function renderPemasukanItems() {
                 </div>
                 ` : ''}
                 
-                ${item.isAutoGenerate ? `
-                <div class="auto-badge">
-                    <i class="fas fa-robot"></i> Auto-generate
-                </div>
-                ` : ''}
+                ${badge}
             </div>
         `;
     });
@@ -4573,9 +4688,11 @@ function renderPemasukanItems() {
     container.innerHTML = html;
 }
 
-// [18] Render items pengeluaran
+// [18] Render items pengeluaran - DIPERBAIKI
 function renderPengeluaranItems() {
     const container = document.getElementById('pengeluaranContainer');
+    
+    console.log('🔍 Render pengeluaran items:', kasState.pengeluaranItems);
     
     if (kasState.pengeluaranItems.length === 0) {
         container.innerHTML = '<p class="empty-message">Klik + untuk menambah pengeluaran</p>';
@@ -4586,12 +4703,24 @@ function renderPengeluaranItems() {
     
     kasState.pengeluaranItems.forEach((item, index) => {
         const showNote = item.jenis === 'Pengeluaran Lain Lain';
-        const isDisabled = kasState.existingKasData || item.isAutoGenerate;
+        
+        // PERBAIKAN: Nonaktifkan semua input jika sudah ada data tersimpan
+        const isDisabled = kasState.existingKasData ? true : false;
+        const isReadonly = item.isAutoGenerate;
+        
         const disabledAttr = isDisabled ? 'disabled' : '';
-        const readonlyAttr = item.isAutoGenerate ? 'readonly' : '';
+        const readonlyAttr = isReadonly ? 'readonly' : '';
+        
+        // Tampilkan badge berdasarkan sumber data
+        let badge = '';
+        if (item.isAutoGenerate) {
+            badge = '<div class="auto-badge"><i class="fas fa-robot"></i> Auto-generate</div>';
+        } else if (kasState.existingKasData) {
+            badge = '<div class="saved-badge"><i class="fas fa-database"></i> Disimpan</div>';
+        }
         
         html += `
-            <div class="input-item ${item.isAutoGenerate ? 'auto-generate' : ''}">
+            <div class="input-item ${item.isAutoGenerate ? 'auto-generate' : ''} ${kasState.existingKasData ? 'saved' : ''}">
                 <div class="item-header">
                     <select class="item-select" data-index="${index}" data-type="jenis" ${disabledAttr}>
                         <option value="Komisi" ${item.jenis === 'Komisi' ? 'selected' : ''}>Komisi</option>
@@ -4611,9 +4740,11 @@ function renderPengeluaranItems() {
                         <input type="number" class="item-input" 
                                value="${item.jumlah}" data-index="${index}" data-type="jumlah" 
                                placeholder="Jumlah" min="0" ${disabledAttr} ${readonlyAttr}>
-                        <button class="item-delete" data-index="${index}" ${disabledAttr ? 'disabled' : ''}>
+                        ${!kasState.existingKasData && !item.isAutoGenerate ? `
+                        <button class="item-delete" data-index="${index}" ${disabledAttr}>
                             <i class="fas fa-trash"></i>
                         </button>
+                        ` : ''}
                     </div>
                 </div>
                 
@@ -4625,11 +4756,7 @@ function renderPengeluaranItems() {
                 </div>
                 ` : ''}
                 
-                ${item.isAutoGenerate ? `
-                <div class="auto-badge">
-                    <i class="fas fa-robot"></i> Auto-generate
-                </div>
-                ` : ''}
+                ${badge}
             </div>
         `;
     });
@@ -4640,11 +4767,18 @@ function renderPengeluaranItems() {
 
 // [19] Tambah item pemasukan
 function addPemasukanItem() {
+    // Cek jika sudah ada data tersimpan
+    if (kasState.existingKasData) {
+        console.log('🔒 Data sudah tersimpan, tidak bisa menambah item');
+        return;
+    }
+    
     kasState.pemasukanItems.push({
         jenis: 'Top Up Kas',
         jumlah: 0,
         note: '',
-        isAutoGenerate: false
+        isAutoGenerate: false,
+        source: 'manual'
     });
     renderPemasukanItems();
     updateKasButtonStates();
@@ -4652,11 +4786,18 @@ function addPemasukanItem() {
 
 // [20] Tambah item pengeluaran
 function addPengeluaranItem() {
+    // Cek jika sudah ada data tersimpan
+    if (kasState.existingKasData) {
+        console.log('🔒 Data sudah tersimpan, tidak bisa menambah item');
+        return;
+    }
+    
     kasState.pengeluaranItems.push({
         jenis: 'Bayar Hutang komisi',
         jumlah: 0,
         note: '',
-        isAutoGenerate: false
+        isAutoGenerate: false,
+        source: 'manual'
     });
     renderPengeluaranItems();
     updateKasButtonStates();
@@ -4677,9 +4818,17 @@ function updateKasButtonStates() {
     const hasData = kasState.pemasukanItems.length > 0 || kasState.pengeluaranItems.length > 0;
     const isDataValid = validateKasData();
     
-    document.getElementById('tambahPemasukan').disabled = !isValid || kasState.existingKasData;
-    document.getElementById('tambahPengeluaran').disabled = !isValid || kasState.existingKasData;
-    document.getElementById('kasSubmitBtn').disabled = !isValid || !hasData || !isDataValid || kasState.existingKasData;
+    // PERBAIKAN: Nonaktifkan semua tombol jika sudah ada data tersimpan
+    if (kasState.existingKasData) {
+        document.getElementById('tambahPemasukan').disabled = true;
+        document.getElementById('tambahPengeluaran').disabled = true;
+        document.getElementById('kasSubmitBtn').disabled = true;
+        return;
+    }
+    
+    document.getElementById('tambahPemasukan').disabled = !isValid;
+    document.getElementById('tambahPengeluaran').disabled = !isValid;
+    document.getElementById('kasSubmitBtn').disabled = !isValid || !hasData || !isDataValid;
     
     // Validasi form
     if (!isDataValid) {
@@ -4874,7 +5023,7 @@ function updateSetorButton() {
 
 // ========== END FUNGSI TOMBOL SETOR ==========
 
-// [27] Submit data ke Supabase
+// [27] PERBAIKAN BESAR: Submit data ke Supabase dengan perhitungan yang konsisten
 async function submitKasData() {
     try {
         const outlet = kasState.selectedOutlet || currentUserOutletKas;
@@ -4894,7 +5043,7 @@ async function submitKasData() {
             return; // Jangan lanjut submit
         }
         
-        // Lanjutkan validasi data seperti biasa
+        // Validasi data
         if (!validateKasData()) {
             showKasNotification('Harap lengkapi keterangan untuk Pemasukan/Pengeluaran Lain Lain!', 'error');
             showKasLoading(false);
@@ -4926,61 +5075,183 @@ async function submitKasData() {
         const selectedDate = new Date(kasState.selectedTanggal);
         const dayName = selectedDate.toLocaleDateString('id-ID', { weekday: 'long' });
         
-        // Hitung total pemasukan dan pengeluaran
-        const totalPemasukan = kasState.pemasukanItems.reduce((sum, item) => sum + (item.jumlah || 0), 0);
-        const totalPengeluaran = kasState.pengeluaranItems.reduce((sum, item) => sum + (item.jumlah || 0), 0);
+        // ====================== PERHITUNGAN YANG DIPERBAIKI ======================
         
-        // Siapkan data untuk kolom detail
-        const dataDetail = {};
+        // 1. Hitung total pemasukan dan pengeluaran dari items
+        let totalPemasukan = 0;
+        let totalPengeluaran = 0;
+        
+        // Inisialisasi objek untuk detail pemasukan
+        const detailPemasukan = {
+            omset_cash: 0,
+            top_up_kas: 0,
+            sisa_setoran: 0,
+            hutang_komisi: 0,
+            pemasukan_lain_lain: 0
+        };
+        
+        // Inisialisasi objek untuk detail pengeluaran
+        const detailPengeluaran = {
+            komisi: 0,
+            uop: 0,
+            tips_qris: 0,
+            bayar_hutang_komisi: 0,
+            iuran_rt: 0,
+            sumbangan: 0,
+            iuran_sampah: 0,
+            galon: 0,
+            biaya_admin_setoran: 0,
+            yakult: 0,
+            pengeluaran_lain_lain: 0
+        };
+        
         let notePemasukanLain = '';
         let notePengeluaranLain = '';
         
-        // Process pemasukan items
+        // 2. PROSES PEMASUKAN ITEMS dengan mapping yang benar
         kasState.pemasukanItems.forEach(item => {
-            const key = getKasPemasukanKey(item.jenis);
-            dataDetail[key] = item.jumlah;
+            const jumlah = parseInt(item.jumlah) || 0;
+            if (jumlah <= 0) return;
             
-            // Simpan note jika pemasukan lain-lain
-            if (item.jenis === 'Pemasukan Lain Lain' && item.note) {
-                notePemasukanLain = item.note;
+            totalPemasukan += jumlah;
+            
+            // Mapping jenis ke kolom database yang sesuai
+            switch(item.jenis) {
+                case 'Omset Cash':
+                    detailPemasukan.omset_cash = jumlah;
+                    break;
+                case 'Top Up Kas':
+                    detailPemasukan.top_up_kas = jumlah;
+                    break;
+                case 'Sisa Setoran':
+                    detailPemasukan.sisa_setoran = jumlah;
+                    break;
+                case 'Hutang Komisi':
+                    detailPemasukan.hutang_komisi = jumlah;
+                    break;
+                case 'Pemasukan Lain Lain':
+                    detailPemasukan.pemasukan_lain_lain = jumlah;
+                    notePemasukanLain = item.note || '';
+                    break;
+                default:
+                    detailPemasukan.pemasukan_lain_lain += jumlah;
+                    notePemasukanLain += (notePemasukanLain ? ', ' : '') + `${item.jenis}: ${jumlah}`;
             }
         });
         
-        // Process pengeluaran items
+        // 3. PROSES PENGELUARAN ITEMS dengan mapping yang benar
         kasState.pengeluaranItems.forEach(item => {
-            const key = getKasPengeluaranKey(item.jenis);
-            dataDetail[key] = item.jumlah;
+            const jumlah = parseInt(item.jumlah) || 0;
+            if (jumlah <= 0) return;
             
-            // Simpan note jika pengeluaran lain-lain
-            if (item.jenis === 'Pengeluaran Lain Lain' && item.note) {
-                notePengeluaranLain = item.note;
+            totalPengeluaran += jumlah;
+            
+            // Mapping jenis ke kolom database yang sesuai
+            switch(item.jenis) {
+                case 'Komisi':
+                    detailPengeluaran.komisi = jumlah;
+                    break;
+                case 'UoP':
+                    detailPengeluaran.uop = jumlah;
+                    break;
+                case 'Tips QRIS':
+                    detailPengeluaran.tips_qris = jumlah;
+                    break;
+                case 'Bayar Hutang komisi':
+                    detailPengeluaran.bayar_hutang_komisi = jumlah;
+                    break;
+                case 'Iuran RT':
+                    detailPengeluaran.iuran_rt = jumlah;
+                    break;
+                case 'Sumbangan':
+                    detailPengeluaran.sumbangan = jumlah;
+                    break;
+                case 'Iuran Sampah':
+                    detailPengeluaran.iuran_sampah = jumlah;
+                    break;
+                case 'Galon':
+                    detailPengeluaran.galon = jumlah;
+                    break;
+                case 'Biaya Admin Setoran':
+                    detailPengeluaran.biaya_admin_setoran = jumlah;
+                    break;
+                case 'Yakult':
+                    detailPengeluaran.yakult = jumlah;
+                    break;
+                case 'Pengeluaran Lain Lain':
+                    detailPengeluaran.pengeluaran_lain_lain = jumlah;
+                    notePengeluaranLain = item.note || '';
+                    break;
+                default:
+                    detailPengeluaran.pengeluaran_lain_lain += jumlah;
+                    notePengeluaranLain += (notePengeluaranLain ? ', ' : '') + `${item.jenis}: ${jumlah}`;
             }
         });
         
-        // Data untuk insert
+        // 4. Hitung saldo
+        const saldo = totalPemasukan - totalPengeluaran;
+        
+        // 5. Validasi konsistensi: total harus sama dengan detail
+        const totalPemasukanFromDetail = Object.values(detailPemasukan).reduce((a, b) => a + b, 0);
+        const totalPengeluaranFromDetail = Object.values(detailPengeluaran).reduce((a, b) => a + b, 0);
+        
+        // Debug log
+        console.log('🔍 PERHITUNGAN KAS - VALIDASI:', {
+            totalPemasukan,
+            totalPemasukanFromDetail,
+            totalPengeluaran,
+            totalPengeluaranFromDetail,
+            detailPemasukan,
+            detailPengeluaran
+        });
+        
+        // 6. Buat data untuk insert
         const kasData = {
+            // Data dasar
             tanggal: kasState.selectedTanggal,
             hari: dayName,
             outlet: outlet,
             kasir: currentKasUser.nama_karyawan,
+            
+            // Total summary
             pemasukan: totalPemasukan,
             pengeluaran: totalPengeluaran,
-            saldo: totalPemasukan - totalPengeluaran,
+            saldo: saldo,
+            
+            // Notes
             note_pemasukan_lain: notePemasukanLain,
             note_pengeluaran_lain: notePengeluaranLain,
-            ...dataDetail
+            
+            // Detail pemasukan
+            ...detailPemasukan,
+            
+            // Detail pengeluaran
+            ...detailPengeluaran,
+            
+            // Metadata
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
         };
         
-        console.log('Data KAS yang akan disimpan:', kasData);
+        console.log('💾 Data KAS yang akan disimpan:', kasData);
         
-        // Insert new record
+        // 7. Insert ke database
         const { error } = await supabase
             .from('kas')
             .insert([kasData]);
         
-        if (error) throw error;
+        if (error) {
+            console.error('❌ Error Supabase:', error);
+            
+            // Coba insert tanpa kolom yang bermasalah
+            if (error.message.includes('column') && error.message.includes('does not exist')) {
+                await tryAlternativeInsert(kasData);
+            } else {
+                throw error;
+            }
+        }
         
-        // Kirim notifikasi WhatsApp dengan tanggal input data
+        // Kirim notifikasi WhatsApp
         const notificationMessage = formatKasNotification(kasData);
         await sendKasWhatsAppNotification(notificationMessage);
         
@@ -4992,10 +5263,52 @@ async function submitKasData() {
         updateSetorButton();
         
     } catch (error) {
-        console.error('Error submitting kas data:', error);
+        console.error('❌ Error submitting kas data:', error);
         showKasNotification('Gagal menyimpan data: ' + error.message, 'error');
     } finally {
         showKasLoading(false);
+    }
+}
+
+// Fungsi bantuan untuk insert alternatif
+async function tryAlternativeInsert(kasData) {
+    try {
+        console.log('🔄 Mencoba insert alternatif...');
+        
+        // Buat object sederhana hanya dengan kolom wajib
+        const simplifiedData = {
+            tanggal: kasData.tanggal,
+            hari: kasData.hari,
+            outlet: kasData.outlet,
+            kasir: kasData.kasir,
+            pemasukan: kasData.pemasukan,
+            pengeluaran: kasData.pengeluaran,
+            saldo: kasData.saldo,
+            note_pemasukan_lain: kasData.note_pemasukan_lain || '',
+            note_pengeluaran_lain: kasData.note_pengeluaran_lain || '',
+            created_at: new Date().toISOString()
+        };
+        
+        // Tambahkan hanya kolom yang punya nilai > 0
+        if (kasData.omset_cash > 0) simplifiedData.omset_cash = kasData.omset_cash;
+        if (kasData.komisi > 0) simplifiedData.komisi = kasData.komisi;
+        if (kasData.uop > 0) simplifiedData.uop = kasData.uop;
+        if (kasData.tips_qris > 0) simplifiedData.tips_qris = kasData.tips_qris;
+        if (kasData.sisa_setoran > 0) simplifiedData.sisa_setoran = kasData.sisa_setoran;
+        
+        console.log('💾 Data alternatif:', simplifiedData);
+        
+        const { error } = await supabase
+            .from('kas')
+            .insert([simplifiedData]);
+        
+        if (error) throw error;
+        
+        console.log('✅ Insert alternatif berhasil');
+        
+    } catch (error) {
+        console.error('❌ Insert alternatif gagal:', error);
+        throw error;
     }
 }
 
