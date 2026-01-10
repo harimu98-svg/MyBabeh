@@ -982,7 +982,7 @@ async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
                 .from('outlet')
                 .update({ 
                     pengumuman_mybabeh: announcementText,
-                    updated_at: new Date().toISOString()
+              
                 });
             
             if (updateError) {
@@ -1010,7 +1010,7 @@ async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
                     .from('outlet')
                     .update({ 
                         pengumuman_mybabeh: announcementText,
-                        updated_at: new Date().toISOString()
+                      
                     })
                     .eq('outlet', outletValue);
                 
