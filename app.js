@@ -5229,8 +5229,8 @@ async function submitKasData() {
             ...detailPengeluaran,
             
             // Metadata
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            created_at: new Date().toISOString()
+      
         };
         
         console.log('💾 Data KAS yang akan disimpan:', kasData);
