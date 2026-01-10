@@ -527,7 +527,6 @@ async function loadOutletList() {
     try {
         console.log('Loading outlet list from database...');
         
-        // Query untuk ambil semua outlet dari tabel outlet
         const { data: outlets, error } = await supabase
             .from('outlet')
             .select('outlet, id')
@@ -538,7 +537,6 @@ async function loadOutletList() {
             return [];
         }
         
-        // Format data outlet
         outletList = outlets.map(outlet => ({
             id: outlet.id,
             name: outlet.outlet || `Outlet ${outlet.id}`,
@@ -576,140 +574,211 @@ async function getCurrentUserOutlet() {
     }
 }
 
+// Fungsi untuk get user role
+async function getUserRole() {
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const namaKaryawan = user?.user_metadata?.nama_karyawan;
+        
+        if (!namaKaryawan) return null;
+        
+        const { data: karyawanData } = await supabase
+            .from('karyawan')
+            .select('role')
+            .eq('nama_karyawan', namaKaryawan)
+            .single();
+        
+        return karyawanData?.role || null;
+        
+    } catch (error) {
+        console.error('Error getting user role:', error);
+        return null;
+    }
+}
+
 // Fungsi untuk tampilkan modal edit dengan checklist outlet
 async function showEditPopup() {
-    const announcementText = document.getElementById('announcementText');
-    const marquee = announcementText?.querySelector('marquee');
-    const currentText = marquee ? marquee.textContent : '';
-    
-    console.log('showEditPopup called');
-    
-    // Load daftar outlet
-    const outlets = await loadOutletList();
-    
-    // Ambil outlet user saat ini
-    const currentOutlet = await getCurrentUserOutlet();
-    
-    // Buat HTML untuk checklist outlet
-    let outletCheckboxes = '';
-    
-    if (outlets.length > 0) {
-        outletCheckboxes = `
-            <div class="outlet-checklist-header">
-                <label>
-                    <i class="fas fa-store"></i> Pilih Outlet (${outlets.length} tersedia)
-                </label>
-                <div class="checklist-actions">
-                    <button type="button" class="btn-small" id="selectAllBtn">
-                        <i class="fas fa-check-square"></i> Semua
-                    </button>
-                    <button type="button" class="btn-small" id="clearAllBtn">
-                        <i class="fas fa-times-circle"></i> Hapus
-                    </button>
-                </div>
-            </div>
-            
-            <div class="outlet-checklist-container">
-                <!-- Opsi Semua Outlet -->
-                <div class="checklist-item all-outlets">
-                    <label class="checklist-label">
-                        <input type="checkbox" id="checkAllOutlets" class="checklist-checkbox" value="all">
-                        <span class="custom-checkbox"></span>
-                        <span class="checklist-text">
-                            <i class="fas fa-bullhorn"></i> <strong>Semua Outlet</strong>
-                        </span>
+    try {
+        const announcementText = document.getElementById('announcementText');
+        const marquee = announcementText?.querySelector('marquee');
+        const currentText = marquee ? marquee.textContent : '';
+        
+        console.log('showEditPopup called, current text:', currentText);
+        
+        // Cek apakah user adalah owner
+        const userRole = await getUserRole();
+        const isOwner = userRole === 'owner';
+        
+        if (!isOwner) {
+            alert('Hanya owner yang bisa mengedit pengumuman!');
+            return;
+        }
+        
+        // Load daftar outlet
+        const outlets = await loadOutletList();
+        
+        // Buat HTML untuk checklist outlet
+        let outletCheckboxes = '';
+        
+        if (outlets.length > 0) {
+            outletCheckboxes = `
+                <div class="outlet-checklist-header">
+                    <label>
+                        <i class="fas fa-store"></i> Pilih Outlet (${outlets.length} tersedia)
                     </label>
-                </div>
-                
-                <!-- Daftar Outlet -->
-                ${outlets.map(outlet => {
-                    const isChecked = outlet.value === currentOutlet;
-                    return `
-                        <div class="checklist-item">
-                            <label class="checklist-label">
-                                <input type="checkbox" class="checklist-checkbox outlet-checkbox" 
-                                    value="${outlet.value}" ${isChecked ? 'checked' : ''}>
-                                <span class="custom-checkbox"></span>
-                                <span class="checklist-text">
-                                    <i class="fas fa-store"></i> ${outlet.name}
-                                </span>
-                            </label>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-            
-            <div class="selection-stats" id="selectionStats">
-                <span id="selectedCount">0</span> outlet terpilih
-            </div>
-        `;
-    } else {
-        outletCheckboxes = `
-            <div class="no-outlets">
-                <i class="fas fa-exclamation-circle"></i>
-                <p>Tidak ada outlet ditemukan</p>
-            </div>
-        `;
-    }
-    
-    // Buat popup
-    const popupHTML = `
-        <div class="edit-popup" id="editPopup">
-            <div class="popup-content">
-                <div class="popup-header">
-                    <h3><i class="fas fa-bullhorn"></i> Edit Pengumuman</h3>
-                    <button class="close-popup" id="closePopup">&times;</button>
-                </div>
-                
-                <!-- Pilihan Outlet dengan Checklist -->
-                <div class="outlet-checklist-section">
-                    ${outletCheckboxes}
-                </div>
-                
-                <!-- Textarea untuk pengumuman -->
-                <div class="announcement-input-section">
-                    <label for="announcementInput">
-                        <i class="fas fa-edit"></i> Teks Pengumuman:
-                    </label>
-                    <textarea 
-                        id="announcementInput" 
-                        maxlength="500" 
-                        placeholder="Masukkan teks pengumuman..."
-                        rows="4"
-                    >${currentText}</textarea>
-                    <div class="char-counter">
-                        <span id="charCount">${currentText.length}</span>/500 karakter
+                    <div class="checklist-actions">
+                        <button type="button" class="btn-small" id="selectAllBtn">
+                            <i class="fas fa-check-square"></i> Semua
+                        </button>
+                        <button type="button" class="btn-small" id="clearAllBtn">
+                            <i class="fas fa-times-circle"></i> Hapus
+                        </button>
                     </div>
                 </div>
                 
-                <!-- Tombol Action -->
-                <div class="popup-buttons">
-                    <button class="btn-cancel" id="cancelEdit">
-                        <i class="fas fa-times"></i> Batal
-                    </button>
-                    <button class="btn-save" id="saveAnnouncement">
-                        <i class="fas fa-save"></i> Simpan
-                    </button>
+                <div class="outlet-checklist-container">
+                    <!-- Opsi Semua Outlet -->
+                    <div class="checklist-item all-outlets">
+                        <label class="checklist-label">
+                            <input type="checkbox" id="checkAllOutlets" class="checklist-checkbox" value="all">
+                            <span class="custom-checkbox"></span>
+                            <span class="checklist-text">
+                                <i class="fas fa-bullhorn"></i> <strong>Semua Outlet</strong>
+                            </span>
+                        </label>
+                    </div>
+                    
+                    <!-- Daftar Outlet -->
+                    ${outlets.map(outlet => {
+                        return `
+                            <div class="checklist-item">
+                                <label class="checklist-label">
+                                    <input type="checkbox" class="checklist-checkbox outlet-checkbox" 
+                                        value="${outlet.value}">
+                                    <span class="custom-checkbox"></span>
+                                    <span class="checklist-text">
+                                        <i class="fas fa-store"></i> ${outlet.name}
+                                    </span>
+                                </label>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                
+                <div class="selection-stats" id="selectionStats">
+                    <span id="selectedCount">0</span> outlet terpilih
+                </div>
+            `;
+        } else {
+            outletCheckboxes = `
+                <div class="no-outlets">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p>Tidak ada outlet ditemukan</p>
+                </div>
+            `;
+        }
+        
+        // Buat popup
+        const popupHTML = `
+            <div class="edit-popup" id="editPopup">
+                <div class="popup-content">
+                    <div class="popup-header">
+                        <h3><i class="fas fa-bullhorn"></i> Edit Pengumuman (Owner Only)</h3>
+                        <button class="close-popup" id="closePopup">&times;</button>
+                    </div>
+                    
+                    <!-- Pilihan Outlet dengan Checklist -->
+                    <div class="outlet-checklist-section">
+                        ${outletCheckboxes}
+                    </div>
+                    
+                    <!-- Textarea untuk pengumuman -->
+                    <div class="announcement-input-section">
+                        <label for="announcementInput">
+                            <i class="fas fa-edit"></i> Teks Pengumuman:
+                        </label>
+                        <textarea 
+                            id="announcementInput" 
+                            maxlength="500" 
+                            placeholder="Masukkan teks pengumuman..."
+                            rows="4"
+                        >${currentText}</textarea>
+                        <div class="char-counter">
+                            <span id="charCount">${currentText.length}</span>/500 karakter
+                        </div>
+                    </div>
+                    
+                    <!-- Tombol Action -->
+                    <div class="popup-buttons">
+                        <button class="btn-cancel" id="cancelEdit">
+                            <i class="fas fa-times"></i> Batal
+                        </button>
+                        <button class="btn-save" id="saveAnnouncement">
+                            <i class="fas fa-save"></i> Simpan ke Database
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', popupHTML);
+        
+        // Setup event listeners
+        setupAnnouncementPopupEvents();
+        
+        // Inisialisasi
+        setTimeout(() => {
+            const input = document.getElementById('announcementInput');
+            if (input) {
+                input.focus();
+                input.select();
+                updateCharCounter(input.value.length);
+                updateSelectionStats();
+            }
+        }, 100);
+        
+    } catch (error) {
+        console.error('Error in showEditPopup:', error);
+        alert('Terjadi kesalahan: ' + error.message);
+    }
+}
+
+// ========== FUNGSI HELPER GLOBAL ==========
+// ==========================================
+
+// Fungsi update character counter - GLOBAL SCOPE
+function updateCharCounter(length) {
+    const charCount = document.getElementById('charCount');
+    if (charCount) {
+        charCount.textContent = length;
+        charCount.style.color = length > 450 ? '#e74c3c' : length > 400 ? '#f39c12' : '#27ae60';
+    }
+}
+
+// Fungsi update selection stats - GLOBAL SCOPE
+function updateSelectionStats() {
+    const checkboxes = document.querySelectorAll('.outlet-checkbox:checked');
+    const selectedCount = checkboxes.length;
+    const statsEl = document.getElementById('selectedCount');
+    const statsContainer = document.getElementById('selectionStats');
     
-    document.body.insertAdjacentHTML('beforeend', popupHTML);
+    if (statsEl) statsEl.textContent = selectedCount;
+    if (statsContainer) {
+        statsContainer.style.background = selectedCount === 0 ? '#f8d7da' : '#d4edda';
+        statsContainer.style.color = selectedCount === 0 ? '#721c24' : '#155724';
+    }
     
-    // Setup event listeners
-    setupAnnouncementPopupEvents();
+    // Update "Semua Outlet" checkbox state
+    const allCheckboxes = document.querySelectorAll('.outlet-checkbox');
+    const checkAllOutlets = document.getElementById('checkAllOutlets');
     
-    // Inisialisasi
-    setTimeout(() => {
-        const input = document.getElementById('announcementInput');
-        if (input) {
-            input.focus();
-            input.select();
-            updateCharCounter(input.value.length);
-            updateSelectionStats();
-        }
-    }, 100);
+    if (checkAllOutlets && allCheckboxes.length > 0) {
+        const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+        const noneChecked = Array.from(allCheckboxes).every(cb => !cb.checked);
+        
+        checkAllOutlets.checked = allChecked;
+        checkAllOutlets.indeterminate = !allChecked && !noneChecked;
+    }
 }
 
 // Setup events untuk popup
@@ -724,39 +793,6 @@ function setupAnnouncementPopupEvents() {
     const checkAllOutlets = document.getElementById('checkAllOutlets');
     
     if (!popup || !input) return;
-    
-    // Fungsi update character counter
-    const updateCharCounter = (length) => {
-        const charCount = document.getElementById('charCount');
-        if (charCount) {
-            charCount.textContent = length;
-            charCount.style.color = length > 450 ? '#e74c3c' : length > 400 ? '#f39c12' : '#27ae60';
-        }
-    };
-    
-    // Fungsi update selection stats
-    const updateSelectionStats = () => {
-        const checkboxes = document.querySelectorAll('.outlet-checkbox:checked');
-        const selectedCount = checkboxes.length;
-        const statsEl = document.getElementById('selectedCount');
-        const statsContainer = document.getElementById('selectionStats');
-        
-        if (statsEl) statsEl.textContent = selectedCount;
-        if (statsContainer) {
-            statsContainer.style.background = selectedCount === 0 ? '#f8d7da' : '#d4edda';
-            statsContainer.style.color = selectedCount === 0 ? '#721c24' : '#155724';
-        }
-        
-        // Update "Semua Outlet" checkbox state
-        const allCheckboxes = document.querySelectorAll('.outlet-checkbox');
-        if (checkAllOutlets && allCheckboxes.length > 0) {
-            const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
-            const noneChecked = Array.from(allCheckboxes).every(cb => !cb.checked);
-            
-            checkAllOutlets.checked = allChecked;
-            checkAllOutlets.indeterminate = !allChecked && !noneChecked;
-        }
-    };
     
     // Character counter event
     input.addEventListener('input', (e) => {
@@ -831,7 +867,10 @@ function setupAnnouncementPopupEvents() {
     updateSelectionStats();
 }
 
-// Fungsi save announcement
+// ========== FUNGSI SAVE KE DATABASE ==========
+// =============================================
+
+// Fungsi save announcement HANYA ke database
 async function saveAnnouncement() {
     const input = document.getElementById('announcementInput');
     const popup = document.getElementById('editPopup');
@@ -842,6 +881,7 @@ async function saveAnnouncement() {
     }
     
     const newText = input.value.trim();
+    console.log('Saving announcement to database:', newText.substring(0, 50) + '...');
     
     if (newText === '') {
         alert('Pengumuman tidak boleh kosong!');
@@ -858,213 +898,255 @@ async function saveAnnouncement() {
         return;
     }
     
+    console.log('Selected outlets:', selectedOutlets);
+    
     try {
-        // Cek role user
-        const { data: { user } } = await supabase.auth.getUser();
-        const namaKaryawan = user?.user_metadata?.nama_karyawan;
+        // Tampilkan loading
+        const saveBtn = document.getElementById('saveAnnouncement');
+        const originalText = saveBtn.innerHTML;
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan ke Database...';
         
-        if (!namaKaryawan) throw new Error('User tidak ditemukan');
+        // Simpan ke database
+        const result = await saveAnnouncementToSupabase(newText, selectedOutlets);
         
-        const { data: karyawanData } = await supabase
-            .from('karyawan')
-            .select('role')
-            .eq('nama_karyawan', namaKaryawan)
-            .single();
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
         
-        if (karyawanData?.role === 'owner') {
-            // Tampilkan loading
-            const saveBtn = document.getElementById('saveAnnouncement');
-            const originalText = saveBtn.innerHTML;
-            saveBtn.disabled = true;
-            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
-            
-            // Simpan ke database
-            const result = await saveAnnouncementToSupabase(newText, selectedOutlets);
-            
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = originalText;
-            
-            if (result.success) {
-                // Update UI
-                const announcementText = document.getElementById('announcementText');
-                if (announcementText) {
-                    announcementText.innerHTML = `<marquee>${newText}</marquee>`;
-                }
-                
-                // Simpan ke localStorage sebagai cache
-                localStorage.setItem('babeh_announcement', newText);
-                
-                // Tampilkan pesan sukses
-                let successMessage = 'Pengumuman berhasil disimpan!';
-                if (selectedOutlets.includes('all')) {
-                    successMessage = 'Pengumuman berhasil dikirim ke semua outlet!';
-                } else if (selectedOutlets.length > 1) {
-                    successMessage = `Pengumuman berhasil dikirim ke ${selectedOutlets.length} outlet`;
-                }
-                
-                alert(successMessage);
-                popup.remove();
-                
-            } else {
-                alert(`Gagal menyimpan: ${result.error}`);
-            }
-        } else {
-            // Non-owner: hanya simpan ke localStorage
-            localStorage.setItem('babeh_announcement', newText);
-            
-            // Update UI
+        if (result.success) {
+            // Update UI langsung
             const announcementText = document.getElementById('announcementText');
             if (announcementText) {
                 announcementText.innerHTML = `<marquee>${newText}</marquee>`;
             }
             
-            alert('Pengumuman berhasil disimpan!');
+            // Tampilkan pesan sukses
+            let successMessage = '✅ Pengumuman berhasil disimpan ke database!';
+            if (selectedOutlets.includes('all')) {
+                successMessage = '✅ Pengumuman berhasil dikirim ke SEMUA outlet!';
+            } else if (selectedOutlets.length > 1) {
+                successMessage = `✅ Pengumuman berhasil dikirim ke ${selectedOutlets.length} outlet`;
+            }
+            
+            alert(successMessage);
             popup.remove();
+            
+        } else {
+            alert(`❌ Gagal menyimpan: ${result.error}`);
         }
         
     } catch (error) {
         console.error('Error saving announcement:', error);
-        alert('Terjadi kesalahan: ' + error.message);
+        alert('❌ Terjadi kesalahan: ' + error.message);
         
         // Reset button
         const saveBtn = document.getElementById('saveAnnouncement');
         if (saveBtn) {
             saveBtn.disabled = false;
-            saveBtn.innerHTML = '<i class="fas fa-save"></i> Simpan';
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Database';
         }
     }
 }
 
-// Fungsi save ke Supabase - VERSI SEDERHANA
+// Fungsi save ke Supabase - HANYA ke database
 async function saveAnnouncementToSupabase(announcementText, selectedOutlets) {
     try {
-        console.log('Saving to outlets:', selectedOutlets);
+        console.log('Saving to database outlets:', selectedOutlets);
+        
+        // **PERBAIKAN: Pastikan kolom ada**
+        try {
+            // Cek apakah kolom pengumuman_mybabeh ada
+            const { error: testError } = await supabase
+                .from('outlet')
+                .select('pengumuman_mybabeh')
+                .limit(1);
+            
+            if (testError && testError.code === '42703') {
+                // Kolom tidak ada, harus buat dulu
+                console.error('Kolom pengumuman_mybabeh tidak ada!');
+                return { 
+                    success: false, 
+                    error: 'Kolom pengumuman_mybabeh belum dibuat di database. Hubungi developer!' 
+                };
+            }
+        } catch (testError) {
+            console.error('Error checking column:', testError);
+        }
         
         // Jika pilih "Semua Outlet"
         if (selectedOutlets.includes('all')) {
-            // Ambil semua outlet dulu
-            const { data: allOutlets, error: fetchError } = await supabase
+            console.log('📢 Updating ALL outlets in database');
+            
+            // Update semua outlet di database
+            const { error: updateError } = await supabase
                 .from('outlet')
-                .select('id');
+                .update({ 
+                    pengumuman_mybabeh: announcementText,
+                    updated_at: new Date().toISOString()
+                });
             
-            if (fetchError) throw new Error(`Gagal mengambil data outlet: ${fetchError.message}`);
+            if (updateError) {
+                console.error('Error updating all outlets:', updateError);
+                return { success: false, error: updateError.message };
+            }
             
-            // Buat array update promises
-            const updatePromises = allOutlets.map(outlet => 
-                supabase
-                    .from('outlet')
-                    .update({ pengumuman_mybabeh: announcementText })
-                    .eq('id', outlet.id)
-            );
-            
-            // Jalankan semua update
-            const results = await Promise.allSettled(updatePromises);
-            
-            const successCount = results.filter(r => r.status === 'fulfilled' && !r.value.error).length;
-            const errors = results.filter(r => r.status === 'rejected' || r.value.error);
-            
-            console.log(`Updated ${successCount} out of ${allOutlets.length} outlets`);
-            
+            console.log('✅ Successfully updated ALL outlets in database');
             return { 
-                success: successCount > 0, 
-                outlets: 'all', 
-                successCount,
-                total: allOutlets.length 
+                success: true, 
+                outlets: 'all'
             };
         }
         
-        // Simpan ke outlet yang dipilih
+        // Update outlet tertentu di database
         let successCount = 0;
+        let errors = [];
         
         for (const outletValue of selectedOutlets) {
             try {
-                // Cari ID outlet
-                const { data: outletData } = await supabase
-                    .from('outlet')
-                    .select('id')
-                    .eq('outlet', outletValue)
-                    .single();
+                console.log(`Updating database outlet: ${outletValue}`);
                 
-                if (outletData?.id) {
-                    const { error } = await supabase
-                        .from('outlet')
-                        .update({ pengumuman_mybabeh: announcementText })
-                        .eq('id', outletData.id);
-                    
-                    if (!error) successCount++;
+                // Update langsung ke database
+                const { error: updateError } = await supabase
+                    .from('outlet')
+                    .update({ 
+                        pengumuman_mybabeh: announcementText,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('outlet', outletValue);
+                
+                if (updateError) {
+                    errors.push(`${outletValue}: ${updateError.message}`);
+                    console.error(`Failed ${outletValue}:`, updateError);
+                } else {
+                    successCount++;
+                    console.log(`✅ Updated database outlet ${outletValue}`);
                 }
+                
             } catch (err) {
-                console.warn(`Failed to update ${outletValue}:`, err);
+                errors.push(`${outletValue}: ${err.message}`);
+                console.error(`Error updating ${outletValue}:`, err);
             }
         }
         
+        console.log(`📊 Database result: ${successCount} successful, ${errors.length} failed`);
+        
+        if (errors.length > 0) {
+            console.error('Database errors:', errors);
+            return { 
+                success: successCount > 0, 
+                successCount, 
+                total: selectedOutlets.length,
+                error: `Berhasil ${successCount}, gagal ${errors.length}. ${errors.join(', ')}`
+            };
+        }
+        
         return { 
-            success: successCount > 0, 
-            successCount,
-            total: selectedOutlets.length 
+            success: true, 
+            successCount, 
+            total: selectedOutlets.length
         };
         
     } catch (error) {
-        console.error('Error saving to Supabase:', error);
-        return { success: false, error: error.message };
+        console.error('❌ Fatal error saving to database:', error);
+        return { 
+            success: false, 
+            error: error.message 
+        };
     }
 }
 
-// Fungsi load announcement
+// ========== FUNGSI LOAD DARI DATABASE ==========
+// ===============================================
+
+// Fungsi load announcement dari database sesuai outlet user
 async function loadAnnouncementFromSupabase() {
     try {
         const currentOutlet = await getCurrentUserOutlet();
-        if (!currentOutlet) return null;
+        if (!currentOutlet) {
+            console.log('❌ Current outlet not found');
+            return null;
+        }
         
-        const { data: outletData } = await supabase
+        console.log(`🔍 Loading announcement from database for outlet: ${currentOutlet}`);
+        
+        // Load langsung dari database
+        const { data: outletData, error } = await supabase
             .from('outlet')
             .select('pengumuman_mybabeh')
             .eq('outlet', currentOutlet)
-            .single();
+            .maybeSingle();
         
-        return outletData?.pengumuman_mybabeh || null;
+        if (error) {
+            console.error('Error querying database:', error);
+            return null;
+        }
+        
+        if (!outletData) {
+            console.log('Outlet data not found in database');
+            return null;
+        }
+        
+        const announcement = outletData.pengumuman_mybabeh;
+        console.log('📢 Database announcement found:', announcement ? announcement.substring(0, 50) + '...' : 'empty');
+        
+        return announcement || null;
         
     } catch (error) {
-        console.error('Error loading announcement:', error);
+        console.error('Exception loading from database:', error);
         return null;
     }
 }
 
-// Load saved announcement
+// Load saved announcement - HANYA dari database
 async function loadSavedAnnouncement() {
     const announcementText = document.getElementById('announcementText');
     if (!announcementText) return;
     
+    console.log('=== LOADING ANNOUNCEMENT FROM DATABASE ===');
+    
     try {
-        // Coba dari database
+        // 1. Load langsung dari database
         const dbAnnouncement = await loadAnnouncementFromSupabase();
         
-        if (dbAnnouncement) {
+        if (dbAnnouncement && dbAnnouncement.trim() !== '') {
             announcementText.innerHTML = `<marquee>${dbAnnouncement}</marquee>`;
-            localStorage.setItem('babeh_announcement', dbAnnouncement);
+            console.log('✅ Loaded from database');
             return;
         }
         
-        // Coba dari localStorage
-        const savedText = localStorage.getItem('babeh_announcement');
-        if (savedText) {
-            announcementText.innerHTML = `<marquee>${savedText}</marquee>`;
-            return;
-        }
-        
-        // Default message
+        // 2. Jika database kosong, pakai default
+        console.log('Database empty, using default');
         const now = new Date();
         const defaultMsg = `Selamat datang di MyBabeh App - ${now.toLocaleDateString('id-ID')}`;
         announcementText.innerHTML = `<marquee>${defaultMsg}</marquee>`;
         
     } catch (error) {
-        console.error('Error loading announcement:', error);
-        const savedText = localStorage.getItem('babeh_announcement');
-        if (savedText) {
-            announcementText.innerHTML = `<marquee>${savedText}</marquee>`;
-        }
+        console.error('❌ Error loading from database:', error);
+        
+        // Fallback
+        const now = new Date();
+        const defaultMsg = `System error - ${now.toLocaleDateString('id-ID')}`;
+        announcementText.innerHTML = `<marquee>${defaultMsg}</marquee>`;
     }
 }
+
+// ========== FUNGSI TAMBAHAN ==========
+// =====================================
+
+// Fungsi untuk refresh announcement (bisa dipanggil dari mana saja)
+async function refreshAnnouncement() {
+    console.log('Refreshing announcement from database...');
+    await loadSavedAnnouncement();
+}
+
+// Tambahkan event listener untuk tombol edit (jika ada)
+document.addEventListener('DOMContentLoaded', function() {
+    const editBtn = document.getElementById('editAnnouncementBtn');
+    if (editBtn) {
+        editBtn.addEventListener('click', showEditPopup);
+    }
+});
+
 // Fungsi untuk menampilkan notifikasi (hanya untuk owner)
 function showNotifications() {
     const notificationSection = document.getElementById('notificationSection');
