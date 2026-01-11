@@ -84,23 +84,23 @@ function createRequestPage() {
     
     requestPage.innerHTML = `
         <!-- Header -->
-    <header class="request-header">
-    <button class="back-btn" id="backToMainFromRequest">
-        <i class="fas fa-arrow-left"></i>
-    </button>
-    <h2><i class="fas fa-comment-dots"></i> Request Barang</h2>
-    <div class="header-actions">
-        ${isKasir ? `
-            <button class="refresh-btn" id="refreshRequestsKasir" title="Refresh">
-                <i class="fas fa-sync-alt"></i>
+        <header class="request-header">
+            <button class="back-btn" id="backToMainFromRequest">
+                <i class="fas fa-arrow-left"></i>
             </button>
-        ` : `
-            <button class="refresh-btn" id="refreshRequests" title="Refresh">
-                <i class="fas fa-sync-alt"></i>
-            </button>
-        `}
-    </div>
-</header>
+            <h2><i class="fas fa-comment-dots"></i> Request Barang</h2>
+            <div class="header-actions">
+                ${isKasir ? `
+                    <button class="refresh-btn" id="refreshRequestsKasir" title="Refresh">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                ` : `
+                    <button class="refresh-btn" id="refreshRequests" title="Refresh">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                `}
+            </div>
+        </header>
         
         <!-- Info Header -->
         <div class="request-info-header">
@@ -135,46 +135,47 @@ function createRequestPage() {
         ${isKasir ? `
         <div class="kasir-request-section">
             <!-- Filter Section - 2 BARIS -->
-<div class="search-filter-section">
-    <!-- BARIS 1: 3 Filter -->
-    <div class="filter-row-top">
-        <div class="filter-group">
-            <label for="filterGroup"><i class="fas fa-layer-group"></i> Group:</label>
-            <select id="filterGroup" class="group-select">
-                <option value="">Semua Group</option>
-            </select>
-        </div>
-        
-        <div class="filter-group">
-            <label for="filterCategory"><i class="fas fa-tags"></i> Kategori:</label>
-            <select id="filterCategory" class="category-select" disabled>
-                <option value="">Pilih Group dulu</option>
-            </select>
-        </div>
-        
-        <div class="filter-group">
-            <label for="filterStatus"><i class="fas fa-check-circle"></i> Status:</label>
-            <select id="filterStatus" class="status-select">
-                <option value="all">Semua Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-            </select>
-        </div>
-    </div>
-    
-    <!-- BARIS 2: Search + Filter Button -->
-<div class="filter-row-bottom" style="display: flex; gap: 10px; align-items: stretch;">
-    <div class="search-box" style="flex: 1;">
-        <i class="fas fa-search"></i>
-        <input type="text" id="searchInventory" placeholder="Cari item..." style="width: 100%;">
-        <button class="clear-search" id="clearSearchBtn" title="Clear search">
-            <i class="fas fa-times"></i>
-        </button>
-    </div>
-    <button class="btn-search-action" id="applyFilterBtn" style="flex-shrink: 0; min-width: 120px;">
-        <i class="fas fa-filter"></i> Terapkan
-    </button>
-</div>
+            <div class="search-filter-section">
+                <!-- BARIS 1: 3 Filter -->
+                <div class="filter-row-top">
+                    <div class="filter-group">
+                        <label for="filterGroup"><i class="fas fa-layer-group"></i> Group:</label>
+                        <select id="filterGroup" class="group-select">
+                            <option value="">Semua Group</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="filterCategory"><i class="fas fa-tags"></i> Kategori:</label>
+                        <select id="filterCategory" class="category-select" disabled>
+                            <option value="">Pilih Group dulu</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="filterStatus"><i class="fas fa-check-circle"></i> Status:</label>
+                        <select id="filterStatus" class="status-select">
+                            <option value="all">Semua Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- BARIS 2: Search + Filter Button -->
+                <div class="filter-row-bottom" style="display: flex; gap: 10px; align-items: stretch;">
+                    <div class="search-box" style="flex: 1;">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInventory" placeholder="Cari item..." style="width: 100%;">
+                        <button class="clear-search" id="clearSearchBtn" title="Clear search">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <button class="btn-search-action" id="applyFilterBtn" style="flex-shrink: 0; min-width: 120px;">
+                        <i class="fas fa-filter"></i> Terapkan
+                    </button>
+                </div>
+            </div>
             
             <!-- Inventory List Table - DIMODIFIKASI: Scroll Horizontal -->
             <div class="inventory-table-section">
@@ -303,7 +304,7 @@ function createRequestPage() {
             </div>
         </div>
         ` : `
-        <!-- Untuk OWNER: Approval Requests - DIMODIFIKASI: Tambah Reject Selected -->
+        <!-- Untuk OWNER: Approval Requests - DIMODIFIKASI: TAMBAH CHECKBOX -->
         <div class="owner-request-section">
             <!-- Filter untuk Owner -->
             <div class="owner-filter-section">
@@ -1158,21 +1159,19 @@ async function loadRequestsForOwner() {
         const statusFilter = document.getElementById('filterStatusOwner')?.value || 'all';
         const dateFilter = document.getElementById('filterDateOwner')?.value || 'today';
         
-        // Build query
+        // Build query - HANYA AMBIL ITEM YANG STATUS PENDING
         let query = supabase
             .from('request_barang')
             .select('*')
+            .eq('status', 'pending') // HANYA YANG PENDING
             .order('created_at', { ascending: false });
         
-        // Apply filters
+        // Apply outlet filter
         if (outletFilter !== 'all') {
             query = query.eq('outlet', outletFilter);
         }
         
-        if (statusFilter !== 'all') {
-            query = query.eq('status', statusFilter);
-        }
-        
+        // Date filter masih berlaku
         if (dateFilter !== 'all') {
             const today = new Date();
             let startDate = new Date();
@@ -1192,12 +1191,14 @@ async function loadRequestsForOwner() {
         
         if (error) throw error;
         
-        // Group requests by batch_id for pending section
+        // Group requests by batch_id untuk pending section
         const groupedRequests = groupRequestsByBatch(requests || []);
         
-        // Display data - gunakan function yang sudah direname
+        // Display data - gunakan function yang sudah diperbaiki
         displayPendingRequestsForRequestModule(groupedRequests);
-        displayRequestHistory(requests || []);
+        
+        // Load history (semua status)
+        await loadRequestHistoryForOwner(outletFilter, dateFilter);
         
         // Load outlet dropdown options
         await loadOutletDropdownForOwner(requests || []);
@@ -1210,12 +1211,65 @@ async function loadRequestsForOwner() {
         const loadingPending = document.getElementById('loadingPending');
         const pendingGrid = document.getElementById('pendingRequestsGrid');
         const loadingHistory = document.getElementById('loadingHistory');
-        const historyTable = document.getElementById('historyTable');
         
         if (loadingPending) loadingPending.style.display = 'none';
         if (pendingGrid) pendingGrid.style.display = 'block';
         if (loadingHistory) loadingHistory.style.display = 'none';
-        if (historyTable) historyTable.style.display = 'table';
+    }
+}
+
+// Fungsi untuk load history untuk Owner
+async function loadRequestHistoryForOwner(outletFilter, dateFilter) {
+    try {
+        // Build query untuk history (semua status kecuali pending)
+        let query = supabase
+            .from('request_barang')
+            .select('*')
+            .neq('status', 'pending') // HANYA YANG BUKAN PENDING
+            .order('created_at', { ascending: false })
+            .limit(50);
+        
+        // Apply outlet filter
+        if (outletFilter !== 'all') {
+            query = query.eq('outlet', outletFilter);
+        }
+        
+        // Apply date filter
+        if (dateFilter !== 'all') {
+            const today = new Date();
+            let startDate = new Date();
+            
+            if (dateFilter === 'today') {
+                startDate.setHours(0, 0, 0, 0);
+            } else if (dateFilter === 'week') {
+                startDate.setDate(today.getDate() - 7);
+            } else if (dateFilter === 'month') {
+                startDate.setMonth(today.getMonth() - 1);
+            }
+            
+            query = query.gte('created_at', startDate.toISOString());
+        }
+        
+        const { data: requests, error } = await query;
+        
+        if (error) throw error;
+        
+        // Display history
+        displayRequestHistory(requests || []);
+        
+    } catch (error) {
+        console.error('Error loading history:', error);
+        const tbody = document.getElementById('historyBody');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="11" class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Gagal memuat history: ${error.message}
+                    </td>
+                </tr>
+            `;
+        }
     }
 }
 
@@ -1250,7 +1304,7 @@ function groupRequestsByBatch(requests) {
     return Object.values(grouped);
 }
 
-// [24] Display pending requests for REQUEST MODULE - PERBAIKAN
+// [24] Display pending requests for REQUEST MODULE - PERBAIKAN BESAR
 function displayPendingRequestsForRequestModule(groupedRequests) {
     console.log('📦 REQUEST MODULE: displayPendingRequestsForRequestModule called');
     
@@ -1262,15 +1316,17 @@ function displayPendingRequestsForRequestModule(groupedRequests) {
         return;
     }
     
-    // Filter hanya yang status pending
-    const pendingRequests = groupedRequests.filter(group => group.status === 'pending');
+    // Update count - hitung total item pending, bukan batch
+    let totalPendingItems = 0;
+    groupedRequests.forEach(group => {
+        totalPendingItems += group.items.length;
+    });
     
-    // Update count
     if (pendingCountEl) {
-        pendingCountEl.textContent = `${pendingRequests.length} requests pending`;
+        pendingCountEl.textContent = `${totalPendingItems} items pending (${groupedRequests.length} batch)`;
     }
     
-    if (pendingRequests.length === 0) {
+    if (groupedRequests.length === 0) {
         pendingGrid.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-check-circle"></i>
@@ -1283,150 +1339,161 @@ function displayPendingRequestsForRequestModule(groupedRequests) {
     
     let html = '';
     
-    pendingRequests.forEach(group => {
+    groupedRequests.forEach(group => {
         const date = new Date(group.created_at);
         const formattedDate = date.toLocaleDateString('id-ID', {
             day: 'numeric',
             month: 'short',
-            year: 'numeric'
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
         
-      html += `
-    <div class="request-items-table">
-        <div class="table-wrapper">
-            <table class="items-table">
-                <thead>
-                    <tr>
-                        <th style="width: 40px; padding: 12px 15px;">#</th>
-                        <th style="padding: 12px 15px;">Item</th>
-                        <th style="width: 80px; padding: 12px 15px;">Qty</th>
-                        <th style="width: 120px; padding: 12px 15px;">Harga</th>
-                        <th style="width: 120px; padding: 12px 15px;">Subtotal</th>
-                        <th style="width: 180px; padding: 12px 15px;">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${group.items.map((item, index) => `
-                        <tr data-item-id="${item.id}" data-batch-id="${group.batch_id}">
-                            <td style="padding: 12px 15px;">${index + 1}</td>
-                            <td style="padding: 12px 15px;">
-                                <div class="item-name">${item.item}</div>
-                                <div class="item-sku">SKU: ${item.sku}</div>
-                            </td>
-                            <td style="padding: 12px 15px;">${item.qty} ${item.unit_type || 'pcs'}</td>
-                            <td style="padding: 12px 15px;">${formatRupiah(item.unit_price)}</td>
-                            <td style="padding: 12px 15px;">${formatRupiah(item.total_price)}</td>
-                            <td style="padding: 12px 15px;">
-                                <div class="action-buttons-row">
-                                    <button class="btn-action btn-approve-item" 
-                                            data-item-id="${item.id}"
-                                            data-batch-id="${group.batch_id}"
-                                            title="Approve Item"
-                                            style="background: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
-                                        <i class="fas fa-check"></i>
-                                    </button>
-                                    <button class="btn-action btn-reject-item" 
-                                            data-item-id="${item.id}"
-                                            data-batch-id="${group.batch_id}"
-                                            title="Reject Item"
-                                            style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                    <button class="btn-action btn-view-item" 
-                                            data-item-id="${item.id}"
-                                            title="View Details"
-                                            style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-                <tfoot>
-                    <tr style="background: #f8f9fa;">
-                        <td colspan="3" style="padding: 12px 15px;"><strong>Total:</strong></td>
-                        <td style="padding: 12px 15px;"></td>
-                        <td style="padding: 12px 15px;"><strong>${formatRupiah(group.total_amount)}</strong></td>
-                        <td style="padding: 12px 15px;">
-                            <div class="action-buttons-row">
-                                <button class="btn-action btn-approve-all" 
-                                        data-batch-id="${group.batch_id}"
-                                        title="Approve All"
-                                        style="
-    /* FIX PROPERTIES - SAMA DENGAN YANG BERHASIL */
-    flex-shrink: 0;
-    white-space: nowrap;
-    min-width: 150px;
-    width: auto;
-    
-    /* Layout */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    height: 42px;
-    padding: 10px 16px;
-    
-    /* Appearance */
-    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 14px;
-">
-                                    <i class="fas fa-check-double"></i> Approve All
-                                </button>
-                                <button class="btn-action btn-reject-all" 
-                                        data-batch-id="${group.batch_id}"
-                                        title="Reject All"
-                                        style="
-    /* FIX PROPERTIES - SAMA DENGAN YANG BERHASIL */
-    flex-shrink: 0;
-    white-space: nowrap;
-    min-width: 150px;
-    width: auto;
-    
-    /* Layout */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    height: 42px;
-    padding: 10px 16px;
-    
-    /* Appearance */
-    background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 14px;
-">
-                                    <i class="fas fa-ban"></i> Reject All
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                </tfoot>
-            </table>
+        // Header batch dengan informasi outlet, requestor, tanggal
+        html += `
+        <div class="batch-card" data-batch-id="${group.batch_id}">
+            <div class="batch-header">
+                <div class="batch-info">
+                    <div class="info-row">
+                        <div class="info-item">
+                            <i class="fas fa-store"></i>
+                            <strong>Outlet:</strong> ${group.outlet || '-'}
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-user"></i>
+                            <strong>Requestor:</strong> ${group.karyawan || '-'}
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-calendar"></i>
+                            <strong>Tanggal Request:</strong> ${formattedDate}
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-item">
+                            <i class="fas fa-hashtag"></i>
+                            <strong>Batch ID:</strong> <code>${group.batch_id}</code>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-sticky-note"></i>
+                            <strong>Catatan:</strong> ${group.notes || '-'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="request-items-table">
+                <div class="table-wrapper">
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px; padding: 12px 15px;">
+                                    <input type="checkbox" class="select-all-checkbox" data-batch-id="${group.batch_id}" 
+                                           onchange="toggleSelectAllItemsInBatch('${group.batch_id}', this.checked)">
+                                </th>
+                                <th style="width: 40px; padding: 12px 15px;">#</th>
+                                <th style="padding: 12px 15px;">Item</th>
+                                <th style="width: 80px; padding: 12px 15px;">Qty</th>
+                                <th style="width: 120px; padding: 12px 15px;">Harga</th>
+                                <th style="width: 120px; padding: 12px 15px;">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${group.items.map((item, index) => `
+                                <tr data-item-id="${item.id}" data-batch-id="${group.batch_id}">
+                                    <td style="padding: 12px 15px; text-align: center;">
+                                        <input type="checkbox" 
+                                               class="item-checkbox" 
+                                               data-item-id="${item.id}"
+                                               data-batch-id="${group.batch_id}"
+                                               onchange="updateBatchSelection('${group.batch_id}')">
+                                    </td>
+                                    <td style="padding: 12px 15px;">${index + 1}</td>
+                                    <td style="padding: 12px 15px;">
+                                        <div class="item-name">${item.item}</div>
+                                        <div class="item-sku">SKU: ${item.sku}</div>
+                                    </td>
+                                    <td style="padding: 12px 15px;">${item.qty} ${item.unit_type || 'pcs'}</td>
+                                    <td style="padding: 12px 15px;">${formatRupiah(item.unit_price)}</td>
+                                    <td style="padding: 12px 15px;">${formatRupiah(item.total_price)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                        <tfoot>
+                            <tr style="background: #f8f9fa;">
+                                <td colspan="3" style="padding: 12px 15px;"><strong>Total:</strong></td>
+                                <td style="padding: 12px 15px;"><strong>${group.total_qty}</strong></td>
+                                <td style="padding: 12px 15px;"></td>
+                                <td style="padding: 12px 15px;"><strong>${formatRupiah(group.total_amount)}</strong></td>
+                                <td colspan="2" style="padding: 12px 15px;">
+                                    <div class="action-buttons-row" style="display: flex; gap: 10px;">
+                                        <button class="btn-approve-selected" 
+                                                data-batch-id="${group.batch_id}"
+                                                onclick="approveSelectedItemsInBatch('${group.batch_id}')"
+                                                style="
+                                                    flex-shrink: 0;
+                                                    white-space: nowrap;
+                                                    min-width: 120px;
+                                                    width: auto;
+                                                    display: inline-flex;
+                                                    align-items: center;
+                                                    justify-content: center;
+                                                    gap: 8px;
+                                                    height: 42px;
+                                                    padding: 10px 16px;
+                                                    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                                                    color: white;
+                                                    border: none;
+                                                    border-radius: 6px;
+                                                    cursor: pointer;
+                                                    font-weight: 600;
+                                                    font-size: 14px;
+                                                ">
+                                            <i class="fas fa-check"></i> Approve
+                                        </button>
+                                        <button class="btn-reject-selected" 
+                                                data-batch-id="${group.batch_id}"
+                                                onclick="rejectSelectedItemsInBatch('${group.batch_id}')"
+                                                style="
+                                                    flex-shrink: 0;
+                                                    white-space: nowrap;
+                                                    min-width: 120px;
+                                                    width: auto;
+                                                    display: inline-flex;
+                                                    align-items: center;
+                                                    justify-content: center;
+                                                    gap: 8px;
+                                                    height: 42px;
+                                                    padding: 10px 16px;
+                                                    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+                                                    color: white;
+                                                    border: none;
+                                                    border-radius: 6px;
+                                                    cursor: pointer;
+                                                    font-weight: 600;
+                                                    font-size: 14px;
+                                                ">
+                                            <i class="fas fa-times"></i> Reject
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
         </div>
-    </div>
-`;
+        `;
     });
     
     pendingGrid.innerHTML = html;
-
-    // Setup event listeners untuk tombol baru
-    setupRequestItemActionButtons();
 }
+
 // [25] Display request history untuk Owner - DIMODIFIKASI
 function displayRequestHistory(requests) {
     const tbody = document.getElementById('historyBody');
-    if (!tbody) return;
+    const historyTable = document.getElementById('historyTable');
+    
+    if (!tbody || !historyTable) return;
     
     tbody.innerHTML = '';
     
@@ -1439,6 +1506,7 @@ function displayRequestHistory(requests) {
                 </td>
             </tr>
         `;
+        historyTable.style.display = 'table';
         return;
     }
     
@@ -1490,6 +1558,8 @@ function displayRequestHistory(requests) {
         `;
         tbody.appendChild(infoRow);
     }
+    
+    historyTable.style.display = 'table';
 }
 
 // [26] Load outlet dropdown for owner
@@ -1521,13 +1591,13 @@ async function loadOutletDropdownForOwner(requests) {
     }
 }
 
-// [27] Fungsi untuk approve selected items
-async function approveSelectedItems(batchId) {
+// [27] Fungsi untuk approve selected items dalam batch
+async function approveSelectedItemsInBatch(batchId) {
     try {
         // Get all checked items for this batch
         const checkboxes = document.querySelectorAll(`
-            .request-card[data-batch-id="${batchId}"] 
-            .approve-checkbox:checked
+            .batch-card[data-batch-id="${batchId}"] 
+            .item-checkbox:checked
         `);
         
         if (checkboxes.length === 0) {
@@ -1552,9 +1622,6 @@ async function approveSelectedItems(batchId) {
         
         if (error) throw error;
         
-        // Check if all items in batch are approved
-        await checkBatchCompleteStatus(batchId);
-        
         // Reload requests
         await loadRequestsForOwner();
         
@@ -1566,40 +1633,13 @@ async function approveSelectedItems(batchId) {
     }
 }
 
-// [28] Fungsi untuk approve all items
-async function approveAllItems(batchId) {
-    if (!confirm('Approve semua item dalam batch ini?')) return;
-    
-    try {
-        const { error } = await supabase
-            .from('request_barang')
-            .update({ 
-                status: 'approved',
-                approved_at: new Date().toISOString(),
-                approved_by: currentKaryawanRequest.nama_karyawan
-            })
-            .eq('batch_id', batchId)
-            .eq('status', 'pending');
-        
-        if (error) throw error;
-        
-        alert('Semua item dalam batch approved!');
-        loadRequestsForOwner();
-        
-    } catch (error) {
-        console.error('Error approving all items:', error);
-        alert('Gagal approve semua items: ' + error.message);
-    }
-}
-
-
-// [29] Fungsi untuk reject selected items - BARU
-async function rejectSelectedItems(batchId) {
+// [28] Fungsi untuk reject selected items dalam batch
+async function rejectSelectedItemsInBatch(batchId) {
     try {
         // Get all checked items for this batch
         const checkboxes = document.querySelectorAll(`
-            .request-card[data-batch-id="${batchId}"] 
-            .approve-checkbox:checked
+            .batch-card[data-batch-id="${batchId}"] 
+            .item-checkbox:checked
         `);
         
         if (checkboxes.length === 0) {
@@ -1608,6 +1648,10 @@ async function rejectSelectedItems(batchId) {
         }
         
         const itemIds = Array.from(checkboxes).map(cb => cb.getAttribute('data-item-id'));
+        const reason = prompt('Masukkan alasan penolakan:');
+        
+        if (reason === null) return;
+        
         const rejectAll = confirm(`Reject ${itemIds.length} item yang dipilih?\n\nItem yang tidak dipilih akan tetap status pending.`);
         
         if (!rejectAll) return;
@@ -1618,14 +1662,12 @@ async function rejectSelectedItems(batchId) {
             .update({ 
                 status: 'rejected',
                 approved_at: new Date().toISOString(),
-                approved_by: currentKaryawanRequest.nama_karyawan
+                approved_by: currentKaryawanRequest.nama_karyawan,
+                notes: reason || 'Ditolak tanpa alasan'
             })
             .in('id', itemIds);
         
         if (error) throw error;
-        
-        // Check if all items in batch are approved
-        await checkBatchCompleteStatus(batchId);
         
         // Reload requests
         await loadRequestsForOwner();
@@ -1638,89 +1680,40 @@ async function rejectSelectedItems(batchId) {
     }
 }
 
-// [30] Fungsi untuk reject request
-async function rejectRequest(batchId) {
-    const reason = prompt('Masukkan alasan penolakan untuk semua item:');
-    if (reason === null) return;
-    
-    if (!reason.trim()) {
-        alert('Harap masukkan alasan penolakan');
-        return;
-    }
-    
-    try {
-        const { error } = await supabase
-            .from('request_barang')
-            .update({ 
-                status: 'rejected',
-                approved_at: new Date().toISOString(),
-                approved_by: currentKaryawanRequest.nama_karyawan,
-                notes: reason
-            })
-            .eq('batch_id', batchId)
-            .eq('status', 'pending');
-        
-        if (error) throw error;
-        
-        alert('Batch request ditolak!');
-        loadRequestsForOwner();
-        
-    } catch (error) {
-        console.error('Error rejecting request:', error);
-        alert('Gagal reject request: ' + error.message);
-    }
-}
-// [31] Check if batch is partially or fully approved
-async function checkBatchCompleteStatus(batchId) {
-    try {
-        // Get remaining pending items in batch
-        const { data: pendingItems, error } = await supabase
-            .from('request_barang')
-            .select('id')
-            .eq('batch_id', batchId)
-            .eq('status', 'pending');
-        
-        if (error) throw error;
-        
-        // If there are still pending items, update batch to partially_approved
-        if (pendingItems && pendingItems.length > 0) {
-            await supabase
-                .from('request_barang')
-                .update({ 
-                    status: 'partially_approved'
-                })
-                .eq('batch_id', batchId)
-                .eq('status', 'pending');
-        }
-        
-    } catch (error) {
-        console.error('Error checking batch status:', error);
-    }
-}
-
-// [32] Helper functions - DITAMBAHKAN
-function toggleSelectAllItems(batchId, isChecked) {
+// [29] Fungsi untuk toggle select all items dalam batch
+function toggleSelectAllItemsInBatch(batchId, isChecked) {
     const checkboxes = document.querySelectorAll(`
-        .request-card[data-batch-id="${batchId}"] 
-        .approve-checkbox
+        .batch-card[data-batch-id="${batchId}"] 
+        .item-checkbox
     `);
     
     checkboxes.forEach(checkbox => {
         checkbox.checked = isChecked;
-        const row = checkbox.closest('tr');
-        if (row) {
-            row.classList.toggle('selected', isChecked);
-        }
     });
 }
 
-function toggleItemSelection(itemId, batchId, isChecked) {
-    const row = document.querySelector(`tr[data-item-id="${itemId}"][data-batch-id="${batchId}"]`);
-    if (row) {
-        row.classList.toggle('selected', isChecked);
+// [30] Fungsi untuk update batch selection status
+function updateBatchSelection(batchId) {
+    const checkboxes = document.querySelectorAll(`
+        .batch-card[data-batch-id="${batchId}"] 
+        .item-checkbox
+    `);
+    
+    const selectAllCheckbox = document.querySelector(`
+        .batch-card[data-batch-id="${batchId}"] 
+        .select-all-checkbox
+    `);
+    
+    if (checkboxes.length > 0 && selectAllCheckbox) {
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        const someChecked = Array.from(checkboxes).some(cb => cb.checked);
+        
+        selectAllCheckbox.checked = allChecked;
+        selectAllCheckbox.indeterminate = someChecked && !allChecked;
     }
 }
 
+// [31] Helper functions
 function generateBatchId() {
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).substring(2, 8);
@@ -1802,149 +1795,19 @@ function formatRupiah(amount) {
     if (amount === 0 || !amount) return 'Rp 0';
     return 'Rp ' + amount.toLocaleString('id-ID');
 }
-// Setup event listeners untuk tombol item
-function setupRequestItemActionButtons() {
-    console.log('🔧 Setting up request item action buttons');
-    
-    // Approve per item
-    document.querySelectorAll('.btn-approve-item').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const itemId = this.dataset.itemId;
-            const batchId = this.dataset.batchId;
-            approveSingleItem(itemId, batchId);
-        });
-    });
-    
-    // Reject per item
-    document.querySelectorAll('.btn-reject-item').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const itemId = this.dataset.itemId;
-            const batchId = this.dataset.batchId;
-            rejectSingleItem(itemId, batchId);
-        });
-    });
-    
-    // View per item
-    document.querySelectorAll('.btn-view-item').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const itemId = this.dataset.itemId;
-            showItemDetail(itemId);
-        });
-    });
-    
-    // Approve all
-    document.querySelectorAll('.btn-approve-all').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const batchId = this.dataset.batchId;
-            approveAllItems(batchId);
-        });
-    });
-    
-    // Reject all
-    document.querySelectorAll('.btn-reject-all').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const batchId = this.dataset.batchId;
-            rejectRequest(batchId);
-        });
-    });
-}
 
-// Fungsi approve single item
-async function approveSingleItem(itemId, batchId) {
-    if (!confirm('Approve item ini?')) return;
-    
-    try {
-        const { error } = await supabase
-            .from('request_barang')
-            .update({ 
-                status: 'approved',
-                approved_at: new Date().toISOString(),
-                approved_by: currentKaryawanRequest.nama_karyawan
-            })
-            .eq('id', itemId);
-        
-        if (error) throw error;
-        
-        alert('Item approved!');
-        loadRequestsForOwner(); // Refresh data
-        
-    } catch (error) {
-        console.error('Error approving item:', error);
-        alert('Gagal approve item: ' + error.message);
-    }
-}
-
-// Fungsi reject single item
-async function rejectSingleItem(itemId, batchId) {
-    const reason = prompt('Masukkan alasan penolakan:');
-    if (reason === null) return;
-    
-    if (!reason.trim()) {
-        alert('Harap masukkan alasan penolakan');
-        return;
-    }
-    
-    try {
-        const { error } = await supabase
-            .from('request_barang')
-            .update({ 
-                status: 'rejected',
-                approved_at: new Date().toISOString(),
-                approved_by: currentKaryawanRequest.nama_karyawan,
-                notes: reason
-            })
-            .eq('id', itemId);
-        
-        if (error) throw error;
-        
-        alert('Item rejected!');
-        loadRequestsForOwner(); // Refresh data
-        
-    } catch (error) {
-        console.error('Error rejecting item:', error);
-        alert('Gagal reject item: ' + error.message);
-    }
-}
-
-// Fungsi show item detail
-async function showItemDetail(itemId) {
-    try {
-        const { data: item, error } = await supabase
-            .from('request_barang')
-            .select('*')
-            .eq('id', itemId)
-            .single();
-        
-        if (error) throw error;
-        
-        alert(`Detail Item:\n
-Nama: ${item.item}\n
-SKU: ${item.sku}\n
-Qty: ${item.qty}\n
-Harga: ${formatRupiah(item.unit_price)}\n
-Total: ${formatRupiah(item.total_price)}\n
-Status: ${item.status}\n
-Catatan: ${item.notes || '-'}`);
-        
-    } catch (error) {
-        console.error('Error showing item detail:', error);
-        alert('Gagal memuat detail item');
-    }
-}
-// [33] Global functions untuk onclick events
+// [32] Global functions untuk onclick events
 window.adjustSelectedItemQty = adjustSelectedItemQty;
 window.updateSelectedItemQty = updateSelectedItemQty;
 window.removeSelectedItem = removeSelectedItem;
-window.approveSelectedItems = approveSelectedItems;
-window.rejectSelectedItems = rejectSelectedItems;
-window.approveAllItems = approveAllItems;
-window.rejectRequest = rejectRequest;
-window.toggleSelectAllItems = toggleSelectAllItems;
-window.toggleItemSelection = toggleItemSelection;
 window.toggleInventoryItemSelection = toggleInventoryItemSelection;
 window.addSingleItemToRequest = addSingleItemToRequest;
 window.loadKasirHistory = loadKasirHistory;
 window.loadInventoryWithFilter = loadInventoryWithFilter;
-
+window.toggleSelectAllItemsInBatch = toggleSelectAllItemsInBatch;
+window.updateBatchSelection = updateBatchSelection;
+window.approveSelectedItemsInBatch = approveSelectedItemsInBatch;
+window.rejectSelectedItemsInBatch = rejectSelectedItemsInBatch;
+window.clearAllSelectedItems = clearAllSelectedItems;
 
 // ========== END OF FILE ==========
