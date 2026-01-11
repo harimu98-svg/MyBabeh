@@ -10691,171 +10691,139 @@ function setupRequestActionButtons() {
     });
 }
 
-// [17] Approve stok request - SELALU CEK STOK REAL-TIME
+// [17] Approve stok request - VERSI SIMPLE YANG SELALU CEK STOK REAL
 async function approveStokRequest(requestId) {
     if (!confirm('Approve request ini? Stok produk akan diupdate.')) return;
     
     try {
-        // 1. GET REQUEST DATA
-        const { data: request, error: getError } = await supabase
+        // 1. Ambil data request
+        const { data: request } = await supabase
             .from('stok_update')
             .select('*')
             .eq('id', requestId)
             .single();
         
-        if (getError) throw getError;
-        
-        if (request.approval_status !== 'pending') {
-            alert('Request ini sudah diproses sebelumnya.');
+        if (!request) {
+            alert('Request tidak ditemukan!');
             return;
         }
         
-        // 2. ⭐⭐ SELALU AMBIL STOK REAL-TIME DARI DATABASE ⭐⭐
-        console.log('🔍 Mendapatkan stok REAL-TIME dari database...');
+        if (request.approval_status !== 'pending') {
+            alert('Request sudah diproses sebelumnya');
+            return;
+        }
         
-        const { data: currentProduk, error: produkGetError } = await supabase
+        // 2. ⭐ AMBIL STOK REAL-TIME SEKARANG ⭐
+        const { data: produkSekarang } = await supabase
             .from('produk')
-            .select('stok, nama_produk')
+            .select('stok')
             .eq('nama_produk', request.nama_produk)
             .eq('outlet', request.outlet)
             .single();
         
-        if (produkGetError) {
-            console.error('Error getting current product:', produkGetError);
-            alert('Gagal mendapatkan data produk saat ini.');
+        if (!produkSekarang) {
+            alert('Produk tidak ditemukan!');
             return;
         }
         
-        const currentStock = currentProduk.stok;
-        const originalQtyBefore = request.qty_before;
+        const stokSekarang = produkSekarang.stok;
+        const stokDiRequest = request.qty_before;
         
-        console.log(`📊 Stok di request (lama): ${originalQtyBefore}`);
-        console.log(`📊 Stok saat ini (real): ${currentStock}`);
+        console.log(`🔄 Stok di request: ${stokDiRequest}`);
+        console.log(`🔄 Stok sekarang: ${stokSekarang}`);
         
-        // 3. ⭐⭐ SELALU HITUNG ULANG DARI STOK REAL-TIME ⭐⭐
-        const newQtyAfter = currentStock + request.qty_change;
+        // 3. ⭐ HITUNG STOK BARU DARI STOK SEKARANG ⭐
+        const stokSetelah = stokSekarang + request.qty_change;
         
-        console.log(`🧮 Hitung ulang: ${currentStock} ${request.qty_change > 0 ? '+' : ''}${request.qty_change} = ${newQtyAfter}`);
+        console.log(`🧮 ${stokSekarang} ${request.qty_change > 0 ? '+' : ''}${request.qty_change} = ${stokSetelah}`);
         
-        // 4. VALIDASI: JIKA STOK KELUAR DAN HASIL NEGATIF
-        if (request.stok_type === 'keluar' && newQtyAfter < 0) {
-            alert(`❌ Tidak bisa approve! Stok tidak mencukupi.\n\n` +
-                  `Stok saat ini: ${currentStock} unit\n` +
-                  `Permintaan keluar: ${Math.abs(request.qty_change)} unit\n` +
-                  `Hasil: ${newQtyAfter} unit (NEGATIF!)\n\n` +
-                  `Maksimal yang bisa dikeluarkan: ${currentStock} unit`);
+        // 4. Validasi untuk stok keluar
+        if (request.stok_type === 'keluar' && stokSetelah < 0) {
+            alert(`❌ GAGAL: Stok tidak cukup!\n` +
+                  `Stok saat ini: ${stokSekarang}\n` +
+                  `Butuh keluar: ${Math.abs(request.qty_change)}\n` +
+                  `Hasil: ${stokSetelah} (negatif!)`);
             return;
         }
         
-        // 5. KONFIRMASI JIKA ADA PERUBAHAN STOK
-        let isAdjusted = false;
-        if (currentStock !== originalQtyBefore) {
-            console.warn(`⚠️ STOK BERUBAH! Dari ${originalQtyBefore} menjadi ${currentStock}`);
-            
-            const diff = currentStock - originalQtyBefore;
-            const adjustmentConfirmed = confirm(
-                `⚠️ PERINGATAN: Stok telah berubah!\n\n` +
-                `Stok saat request: ${originalQtyBefore}\n` +
-                `Stok saat ini: ${currentStock}\n` +
-                `Perubahan: ${diff > 0 ? '+' : ''}${diff}\n\n` +
-                `Stok akan diupdate dari ${currentStock} menjadi ${newQtyAfter}.\n\n` +
-                `Apakah tetap lanjutkan approval?`
+        // 5. Konfirmasi jika stok berubah
+        let stokBerubah = false;
+        if (stokSekarang !== stokDiRequest) {
+            const selisih = stokSekarang - stokDiRequest;
+            const lanjut = confirm(
+                `⚠️ STOK BERUBAH!\n\n` +
+                `Saat request: ${stokDiRequest}\n` +
+                `Sekarang: ${stokSekarang}\n` +
+                `Selisih: ${selisih > 0 ? '+' : ''}${selisih}\n\n` +
+                `Stok akan diubah dari ${stokSekarang} menjadi ${stokSetelah}\n\n` +
+                `Lanjutkan?`
             );
             
-            if (!adjustmentConfirmed) {
-                console.log('❌ Approval dibatalkan oleh user');
-                return;
-            }
-            
-            isAdjusted = true;
+            if (!lanjut) return;
+            stokBerubah = true;
         }
         
-        // 6. UPDATE DATABASE
-        // Update record di stok_update
-        const { error: updateError } = await supabase
+        // 6. Update ke database
+        // A. Update status request
+        await supabase
             .from('stok_update')
             .update({
                 approval_status: 'approved',
                 approved_by: currentUserStok.nama_karyawan,
                 updated_at: new Date().toISOString(),
-                qty_before: currentStock,    // ⭐ SELALU update dengan stok real-time
-                qty_after: newQtyAfter       // ⭐ SELALU update dengan hasil hitung ulang
+                qty_before: stokSekarang,   // Update dengan stok sekarang
+                qty_after: stokSetelah      // Update dengan hasil hitung
             })
             .eq('id', requestId);
         
-        if (updateError) throw updateError;
-        
-        // Update stok di tabel produk
-        const { error: produkError } = await supabase
+        // B. Update stok produk
+        await supabase
             .from('produk')
-            .update({ 
-                stok: newQtyAfter,  // ⭐ SELALU update dengan hasil hitung ulang
+            .update({
+                stok: stokSetelah,
                 updated_at: new Date().toISOString()
             })
             .eq('nama_produk', request.nama_produk)
             .eq('outlet', request.outlet);
         
-        if (produkError) {
-            console.error('Error updating produk.stok:', produkError);
-            alert('Request approved tapi gagal update stok produk. Silakan cek manual.');
-            return;
-        }
-        
-        // 7. KIRIM NOTIFIKASI WA
+        // 7. Kirim WA
         try {
-            const waData = {
-                ...request,
-                approved_by: currentUserStok.nama_karyawan,
-                updated_at: new Date().toISOString(),
-                qty_before: currentStock,
-                qty_after: newQtyAfter
-            };
-            
+            const waData = { ...request, qty_before: stokSekarang, qty_after: stokSetelah };
             await sendWAStokApproval(waData);
-            
-        } catch (waError) {
-            console.warn('Gagal kirim notifikasi WA:', waError);
+        } catch (e) {
+            console.warn('WA gagal:', e);
         }
         
-        // 8. TAMPILKAN ALERT
-        let alertMessage = `✅ Request approved!\n\n` +
-                         `📦 Produk: ${request.nama_produk}\n` +
-                         `🏬 Outlet: ${request.outlet}\n` +
-                         `📊 Stok: ${currentStock} → ${newQtyAfter}`;
+        // 8. Tampilkan pesan sukses
+        let pesan = `✅ APPROVED!\n\n` +
+                   `Produk: ${request.nama_produk}\n` +
+                   `Outlet: ${request.outlet}\n` +
+                   `Stok: ${stokSekarang} → ${stokSetelah}`;
         
-        if (isAdjusted) {
-            alertMessage += `\n⚠️ Stok disesuaikan (dari ${originalQtyBefore})`;
+        if (stokBerubah) {
+            pesan += `\n\n⚠️ Stok disesuaikan dari ${stokDiRequest}`;
         }
         
-        alertMessage += `\n\n📱 Notifikasi WhatsApp terkirim`;
-        alert(alertMessage);
+        pesan += `\n\n📱 Notifikasi WA terkirim`;
+        alert(pesan);
         
-        // 9. UPDATE UI
+        // 9. Update UI
         const row = document.querySelector(`tr[data-id="${requestId}"]`);
         if (row) {
-            const buttons = row.querySelectorAll('.btn-approve, .btn-reject');
-            buttons.forEach(btn => btn.disabled = true);
-            
-            const statusBadge = row.querySelector('.status-badge');
-            if (statusBadge) {
-                statusBadge.className = 'status-badge status-approved';
-                statusBadge.textContent = 'Disetujui';
-            }
-            
-            if (isAdjusted) {
-                const qtyCell = row.querySelector('td:nth-child(6) strong');
-                if (qtyCell) {
-                    qtyCell.innerHTML = `${request.stok_type === 'masuk' ? '+' : '-'}${Math.abs(request.qty_change)}<br><small>(disesuaikan)</small>`;
-                }
+            row.querySelectorAll('.btn-approve, .btn-reject').forEach(b => b.disabled = true);
+            const badge = row.querySelector('.status-badge');
+            if (badge) {
+                badge.className = 'status-badge status-approved';
+                badge.textContent = 'Disetujui';
             }
         }
         
-        // 10. REFRESH DATA
+        // 10. Refresh
         loadStokData();
         
     } catch (error) {
-        console.error('Error approving request:', error);
-        alert('Gagal approve request: ' + error.message);
+        console.error('Error:', error);
+        alert('Gagal: ' + error.message);
     }
 }
 // [18] Show reject modal
