@@ -11694,7 +11694,7 @@ async function sendWAStokApproval(request) {
             body: JSON.stringify({
                 chatId: WA_CHAT_ID,
                 text: message,
-                session: 'default'
+                session: 'Session1'
             })
         });
         
@@ -11740,7 +11740,7 @@ async function sendWAQuickAdjustment(adjustmentData) {
             body: JSON.stringify({
                 chatId: WA_CHAT_ID,
                 text: message,
-                session: 'default'
+                session: 'Session1'
             })
         });
         
