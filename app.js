@@ -9561,10 +9561,10 @@ let currentOutletStok = null;
 let requestItems = []; // Untuk menyimpan multiple items
 let selectedOutletFilter = 'all'; // Untuk owner filter
 
-// Konfigurasi WhatsApp API
-const WA_API_URL = 'https://waha-yetv8qi4e3zk.anakit.sumopod.my.id/api/sendText';
-const WA_API_KEY = 'sfcoGbpdLDkGZhKw2rx8sbb14vf4d8V6';
-const WA_CHAT_ID = '62811159429-1533260196@g.us';
+// **HAPUS BARIS INI karena sudah dideklarasikan di file lain**
+// const WA_API_URL = 'https://waha-yetv8qi4e3zk.anakit.sumopod.my.id/api/sendText';
+// const WA_API_KEY = 'sfcoGbpdLDkGZhKw2rx8sbb14vf4d8V6';
+// const WA_CHAT_ID = '62811159429-1533260196@g.us';
 
 // [1] Fungsi utama untuk tampilkan halaman stok
 async function showStokPage() {
