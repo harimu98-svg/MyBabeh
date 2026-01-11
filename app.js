@@ -10743,15 +10743,20 @@ async function approveStokRequest(requestId) {
                 request.approved_by = currentUserStok.nama_karyawan;
                 request.updated_at = new Date().toISOString();
                 
-                await sendWAStokApproval(request);
+              // ⭐ Gunakan format WA yang benar ⭐
+                const waSuccess = await sendWAStokApproval(request);
+                
+                if (waSuccess) {
+                    alert('✅ Request approved! Stok produk berhasil diperbarui dan notifikasi WA terkirim.');
+                } else {
+                    alert('✅ Request approved! Stok produk berhasil diperbarui.\n⚠️ Notifikasi WA gagal terkirim.');
+                }
+                
             } catch (waError) {
                 console.warn('Gagal kirim notifikasi WA:', waError);
-                // Lanjutkan meski WA gagal
+                alert('✅ Request approved! Stok produk berhasil diperbarui.\n⚠️ Notifikasi WA gagal terkirim.');
             }
-            
-            alert('Request approved! Stok produk berhasil diperbarui.');
         }
-        
         // Disable action buttons for this row
         const row = document.querySelector(`tr[data-id="${requestId}"]`);
         if (row) {
