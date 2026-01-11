@@ -10691,7 +10691,7 @@ function setupRequestActionButtons() {
     });
 }
 
-// [17] Approve stok request (OWNER) - UPDATE PRODUK.STOK - DITAMBAH WA NOTIFIKASI
+// [17] Approve stok request - DENGAN VALIDASI STOK REAL-TIME
 async function approveStokRequest(requestId) {
     if (!confirm('Approve request ini? Stok produk akan diupdate.')) return;
     
@@ -10711,23 +10711,73 @@ async function approveStokRequest(requestId) {
             return;
         }
         
-        // Update request status
+        // ⭐⭐ PERUBAHAN UTAMA: GET CURRENT STOCK REAL-TIME ⭐⭐
+        console.log('🔍 Mendapatkan stok saat ini dari database...');
+        
+        const { data: currentProduk, error: produkGetError } = await supabase
+            .from('produk')
+            .select('stok, nama_produk')
+            .eq('nama_produk', request.nama_produk)
+            .eq('outlet', request.outlet)
+            .single();
+        
+        if (produkGetError) {
+            console.error('Error getting current product:', produkGetError);
+            alert('Gagal mendapatkan data produk saat ini.');
+            return;
+        }
+        
+        const currentStock = currentProduk.stok;
+        console.log(`📊 Stok di request: ${request.qty_before} → Stok saat ini: ${currentStock}`);
+        
+        // Validasi: Apakah stok saat ini sama dengan stok_before di request?
+        if (currentStock !== request.qty_before) {
+            // Stok telah berubah! Perlu kalkulasi ulang
+            console.warn(`⚠️ STOK BERUBAH! Request: ${request.qty_before}, Sekarang: ${currentStock}`);
+            
+            const diff = currentStock - request.qty_before;
+            console.log(`Perbedaan: ${diff > 0 ? '+' : ''}${diff}`);
+            
+            // Konfirmasi dengan user
+            const confirmation = confirm(
+                `⚠️ PERINGATAN: Stok telah berubah!\n\n` +
+                `Stok saat request: ${request.qty_before}\n` +
+                `Stok saat ini: ${currentStock}\n` +
+                `Perubahan: ${diff > 0 ? '+' : ''}${diff}\n\n` +
+                `Apakah tetap lanjutkan approval? Stok akan diupdate dari ${currentStock} menjadi ${currentStock + request.qty_change}.`
+            );
+            
+            if (!confirmation) {
+                console.log('❌ Approval dibatalkan oleh user');
+                return;
+            }
+            
+            // Update qty_before dan qty_after di request data
+            request.qty_before = currentStock;
+            request.qty_after = currentStock + request.qty_change;
+            
+            console.log(`🔄 Menyesuaikan: ${request.qty_before} → ${request.qty_after}`);
+        }
+        
+        // Update request status dengan data yang sudah disesuaikan
         const { error: updateError } = await supabase
             .from('stok_update')
             .update({
                 approval_status: 'approved',
                 approved_by: currentUserStok.nama_karyawan,
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
+                qty_before: request.qty_before,    // Update dengan nilai baru
+                qty_after: request.qty_after       // Update dengan nilai baru
             })
             .eq('id', requestId);
         
         if (updateError) throw updateError;
         
-        // UPDATE PRODUK.STOK
+        // UPDATE PRODUK.STOK dengan nilai qty_after yang sudah disesuaikan
         const { error: produkError } = await supabase
             .from('produk')
             .update({ 
-                stok: request.qty_after,
+                stok: request.qty_after,  // Gunakan qty_after yang sudah disesuaikan
                 updated_at: new Date().toISOString()
             })
             .eq('nama_produk', request.nama_produk)
@@ -10739,25 +10789,33 @@ async function approveStokRequest(requestId) {
         } else {
             // Success - Kirim notifikasi WA
             try {
-                // Update request object dengan data terbaru
                 request.approved_by = currentUserStok.nama_karyawan;
                 request.updated_at = new Date().toISOString();
                 
-              // ⭐ Gunakan format WA yang benar ⭐
                 const waSuccess = await sendWAStokApproval(request);
                 
-               if (waSuccess) {
-    alert('✅ Request approved! Stok produk berhasil diperbarui.\n📱 Notifikasi WhatsApp terkirim dengan status: ' + 
-          (data?.status || 'PENDING'));
-} else {
-    alert('✅ Request approved! Stok produk berhasil diperbarui.\n⚠️ Notifikasi WhatsApp gagal terkirim.');
-}
+                let alertMessage = `✅ Request approved!\n` +
+                                 `📦 Produk: ${request.nama_produk}\n` +
+                                 `📊 Stok: ${currentStock} → ${request.qty_after}`;
+                
+                if (currentStock !== request.qty_before) {
+                    alertMessage += `\n⚠️ Stok disesuaikan dari ${request.qty_before}`;
+                }
+                
+                if (waSuccess) {
+                    alertMessage += `\n📱 Notifikasi WhatsApp terkirim`;
+                } else {
+                    alertMessage += `\n⚠️ Notifikasi WhatsApp gagal`;
+                }
+                
+                alert(alertMessage);
                 
             } catch (waError) {
                 console.warn('Gagal kirim notifikasi WA:', waError);
-                alert('✅ Request approved! Stok produk berhasil diperbarui.\n⚠️ Notifikasi WA gagal terkirim.');
+                alert(`✅ Request approved! Stok diperbarui.\n⚠️ Notifikasi WA gagal.`);
             }
         }
+        
         // Disable action buttons for this row
         const row = document.querySelector(`tr[data-id="${requestId}"]`);
         if (row) {
@@ -10769,6 +10827,12 @@ async function approveStokRequest(requestId) {
             if (statusBadge) {
                 statusBadge.className = 'status-badge status-approved';
                 statusBadge.textContent = 'Disetujui';
+            }
+            
+            // Update qty display jika perlu
+            const qtyCell = row.querySelector('td:nth-child(6) strong');
+            if (qtyCell && currentStock !== request.qty_before) {
+                qtyCell.innerHTML = `${request.stok_type === 'masuk' ? '+' : '-'}${Math.abs(request.qty_change)}<br><small>(disesuaikan)</small>`;
             }
         }
         
