@@ -10746,11 +10746,12 @@ async function approveStokRequest(requestId) {
               // ⭐ Gunakan format WA yang benar ⭐
                 const waSuccess = await sendWAStokApproval(request);
                 
-                if (waSuccess) {
-                    alert('✅ Request approved! Stok produk berhasil diperbarui dan notifikasi WA terkirim.');
-                } else {
-                    alert('✅ Request approved! Stok produk berhasil diperbarui.\n⚠️ Notifikasi WA gagal terkirim.');
-                }
+               if (waSuccess) {
+    alert('✅ Request approved! Stok produk berhasil diperbarui.\n📱 Notifikasi WhatsApp terkirim dengan status: ' + 
+          (data?.status || 'PENDING'));
+} else {
+    alert('✅ Request approved! Stok produk berhasil diperbarui.\n⚠️ Notifikasi WhatsApp gagal terkirim.');
+}
                 
             } catch (waError) {
                 console.warn('Gagal kirim notifikasi WA:', waError);
@@ -11664,7 +11665,7 @@ function showError(message) {
     }
 }
 
-// [40] Helper: Kirim notifikasi WhatsApp untuk stok approval - PERBAIKI HEADER
+// [40] Helper: Kirim notifikasi WhatsApp untuk stok approval - FIXED VERSION
 async function sendWAStokApproval(request) {
     try {
         console.log('📤 Mengirim notifikasi WhatsApp untuk approval stok...');
@@ -11676,7 +11677,7 @@ async function sendWAStokApproval(request) {
         }
         
         // Format pesan
-        const message = `*✅ STOK UPDATE DIAKTIFKAN - BEHATI BARBERSHOP*
+        const message = `*✅ STOK UPDATE - BABEH BARBERSHOP*
 ========================================
 🏬 Outlet : ${request.outlet}
 📅 Tanggal : ${formatDateStok(request.tanggal)}
@@ -11697,18 +11698,17 @@ async function sendWAStokApproval(request) {
 🕐 Waktu : ${formatDateTime(new Date())}
 ✅ Status : STOK BERHASIL DIPERBARUI`;
         
-        console.log('🔑 Menggunakan header: X-Api-Key (sama seperti module Kas)');
+        console.log('🔑 Menggunakan header: X-Api-Key');
         console.log('🗂️ Session: Session1');
         
-        // ⭐ PERUBAHAN UTAMA: Gunakan X-Api-Key header, bukan Authorization ⭐
         const response = await fetch(WA_API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Api-Key': WA_API_KEY  // ⭐ INI PERBEDAANNYA! ⭐
+                'X-Api-Key': WA_API_KEY
             },
             body: JSON.stringify({
-                session: 'Session1',     // ⭐ Session dari Kas ⭐
+                session: 'Session1',
                 chatId: WA_CHAT_ID,
                 text: message
             })
@@ -11725,11 +11725,18 @@ async function sendWAStokApproval(request) {
         const data = await response.json();
         console.log('✅ WA API Response:', data);
         
-        if (data.success || data.messageId) {
-            console.log('🎉 Notifikasi WhatsApp berhasil dikirim!');
+        // ⭐⭐ LOGIKA BARU: Cek berdasarkan response actual ⭐⭐
+        // Response memiliki: key, message, messageTimestamp, status, participant
+        
+        if (response.status === 201 || response.status === 200) {
+            // HTTP 201 Created atau 200 OK berarti berhasil
+            console.log('🎉 HTTP', response.status, '- Notifikasi WhatsApp berhasil dikirim!');
+            console.log('📱 Message ID:', data.key?.id || 'N/A');
+            console.log('📊 Status:', data.status || 'N/A');
+            console.log('👥 Participant:', data.participant || 'N/A');
             return true;
         } else {
-            console.warn('⚠️ WA API returned unexpected response:', data);
+            console.warn('⚠️ Unexpected HTTP status:', response.status);
             return false;
         }
         
@@ -11739,7 +11746,7 @@ async function sendWAStokApproval(request) {
     }
 }
 
-// [41] Helper: Kirim notifikasi WA untuk Quick Adjustment - PERBAIKI JUGA
+// [41] Helper: Kirim notifikasi WA untuk Quick Adjustment - JUGA PERBAIKI
 async function sendWAQuickAdjustment(adjustmentData) {
     try {
         // Cek apakah konstanta WA sudah didefinisikan
@@ -11748,7 +11755,7 @@ async function sendWAQuickAdjustment(adjustmentData) {
             return false;
         }
         
-        const message = `*⚡ QUICK ADJUSTMENT STOK - BEHATI BARBERSHOP*
+        const message = `*⚡ QUICK ADJUSTMENT STOK - BABEH BARBERSHOP*
 ========================================
 🏬 Outlet : ${adjustmentData.outlet}
 📅 Tanggal : ${formatDateStok(adjustmentData.tanggal)}
@@ -11774,10 +11781,10 @@ async function sendWAQuickAdjustment(adjustmentData) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Api-Key': WA_API_KEY  // ⭐ GANTI INI ⭐
+                'X-Api-Key': WA_API_KEY
             },
             body: JSON.stringify({
-                session: 'Session1',     // ⭐ GANTI INI ⭐
+                session: 'Session1',
                 chatId: WA_CHAT_ID,
                 text: message
             })
@@ -11785,7 +11792,9 @@ async function sendWAQuickAdjustment(adjustmentData) {
         
         const data = await response.json();
         console.log('Hasil notifikasi Quick Adjustment:', data);
-        return data.success || data.messageId ? true : false;
+        
+        // Cek berdasarkan HTTP status
+        return (response.status === 201 || response.status === 200);
         
     } catch (error) {
         console.error('Error mengirim notifikasi adjustment:', error);
