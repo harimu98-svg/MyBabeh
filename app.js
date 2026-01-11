@@ -10691,12 +10691,12 @@ function setupRequestActionButtons() {
     });
 }
 
-// [17] Approve stok request - DENGAN VALIDASI STOK REAL-TIME (FIXED)
+// [17] Approve stok request - SELALU CEK STOK REAL-TIME
 async function approveStokRequest(requestId) {
     if (!confirm('Approve request ini? Stok produk akan diupdate.')) return;
     
     try {
-        // Get request data
+        // 1. GET REQUEST DATA
         const { data: request, error: getError } = await supabase
             .from('stok_update')
             .select('*')
@@ -10705,14 +10705,13 @@ async function approveStokRequest(requestId) {
         
         if (getError) throw getError;
         
-        // Check if already approved/rejected
         if (request.approval_status !== 'pending') {
             alert('Request ini sudah diproses sebelumnya.');
             return;
         }
         
-        // ⭐⭐ PERBAIKAN UTAMA: GET CURRENT STOCK REAL-TIME ⭐⭐
-        console.log('🔍 Mendapatkan stok saat ini dari database...');
+        // 2. ⭐⭐ SELALU AMBIL STOK REAL-TIME DARI DATABASE ⭐⭐
+        console.log('🔍 Mendapatkan stok REAL-TIME dari database...');
         
         const { data: currentProduk, error: produkGetError } = await supabase
             .from('produk')
@@ -10728,37 +10727,33 @@ async function approveStokRequest(requestId) {
         }
         
         const currentStock = currentProduk.stok;
-        const originalQtyBefore = request.qty_before; // ⭐ SIMPAN NILAI ASLI ⭐
+        const originalQtyBefore = request.qty_before;
         
-        console.log(`📊 Stok di request: ${originalQtyBefore} → Stok saat ini: ${currentStock}`);
+        console.log(`📊 Stok di request (lama): ${originalQtyBefore}`);
+        console.log(`📊 Stok saat ini (real): ${currentStock}`);
         
-        // Variabel untuk data yang akan di-update
-        let finalQtyBefore = originalQtyBefore;
-        let finalQtyAfter = request.qty_after;
+        // 3. ⭐⭐ SELALU HITUNG ULANG DARI STOK REAL-TIME ⭐⭐
+        const newQtyAfter = currentStock + request.qty_change;
+        
+        console.log(`🧮 Hitung ulang: ${currentStock} ${request.qty_change > 0 ? '+' : ''}${request.qty_change} = ${newQtyAfter}`);
+        
+        // 4. VALIDASI: JIKA STOK KELUAR DAN HASIL NEGATIF
+        if (request.stok_type === 'keluar' && newQtyAfter < 0) {
+            alert(`❌ Tidak bisa approve! Stok tidak mencukupi.\n\n` +
+                  `Stok saat ini: ${currentStock} unit\n` +
+                  `Permintaan keluar: ${Math.abs(request.qty_change)} unit\n` +
+                  `Hasil: ${newQtyAfter} unit (NEGATIF!)\n\n` +
+                  `Maksimal yang bisa dikeluarkan: ${currentStock} unit`);
+            return;
+        }
+        
+        // 5. KONFIRMASI JIKA ADA PERUBAHAN STOK
         let isAdjusted = false;
-        
-        // Validasi: Apakah stok saat ini sama dengan stok_before di request?
         if (currentStock !== originalQtyBefore) {
-            // Stok telah berubah! Perlu kalkulasi ulang
-            console.warn(`⚠️ STOK BERUBAH! Request: ${originalQtyBefore}, Sekarang: ${currentStock}`);
+            console.warn(`⚠️ STOK BERUBAH! Dari ${originalQtyBefore} menjadi ${currentStock}`);
             
             const diff = currentStock - originalQtyBefore;
-            console.log(`Perbedaan: ${diff > 0 ? '+' : ''}${diff}`);
-            
-            // ⭐⭐ VALIDASI KHUSUS UNTUK STOK KELUAR ⭐⭐
-            const newQtyAfter = currentStock + request.qty_change;
-            
-            if (request.stok_type === 'keluar' && newQtyAfter < 0) {
-                alert(`❌ Tidak bisa approve! Stok tidak mencukupi.\n\n` +
-                      `Stok saat request: ${originalQtyBefore}\n` +
-                      `Stok saat ini: ${currentStock}\n` +
-                      `Permintaan keluar: ${Math.abs(request.qty_change)} unit\n` +
-                      `Stok akan menjadi: ${newQtyAfter} (NEGATIV!)`);
-                return;
-            }
-            
-            // Konfirmasi dengan user
-            const confirmation = confirm(
+            const adjustmentConfirmed = confirm(
                 `⚠️ PERINGATAN: Stok telah berubah!\n\n` +
                 `Stok saat request: ${originalQtyBefore}\n` +
                 `Stok saat ini: ${currentStock}\n` +
@@ -10767,38 +10762,34 @@ async function approveStokRequest(requestId) {
                 `Apakah tetap lanjutkan approval?`
             );
             
-            if (!confirmation) {
+            if (!adjustmentConfirmed) {
                 console.log('❌ Approval dibatalkan oleh user');
                 return;
             }
             
-            // Set nilai final untuk update
-            finalQtyBefore = currentStock;
-            finalQtyAfter = newQtyAfter;
             isAdjusted = true;
-            
-            console.log(`🔄 Menyesuaikan: ${currentStock} → ${newQtyAfter}`);
         }
         
-        // Update request status dengan data yang sudah disesuaikan
+        // 6. UPDATE DATABASE
+        // Update record di stok_update
         const { error: updateError } = await supabase
             .from('stok_update')
             .update({
                 approval_status: 'approved',
                 approved_by: currentUserStok.nama_karyawan,
                 updated_at: new Date().toISOString(),
-                qty_before: finalQtyBefore,    // Update dengan nilai baru
-                qty_after: finalQtyAfter       // Update dengan nilai baru
+                qty_before: currentStock,    // ⭐ SELALU update dengan stok real-time
+                qty_after: newQtyAfter       // ⭐ SELALU update dengan hasil hitung ulang
             })
             .eq('id', requestId);
         
         if (updateError) throw updateError;
         
-        // UPDATE PRODUK.STOK dengan nilai qty_after yang sudah disesuaikan
+        // Update stok di tabel produk
         const { error: produkError } = await supabase
             .from('produk')
             .update({ 
-                stok: finalQtyAfter,  // Gunakan finalQtyAfter (bisa original atau adjusted)
+                stok: newQtyAfter,  // ⭐ SELALU update dengan hasil hitung ulang
                 updated_at: new Date().toISOString()
             })
             .eq('nama_produk', request.nama_produk)
@@ -10807,59 +10798,59 @@ async function approveStokRequest(requestId) {
         if (produkError) {
             console.error('Error updating produk.stok:', produkError);
             alert('Request approved tapi gagal update stok produk. Silakan cek manual.');
-        } else {
-            // Success - Kirim notifikasi WA
-            try {
-                const waData = {
-                    ...request,
-                    approved_by: currentUserStok.nama_karyawan,
-                    updated_at: new Date().toISOString(),
-                    qty_before: finalQtyBefore,
-                    qty_after: finalQtyAfter
-                };
-                
-                const waSuccess = await sendWAStokApproval(waData);
-                
-                let alertMessage = `✅ Request approved!\n` +
-                                 `📦 Produk: ${request.nama_produk}\n` +
-                                 `📊 Stok: ${currentStock} → ${finalQtyAfter}`;
-                
-                if (isAdjusted) {
-                    alertMessage += `\n⚠️ Stok disesuaikan (dari ${originalQtyBefore})`;
-                }
-                
-                if (waSuccess) {
-                    alertMessage += `\n📱 Notifikasi WhatsApp terkirim`;
-               
-                alert(alertMessage);
-                
-            } catch (waError) {
-                console.warn('Gagal kirim notifikasi WA:', waError);
-                alert(`✅ Request approved! Stok diperbarui.\n⚠️ Notifikasi WA gagal.`);
-            }
+            return;
         }
         
-        // Disable action buttons for this row
+        // 7. KIRIM NOTIFIKASI WA
+        try {
+            const waData = {
+                ...request,
+                approved_by: currentUserStok.nama_karyawan,
+                updated_at: new Date().toISOString(),
+                qty_before: currentStock,
+                qty_after: newQtyAfter
+            };
+            
+            await sendWAStokApproval(waData);
+            
+        } catch (waError) {
+            console.warn('Gagal kirim notifikasi WA:', waError);
+        }
+        
+        // 8. TAMPILKAN ALERT
+        let alertMessage = `✅ Request approved!\n\n` +
+                         `📦 Produk: ${request.nama_produk}\n` +
+                         `🏬 Outlet: ${request.outlet}\n` +
+                         `📊 Stok: ${currentStock} → ${newQtyAfter}`;
+        
+        if (isAdjusted) {
+            alertMessage += `\n⚠️ Stok disesuaikan (dari ${originalQtyBefore})`;
+        }
+        
+        alertMessage += `\n\n📱 Notifikasi WhatsApp terkirim`;
+        alert(alertMessage);
+        
+        // 9. UPDATE UI
         const row = document.querySelector(`tr[data-id="${requestId}"]`);
         if (row) {
             const buttons = row.querySelectorAll('.btn-approve, .btn-reject');
             buttons.forEach(btn => btn.disabled = true);
             
-            // Update status badge
             const statusBadge = row.querySelector('.status-badge');
             if (statusBadge) {
                 statusBadge.className = 'status-badge status-approved';
                 statusBadge.textContent = 'Disetujui';
             }
             
-            // Update qty display jika perlu
-            const qtyCell = row.querySelector('td:nth-child(6) strong');
-            if (qtyCell && isAdjusted) {
-                qtyCell.innerHTML = `${request.stok_type === 'masuk' ? '+' : '-'}${Math.abs(request.qty_change)}<br><small>(disesuaikan)</small>`;
+            if (isAdjusted) {
+                const qtyCell = row.querySelector('td:nth-child(6) strong');
+                if (qtyCell) {
+                    qtyCell.innerHTML = `${request.stok_type === 'masuk' ? '+' : '-'}${Math.abs(request.qty_change)}<br><small>(disesuaikan)</small>`;
+                }
             }
         }
         
-        // Refresh stats
+        // 10. REFRESH DATA
         loadStokData();
         
     } catch (error) {
@@ -10867,7 +10858,6 @@ async function approveStokRequest(requestId) {
         alert('Gagal approve request: ' + error.message);
     }
 }
-
 // [18] Show reject modal
 async function showRejectModal(requestId) {
     const reason = prompt('Masukkan alasan penolakan:');
