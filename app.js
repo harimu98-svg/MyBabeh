@@ -9550,7 +9550,8 @@ async function deleteAdjustment(index) {
         });
     });
 }
-// ========== FUNGSI MENU KOMPONEN - UPDATE STOK (FINAL VERSION) ==========
+
+// ========== FUNGSI MENU KOMPONEN - UPDATE STOK (FINAL VERSION WITH WA) ==========
 // =======================================================================
 
 // Variabel global untuk stok
@@ -9559,6 +9560,11 @@ let isOwnerStok = false;
 let currentOutletStok = null;
 let requestItems = []; // Untuk menyimpan multiple items
 let selectedOutletFilter = 'all'; // Untuk owner filter
+
+// Konfigurasi WhatsApp API
+const WA_API_URL = 'https://waha-yetv8qi4e3zk.anakit.sumopod.my.id/api/sendText';
+const WA_API_KEY = 'sfcoGbpdLDkGZhKw2rx8sbb14vf4d8V6';
+const WA_CHAT_ID = '62811159429-1533260196@g.us';
 
 // [1] Fungsi utama untuk tampilkan halaman stok
 async function showStokPage() {
@@ -10351,7 +10357,7 @@ function displayRequestHistoryForKasir(requests) {
     }).join('');
 }
 
-// [13] Load data untuk OWNER - PERBAIKI BAGIAN ADJUSTMENTS
+// [13] Load data untuk OWNER - PERBAIKAN BAGIAN ADJUSTMENTS
 async function loadOwnerStokData() {
   console.log('=== LOAD OWNER STOK DATA ===');
   
@@ -10475,6 +10481,7 @@ async function loadOwnerStokData() {
     showError('Gagal memuat data requests');
   }
 }
+
 // [14] Load owner statistics
 async function loadOwnerStats(outletFilter, dateStart, dateEnd) {
     try {
@@ -10684,7 +10691,7 @@ function setupRequestActionButtons() {
     });
 }
 
-// [17] Approve stok request (OWNER) - UPDATE PRODUK.STOK
+// [17] Approve stok request (OWNER) - UPDATE PRODUK.STOK - DITAMBAH WA NOTIFIKASI
 async function approveStokRequest(requestId) {
     if (!confirm('Approve request ini? Stok produk akan diupdate.')) return;
     
@@ -10730,7 +10737,18 @@ async function approveStokRequest(requestId) {
             console.error('Error updating produk.stok:', produkError);
             alert('Request approved tapi gagal update stok produk. Silakan cek manual.');
         } else {
-            // Success
+            // Success - Kirim notifikasi WA
+            try {
+                // Update request object dengan data terbaru
+                request.approved_by = currentUserStok.nama_karyawan;
+                request.updated_at = new Date().toISOString();
+                
+                await sendWAStokApproval(request);
+            } catch (waError) {
+                console.warn('Gagal kirim notifikasi WA:', waError);
+                // Lanjutkan meski WA gagal
+            }
+            
             alert('Request approved! Stok produk berhasil diperbarui.');
         }
         
@@ -11450,7 +11468,7 @@ async function submitStokRequest() {
     }
 }
 
-// [33] Handle quick adjustment (OWNER) - UPDATE PRODUK.STOK - FIXED
+// [33] Handle quick adjustment (OWNER) - UPDATE PRODUK.STOK - FIXED dengan WA NOTIFIKASI
 async function handleQuickAdjust() {
     try {
         const outlet = document.getElementById('adjustOutlet')?.value;
@@ -11543,6 +11561,14 @@ async function handleQuickAdjust() {
             throw updateError;
         }
         
+        // Kirim notifikasi WA untuk Quick Adjustment
+        try {
+            await sendWAQuickAdjustment(adjustmentData);
+        } catch (waError) {
+            console.warn('Gagal kirim notifikasi WA:', waError);
+            // Lanjutkan meski WA gagal
+        }
+        
         // Success
         alert('Adjustment berhasil disimpan! Stok produk diperbarui.');
         
@@ -11633,7 +11659,108 @@ function showError(message) {
     }
 }
 
-// [40] Close modals on outside click
+// [40] Helper: Kirim notifikasi WhatsApp untuk stok approval
+async function sendWAStokApproval(request) {
+    try {
+        // Format pesan
+        const message = `*✅ STOK UPDATE DIAKTIFKAN - BEHATI BARBERSHOP*
+========================================
+🏬 Outlet : ${request.outlet}
+📅 Tanggal : ${formatDateStok(request.tanggal)}
+🔄 Jenis : ${request.stok_type === 'masuk' ? 'STOK MASUK' : 'STOK KELUAR'}
+========================================
+📦 Produk : ${request.nama_produk}
+📊 Group  : ${request.group_produk || '-'}
+========================================
+📈 Perubahan Stok:
+   Sebelum : ${request.qty_before} unit
+   Perubahan : ${request.qty_change > 0 ? '+' : ''}${request.qty_change} unit
+   Sesudah : ${request.qty_after} unit
+========================================
+👤 Kasir : ${request.updated_by}
+👑 Approver : ${request.approved_by}
+📝 Catatan : ${request.notes || '-'}
+========================================
+🕐 Waktu : ${formatDateTime(new Date())}
+✅ Status : STOK BERHASIL DIPERBARUI`;
+        
+        // Kirim ke WhatsApp API
+        const response = await fetch(WA_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${WA_API_KEY}`
+            },
+            body: JSON.stringify({
+                chatId: WA_CHAT_ID,
+                text: message,
+                session: 'default'
+            })
+        });
+        
+        const data = await response.json();
+        console.log('WA notification sent:', data);
+        return data.success;
+        
+    } catch (error) {
+        console.error('Error sending WA notification:', error);
+        return false;
+    }
+}
+
+// [41] Helper: Kirim notifikasi WA untuk Quick Adjustment (Owner)
+async function sendWAQuickAdjustment(adjustmentData) {
+    try {
+        const message = `*⚡ QUICK ADJUSTMENT STOK - BEHATI BARBERSHOP*
+========================================
+🏬 Outlet : ${adjustmentData.outlet}
+📅 Tanggal : ${formatDateStok(adjustmentData.tanggal)}
+🔄 Jenis : ${adjustmentData.stok_type === 'masuk' ? 'STOK MASUK' : 'STOK KELUAR'}
+========================================
+📦 Produk : ${adjustmentData.nama_produk}
+📊 Group  : ${adjustmentData.group_produk || '-'}
+========================================
+📈 Perubahan Stok:
+   Sebelum : ${adjustmentData.qty_before} unit
+   Perubahan : ${adjustmentData.qty_change > 0 ? '+' : ''}${adjustmentData.qty_change} unit
+   Sesudah : ${adjustmentData.qty_after} unit
+========================================
+👑 Dilakukan Oleh : ${adjustmentData.updated_by}
+📝 Alasan : ${adjustmentData.notes}
+========================================
+🕐 Waktu : ${formatDateTime(new Date())}
+⚡ Tipe : QUICK ADJUSTMENT (Owner)`;
+        
+        const response = await fetch(WA_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${WA_API_KEY}`
+            },
+            body: JSON.stringify({
+                chatId: WA_CHAT_ID,
+                text: message,
+                session: 'default'
+            })
+        });
+        
+        const data = await response.json();
+        console.log('WA Quick Adjustment notification sent:', data);
+        return data.success;
+        
+    } catch (error) {
+        console.error('Error sending WA adjustment notification:', error);
+        return false;
+    }
+}
+
+// [42] Helper: Format currency untuk WhatsApp (jika diperlukan)
+function formatCurrencyForWA(amount) {
+    if (!amount) return '0';
+    return new Intl.NumberFormat('id-ID').format(amount);
+}
+
+// [43] Close modals on outside click
 document.addEventListener('click', function(e) {
     // Close approval modal
     if (e.target.id === 'closeApprovalModal' || e.target.id === 'approvalModal') {
