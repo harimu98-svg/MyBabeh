@@ -5751,7 +5751,7 @@ function updateSubmitButtonState() {
     const metodeSetoran = document.getElementById('metodeSetoranKas')?.value;
     const hasBuktiSetoran = document.getElementById('buktiSetoranKas')?.files.length > 0;
     
-    const isValid = totalSetoran > 0 && metodeSetoran && hasBuktiSetoran;
+    const isValid = totalSetoran >= 0 && metodeSetoran && hasBuktiSetoran;
     
     const submitBtn = document.getElementById('submitSetoranBtnKas');
     if (submitBtn) {
