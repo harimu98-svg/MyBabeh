@@ -9650,6 +9650,7 @@ let selectedOutletFilter = 'all'; // Untuk owner filter
 // const WA_API_URL = 'https://waha-yetv8qi4e3zk.anakit.sumopod.my.id/api/sendText';
 // const WA_API_KEY = 'sfcoGbpdLDkGZhKw2rx8sbb14vf4d8V6';
 // const WA_CHAT_ID = '62811159429-1533260196@g.us';
+const WA_OWNER_PHONE = '0811159429'; // Nomor OWNER (yang approve stok)
 
 // [1] Fungsi utama untuk tampilkan halaman stok
 async function showStokPage() {
@@ -11584,15 +11585,29 @@ async function submitStokRequest() {
             created_at: new Date().toISOString()
         }));
         
-        const { data, error } = await supabase
+        const { data: savedRequests, error } = await supabase
             .from('stok_update')
             .insert(requests)
             .select();
         
         if (error) throw error;
         
+        // ✅ TAMBAHKAN: Kirim notifikasi WA ke OWNER (0811159429)
+        try {
+            if (savedRequests.length === 1) {
+                // Single item - kirim detail lengkap
+                await sendWAToOwner(savedRequests[0], currentUserStok);
+            } else {
+                // Multiple items - kirim summary
+                await sendWAToOwnerMultiple(savedRequests, currentUserStok, notes);
+            }
+        } catch (waError) {
+            console.warn('Gagal kirim notifikasi WA ke owner:', waError);
+            // Lanjutkan meski WA gagal
+        }
+        
         // Success
-        alert(`Request berhasil dikirim! Total ${requestItems.length} item menunggu approval.`);
+        alert(`✅ Request berhasil dikirim!\n\n📦 Total ${requestItems.length} item\n👑 Menunggu approval owner\n📱 Notifikasi terkirim ke WhatsApp`);
         closeRequestModal();
         
         // Refresh data
@@ -11808,23 +11823,23 @@ async function sendWAStokApproval(request) {
         
         // Format pesan
         const message = `*✅ STOK UPDATE - BABEH BARBERSHOP*
-========================================
+=============================
 🏬 Outlet : ${request.outlet}
 📅 Tanggal : ${formatDateStok(request.tanggal)}
 🔄 Jenis : ${request.stok_type === 'masuk' ? 'STOK MASUK' : 'STOK KELUAR'}
-========================================
+=============================
 📦 Produk : ${request.nama_produk}
 📊 Group  : ${request.group_produk || '-'}
-========================================
+=============================
 📈 Perubahan Stok:
    Sebelum : ${request.qty_before} unit
    Perubahan : ${request.qty_change > 0 ? '+' : ''}${request.qty_change} unit
    Sesudah : ${request.qty_after} unit
-========================================
+=============================
 👤 Kasir : ${request.updated_by}
 👑 Approver : ${request.approved_by || currentUserStok?.nama_karyawan}
 📝 Catatan : ${request.notes || '-'}
-========================================
+=============================
 🕐 Waktu : ${formatDateTime(new Date())}
 ✅ Status : STOK BERHASIL DIPERBARUI`;
         
@@ -11886,22 +11901,22 @@ async function sendWAQuickAdjustment(adjustmentData) {
         }
         
         const message = `*⚡ QUICK ADJUSTMENT STOK - BABEH BARBERSHOP*
-========================================
+=============================
 🏬 Outlet : ${adjustmentData.outlet}
 📅 Tanggal : ${formatDateStok(adjustmentData.tanggal)}
 🔄 Jenis : ${adjustmentData.stok_type === 'masuk' ? 'STOK MASUK' : 'STOK KELUAR'}
-========================================
+=============================
 📦 Produk : ${adjustmentData.nama_produk}
 📊 Group  : ${adjustmentData.group_produk || '-'}
-========================================
+=============================
 📈 Perubahan Stok:
    Sebelum : ${adjustmentData.qty_before} unit
    Perubahan : ${adjustmentData.qty_change > 0 ? '+' : ''}${adjustmentData.qty_change} unit
    Sesudah : ${adjustmentData.qty_after} unit
-========================================
+=============================
 👑 Dilakukan Oleh : ${adjustmentData.updated_by}
 📝 Alasan : ${adjustmentData.notes}
-========================================
+=============================
 🕐 Waktu : ${formatDateTime(new Date())}
 ⚡ Tipe : QUICK ADJUSTMENT (Owner)`;
         
@@ -11950,6 +11965,198 @@ document.addEventListener('click', function(e) {
     if (e.target === requestModal) {
         closeRequestModal();
     }
+
+    // [44] Helper: Kirim notifikasi WA ke OWNER saat kasir submit request
+async function sendWAToOwner(requestData, kasirData) {
+    try {
+        console.log('📤 Mengirim notifikasi WhatsApp ke OWNER...');
+        
+        // Cek apakah konstanta WA sudah didefinisikan
+        if (typeof WA_API_URL === 'undefined' || typeof WA_API_KEY === 'undefined') {
+            console.error('Konfigurasi WA API tidak ditemukan!');
+            return false;
+        }
+        
+        if (!WA_OWNER_PHONE) {
+            console.warn('Nomor OWNER tidak dikonfigurasi');
+            return false;
+        }
+        
+        // Format nomor telepon (62 untuk Indonesia)
+        let phoneNumber = WA_OWNER_PHONE;
+        if (phoneNumber.startsWith('0')) {
+            phoneNumber = '62' + phoneNumber.substring(1);
+        } else if (!phoneNumber.startsWith('62')) {
+            phoneNumber = '62' + phoneNumber;
+        }
+        
+        // Tambahkan @c.us untuk chat personal
+        const chatId = phoneNumber + '@c.us';
+        
+        console.log(`📱 Mengirim ke OWNER: ${chatId}`);
+        
+        // Format pesan untuk OWNER
+        const typeText = requestData.stok_type === 'masuk' ? '📈 STOK MASUK' : '📉 STOK KELUAR';
+        const typeIcon = requestData.stok_type === 'masuk' ? '⬆️' : '⬇️';
+        const changeSign = requestData.stok_type === 'masuk' ? '+' : '-';
+        
+        const message = `🔄 *PERMINTAAN UPDATE STOK - MENUNGGU APPROVAL*
+=============================
+🏬 *Outlet:* ${requestData.outlet}
+👤 *Kasir:* ${kasirData.nama_karyawan}
+📅 *Tanggal:* ${formatDateStok(requestData.tanggal)}
+⏰ *Waktu:* ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+=============================
+${typeIcon} *${typeText}*
+📦 *Produk:* ${requestData.nama_produk}
+📊 *Group:* ${requestData.group_produk || '-'}
+=============================
+📈 *Detail Perubahan:*
+   Sebelum: ${requestData.qty_before} unit
+   Perubahan: ${changeSign}${Math.abs(requestData.qty_change)} unit
+   Setelah: ${requestData.qty_after} unit
+=============================
+📝 *Catatan:* ${requestData.notes || 'Tidak ada catatan'}
+=============================
+🆔 *ID Request:* ${requestData.id || 'BARU'}
+📋 *Status:* ⏳ MENUNGGU APPROVAL
+=============================
+⚠️ *Silakan buka aplikasi untuk:*
+   ✅ Approve  ❌ Reject
+=============================
+⏰ *Mohon segera diproses maksimal 24 jam*`;
+        
+        console.log('🔑 Menggunakan X-Api-Key header untuk owner notification');
+        
+        const response = await fetch(WA_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Api-Key': WA_API_KEY
+            },
+            body: JSON.stringify({
+                session: 'Session1',
+                chatId: chatId,  // Kirim ke chat personal owner
+                text: message
+            })
+        });
+        
+        console.log('📥 Response status:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ WA API Error untuk owner:', errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ WA API Response untuk owner:', data);
+        
+        // Cek berdasarkan HTTP status
+        return (response.status === 201 || response.status === 200);
+        
+    } catch (error) {
+        console.error('❌ Error mengirim notifikasi WA ke owner:', error);
+        return false;
+    }
+}
+
+    // [45] Helper: Kirim notifikasi WA ke OWNER untuk multiple items
+async function sendWAToOwnerMultiple(requests, kasirData, notes) {
+    try {
+        console.log(`📤 Mengirim notifikasi WhatsApp ke OWNER untuk ${requests.length} items...`);
+        
+        // Cek apakah konstanta WA sudah didefinisikan
+        if (typeof WA_API_URL === 'undefined' || typeof WA_API_KEY === 'undefined') {
+            console.error('Konfigurasi WA API tidak ditemukan!');
+            return false;
+        }
+        
+        if (!WA_OWNER_PHONE) {
+            console.warn('Nomor OWNER tidak dikonfigurasi');
+            return false;
+        }
+        
+        // Format nomor telepon
+        let phoneNumber = WA_OWNER_PHONE;
+        if (phoneNumber.startsWith('0')) {
+            phoneNumber = '62' + phoneNumber.substring(1);
+        } else if (!phoneNumber.startsWith('62')) {
+            phoneNumber = '62' + phoneNumber;
+        }
+        
+        const chatId = phoneNumber + '@c.us';
+        
+        // Hitung summary
+        let totalMasuk = 0;
+        let totalKeluar = 0;
+        
+        requests.forEach(req => {
+            if (req.stok_type === 'masuk') {
+                totalMasuk += Math.abs(req.qty_change);
+            } else {
+                totalKeluar += Math.abs(req.qty_change);
+            }
+        });
+        
+        // Format pesan untuk multiple items
+        let itemsList = '';
+        requests.forEach((req, index) => {
+            const typeIcon = req.stok_type === 'masuk' ? '⬆️' : '⬇️';
+            const changeSign = req.stok_type === 'masuk' ? '+' : '-';
+            
+            itemsList += `${index + 1}. ${typeIcon} ${req.nama_produk}\n`;
+            itemsList += `   ${changeSign}${Math.abs(req.qty_change)} unit (${req.qty_before} → ${req.qty_after})\n`;
+            
+            if (index < requests.length - 1) {
+                itemsList += '\n';
+            }
+        });
+        
+        const message = `📋 *PERMINTAAN UPDATE STOK - ${requests.length} ITEMS*
+=============================
+🏬 *Outlet:* ${requests[0].outlet}
+👤 *Kasir:* ${kasirData.nama_karyawan}
+📅 *Tanggal:* ${formatDateStok(requests[0].tanggal)}
+⏰ *Waktu:* ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+=============================
+📊 *Summary Request:*
+   📈 Stok Masuk: ${totalMasuk} unit
+   📉 Stok Keluar: ${totalKeluar} unit
+   📦 Total Items: ${requests.length}
+=============================
+📋 *Detail Items:*
+${itemsList}
+=============================
+📝 *Catatan:* ${notes || 'Tidak ada catatan'}
+=============================
+📋 *Status:* ⏳ MENUNGGU APPROVAL OWNER
+=============================
+⚠️ *Silakan buka aplikasi untuk approve/reject*
+⏰ *Mohon segera diproses maksimal 24 jam*`;
+        
+        const response = await fetch(WA_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Api-Key': WA_API_KEY
+            },
+            body: JSON.stringify({
+                session: 'Session1',
+                chatId: chatId,
+                text: message
+            })
+        });
+        
+        console.log('📤 Notifikasi multiple items terkirim ke owner');
+        
+        return (response.status === 201 || response.status === 200);
+        
+    } catch (error) {
+        console.error('Error mengirim notifikasi multiple ke owner:', error);
+        return false;
+    }
+}
 });
 // ========== END OF STOK FUNCTIONS ==========
 
