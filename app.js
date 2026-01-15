@@ -4912,10 +4912,11 @@ function canPerformSetoran() {
         
         console.log('💰 Total saldo KAS:', totalSaldo);
         
-        if (totalSaldo <= 0) {
-            console.log('❌ Tidak ada saldo KAS untuk setoran');
-            return false;
+       if (totalSaldo < 0) {
+        console.log('❌ Saldo KAS negatif, tidak bisa setoran');
+        return false;
         }
+        // totalSaldo = 0 → BOLEH lanjut ke setoran 0
         
         // 5. Cek sudah ada setoran belum
         if (kasState.currentSetoran) {
@@ -4982,10 +4983,19 @@ function updateSetorButton() {
                     return sum + (parseInt(row.saldo) || 0);
                 }, 0);
                 
-                if (totalSaldo <= 0) {
-                    setorBtn.innerHTML = '<i class="fas fa-ban"></i> TIDAK ADA SALDO';
-                    setorBtn.title = 'Tidak ada saldo KAS untuk periode ini';
-                } else if (kasState.currentSetoran) {
+               if (totalSaldo < 0) {
+    setorBtn.innerHTML = '<i class="fas fa-ban"></i> SALDO NEGATIF';
+    setorBtn.title = 'Saldo KAS negatif, tidak bisa setoran';
+    setorBtn.disabled = true;
+} else if (totalSaldo === 0) {
+    // Total saldo = 0 → BOLEH setoran 0
+    // Pertahankan disabled berdasarkan canPerformSetoran()
+    // Update teks dan title
+    setorBtn.innerHTML = '<i class="fas fa-money-bill-wave"></i> SETOR (0)';
+    setorBtn.title = 'Bisa melakukan setoran 0';
+}
+                
+                    else if (kasState.currentSetoran) {
                     let setoran;
                     if (Array.isArray(kasState.currentSetoran)) {
                         setoran = kasState.currentSetoran[0];
@@ -5591,10 +5601,10 @@ function openKasSetoranModal() {
     
     console.log('💰 Total kewajiban setoran:', totalKewajiban);
     
-    if (totalKewajiban <= 0) {
-        showKasNotification('Tidak ada kewajiban setoran!', 'warning');
-        return;
-    }
+    if (totalKewajiban < 0) {
+    showKasNotification('Kewajiban setoran negatif! Tidak bisa setoran.', 'warning');
+    return;
+}
     
     // Update modal content
     document.getElementById('modalOutletKas').textContent = outlet;
@@ -6152,17 +6162,92 @@ function formatKasNotification(kasData) {
         day: 'numeric' 
     });
     
+    // Format detail pemasukan
+    let detailPemasukan = '';
+    const pemasukanFields = [
+        { key: 'omset_cash', label: '💵 Omset Cash' },
+        { key: 'top_up_kas', label: '💰 Top Up Kas' },
+        { key: 'sisa_setoran', label: '💎 Sisa Setoran' },
+        { key: 'hutang_komisi', label: '📝 Hutang Komisi' },
+        { key: 'pemasukan_lain_lain', label: '📋 Pemasukan Lain Lain' }
+    ];
+    
+    // Hitung berapa item pemasukan yang ada nilainya
+    let pemasukanCount = 0;
+    pemasukanFields.forEach(field => {
+        const amount = parseFloat(kasData[field.key]) || 0;
+        if (amount > 0) {
+            pemasukanCount++;
+            if (field.key === 'pemasukan_lain_lain') {
+                const note = kasData.note_pemasukan_lain ? ` (${kasData.note_pemasukan_lain})` : '';
+                detailPemasukan += `    • ${field.label}: Rp ${formatKasCurrencyForWA(amount)}${note}\n`;
+            } else {
+                detailPemasukan += `    • ${field.label}: Rp ${formatKasCurrencyForWA(amount)}\n`;
+            }
+        }
+    });
+    
+    if (pemasukanCount === 0) {
+        detailPemasukan = '    • Tidak ada data pemasukan\n';
+    }
+    
+    // Format detail pengeluaran
+    let detailPengeluaran = '';
+    const pengeluaranFields = [
+        { key: 'komisi', label: '👥 Komisi' },
+        { key: 'uop', label: '💼 UoP' },
+        { key: 'tips_qris', label: '💳 Tips QRIS' },
+        { key: 'bayar_hutang_komisi', label: '💸 Bayar Hutang Komisi' },
+        { key: 'iuran_rt', label: '🏘️ Iuran RT' },
+        { key: 'sumbangan', label: '🎁 Sumbangan' },
+        { key: 'iuran_sampah', label: '🗑️ Iuran Sampah' },
+        { key: 'galon', label: '💧 Galon' },
+        { key: 'biaya_admin_setoran', label: '🏦 Biaya Admin Setoran' },
+        { key: 'yakult', label: '🥛 Yakult' },
+        { key: 'pengeluaran_lain_lain', label: '📋 Pengeluaran Lain Lain' }
+    ];
+    
+    // Hitung berapa item pengeluaran yang ada nilainya
+    let pengeluaranCount = 0;
+    pengeluaranFields.forEach(field => {
+        const amount = parseFloat(kasData[field.key]) || 0;
+        if (amount > 0) {
+            pengeluaranCount++;
+            if (field.key === 'pengeluaran_lain_lain') {
+                const note = kasData.note_pengeluaran_lain ? ` (${kasData.note_pengeluaran_lain})` : '';
+                detailPengeluaran += `    • ${field.label}: Rp ${formatKasCurrencyForWA(amount)}${note}\n`;
+            } else {
+                detailPengeluaran += `    • ${field.label}: Rp ${formatKasCurrencyForWA(amount)}\n`;
+            }
+        }
+    });
+    
+    if (pengeluaranCount === 0) {
+        detailPengeluaran = '    • Tidak ada data pengeluaran\n';
+    }
+    
     return `*LAPORAN KAS BABEH BARBERSHOP*
-=============================
-💈 Outlet : ${kasData.outlet}
-📅 Tanggal : ${hariTanggal}
-👩‍💼 Kasir : ${kasData.kasir}
-=============================
-💰 Pemasukan : Rp. ${formatKasCurrencyForWA(kasData.pemasukan)}
-💸 Pengeluaran: Rp. ${formatKasCurrencyForWA(kasData.pengeluaran)}
-💎 Saldo    : Rp. ${formatKasCurrencyForWA(kasData.saldo)}
-=============================
-✅ Status: Berhasil disimpan`;
+━━━━━━━━━━━━━━━━━━━━
+💈 *Outlet*: ${kasData.outlet}
+📅 *Tanggal*: ${hariTanggal}
+👩‍💼 *Kasir*: ${kasData.kasir}
+━━━━━━━━━━━━━━━━━━━━
+
+📊 *RINGKASAN KAS*
+💰 Total Pemasukan : Rp ${formatKasCurrencyForWA(kasData.pemasukan)}
+💸 Total Pengeluaran: Rp ${formatKasCurrencyForWA(kasData.pengeluaran)}
+💎 Saldo Akhir     : Rp ${formatKasCurrencyForWA(kasData.saldo)}
+━━━━━━━━━━━━━━━━━━━━
+
+📈 *DETAIL PEMASUKAN* (${pemasukanCount} item):
+${detailPemasukan}
+📉 *DETAIL PENGELUARAN* (${pengeluaranCount} item):
+${detailPengeluaran}
+━━━━━━━━━━━━━━━━━━━━
+✅ *STATUS*: Data berhasil disimpan
+🕒 ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+━━━━━━━━━━━━━━━━━━━━
+*Note*: Laporan ini otomatis terkirim via sistem.`;
 }
 
 // [38] Format notifikasi untuk submit setoran
