@@ -6227,26 +6227,24 @@ function formatKasNotification(kasData) {
     }
     
     return `*LAPORAN KAS BABEH BARBERSHOP*
-━━━━━━━━━━━━━━━━━━━━
+=============================
 💈 *Outlet*: ${kasData.outlet}
 📅 *Tanggal*: ${hariTanggal}
 👩‍💼 *Kasir*: ${kasData.kasir}
-━━━━━━━━━━━━━━━━━━━━
-
+=============================
 📊 *RINGKASAN KAS*
 💰 Total Pemasukan : Rp ${formatKasCurrencyForWA(kasData.pemasukan)}
 💸 Total Pengeluaran: Rp ${formatKasCurrencyForWA(kasData.pengeluaran)}
 💎 Saldo Akhir     : Rp ${formatKasCurrencyForWA(kasData.saldo)}
-━━━━━━━━━━━━━━━━━━━━
-
+=============================
 📈 *DETAIL PEMASUKAN* (${pemasukanCount} item):
 ${detailPemasukan}
 📉 *DETAIL PENGELUARAN* (${pengeluaranCount} item):
 ${detailPengeluaran}
-━━━━━━━━━━━━━━━━━━━━
+=============================
 ✅ *STATUS*: Data berhasil disimpan
 🕒 ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-━━━━━━━━━━━━━━━━━━━━
+=============================
 *Note*: Laporan ini otomatis terkirim via sistem.`;
 }
 
