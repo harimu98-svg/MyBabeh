@@ -107,13 +107,9 @@ function createStokPage() {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 9999;
-    height: 70px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    position: relative;
+    z-index: 100;
 }
         
         .stok-header h2 {
@@ -125,43 +121,23 @@ function createStokPage() {
             gap: 10px;
         }
         
-        .back-btn {
+      .back-btn, .refresh-btn {
     background: #6c757d;
     color: white;
     border: none;
     width: 40px;
     height: 40px;
-    border-radius: 50%;
+    border-radius: 8px; /* Ubah dari 50% ke 8px */
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 16px;
-    z-index: 10000;
 }
-        
-        .back-btn:hover {
-            background: #5a6268;
-        }
-        
-        .refresh-btn {
+
+.refresh-btn {
     background: #007bff;
-    color: white;
-    border: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    z-index: 10000;
 }
-        
-        .refresh-btn:hover {
-            background: #0056b3;
-        }
         
         /* Info Header */
         .stok-info-header {
@@ -960,18 +936,18 @@ function createStokPage() {
     const pageContent = isOwnerStok ? createOwnerStokUI() : createKasirStokUI();
     
     stokPage.innerHTML = styles + `
-        <!-- HEADER -->
-        <header class="stok-header">
-            <button class="back-btn" id="backToMainFromStok">
-                <i class="fas fa-arrow-left"></i>
+    <!-- HEADER - SAMA DENGAN REQUEST.JS -->
+    <header class="stok-header">
+        <button class="back-btn" id="backToMainFromStok">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <h2><i class="fas fa-boxes"></i> Update Stok</h2>
+        <div class="header-actions">
+            <button class="refresh-btn" id="refreshStok" title="Refresh">
+                <i class="fas fa-sync-alt"></i>
             </button>
-            <h2><i class="fas fa-boxes"></i> Update Stok </h2>
-            <div class="header-actions">
-                <button class="refresh-btn" id="refreshStok">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-            </div>
-        </header>
+        </div>
+    </header>
         
         <!-- INFO HEADER -->
         <div class="stok-info-header">
