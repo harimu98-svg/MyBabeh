@@ -899,22 +899,7 @@ function createStokPage() {
             margin-right: 5px;
             color: #007bff;
         }
-        /* PERBAIKAN TAMBAHAN - Pastikan semua elemen terlihat */
-.stok-header * {
-    position: relative;
-    z-index: 10001;
-}
-
-/* Pastikan header tidak tertutup */
-body > .stok-page {
-    position: relative;
-    z-index: 1;
-}
-
-/* Tambahkan spacing untuk content */
-.stok-content {
-    margin-top: 80px;
-}
+       
         /* Responsive */
         @media (max-width: 768px) {
             .selected-notes-submit {
@@ -980,7 +965,7 @@ body > .stok-page {
             <button class="back-btn" id="backToMainFromStok">
                 <i class="fas fa-arrow-left"></i>
             </button>
-            <h2><i class="fas fa-boxes"></i> Update Stok - Batch System</h2>
+            <h2><i class="fas fa-boxes"></i> Update Stok </h2>
             <div class="header-actions">
                 <button class="refresh-btn" id="refreshStok">
                     <i class="fas fa-sync-alt"></i>
