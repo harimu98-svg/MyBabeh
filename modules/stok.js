@@ -1,1510 +1,32 @@
-// ========== MODULE UPDATE STOK (BATCH VERSION) ==========
-// ======================================================
+// ========== MODULE STOK BATCH SYSTEM ==========
+// ==============================================
 
 // Variabel global untuk stok
 let currentUserStok = null;
-let isOwnerStok = false;
 let currentOutletStok = null;
-let stokBatchItems = [];
+let isOwnerStok = false;
+let selectedStokItems = []; // Untuk kasir request
 let stokBatchId = null;
-let selectedOutletFilter = 'all';
-let currentHistoryPage = 1;
-let totalHistoryPages = 1;
-let historyLimit = 10;
-
-// ========== STYLING INLINE ==========
-const STOK_STYLES = `
-<style>
-/* Stok Page Container */
-.stok-page {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    z-index: 1000;
-    overflow-y: auto;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-/* Header */
-.stok-header {
-    background: rgba(255, 255, 255, 0.95);
-    padding: 15px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
-.stok-header h2 {
-    margin: 0;
-    color: #333;
-    font-size: 1.4rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.stok-header h2 i {
-    color: #667eea;
-}
-
-/* Buttons */
-.back-btn, .refresh-btn {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    color: #495057;
-}
-
-.back-btn:hover, .refresh-btn:hover {
-    background: #e9ecef;
-    transform: translateY(-2px);
-}
-
-/* Content Container */
-.stok-content {
-    padding: 20px;
-    max-width: 1400px;
-    margin: 0 auto;
-}
-
-/* Kasir View */
-.kasir-action-section {
-    background: white;
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 25px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-}
-
-.btn-update-stok {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 15px 25px;
-    border-radius: 10px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.3s ease;
-}
-
-.btn-update-stok:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
-.summary-stats {
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-    flex: 1;
-    justify-content: flex-end;
-}
-
-.stat-card {
-    background: #f8f9fa;
-    border-radius: 10px;
-    padding: 15px;
-    min-width: 150px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    border-left: 4px solid #667eea;
-}
-
-.stat-icon {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 1.2rem;
-}
-
-.stat-info {
-    flex: 1;
-}
-
-.stat-label {
-    font-size: 0.85rem;
-    color: #6c757d;
-    margin-bottom: 5px;
-}
-
-.stat-value {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: #333;
-}
-
-/* Product Grid */
-.product-list-section {
-    background: white;
-    border-radius: 15px;
-    padding: 25px;
-    margin-bottom: 25px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 2px solid #f1f3f5;
-}
-
-.section-header h3 {
-    margin: 0;
-    color: #333;
-    font-size: 1.2rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.section-header h3 i {
-    color: #667eea;
-}
-
-.list-actions {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.btn-clear-selection {
-    background: #ff6b6b;
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    transition: background 0.3s ease;
-}
-
-.btn-clear-selection:hover {
-    background: #ff5252;
-}
-
-.selected-count {
-    background: #40c057;
-    color: white;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-/* Product Grid Layout */
-.product-grid {
-    display: grid;
-    gap: 15px;
-}
-
-.product-group-section {
-    margin-bottom: 25px;
-}
-
-.group-title {
-    color: #495057;
-    font-size: 1.1rem;
-    margin-bottom: 15px;
-    padding-left: 10px;
-    border-left: 4px solid #667eea;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.group-count {
-    background: #e9ecef;
-    color: #495057;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 0.8rem;
-}
-
-.product-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 15px;
-}
-
-.product-card {
-    background: #f8f9fa;
-    border-radius: 10px;
-    padding: 15px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
-    position: relative;
-    overflow: hidden;
-}
-
-.product-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-.product-card.selected {
-    border-color: #40c057;
-    background: #f0fff4;
-}
-
-.product-card.stock-critical {
-    border-left: 4px solid #ff6b6b;
-}
-
-.product-card.stock-low {
-    border-left: 4px solid #ffa94d;
-}
-
-.product-card.stock-ok {
-    border-left: 4px solid #51cf66;
-}
-
-.product-checkbox {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-}
-
-.product-checkbox input {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-}
-
-.product-info {
-    margin-right: 30px;
-}
-
-.product-name {
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 5px;
-    font-size: 1rem;
-}
-
-.product-stock {
-    font-size: 0.9rem;
-    margin-bottom: 5px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.product-stock.stock-critical {
-    color: #ff6b6b;
-}
-
-.product-stock.stock-low {
-    color: #ffa94d;
-}
-
-.product-stock.stock-ok {
-    color: #51cf66;
-}
-
-.low-stock-badge {
-    color: #ff6b6b;
-    font-size: 0.8rem;
-}
-
-.product-group {
-    font-size: 0.85rem;
-    color: #868e96;
-}
-
-.selected-badge {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    background: #40c057;
-    color: white;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-}
-
-.select-hint {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    font-size: 0.8rem;
-    color: #868e96;
-}
-
-/* Batch Section */
-.selected-batch-section {
-    background: white;
-    border-radius: 15px;
-    padding: 25px;
-    margin-bottom: 25px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-}
-
-.batch-info {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.batch-id {
-    background: #e9ecef;
-    padding: 5px 10px;
-    border-radius: 6px;
-    font-family: monospace;
-    font-size: 0.9rem;
-}
-
-.btn-remove-all {
-    background: #ff6b6b;
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.batch-items-container {
-    margin-top: 20px;
-}
-
-.batch-items {
-    max-height: 300px;
-    overflow-y: auto;
-    margin-bottom: 20px;
-    padding-right: 10px;
-}
-
-.batch-item {
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-left: 4px solid #667eea;
-}
-
-.item-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.item-name {
-    font-weight: 600;
-    color: #333;
-}
-
-.item-type {
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: 500;
-}
-
-.item-type.type-in {
-    background: #d3f9d8;
-    color: #2b8a3e;
-}
-
-.item-type.type-out {
-    background: #ffe3e3;
-    color: #c92a2a;
-}
-
-.item-details {
-    display: flex;
-    gap: 15px;
-    align-items: center;
-    font-size: 0.9rem;
-    color: #495057;
-}
-
-.item-qty.type-in {
-    color: #2b8a3e;
-    font-weight: 600;
-}
-
-.item-qty.type-out {
-    color: #c92a2a;
-    font-weight: 600;
-}
-
-.item-actions {
-    display: flex;
-    gap: 10px;
-}
-
-.btn-edit-item, .btn-remove-item {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-}
-
-.btn-edit-item {
-    background: #e7f5ff;
-    color: #339af0;
-}
-
-.btn-edit-item:hover {
-    background: #d0ebff;
-}
-
-.btn-remove-item {
-    background: #fff5f5;
-    color: #ff6b6b;
-}
-
-.btn-remove-item:hover {
-    background: #ffe3e3;
-}
-
-/* Batch Summary */
-.batch-summary {
-    background: #f1f3f5;
-    border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 20px;
-}
-
-.summary-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid #dee2e6;
-}
-
-.summary-row:last-child {
-    border-bottom: none;
-}
-
-.summary-row.total {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #333;
-}
-
-.text-success {
-    color: #2b8a3e !important;
-}
-
-.text-danger {
-    color: #c92a2a !important;
-}
-
-.batch-notes {
-    margin-bottom: 20px;
-}
-
-.batch-notes label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: #495057;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.batch-notes textarea {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 0.95rem;
-    resize: vertical;
-    min-height: 60px;
-}
-
-.batch-notes textarea:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.btn-submit-batch {
-    width: 100%;
-    background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
-    color: white;
-    border: none;
-    padding: 16px;
-    border-radius: 10px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    transition: all 0.3s ease;
-}
-
-.btn-submit-batch:hover:not(:disabled) {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(81, 207, 102, 0.4);
-}
-
-.btn-submit-batch:disabled {
-    background: #adb5bd;
-    cursor: not-allowed;
-    transform: none;
-}
-
-/* History Section */
-.request-history-section {
-    background: white;
-    border-radius: 15px;
-    padding: 25px;
-    margin-bottom: 25px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-}
-
-.history-filters {
-    display: flex;
-    gap: 15px;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-top: 15px;
-}
-
-.filter-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.filter-group label {
-    font-size: 0.9rem;
-    color: #495057;
-    white-space: nowrap;
-}
-
-.date-filter, .status-filter, .date-input {
-    padding: 8px 12px;
-    border: 1px solid #dee2e6;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    min-width: 150px;
-}
-
-.custom-date-range {
-    display: none;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.btn-apply-custom {
-    background: #339af0;
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
-
-.btn-refresh-history {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 6px;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: #495057;
-}
-
-/* History Table */
-.history-table-container {
-    margin-top: 20px;
-}
-
-.loading, .no-data {
-    text-align: center;
-    padding: 40px;
-    color: #6c757d;
-    font-size: 1.1rem;
-}
-
-.loading i, .no-data i {
-    font-size: 2rem;
-    margin-bottom: 15px;
-    display: block;
-    color: #adb5bd;
-}
-
-.table-wrapper {
-    overflow-x: auto;
-    border-radius: 10px;
-    border: 1px solid #dee2e6;
-}
-
-.history-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 1000px;
-}
-
-.history-table th {
-    background: #f8f9fa;
-    padding: 15px;
-    text-align: left;
-    font-weight: 600;
-    color: #495057;
-    border-bottom: 2px solid #dee2e6;
-    position: sticky;
-    top: 0;
-}
-
-.history-table td {
-    padding: 12px 15px;
-    border-bottom: 1px solid #f1f3f5;
-    vertical-align: top;
-}
-
-.history-table tbody tr:hover {
-    background: #f8f9fa;
-}
-
-.history-row.status-approved {
-    background: #f0fff4 !important;
-}
-
-.history-row.status-rejected {
-    background: #fff5f5 !important;
-}
-
-.history-row.status-pending {
-    background: #fff9db !important;
-}
-
-.batch-id {
-    font-family: 'Courier New', monospace;
-    background: #e9ecef;
-    padding: 3px 6px;
-    border-radius: 4px;
-    font-size: 0.85rem;
-}
-
-.type-badge {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    display: inline-block;
-}
-
-.type-badge.type-in {
-    background: #d3f9d8;
-    color: #2b8a3e;
-}
-
-.type-badge.type-out {
-    background: #ffe3e3;
-    color: #c92a2a;
-}
-
-.status-badge {
-    padding: 5px 10px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    display: inline-block;
-}
-
-.status-badge.status-approved {
-    background: #d3f9d8;
-    color: #2b8a3e;
-}
-
-.status-badge.status-rejected {
-    background: #ffe3e3;
-    color: #c92a2a;
-}
-
-.status-badge.status-pending {
-    background: #fff3bf;
-    color: #e67700;
-}
-
-.product-name {
-    font-weight: 500;
-    margin-bottom: 3px;
-}
-
-.product-group {
-    font-size: 0.85rem;
-    color: #868e96;
-}
-
-.notes-content {
-    max-width: 200px;
-    word-wrap: break-word;
-}
-
-.rejection-reason {
-    color: #ff6b6b;
-    font-style: italic;
-    margin-top: 5px;
-}
-
-/* Pagination */
-.pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    margin-top: 20px;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 10px;
-}
-
-.btn-prev, .btn-next {
-    background: white;
-    border: 1px solid #dee2e6;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 0.9rem;
-    color: #495057;
-    transition: all 0.3s ease;
-}
-
-.btn-prev:hover:not(:disabled), .btn-next:hover:not(:disabled) {
-    background: #e9ecef;
-    border-color: #adb5bd;
-}
-
-.btn-prev:disabled, .btn-next:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.page-info {
-    font-size: 0.95rem;
-    color: #495057;
-}
-
-/* Owner View */
-.owner-filter-section {
-    background: white;
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 25px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-}
-
-.filter-row {
-    display: flex;
-    gap: 15px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.outlet-select, .status-select, .date-select {
-    padding: 10px 15px;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    min-width: 180px;
-}
-
-.btn-apply-filter {
-    background: #667eea;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 500;
-    transition: background 0.3s ease;
-}
-
-.btn-apply-filter:hover {
-    background: #5a67d8;
-}
-
-/* Owner Summary Stats */
-.owner-summary-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    margin-bottom: 25px;
-}
-
-.summary-card {
-    background: white;
-    border-radius: 15px;
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-}
-
-.summary-card.pending {
-    border-left: 5px solid #ffd43b;
-}
-
-.summary-card.approved {
-    border-left: 5px solid #51cf66;
-}
-
-.summary-card.rejected {
-    border-left: 5px solid #ff6b6b;
-}
-
-.card-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-}
-
-.summary-card.pending .card-icon {
-    background: #fff9db;
-    color: #f59f00;
-}
-
-.summary-card.approved .card-icon {
-    background: #d3f9d8;
-    color: #2b8a3e;
-}
-
-.summary-card.rejected .card-icon {
-    background: #ffe3e3;
-    color: #c92a2a;
-}
-
-.card-content {
-    flex: 1;
-}
-
-.card-label {
-    font-size: 0.9rem;
-    color: #6c757d;
-    margin-bottom: 5px;
-}
-
-.card-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #333;
-}
-
-/* Pending Requests Owner */
-.pending-requests-section {
-    background: white;
-    border-radius: 15px;
-    padding: 25px;
-    margin-bottom: 25px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-}
-
-.section-badge {
-    background: #ffd43b;
-    color: #333;
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-.batch-actions {
-    display: flex;
-    gap: 10px;
-}
-
-.btn-select-all, .btn-approve-selected, .btn-reject-selected {
-    padding: 8px 16px;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    transition: all 0.3s ease;
-}
-
-.btn-select-all {
-    background: #e9ecef;
-    color: #495057;
-}
-
-.btn-select-all:hover {
-    background: #dee2e6;
-}
-
-.btn-approve-selected {
-    background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
-    color: white;
-}
-
-.btn-approve-selected:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(81, 207, 102, 0.3);
-}
-
-.btn-reject-selected {
-    background: linear-gradient(135deg, #ff6b6b 0%, #fa5252 100%);
-    color: white;
-}
-
-.btn-reject-selected:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
-}
-
-/* Batch Approval Cards */
-.batch-approval-card {
-    background: #f8f9fa;
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
-    border: 2px solid #e9ecef;
-}
-
-.batch-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 2px solid #dee2e6;
-}
-
-.batch-info h4 {
-    margin: 0;
-    color: #333;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.batch-count {
-    background: #e9ecef;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 0.8rem;
-    color: #495057;
-}
-
-.batch-details {
-    display: flex;
-    gap: 15px;
-    margin-top: 10px;
-    font-size: 0.9rem;
-    color: #6c757d;
-}
-
-.outlet-badge, .requestor, .batch-date {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    background: white;
-    padding: 4px 10px;
-    border-radius: 6px;
-}
-
-.batch-checkbox {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.batch-checkbox input {
-    width: 18px;
-    height: 18px;
-}
-
-/* Batch Items Table */
-.batch-items-list {
-    overflow-x: auto;
-}
-
-.batch-items-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.batch-items-table th {
-    background: #f1f3f5;
-    padding: 12px 15px;
-    text-align: left;
-    font-weight: 600;
-    color: #495057;
-    border-bottom: 2px solid #dee2e6;
-}
-
-.batch-items-table td {
-    padding: 10px 15px;
-    border-bottom: 1px solid #f1f3f5;
-}
-
-.batch-items-table tbody tr:hover {
-    background: #f8f9fa;
-}
-
-.batch-items-table input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-}
-
-.notes-cell {
-    max-width: 200px;
-    word-wrap: break-word;
-}
-
-.batch-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 15px;
-    justify-content: flex-end;
-}
-
-.btn-approve-batch, .btn-reject-batch {
-    padding: 10px 20px;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.3s ease;
-}
-
-.btn-approve-batch {
-    background: #40c057;
-    color: white;
-}
-
-.btn-approve-batch:hover {
-    background: #37b24d;
-    transform: translateY(-2px);
-}
-
-.btn-reject-batch {
-    background: #ff6b6b;
-    color: white;
-}
-
-.btn-reject-batch:hover {
-    background: #ff5252;
-    transform: translateY(-2px);
-}
-
-/* Owner History */
-.owner-history-section {
-    background: white;
-    border-radius: 15px;
-    padding: 25px;
-    margin-bottom: 25px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-}
-
-/* Modals */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-    padding: 20px;
-}
-
-.modal-content {
-    background: white;
-    border-radius: 15px;
-    width: 100%;
-    max-width: 500px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-}
-
-.modal-header {
-    padding: 20px;
-    border-bottom: 1px solid #dee2e6;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.modal-header h3 {
-    margin: 0;
-    color: #333;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.close-modal {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: #6c757d;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-}
-
-.close-modal:hover {
-    background: #f8f9fa;
-}
-
-.modal-body {
-    padding: 20px;
-}
-
-.modal-footer {
-    padding: 20px;
-    border-top: 1px solid #dee2e6;
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-}
-
-/* Form Styles */
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: #495057;
-}
-
-.form-row {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 15px;
-}
-
-.form-row .form-group {
-    flex: 1;
-    margin-bottom: 0;
-}
-
-.form-select, .form-input, .form-textarea {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    font-family: inherit;
-}
-
-.form-select:focus, .form-input:focus, .form-textarea:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.form-hint {
-    font-size: 0.85rem;
-    color: #6c757d;
-    margin-top: 5px;
-}
-
-.product-display {
-    background: #f8f9fa;
-    padding: 12px;
-    border-radius: 8px;
-    font-weight: 500;
-    margin-bottom: 10px;
-}
-
-.stock-info {
-    font-size: 0.9rem;
-    color: #495057;
-}
-
-/* Buttons */
-.btn-secondary, .btn-primary {
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-weight: 500;
-    cursor: pointer;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: all 0.3s ease;
-}
-
-.btn-secondary {
-    background: #e9ecef;
-    color: #495057;
-}
-
-.btn-secondary:hover {
-    background: #dee2e6;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
-/* Toast */
-.toast {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: white;
-    border-radius: 10px;
-    padding: 15px 20px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    z-index: 3000;
-    max-width: 400px;
-    transform: translateY(100px);
-    opacity: 0;
-    transition: all 0.3s ease;
-}
-
-.toast.show {
-    transform: translateY(0);
-    opacity: 1;
-}
-
-.toast.success {
-    border-left: 4px solid #51cf66;
-}
-
-.toast.error {
-    border-left: 4px solid #ff6b6b;
-}
-
-.toast.warning {
-    border-left: 4px solid #ffd43b;
-}
-
-.toast.info {
-    border-left: 4px solid #339af0;
-}
-
-.toast-icon {
-    font-size: 1.2rem;
-}
-
-.toast.success .toast-icon {
-    color: #51cf66;
-}
-
-.toast.error .toast-icon {
-    color: #ff6b6b;
-}
-
-.toast.warning .toast-icon {
-    color: #ffd43b;
-}
-
-.toast.info .toast-icon {
-    color: #339af0;
-}
-
-.toast-message {
-    flex: 1;
-    font-size: 0.95rem;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .stok-content {
-        padding: 15px;
-    }
-    
-    .kasir-action-section {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .summary-stats {
-        justify-content: stretch;
-    }
-    
-    .product-cards {
-        grid-template-columns: 1fr;
-    }
-    
-    .filter-row {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .outlet-select, .status-select, .date-select {
-        min-width: 100%;
-    }
-    
-    .history-filters {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .custom-date-range {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .form-row {
-        flex-direction: column;
-    }
-    
-    .modal-content {
-        margin: 10px;
-    }
-}
-
-/* Scrollbar Styling */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
-}
-
-/* Error States */
-.error-message {
-    background: #fff5f5;
-    border: 1px solid #ffc9c9;
-    border-radius: 8px;
-    padding: 15px;
-    color: #c92a2a;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 10px 0;
-}
-
-.empty-message {
-    text-align: center;
-    padding: 40px;
-    color: #6c757d;
-    font-size: 1.1rem;
-}
-
-.empty-message i {
-    font-size: 3rem;
-    margin-bottom: 15px;
-    color: #adb5bd;
-    display: block;
-}
-</style>
-`;
-
-// ========== MAIN FUNCTIONS ==========
-
+let stokInventoryData = [];
+let selectedOwnerItems = {}; // Untuk owner approval {batch_id: [item_ids]}
+
+// WA Configuration (gunakan dari config global jika ada)
+const WA_API_URL = window.WA_API_URL || 'https://waha-yetv8qi4e3zk.anakit.sumopod.my.id/api/sendText';
+const WA_API_KEY = window.WA_API_KEY || 'sfcoGbpdLDkGZhKw2rx8sbb14vf4d8V6';
+const WA_CHAT_ID = window.WA_CHAT_ID || '62811159429-1533260196@g.us';
+const WA_OWNER_PHONE = '0811159429';
+
+// [1] Fungsi untuk tampilkan halaman stok
 async function showStokPage() {
     try {
-        console.log('=== SHOW STOK PAGE (BATCH VERSION) ===');
+        console.log('=== SHOW STOK PAGE (BATCH SYSTEM) ===');
         
-        stokBatchItems = [];
+        // Reset items
+        selectedStokItems = [];
+        selectedOwnerItems = {};
         stokBatchId = generateStokBatchId();
         
+        // Ambil data user
         const { data: { user } } = await supabase.auth.getUser();
         const namaKaryawan = user?.user_metadata?.nama_karyawan;
         
@@ -1513,9 +35,10 @@ async function showStokPage() {
             return;
         }
         
+        // Ambil data karyawan lengkap
         const { data: karyawanData } = await supabase
             .from('karyawan')
-            .select('role, outlet')
+            .select('role, outlet, posisi')
             .eq('nama_karyawan', namaKaryawan)
             .single();
         
@@ -1527,16 +50,27 @@ async function showStokPage() {
         currentUserStok = {
             nama_karyawan: namaKaryawan,
             role: karyawanData.role,
-            outlet: karyawanData.outlet
+            outlet: karyawanData.outlet,
+            posisi: karyawanData.posisi
         };
         
         currentOutletStok = karyawanData.outlet;
         isOwnerStok = karyawanData.role === 'owner';
         
+        console.log('User stok data:', currentUserStok);
+        
+        // Sembunyikan main app
         document.getElementById('appScreen').style.display = 'none';
         
+        // Buat halaman stok
         createStokPage();
-        loadStokData();
+        
+        // Load data berdasarkan role
+        if (isOwnerStok) {
+            await loadOwnerStokData();
+        } else {
+            await loadKasirStokData();
+        }
         
     } catch (error) {
         console.error('Error in showStokPage:', error);
@@ -1544,23 +78,835 @@ async function showStokPage() {
     }
 }
 
+// [2] Fungsi untuk buat halaman stok - DIMODIFIKASI untuk batch system
 function createStokPage() {
+    // Hapus halaman sebelumnya jika ada
     const existingPage = document.getElementById('stokPage');
-    if (existingPage) existingPage.remove();
+    if (existingPage) {
+        existingPage.remove();
+    }
     
+    // Buat container halaman stok
     const stokPage = document.createElement('div');
     stokPage.id = 'stokPage';
     stokPage.className = 'stok-page';
     
+    // Inline CSS untuk stok page
+    const styles = `
+        <style>
+        /* Stok Page Styles */
+        .stok-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        /* Header */
+        .stok-header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .stok-header h2 {
+            margin: 0;
+            color: #333;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .back-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .refresh-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Info Header */
+        .stok-info-header {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            margin: 10px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        /* Content Sections */
+        .stok-content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        /* KASIR VIEW */
+        .kasir-view {
+            background: transparent;
+        }
+        
+        /* Search Filter */
+        .search-filter-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .filter-group label {
+            font-size: 14px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .form-select, .form-input {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #f8f9fa;
+        }
+        
+        .search-box {
+            position: relative;
+            flex: 1;
+        }
+        
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+        }
+        
+        .search-box input {
+            padding: 12px 45px 12px 45px;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .clear-search {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+        }
+        
+        .btn-search-action {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        /* Inventory Table */
+        .inventory-table-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .section-header h3 {
+            margin: 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .item-count {
+            background: #007bff;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        
+        .inventory-table-container {
+            overflow-x: auto;
+        }
+        
+        .table-wrapper {
+            overflow-x: auto;
+            max-height: 400px;
+        }
+        
+        .inventory-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1000px;
+        }
+        
+        .inventory-table th {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+        }
+        
+        .inventory-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .inventory-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .selected-row {
+            background: #e3f2fd !important;
+        }
+        
+        .status-pill {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        .status-active { background: #d4edda; color: #155724; }
+        .status-inactive { background: #f8d7da; color: #721c24; }
+        
+        .btn-add-to-request {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .btn-add-to-request:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Selected Items Section */
+        .selected-items-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        
+        .badge {
+            background: #dc3545;
+            color: white;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+        
+        .btn-clear {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+        
+        .selected-items-table-container {
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+        
+        .selected-items-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+        
+        .selected-items-table th {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .selected-items-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .qty-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .qty-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .qty-input {
+            width: 50px;
+            text-align: center;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .btn-remove {
+            background: #dc3545;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .selected-notes-submit {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+        
+        .notes-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .notes-section textarea {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            background: #f8f9fa;
+        }
+        
+        .submit-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .total-info {
+            margin-bottom: 20px;
+        }
+        
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .main-total {
+            font-size: 18px;
+            font-weight: bold;
+            color: #007bff;
+            border-bottom: none;
+        }
+        
+        .submit-btn {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* History Section */
+        .kasir-history-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        
+        .history-table-container {
+            overflow-x: auto;
+        }
+        
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1200px;
+        }
+        
+        .history-table th {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+        }
+        
+        .history-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .btn-refresh-history {
+            background: #6c757d;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* OWNER VIEW */
+        .owner-view {
+            background: transparent;
+        }
+        
+        /* Owner Filter */
+        .owner-filter-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        
+        .filter-row-owner {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            align-items: end;
+        }
+        
+        .btn-apply-filter {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            height: 42px;
+        }
+        
+        /* Owner Stats */
+        .owner-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .stat-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .stat-info {
+            flex: 1;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        /* Pending Requests - Batch Cards */
+        .pending-requests-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        
+        .batch-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            border: 1px solid #dee2e6;
+        }
+        
+        .batch-header {
+            background: #e9ecef;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .batch-info {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .batch-info .info-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+        
+        .batch-info strong {
+            min-width: 120px;
+            color: #495057;
+        }
+        
+        .batch-items-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .batch-items-table th {
+            background: #f1f3f5;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .batch-items-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .batch-items-table tfoot td {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+        
+        /* Owner History */
+        .owner-history-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        
+        /* Loading & Empty States */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .no-data i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #dee2e6;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            color: #28a745;
+            margin-bottom: 15px;
+        }
+        
+        .error-message {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .toast-success {
+            border-left: 4px solid #28a745;
+        }
+        
+        .toast-error {
+            border-left: 4px solid #dc3545;
+        }
+        
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .toast-close {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+        }
+        
+        /* Footer */
+        .stok-footer {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            margin: 10px;
+            border-radius: 10px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .stok-footer i {
+            margin-right: 5px;
+            color: #007bff;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .selected-notes-submit {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .filter-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .filter-row-owner {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Utility Classes */
+        .text-success { color: #28a745; }
+        .text-danger { color: #dc3545; }
+        .text-warning { color: #ffc107; }
+        .text-info { color: #17a2b8; }
+        
+        .status-approved { background: #d4edda; color: #155724; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-rejected { background: #f8d7da; color: #721c24; }
+        .status-partial { background: #cce5ff; color: #004085; }
+        
+        .type-in { color: #28a745; }
+        .type-out { color: #dc3545; }
+        
+        .stock-low { color: #ffc107; font-weight: bold; }
+        .stock-out { color: #dc3545; font-weight: bold; }
+        .stock-ok { color: #28a745; }
+        </style>
+    `;
+    
+    // UI berdasarkan role
     const pageContent = isOwnerStok ? createOwnerStokUI() : createKasirStokUI();
     
-    stokPage.innerHTML = `
-        ${STOK_STYLES}
+    stokPage.innerHTML = styles + `
+        <!-- HEADER -->
         <header class="stok-header">
             <button class="back-btn" id="backToMainFromStok">
                 <i class="fas fa-arrow-left"></i>
             </button>
-            <h2><i class="fas fa-boxes"></i> Update Stok ${isOwnerStok ? '(Owner)' : '(Kasir)'}</h2>
+            <h2><i class="fas fa-boxes"></i> Update Stok - Batch System</h2>
             <div class="header-actions">
                 <button class="refresh-btn" id="refreshStok">
                     <i class="fas fa-sync-alt"></i>
@@ -1568,500 +914,2099 @@ function createStokPage() {
             </div>
         </header>
         
-        <div class="stok-content">
-            ${pageContent}
+        <!-- INFO HEADER -->
+        <div class="stok-info-header">
+            <div class="info-row">
+                <div class="info-item">
+                    <i class="fas fa-calendar-day"></i>
+                    <span id="stokCurrentDate">${new Date().toLocaleDateString('id-ID', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    })}</span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-user"></i>
+                    <span id="stokUserName">${currentUserStok?.nama_karyawan || '-'}</span>
+                </div>
+            </div>
+            <div class="info-row">
+                <div class="info-item">
+                    <i class="fas fa-briefcase"></i>
+                    <span id="stokUserPosition">${currentUserStok?.posisi || '-'}</span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-store"></i>
+                    <span id="stokUserOutlet">${currentOutletStok || '-'}</span>
+                </div>
+            </div>
         </div>
         
-        <div id="stokToast" class="toast" style="display: none;"></div>
+        <!-- CONTENT -->
+        ${pageContent}
+        
+        <!-- FOOTER -->
+        <div class="stok-footer">
+            <p><i class="fas fa-info-circle"></i> ${isOwnerStok ? 'Pilih item untuk approve/reject stok request dari karyawan' : 'Pilih produk untuk request update stok (batch system)'}</p>
+        </div>
     `;
     
     document.body.appendChild(stokPage);
+    
+    // Setup event listeners
     setupStokPageEvents();
 }
 
-// ========== KASIR UI ==========
-
+// [3] UI untuk KASIR - BATCH SYSTEM
 function createKasirStokUI() {
     return `
-        <div class="kasir-view">
-            <div class="kasir-action-section">
-                <button class="btn-update-stok" id="btnUpdateStok">
-                    <i class="fas fa-plus-circle"></i>
-                    <span>Request Update Stok (Batch)</span>
-                </button>
-                
-                <div class="summary-stats">
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-box"></i>
-                        </div>
-                        <div class="stat-info">
-                            <div class="stat-label">Total Produk</div>
-                            <div class="stat-value" id="totalProduk">0</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-cubes"></i>
-                        </div>
-                        <div class="stat-info">
-                            <div class="stat-label">Total Stok</div>
-                            <div class="stat-value" id="totalStok">0</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                        <div class="stat-info">
-                            <div class="stat-label">Stok Rendah</div>
-                            <div class="stat-value" id="stokRendah">0</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <section class="product-list-section">
-                <div class="section-header">
-                    <h3><i class="fas fa-list"></i> Daftar Produk - ${currentOutletStok}</h3>
-                    <div class="list-actions">
-                        <button class="btn-clear-selection" id="clearSelection">
-                            <i class="fas fa-times"></i> Hapus Pilihan
-                        </button>
-                        <span class="selected-count">
-                            <i class="fas fa-check-circle"></i>
-                            <span id="selectedProductsCount">0</span> produk dipilih
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="product-grid" id="productGrid">
-                    <div class="loading">
-                        <i class="fas fa-spinner fa-spin"></i> Memuat produk...
-                    </div>
-                </div>
-            </section>
-            
-            <section class="selected-batch-section" id="selectedBatchSection" style="display: none;">
-                <div class="section-header">
-                    <h3><i class="fas fa-shopping-cart"></i> Items dalam Batch Request</h3>
-                    <div class="batch-info">
-                        <span class="batch-id">Batch: <code id="currentBatchId">${stokBatchId}</code></span>
-                        <button class="btn-remove-all" id="removeAllItems">
-                            <i class="fas fa-trash"></i> Hapus Semua
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="batch-items-container">
-                    <div class="batch-items" id="batchItemsContainer"></div>
-                    
-                    <div class="batch-summary" id="batchSummary">
-                        <div class="summary-row">
-                            <span>Total Items:</span>
-                            <strong id="batchTotalItems">0</strong>
-                        </div>
-                        <div class="summary-row">
-                            <span>Total Masuk:</span>
-                            <strong class="text-success" id="batchTotalMasuk">0 unit</strong>
-                        </div>
-                        <div class="summary-row">
-                            <span>Total Keluar:</span>
-                            <strong class="text-danger" id="batchTotalKeluar">0 unit</strong>
-                        </div>
-                        <div class="summary-row total">
-                            <span>Net Change:</span>
-                            <strong id="batchNetChange">0 unit</strong>
-                        </div>
-                    </div>
-                    
-                    <div class="batch-notes">
-                        <label for="batchNotes">
-                            <i class="fas fa-sticky-note"></i> Catatan Request (opsional):
-                        </label>
-                        <textarea id="batchNotes" placeholder="Contoh: Restock bulanan, permintaan pelanggan..." rows="2"></textarea>
-                    </div>
-                    
-                    <button class="btn-submit-batch" id="submitBatchRequest">
-                        <i class="fas fa-paper-plane"></i> Submit Batch Request
-                    </button>
-                </div>
-            </section>
-            
-            <section class="request-history-section">
-                <div class="section-header">
-                    <h3><i class="fas fa-history"></i> Riwayat Request - ${currentOutletStok}</h3>
-                    <div class="history-filters">
-                        <div class="filter-group">
-                            <label for="historyDateFilter"><i class="fas fa-calendar"></i> Periode:</label>
-                            <select id="historyDateFilter" class="date-filter">
-                                <option value="today">Hari Ini</option>
-                                <option value="yesterday">Kemarin</option>
-                                <option value="week">7 Hari Terakhir</option>
-                                <option value="month">Bulan Ini</option>
-                                <option value="all">Semua</option>
-                                <option value="custom">Custom Date</option>
-                            </select>
-                        </div>
-                        
-                        <div class="filter-group custom-date-range" id="customDateRange" style="display: none;">
-                            <label for="startDate">Dari:</label>
-                            <input type="date" id="startDate" class="date-input">
-                            <label for="endDate">Sampai:</label>
-                            <input type="date" id="endDate" class="date-input">
-                            <button class="btn-apply-custom" id="applyCustomDate">Terapkan</button>
-                        </div>
-                        
-                        <div class="filter-group">
-                            <label for="historyStatusFilter"><i class="fas fa-filter"></i> Status:</label>
-                            <select id="historyStatusFilter" class="status-filter">
-                                <option value="all">Semua Status</option>
-                                <option value="approved">Approved</option>
-                                <option value="rejected">Rejected</option>
-                                <option value="pending">Pending</option>
-                            </select>
-                        </div>
-                        
-                        <button class="btn-refresh-history" onclick="modules.stok.loadKasirStokHistory()">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="history-table-container">
-                    <div class="loading" id="loadingHistoryKasir">
-                        <i class="fas fa-spinner fa-spin"></i> Memuat riwayat...
-                    </div>
-                    
-                    <div class="table-wrapper">
-                        <table class="history-table" id="kasirHistoryTable" style="display: none;">
-                            <thead>
-                                <tr>
-                                    <th width="120px">Tanggal</th>
-                                    <th width="100px">Batch ID</th>
-                                    <th width="150px">Produk</th>
-                                    <th width="80px">Tipe</th>
-                                    <th width="80px">Jumlah</th>
-                                    <th width="100px">Stok (Before→After)</th>
-                                    <th width="100px">Status</th>
-                                    <th width="150px">Disetujui Oleh</th>
-                                    <th width="150px">Catatan</th>
-                                </tr>
-                            </thead>
-                            <tbody id="kasirHistoryBody"></tbody>
-                        </table>
-                    </div>
-                    
-                    <div class="no-data" id="noHistoryData" style="display: none;">
-                        <i class="fas fa-history"></i>
-                        <p>Tidak ada data riwayat</p>
-                    </div>
-                    
-                    <div class="pagination" id="historyPagination" style="display: none;">
-                        <button class="btn-prev" id="prevPage" disabled>
-                            <i class="fas fa-chevron-left"></i> Sebelumnya
-                        </button>
-                        <span class="page-info">
-                            Halaman <span id="currentPage">1</span> dari <span id="totalPages">1</span>
-                        </span>
-                        <button class="btn-next" id="nextPage" disabled>
-                            Berikutnya <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
-                </div>
-            </section>
-        </div>
-    `;
-}
-
-// ========== OWNER UI ==========
-
-function createOwnerStokUI() {
-    return `
-        <div class="owner-view">
-            <div class="owner-filter-section">
+        <div class="stok-content kasir-view">
+            <!-- SEARCH & FILTER -->
+            <div class="search-filter-section">
                 <div class="filter-row">
                     <div class="filter-group">
-                        <label for="filterOutletStok">Outlet:</label>
-                        <select id="filterOutletStok" class="outlet-select">
-                            <option value="all">Semua Outlet</option>
+                        <label for="filterGroupStok"><i class="fas fa-layer-group"></i> Group Produk:</label>
+                        <select id="filterGroupStok" class="form-select">
+                            <option value="">Semua Group</option>
                         </select>
                     </div>
                     
                     <div class="filter-group">
-                        <label for="filterStatusStok">Status:</label>
-                        <select id="filterStatusStok" class="status-select">
-                            <option value="pending">Pending Approval</option>
-                            <option value="all">Semua Status</option>
-                            <option value="approved">Approved</option>
-                            <option value="rejected">Rejected</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label for="filterDateStok">Periode:</label>
-                        <select id="filterDateStok" class="date-select">
-                            <option value="today">Hari Ini</option>
-                            <option value="week">7 Hari</option>
-                            <option value="month">Bulan Ini</option>
+                        <label for="filterStatusStokKasir"><i class="fas fa-check-circle"></i> Status:</label>
+                        <select id="filterStatusStokKasir" class="form-select">
+                            <option value="active">Active</option>
                             <option value="all">Semua</option>
                         </select>
                     </div>
-                    
-                    <button class="btn-apply-filter" onclick="modules.stok.loadOwnerStokData()">
+                </div>
+                
+                <div class="filter-row" style="margin-top: 15px;">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInventoryStok" placeholder="Cari produk..." style="width: 100%;">
+                        <button class="clear-search" id="clearSearchStokBtn" title="Clear search">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <button class="btn-search-action" id="applyFilterStokBtn">
                         <i class="fas fa-filter"></i> Terapkan
                     </button>
                 </div>
             </div>
             
-            <div class="owner-summary-stats">
-                <div class="summary-card pending">
-                    <div class="card-icon">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                    <div class="card-content">
-                        <div class="card-label">Pending</div>
-                        <div class="card-value" id="statPending">0</div>
-                    </div>
+            <!-- INVENTORY TABLE -->
+            <div class="inventory-table-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-boxes"></i> Daftar Produk</h3>
+                    <span class="item-count" id="inventoryStokCount">0 produk</span>
                 </div>
-                
-                <div class="summary-card approved">
-                    <div class="card-icon">
-                        <i class="fas fa-check-circle"></i>
+                <div class="inventory-table-container">
+                    <div class="loading" id="loadingInventoryStok">Memuat produk...</div>
+                    <div class="table-wrapper">
+                        <table class="inventory-table" id="inventoryTableStok" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th width="50px">Pilih</th>
+                                    <th width="200px">Nama Produk</th>
+                                    <th width="120px">Group</th>
+                                    <th width="80px">Stok</th>
+                                    <th width="100px">Status</th>
+                                    <th width="100px">Jenis</th>
+                                    <th width="150px">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventoryBodyStok">
+                                <!-- Produk akan diisi di sini -->
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="card-content">
-                        <div class="card-label">Approved Today</div>
-                        <div class="card-value" id="statApproved">0</div>
-                    </div>
-                </div>
-                
-                <div class="summary-card rejected">
-                    <div class="card-icon">
-                        <i class="fas fa-times-circle"></i>
-                    </div>
-                    <div class="card-content">
-                        <div class="card-label">Rejected Today</div>
-                        <div class="card-value" id="statRejected">0</div>
+                    <div class="no-data" id="noInventoryDataStok" style="display: none;">
+                        <i class="fas fa-box-open"></i>
+                        <p>Tidak ada data produk</p>
                     </div>
                 </div>
             </div>
             
-            <section class="pending-requests-section">
+            <!-- SELECTED ITEMS SECTION -->
+            <div class="selected-items-section" id="selectedStokItemsSection" style="display: none;">
                 <div class="section-header">
-                    <h3><i class="fas fa-clock"></i> Permintaan Pending</h3>
-                    <div class="section-badge" id="pendingRequestsCount">
-                        0 items
-                    </div>
-                    <div class="batch-actions">
-                        <button class="btn-select-all" id="selectAllPending">
-                            <i class="fas fa-check-square"></i> Pilih Semua
-                        </button>
-                        <button class="btn-approve-selected" id="approveSelectedItems">
-                            <i class="fas fa-check"></i> Approve Selected
-                        </button>
-                        <button class="btn-reject-selected" id="rejectSelectedItems">
-                            <i class="fas fa-times"></i> Reject Selected
-                        </button>
-                    </div>
+                    <h3><i class="fas fa-shopping-cart"></i> Items yang akan di-Request <span class="badge" id="selectedStokCount">0</span></h3>
+                    <button class="btn-clear" id="clearAllSelectedStok">
+                        <i class="fas fa-trash"></i> Hapus Semua
+                    </button>
                 </div>
                 
-                <div class="pending-table-container">
-                    <div class="loading" id="loadingPending">
-                        <i class="fas fa-spinner fa-spin"></i> Memuat permintaan pending...
+                <!-- Table Selected Items -->
+                <div class="selected-items-table-container">
+                    <table class="selected-items-table" id="selectedStokItemsTable">
+                        <thead>
+                            <tr>
+                                <th width="200px">Produk</th>
+                                <th width="120px">Group</th>
+                                <th width="100px">Jenis</th>
+                                <th width="80px">Qty</th>
+                                <th width="120px">Stok Sebelum</th>
+                                <th width="120px">Stok Sesudah</th>
+                                <th width="80px">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="selectedStokItemsBody">
+                            <!-- Items terpilih akan diisi di sini -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Notes & Submit Button -->
+                <div class="selected-notes-submit">
+                    <div class="notes-section">
+                        <label for="stokRequestNotes"><i class="fas fa-sticky-note"></i> Catatan (opsional):</label>
+                        <textarea id="stokRequestNotes" placeholder="Tambahkan catatan untuk request ini..." rows="2"></textarea>
                     </div>
                     
-                    <div id="pendingRequestsGrid" style="display: none;"></div>
-                    
-                    <div class="no-data" id="noPendingData" style="display: none;">
-                        <i class="fas fa-check-circle"></i>
-                        <p>Tidak ada permintaan pending</p>
+                    <div class="submit-section">
+                        <div class="total-info">
+                            <div class="total-row">
+                                <span class="total-label">Total Items:</span>
+                                <span class="total-value" id="totalStokItemsCount">0</span>
+                            </div>
+                            <div class="total-row">
+                                <span class="total-label">Total Masuk:</span>
+                                <span class="total-value text-success" id="totalMasukCount">0 unit</span>
+                            </div>
+                            <div class="total-row">
+                                <span class="total-label">Total Keluar:</span>
+                                <span class="total-value text-danger" id="totalKeluarCount">0 unit</span>
+                            </div>
+                            <div class="total-row main-total">
+                                <span class="total-label">Batch ID:</span>
+                                <span class="total-value" id="stokBatchIdDisplay">${stokBatchId}</span>
+                            </div>
+                        </div>
+                        <button class="submit-btn" id="submitStokRequestBtn" disabled>
+                            <i class="fas fa-paper-plane"></i> Submit Request
+                        </button>
                     </div>
                 </div>
-            </section>
+            </div>
             
-            <section class="owner-history-section">
+            <!-- REQUEST HISTORY untuk Kasir -->
+            <div class="kasir-history-section">
                 <div class="section-header">
-                    <h3><i class="fas fa-history"></i> Riwayat (Semua Outlet)</h3>
-                    <div class="history-filters">
-                        <div class="filter-group">
-                            <label for="ownerHistoryDateFilter">Periode:</label>
-                            <select id="ownerHistoryDateFilter" class="date-filter">
+                    <h3><i class="fas fa-history"></i> Riwayat Request Stok</h3>
+                    <div class="filter-row" style="margin-top: 15px; gap: 10px;">
+                        <div class="filter-group" style="flex: 1;">
+                            <label for="filterHistoryDate"><i class="fas fa-calendar"></i> Periode:</label>
+                            <select id="filterHistoryDate" class="form-select">
                                 <option value="today">Hari Ini</option>
-                                <option value="week">7 Hari</option>
+                                <option value="week">7 Hari Terakhir</option>
                                 <option value="month">Bulan Ini</option>
                                 <option value="all">Semua</option>
                             </select>
                         </div>
-                        <button class="btn-refresh" onclick="modules.stok.loadOwnerHistory()">
+                        <button class="btn-refresh-history" onclick="loadKasirStokHistory()">
                             <i class="fas fa-sync-alt"></i>
                         </button>
                     </div>
                 </div>
-                
-                <div class="owner-history-container">
-                    <div class="loading" id="loadingOwnerHistory">
-                        Memuat riwayat...
-                    </div>
-                    
+                <div class="history-table-container">
+                    <div class="loading" id="loadingHistoryStokKasir">Memuat riwayat...</div>
                     <div class="table-wrapper">
-                        <table class="history-table" id="ownerHistoryTable" style="display: none;">
+                        <table class="history-table" id="historyTableStokKasir" style="display: none;">
                             <thead>
                                 <tr>
                                     <th width="120px">Tanggal</th>
                                     <th width="100px">Batch ID</th>
-                                    <th width="100px">Outlet</th>
-                                    <th width="120px">Kasir</th>
                                     <th width="150px">Produk</th>
-                                    <th width="80px">Tipe</th>
-                                    <th width="80px">Jumlah</th>
-                                    <th width="100px">Stok (Before→After)</th>
+                                    <th width="80px">Jenis</th>
+                                    <th width="80px">Qty</th>
+                                    <th width="120px">Stok Sebelum</th>
+                                    <th width="120px">Stok Sesudah</th>
                                     <th width="100px">Status</th>
                                     <th width="150px">Disetujui Oleh</th>
-                                    <th width="150px">Catatan</th>
                                 </tr>
                             </thead>
-                            <tbody id="ownerHistoryBody"></tbody>
+                            <tbody id="historyBodyStokKasir">
+                                <!-- History akan diisi di sini -->
+                            </tbody>
                         </table>
                     </div>
-                </div>
-            </section>
-        </div>
-        
-        <div class="modal-overlay" id="rejectModal" style="display: none;">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3><i class="fas fa-times-circle"></i> Alasan Penolakan</h3>
-                    <button class="close-modal" id="closeRejectModal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p>Masukkan alasan penolakan untuk item yang dipilih:</p>
-                    <textarea id="rejectReason" placeholder="Contoh: Stok tidak sesuai, data tidak valid, dll..." rows="4"></textarea>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn-secondary" id="cancelReject">Batal</button>
-                    <button class="btn-primary" id="confirmReject">Submit Reject</button>
                 </div>
             </div>
         </div>
     `;
 }
 
-// ========== SETUP FUNCTIONS ==========
+// [4] UI untuk OWNER - DENGAN CHECKLIST
+function createOwnerStokUI() {
+    return `
+        <div class="stok-content owner-view">
+            <!-- FILTER SECTION -->
+            <div class="owner-filter-section">
+                <div class="filter-row-owner">
+                    <div class="filter-group">
+                        <label for="filterOutletStokOwner"><i class="fas fa-store"></i> Outlet:</label>
+                        <select id="filterOutletStokOwner" class="form-select">
+                            <option value="all">Semua Outlet</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterStatusStokOwner"><i class="fas fa-filter"></i> Status:</label>
+                        <select id="filterStatusStokOwner" class="form-select">
+                            <option value="pending">Pending Approval</option>
+                            <option value="all">Semua Status</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterDateStokOwner"><i class="fas fa-calendar"></i> Periode:</label>
+                        <select id="filterDateStokOwner" class="form-select">
+                            <option value="today">Hari Ini</option>
+                            <option value="week">7 Hari Terakhir</option>
+                            <option value="month">Bulan Ini</option>
+                            <option value="all">Semua</option>
+                        </select>
+                    </div>
+                    <button class="btn-apply-filter" onclick="loadOwnerStokData()">
+                        <i class="fas fa-filter"></i> Terapkan
+                    </button>
+                </div>
+            </div>
+            
+            <!-- STATISTICS -->
+            <div class="owner-stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-label">Pending Requests</div>
+                        <div class="stat-value" id="statPendingCount">0</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-label">Approved Today</div>
+                        <div class="stat-value text-success" id="statApprovedToday">0</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-label">Items Diproses</div>
+                        <div class="stat-value" id="statItemsProcessed">0</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-store"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-label">Total Outlet</div>
+                        <div class="stat-value" id="statTotalOutlets">0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- PENDING REQUESTS dengan CHECKLIST -->
+            <div class="pending-requests-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-clock"></i> Pending Stok Requests</h3>
+                    <div class="item-count" id="pendingStokCount">0 items</div>
+                </div>
+                <div class="pending-requests-container">
+                    <div class="loading" id="loadingPendingStok">Memuat data request...</div>
+                    <div id="pendingStokRequestsGrid" style="display: none;">
+                        <!-- Batch cards akan diisi di sini -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- REQUEST HISTORY untuk Owner -->
+            <div class="owner-history-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-history"></i> Riwayat Stok (Semua Outlet)</h3>
+                    <div class="filter-row" style="margin-top: 15px; gap: 10px;">
+                        <div class="filter-group" style="flex: 1;">
+                            <label for="filterOwnerHistoryDate"><i class="fas fa-calendar"></i> Periode:</label>
+                            <select id="filterOwnerHistoryDate" class="form-select">
+                                <option value="today">Hari Ini</option>
+                                <option value="week">7 Hari Terakhir</option>
+                                <option value="month">Bulan Ini</option>
+                                <option value="all">Semua</option>
+                            </select>
+                        </div>
+                        <button class="btn-refresh-history" onclick="loadOwnerStokHistory()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="history-table-container">
+                    <div class="loading" id="loadingOwnerHistoryStok">Memuat riwayat...</div>
+                    <div class="table-wrapper">
+                        <table class="history-table" id="historyTableStokOwner" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th width="120px">Tanggal</th>
+                                    <th width="100px">Batch ID</th>
+                                    <th width="100px">Outlet</th>
+                                    <th width="120px">Karyawan</th>
+                                    <th width="150px">Produk</th>
+                                    <th width="80px">Jenis</th>
+                                    <th width="80px">Qty</th>
+                                    <th width="120px">Stok Sebelum</th>
+                                    <th width="120px">Stok Sesudah</th>
+                                    <th width="100px">Status</th>
+                                    <th width="150px">Disetujui Oleh</th>
+                                    <th width="150px">Catatan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyBodyStokOwner">
+                                <!-- History akan diisi di sini -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
+// [5] Setup event listeners untuk halaman stok
 function setupStokPageEvents() {
+    // Tombol kembali
     document.getElementById('backToMainFromStok').addEventListener('click', () => {
         document.getElementById('stokPage').remove();
         document.getElementById('appScreen').style.display = 'block';
     });
     
-    document.getElementById('refreshStok').addEventListener('click', loadStokData);
+    // Tombol refresh
+    document.getElementById('refreshStok').addEventListener('click', () => {
+        if (isOwnerStok) {
+            loadOwnerStokData();
+        } else {
+            loadKasirStokData();
+        }
+    });
     
     if (isOwnerStok) {
+        // OWNER: Setup event listeners
         setupOwnerStokEvents();
     } else {
+        // KASIR: Setup event listeners
         setupKasirStokEvents();
     }
 }
 
+// [6] Setup events untuk KASIR
 function setupKasirStokEvents() {
-    loadProductsForSelection();
+    // Tombol submit request
+    const submitBtn = document.getElementById('submitStokRequestBtn');
+    if (submitBtn) {
+        submitBtn.addEventListener('click', submitStokBatch);
+    }
     
-    document.getElementById('clearSelection')?.addEventListener('click', clearAllSelection);
-    document.getElementById('removeAllItems')?.addEventListener('click', clearBatchItems);
-    document.getElementById('submitBatchRequest')?.addEventListener('click', submitBatchStokRequest);
-    setupHistoryFilterEvents();
-}
-
-function setupOwnerStokEvents() {
-    document.getElementById('filterOutletStok')?.addEventListener('change', loadOwnerStokData);
-    document.getElementById('filterStatusStok')?.addEventListener('change', loadOwnerStokData);
-    document.getElementById('filterDateStok')?.addEventListener('change', loadOwnerStokData);
-    
-    document.getElementById('selectAllPending')?.addEventListener('click', toggleSelectAllPending);
-    document.getElementById('approveSelectedItems')?.addEventListener('click', approveSelectedPendingItems);
-    document.getElementById('rejectSelectedItems')?.addEventListener('click', showRejectModalForSelected);
-    
-    document.getElementById('cancelReject')?.addEventListener('click', () => {
-        document.getElementById('rejectModal').style.display = 'none';
-    });
-    document.getElementById('confirmReject')?.addEventListener('click', rejectSelectedPendingItems);
-    document.getElementById('closeRejectModal')?.addEventListener('click', () => {
-        document.getElementById('rejectModal').style.display = 'none';
-    });
-    
-    document.getElementById('ownerHistoryDateFilter')?.addEventListener('change', loadOwnerHistory);
-}
-
-function setupHistoryFilterEvents() {
-    const dateFilter = document.getElementById('historyDateFilter');
-    const customDateRange = document.getElementById('customDateRange');
-    const applyCustomBtn = document.getElementById('applyCustomDate');
-    
-    if (dateFilter) {
-        dateFilter.addEventListener('change', function() {
-            if (this.value === 'custom') {
-                customDateRange.style.display = 'flex';
-            } else {
-                customDateRange.style.display = 'none';
-                loadKasirStokHistory();
-            }
+    // Apply filter button
+    const applyFilterBtn = document.getElementById('applyFilterStokBtn');
+    if (applyFilterBtn) {
+        applyFilterBtn.addEventListener('click', async () => {
+            await loadInventoryStokWithFilter();
         });
     }
     
-    if (applyCustomBtn) {
-        applyCustomBtn.addEventListener('click', loadKasirStokHistory);
+    // Search input
+    const searchInput = document.getElementById('searchInventoryStok');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', debounce(async function(e) {
+            if (e.key === 'Enter') {
+                await loadInventoryStokWithFilter();
+            }
+        }, 500));
     }
     
-    document.getElementById('historyStatusFilter')?.addEventListener('change', loadKasirStokHistory);
+    // Clear search button
+    const clearSearchBtn = document.getElementById('clearSearchStokBtn');
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', () => {
+            document.getElementById('searchInventoryStok').value = '';
+        });
+    }
     
-    document.getElementById('prevPage')?.addEventListener('click', () => {
-        if (currentHistoryPage > 1) {
-            currentHistoryPage--;
-            loadKasirStokHistory();
-        }
-    });
+    // Clear all selected button
+    const clearAllBtn = document.getElementById('clearAllSelectedStok');
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', clearAllSelectedStokItems);
+    }
     
-    document.getElementById('nextPage')?.addEventListener('click', () => {
-        if (currentHistoryPage < totalHistoryPages) {
-            currentHistoryPage++;
-            loadKasirStokHistory();
-        }
-    });
-}
-
-// ========== CORE FUNCTIONS ==========
-// [Note: Semua fungsi core dari file sebelumnya ada di sini]
-// Untuk menjaga panjang pesan, saya sertakan fungsi utama saja.
-// Fungsi lengkap akan mengikuti pola yang sama seperti sebelumnya.
-
-async function loadStokData() {
-    try {
-        if (isOwnerStok) {
-            await loadOwnerStokData();
-        } else {
-            await loadKasirStokData();
-        }
-    } catch (error) {
-        console.error('Error loading stok data:', error);
-        showStokToast('Gagal memuat data stok', 'error');
+    // Filter tanggal history
+    const dateFilter = document.getElementById('filterHistoryDate');
+    if (dateFilter) {
+        dateFilter.addEventListener('change', async () => {
+            await loadKasirStokHistory();
+        });
     }
 }
 
+// [7] Setup events untuk OWNER
+function setupOwnerStokEvents() {
+    // Filter dropdowns
+    document.getElementById('filterOutletStokOwner')?.addEventListener('change', async () => {
+        await loadOwnerStokData();
+    });
+    
+    document.getElementById('filterStatusStokOwner')?.addEventListener('change', async () => {
+        await loadOwnerStokData();
+    });
+    
+    document.getElementById('filterDateStokOwner')?.addEventListener('change', async () => {
+        await loadOwnerStokData();
+    });
+    
+    // Filter tanggal history owner
+    const dateFilter = document.getElementById('filterOwnerHistoryDate');
+    if (dateFilter) {
+        dateFilter.addEventListener('change', async () => {
+            await loadOwnerStokHistory();
+        });
+    }
+}
+
+// [8] Fungsi untuk load data kasir - DIMODIFIKASI
 async function loadKasirStokData() {
     try {
-        await loadProductsForSelection();
+        console.log('Loading kasir stok data...');
+        
+        // Load filter options
+        await loadGroupFilterOptions();
+        
+        // Kosongkan inventory table
+        clearInventoryStokTable();
+        
+        // Load history request (default hari ini)
         await loadKasirStokHistory();
+        
     } catch (error) {
-        console.error('Error loading kasir stok data:', error);
-        showStokToast('Gagal memuat data produk', 'error');
+        console.error('Error loading kasir data:', error);
+        showStokToast(`Gagal memuat data: ${error.message}`, 'error');
     }
 }
 
-// ... [Semua fungsi lainnya sama seperti di file sebelumnya] ...
+// [9] Fungsi untuk load filter options
+async function loadGroupFilterOptions() {
+    const groupSelect = document.getElementById('filterGroupStok');
+    
+    if (groupSelect) {
+        try {
+            // Load distinct groups dari database
+            const { data: groupsData, error } = await supabase
+                .from('produk')
+                .select('group_produk')
+                .eq('outlet', currentOutletStok)
+                .eq('status', 'active')
+                .eq('inventory', true)
+                .not('group_produk', 'is', null)
+                .order('group_produk');
+            
+            if (!error && groupsData) {
+                const groups = [...new Set(groupsData.map(item => item.group_produk).filter(Boolean))];
+                
+                groupSelect.innerHTML = `
+                    <option value="">Semua Group</option>
+                    ${groups.map(grp => `<option value="${grp}">${grp}</option>`).join('')}
+                `;
+            } else {
+                groupSelect.innerHTML = '<option value="">Error loading groups</option>';
+            }
+        } catch (error) {
+            console.error('Error loading groups:', error);
+            groupSelect.innerHTML = '<option value="">Error loading groups</option>';
+        }
+    }
+}
 
-// ========== UTILITY FUNCTIONS ==========
+// [10] Fungsi untuk load inventory dengan filter
+async function loadInventoryStokWithFilter() {
+    try {
+        const loadingEl = document.getElementById('loadingInventoryStok');
+        const tableEl = document.getElementById('inventoryTableStok');
+        const noDataEl = document.getElementById('noInventoryDataStok');
+        const countEl = document.getElementById('inventoryStokCount');
+        
+        if (loadingEl) loadingEl.style.display = 'block';
+        if (tableEl) tableEl.style.display = 'none';
+        if (noDataEl) noDataEl.style.display = 'none';
+        
+        // Get filter values
+        const groupFilter = document.getElementById('filterGroupStok').value;
+        const statusFilter = document.getElementById('filterStatusStokKasir').value;
+        const searchTerm = document.getElementById('searchInventoryStok').value.trim();
+        
+        // Build query
+        let query = supabase
+            .from('produk')
+            .select('*')
+            .eq('outlet', currentOutletStok)
+            .eq('inventory', true)
+            .order('nama_produk');
+        
+        // Apply filters
+        if (groupFilter) {
+            query = query.eq('group_produk', groupFilter);
+        }
+        
+        if (statusFilter !== 'all') {
+            query = query.eq('status', 'active');
+        }
+        
+        if (searchTerm && searchTerm.length >= 2) {
+            query = query.or(`nama_produk.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%`);
+        }
+        
+        const { data: items, error } = await query;
+        
+        if (error) throw error;
+        
+        // Simpan data untuk referensi
+        stokInventoryData = items || [];
+        
+        // Tampilkan data
+        displayInventoryStokTable(stokInventoryData);
+        
+        // Update count
+        if (countEl) {
+            countEl.textContent = `${stokInventoryData.length} produk${stokInventoryData.length !== 1 ? '' : ''}`;
+        }
+        
+    } catch (error) {
+        console.error('Error loading inventory stok:', error);
+        const tbody = document.getElementById('inventoryBodyStok');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Gagal memuat data: ${error.message}
+                    </td>
+                </tr>
+            `;
+        }
+    } finally {
+        const loadingEl = document.getElementById('loadingInventoryStok');
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+}
+
+// [11] Fungsi untuk display inventory table
+function displayInventoryStokTable(items) {
+    const tableEl = document.getElementById('inventoryTableStok');
+    const tbody = document.getElementById('inventoryBodyStok');
+    const noDataEl = document.getElementById('noInventoryDataStok');
+    
+    if (!tbody || !tableEl || !noDataEl) return;
+    
+    if (!items || items.length === 0) {
+        tableEl.style.display = 'none';
+        noDataEl.style.display = 'block';
+        tbody.innerHTML = '';
+        return;
+    }
+    
+    let html = '';
+    
+    items.forEach((item, index) => {
+        const isSelected = selectedStokItems.some(sel => sel.produk_id === item.id);
+        const selectedType = isSelected ? selectedStokItems.find(sel => sel.produk_id === item.id).stok_type : 'masuk';
+        const selectedQty = isSelected ? Math.abs(selectedStokItems.find(sel => sel.produk_id === item.id).qty_change) : 1;
+        
+        html += `
+            <tr class="${isSelected ? 'selected-row' : ''}">
+                <td>
+                    <input type="checkbox" 
+                           class="select-item-checkbox-stok"
+                           data-id="${item.id}"
+                           data-index="${index}"
+                           ${isSelected ? 'checked' : ''}
+                           onchange="toggleStokItemSelection('${item.id}', '${item.nama_produk}', '${item.group_produk}', ${item.stok}, this.checked)">
+                </td>
+                <td>
+                    <div class="item-name">${item.nama_produk || '-'}</div>
+                    <div class="item-sku"><small>SKU: ${item.sku || '-'}</small></div>
+                </td>
+                <td>${item.group_produk || '-'}</td>
+                <td class="${getStockStatusClass(item.stok)}">${item.stok || 0}</td>
+                <td>
+                    <span class="status-pill ${item.status === 'active' ? 'status-active' : 'status-inactive'}">
+                        ${item.status === 'active' ? 'Active' : 'Inactive'}
+                    </span>
+                </td>
+                <td>
+                    ${isSelected ? `
+                        <select class="form-select" style="width: 100px; font-size: 12px; padding: 5px;"
+                                onchange="updateSelectedStokItemType('${item.id}', this.value)">
+                            <option value="masuk" ${selectedType === 'masuk' ? 'selected' : ''}>Masuk</option>
+                            <option value="keluar" ${selectedType === 'keluar' ? 'selected' : ''}>Keluar</option>
+                        </select>
+                    ` : '-'}
+                </td>
+                <td>
+                    <button class="btn-add-to-request" 
+                            onclick="addSingleStokItemToRequest('${item.id}', '${item.nama_produk}', '${item.group_produk}', ${item.stok})"
+                            ${isSelected ? 'disabled' : ''}>
+                        <i class="fas fa-plus"></i> Tambah
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html;
+    tableEl.style.display = 'table';
+    noDataEl.style.display = 'none';
+}
+
+// [12] Fungsi untuk toggle item selection
+function toggleStokItemSelection(produkId, namaProduk, groupProduk, currentStock, isChecked) {
+    if (isChecked) {
+        // Cek apakah item sudah ada di selectedStokItems
+        const existingIndex = selectedStokItems.findIndex(item => item.produk_id === produkId);
+        
+        if (existingIndex === -1) {
+            // Tambah item baru
+            selectedStokItems.push({
+                produk_id: produkId,
+                nama_produk: namaProduk,
+                group_produk: groupProduk,
+                stok_type: 'masuk',
+                qty_change: 1,
+                qty_before: currentStock,
+                qty_after: currentStock + 1
+            });
+        }
+    } else {
+        // Hapus item dari selectedStokItems
+        const index = selectedStokItems.findIndex(item => item.produk_id === produkId);
+        if (index !== -1) {
+            selectedStokItems.splice(index, 1);
+        }
+    }
+    
+    // Update UI
+    updateSelectedStokItemsSection();
+}
+
+// [13] Fungsi untuk add single item to request
+function addSingleStokItemToRequest(produkId, namaProduk, groupProduk, currentStock) {
+    // Cek apakah item sudah ada di selectedStokItems
+    const existingIndex = selectedStokItems.findIndex(item => item.produk_id === produkId);
+    
+    if (existingIndex === -1) {
+        // Tambah item baru
+        selectedStokItems.push({
+            produk_id: produkId,
+            nama_produk: namaProduk,
+            group_produk: groupProduk,
+            stok_type: 'masuk',
+            qty_change: 1,
+            qty_before: currentStock,
+            qty_after: currentStock + 1
+        });
+        
+        // Update UI
+        updateSelectedStokItemsSection();
+        
+        // Update checkbox
+        const checkbox = document.querySelector(`.select-item-checkbox-stok[data-id="${produkId}"]`);
+        if (checkbox) {
+            checkbox.checked = true;
+        }
+        
+        // Feedback
+        showStokToast(`"${namaProduk}" ditambahkan ke request`, 'success');
+    }
+}
+
+// [14] Fungsi untuk update selected item type
+function updateSelectedStokItemType(produkId, newType) {
+    const index = selectedStokItems.findIndex(item => item.produk_id === produkId);
+    if (index === -1) return;
+    
+    const item = selectedStokItems[index];
+    const oldType = item.stok_type;
+    
+    if (oldType !== newType) {
+        item.stok_type = newType;
+        
+        // Update quantities
+        if (newType === 'keluar') {
+            // Untuk stok keluar, default 1, tapi tidak boleh lebih dari stok
+            item.qty_change = -Math.min(item.qty_change, item.qty_before);
+            item.qty_after = item.qty_before + item.qty_change;
+        } else {
+            // Untuk stok masuk, tetap positif
+            item.qty_change = Math.abs(item.qty_change);
+            item.qty_after = item.qty_before + item.qty_change;
+        }
+        
+        updateSelectedStokItemsSection();
+    }
+}
+
+// [15] Fungsi untuk update selected items section
+function updateSelectedStokItemsSection() {
+    const section = document.getElementById('selectedStokItemsSection');
+    const submitBtn = document.getElementById('submitStokRequestBtn');
+    const selectedCountEl = document.getElementById('selectedStokCount');
+    const totalItemsCountEl = document.getElementById('totalStokItemsCount');
+    const totalMasukEl = document.getElementById('totalMasukCount');
+    const totalKeluarEl = document.getElementById('totalKeluarCount');
+    const tbody = document.getElementById('selectedStokItemsBody');
+    
+    if (!section || !submitBtn || !tbody) return;
+    
+    // Show/hide section based on selected items
+    if (selectedStokItems.length > 0) {
+        section.style.display = 'block';
+        submitBtn.disabled = false;
+        
+        // Update count
+        if (selectedCountEl) {
+            selectedCountEl.textContent = selectedStokItems.length;
+        }
+        
+        // Update table
+        tbody.innerHTML = '';
+        
+        let totalMasuk = 0;
+        let totalKeluar = 0;
+        
+        selectedStokItems.forEach((item, index) => {
+            if (item.stok_type === 'masuk') {
+                totalMasuk += Math.abs(item.qty_change);
+            } else {
+                totalKeluar += Math.abs(item.qty_change);
+            }
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <div class="item-name">${item.nama_produk}</div>
+                    <div class="item-sku"><small>Group: ${item.group_produk}</small></div>
+                </td>
+                <td>${item.group_produk}</td>
+                <td>
+                    <select class="form-select" style="width: 100px; font-size: 12px; padding: 5px;"
+                            onchange="updateSelectedStokItemType('${item.produk_id}', this.value)">
+                        <option value="masuk" ${item.stok_type === 'masuk' ? 'selected' : ''}>Masuk</option>
+                        <option value="keluar" ${item.stok_type === 'keluar' ? 'selected' : ''}>Keluar</option>
+                    </select>
+                </td>
+                <td>
+                    <div class="qty-control">
+                        <button class="qty-btn minus" onclick="adjustSelectedStokItemQty(${index}, -1)" 
+                                ${(item.stok_type === 'keluar' && Math.abs(item.qty_change) <= 1) ? 'disabled' : ''}>
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <input type="number" 
+                               class="qty-input" 
+                               value="${Math.abs(item.qty_change)}" 
+                               min="1" 
+                               max="${item.stok_type === 'keluar' ? item.qty_before : ''}"
+                               onchange="updateSelectedStokItemQty(${index}, this.value)"
+                               style="width: 50px;">
+                        <button class="qty-btn plus" onclick="adjustSelectedStokItemQty(${index}, 1)"
+                                ${(item.stok_type === 'keluar' && Math.abs(item.qty_change) >= item.qty_before) ? 'disabled' : ''}>
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </td>
+                <td>${item.qty_before}</td>
+                <td>${item.qty_after}</td>
+                <td>
+                    <button class="btn-remove" onclick="removeSelectedStokItem(${index})" title="Hapus item">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+        
+        // Update total info
+        if (totalItemsCountEl) totalItemsCountEl.textContent = selectedStokItems.length;
+        if (totalMasukEl) totalMasukEl.textContent = `${totalMasuk} unit`;
+        if (totalKeluarEl) totalKeluarEl.textContent = `${totalKeluar} unit`;
+        
+    } else {
+        section.style.display = 'none';
+        submitBtn.disabled = true;
+    }
+}
+
+// [16] Fungsi untuk adjust selected item quantity
+function adjustSelectedStokItemQty(index, change) {
+    if (index < 0 || index >= selectedStokItems.length) return;
+    
+    const item = selectedStokItems[index];
+    let newQty = Math.abs(item.qty_change) + change;
+    
+    // Validasi
+    if (newQty < 1) newQty = 1;
+    
+    if (item.stok_type === 'keluar' && newQty > item.qty_before) {
+        newQty = item.qty_before;
+    }
+    
+    item.qty_change = item.stok_type === 'masuk' ? newQty : -newQty;
+    item.qty_after = item.qty_before + item.qty_change;
+    
+    updateSelectedStokItemsSection();
+}
+
+// [17] Fungsi untuk update selected item quantity
+function updateSelectedStokItemQty(index, newQty) {
+    if (index < 0 || index >= selectedStokItems.length) return;
+    
+    const item = selectedStokItems[index];
+    const qty = parseInt(newQty) || 1;
+    
+    // Validasi
+    let finalQty = Math.max(1, qty);
+    
+    if (item.stok_type === 'keluar' && finalQty > item.qty_before) {
+        finalQty = item.qty_before;
+    }
+    
+    item.qty_change = item.stok_type === 'masuk' ? finalQty : -finalQty;
+    item.qty_after = item.qty_before + item.qty_change;
+    
+    updateSelectedStokItemsSection();
+}
+
+// [18] Fungsi untuk remove selected item
+function removeSelectedStokItem(index) {
+    if (index < 0 || index >= selectedStokItems.length) return;
+    
+    // Update checkbox
+    const item = selectedStokItems[index];
+    const checkbox = document.querySelector(`.select-item-checkbox-stok[data-id="${item.produk_id}"]`);
+    if (checkbox) {
+        checkbox.checked = false;
+    }
+    
+    selectedStokItems.splice(index, 1);
+    updateSelectedStokItemsSection();
+}
+
+// [19] Fungsi untuk clear all selected items
+function clearAllSelectedStokItems() {
+    if (selectedStokItems.length === 0) return;
+    
+    const confirmClear = confirm(`Hapus semua ${selectedStokItems.length} item yang dipilih?`);
+    if (!confirmClear) return;
+    
+    // Uncheck semua checkbox
+    document.querySelectorAll('.select-item-checkbox-stok:checked').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    selectedStokItems = [];
+    updateSelectedStokItemsSection();
+}
+
+// [20] Fungsi untuk clear inventory table
+function clearInventoryStokTable() {
+    const tableEl = document.getElementById('inventoryTableStok');
+    const tbody = document.getElementById('inventoryBodyStok');
+    const noDataEl = document.getElementById('noInventoryDataStok');
+    const countEl = document.getElementById('inventoryStokCount');
+    
+    if (tableEl) tableEl.style.display = 'none';
+    if (tbody) tbody.innerHTML = '';
+    if (noDataEl) noDataEl.style.display = 'block';
+    if (countEl) countEl.textContent = '0 produk';
+}
+
+// [21] Fungsi untuk submit stok batch
+async function submitStokBatch() {
+    if (selectedStokItems.length === 0) {
+        alert('Pilih minimal 1 item untuk di-request!');
+        return;
+    }
+    
+    try {
+        const submitBtn = document.getElementById('submitStokRequestBtn');
+        const originalText = submitBtn.innerHTML;
+        
+        // Disable button and show loading
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+        
+        const notes = document.getElementById('stokRequestNotes').value.trim();
+        
+        // Generate batch ID baru untuk setiap submit
+        const batchId = generateStokBatchId();
+        
+        // Insert multiple records for each item
+        const requests = selectedStokItems.map(item => ({
+            batch_id: batchId,
+            tanggal: new Date().toISOString().split('T')[0],
+            outlet: currentOutletStok,
+            stok_type: item.stok_type,
+            updated_by: currentUserStok.nama_karyawan,
+            nama_produk: item.nama_produk,
+            group_produk: item.group_produk,
+            qty_before: item.qty_before,
+            qty_change: item.qty_change,
+            qty_after: item.qty_after,
+            approval_status: 'pending',
+            notes: notes || null,
+            created_at: new Date().toISOString()
+        }));
+        
+        const { data, error } = await supabase
+            .from('stok_update')
+            .insert(requests);
+        
+        if (error) throw error;
+        
+        // Kirim notifikasi WA ke Owner
+        try {
+            await sendWAStokRequestNotification(requests, currentUserStok, notes, batchId);
+        } catch (waError) {
+            console.warn('Gagal kirim notifikasi WA:', waError);
+        }
+        
+        // Success
+        showStokToast(`✅ Request berhasil dikirim! Batch ID: ${batchId}`, 'success');
+        
+        // Reset form
+        selectedStokItems = [];
+        document.getElementById('stokRequestNotes').value = '';
+        
+        // Update UI
+        updateSelectedStokItemsSection();
+        
+        // Uncheck semua checkbox
+        document.querySelectorAll('.select-item-checkbox-stok:checked').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        // Reload history
+        await loadKasirStokHistory();
+        
+        // Reload inventory
+        await loadInventoryStokWithFilter();
+        
+    } catch (error) {
+        console.error('Error submitting stok request:', error);
+        showStokToast(`❌ Gagal mengirim request: ${error.message}`, 'error');
+    } finally {
+        // Reset button
+        const submitBtn = document.getElementById('submitStokRequestBtn');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Request';
+        }
+    }
+}
+
+// [22] Fungsi untuk load kasir history - DENGAN FILTER TANGGAL
+async function loadKasirStokHistory() {
+    try {
+        const loadingEl = document.getElementById('loadingHistoryStokKasir');
+        const tableEl = document.getElementById('historyTableStokKasir');
+        
+        if (loadingEl) loadingEl.style.display = 'block';
+        if (tableEl) tableEl.style.display = 'none';
+        
+        // Get date filter
+        const dateFilter = document.getElementById('filterHistoryDate').value;
+        
+        // Build query
+        let query = supabase
+            .from('stok_update')
+            .select('*')
+            .eq('outlet', currentOutletStok)
+            .neq('approval_status', 'pending') // Hanya yang sudah diproses
+            .order('created_at', { ascending: false });
+        
+        // Apply date filter
+        applyDateFilter(query, dateFilter);
+        
+        const { data: requests, error } = await query;
+        
+        if (error) throw error;
+        
+        displayKasirStokHistory(requests || []);
+        
+    } catch (error) {
+        console.error('Error loading kasir history:', error);
+        const tbody = document.getElementById('historyBodyStokKasir');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Gagal memuat history: ${error.message}
+                    </td>
+                </tr>
+            `;
+        }
+    } finally {
+        const loadingEl = document.getElementById('loadingHistoryStokKasir');
+        const tableEl = document.getElementById('historyTableStokKasir');
+        
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (tableEl) tableEl.style.display = 'table';
+    }
+}
+
+// [23] Display kasir history
+function displayKasirStokHistory(requests) {
+    const tbody = document.getElementById('historyBodyStokKasir');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    if (!requests || requests.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="empty-message">
+                    <i class="fas fa-inbox"></i>
+                    Belum ada riwayat request
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    requests.forEach((request, index) => {
+        const createdDate = new Date(request.created_at);
+        const typeClass = request.stok_type === 'masuk' ? 'type-in' : 'type-out';
+        const typeIcon = request.stok_type === 'masuk' ? 'fa-arrow-down' : 'fa-arrow-up';
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>
+                ${createdDate.toLocaleDateString('id-ID')}<br>
+                <small>${createdDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>
+            </td>
+            <td><code title="${request.batch_id}">${request.batch_id ? request.batch_id.substring(0, 8) + '...' : '-'}</code></td>
+            <td>
+                <div class="item-name">${request.nama_produk}</div>
+                <div class="item-sku"><small>Group: ${request.group_produk}</small></div>
+            </td>
+            <td>
+                <span class="${typeClass}">
+                    <i class="fas ${typeIcon}"></i>
+                    ${request.stok_type === 'masuk' ? 'Masuk' : 'Keluar'}
+                </span>
+            </td>
+            <td>${Math.abs(request.qty_change)}</td>
+            <td>${request.qty_before}</td>
+            <td>${request.qty_after}</td>
+            <td>
+                <span class="status-pill ${getApprovalStatusClass(request.approval_status)}">
+                    ${getApprovalStatusText(request.approval_status)}
+                </span>
+            </td>
+            <td>${request.approved_by || '-'}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// [24] Fungsi untuk load data owner - DIMODIFIKASI untuk batch system
+async function loadOwnerStokData() {
+    try {
+        console.log('=== LOAD OWNER STOK DATA ===');
+        
+        // Tampilkan loading
+        const loadingPending = document.getElementById('loadingPendingStok');
+        const pendingGrid = document.getElementById('pendingStokRequestsGrid');
+        const loadingHistory = document.getElementById('loadingOwnerHistoryStok');
+        
+        if (loadingPending) loadingPending.style.display = 'block';
+        if (pendingGrid) pendingGrid.style.display = 'none';
+        if (loadingHistory) loadingHistory.style.display = 'block';
+        
+        // Get filter values
+        const outletFilter = document.getElementById('filterOutletStokOwner')?.value || 'all';
+        const statusFilter = document.getElementById('filterStatusStokOwner')?.value || 'pending';
+        const dateFilter = document.getElementById('filterDateStokOwner')?.value || 'today';
+        
+        console.log('Active Filters:', { outlet: outletFilter, status: statusFilter, date: dateFilter });
+        
+        // Build query untuk pending requests
+        let query = supabase
+            .from('stok_update')
+            .select('*')
+            .eq('approval_status', 'pending') // HANYA YANG PENDING
+            .order('created_at', { ascending: false });
+        
+        // Apply outlet filter
+        if (outletFilter !== 'all') {
+            query = query.eq('outlet', outletFilter);
+        }
+        
+        // Apply date filter
+        applyDateFilter(query, dateFilter);
+        
+        const { data: requests, error } = await query;
+        
+        if (error) throw error;
+        
+        console.log(`Pending requests loaded: ${requests?.length || 0}`);
+        
+        // Group requests by batch_id untuk pending section
+        const groupedRequests = groupStokRequestsByBatch(requests || []);
+        
+        // Display pending requests dengan checklist
+        displayPendingStokRequests(groupedRequests);
+        
+        // Load outlet dropdown
+        await loadOutletDropdownStok();
+        
+        // Load statistics
+        await loadOwnerStokStatistics(outletFilter, dateFilter);
+        
+        // Load history
+        await loadOwnerStokHistory();
+        
+    } catch (error) {
+        console.error('Error loading owner stok data:', error);
+        showStokToast(`Gagal memuat data: ${error.message}`, 'error');
+    } finally {
+        // Hide loading
+        const loadingPending = document.getElementById('loadingPendingStok');
+        const pendingGrid = document.getElementById('pendingStokRequestsGrid');
+        const loadingHistory = document.getElementById('loadingOwnerHistoryStok');
+        
+        if (loadingPending) loadingPending.style.display = 'none';
+        if (pendingGrid) pendingGrid.style.display = 'block';
+        if (loadingHistory) loadingHistory.style.display = 'none';
+    }
+}
+
+// [25] Group stok requests by batch_id
+function groupStokRequestsByBatch(requests) {
+    const grouped = {};
+    
+    requests.forEach(request => {
+        if (!request.batch_id) {
+            // Jika tidak ada batch_id, gunakan ID sebagai batch individual
+            request.batch_id = `IND-${request.id}`;
+        }
+        
+        if (!grouped[request.batch_id]) {
+            grouped[request.batch_id] = {
+                batch_id: request.batch_id,
+                outlet: request.outlet,
+                updated_by: request.updated_by,
+                created_at: request.created_at,
+                notes: request.notes,
+                items: [],
+                total_items: 0,
+                total_masuk: 0,
+                total_keluar: 0
+            };
+        }
+        
+        grouped[request.batch_id].items.push(request);
+        grouped[request.batch_id].total_items++;
+        
+        if (request.stok_type === 'masuk') {
+            grouped[request.batch_id].total_masuk += Math.abs(request.qty_change);
+        } else {
+            grouped[request.batch_id].total_keluar += Math.abs(request.qty_change);
+        }
+    });
+    
+    return Object.values(grouped);
+}
+
+// [26] Display pending requests untuk Owner - DENGAN CHECKLIST
+function displayPendingStokRequests(groupedRequests) {
+    console.log('Displaying pending stok requests:', groupedRequests.length);
+    
+    const pendingGrid = document.getElementById('pendingStokRequestsGrid');
+    const pendingCountEl = document.getElementById('pendingStokCount');
+    
+    if (!pendingGrid) return;
+    
+    // Update count - total items pending
+    let totalPendingItems = 0;
+    groupedRequests.forEach(group => {
+        totalPendingItems += group.items.length;
+    });
+    
+    if (pendingCountEl) {
+        pendingCountEl.textContent = `${totalPendingItems} items (${groupedRequests.length} batch)`;
+    }
+    
+    if (groupedRequests.length === 0) {
+        pendingGrid.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-check-circle"></i>
+                <h4>Tidak ada request pending</h4>
+                <p>Semua request sudah diproses</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    
+    groupedRequests.forEach(group => {
+        const date = new Date(group.created_at);
+        const formattedDate = date.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        // Inisialisasi selected items untuk batch ini
+        if (!selectedOwnerItems[group.batch_id]) {
+            selectedOwnerItems[group.batch_id] = [];
+        }
+        
+        html += `
+        <div class="batch-card" data-batch-id="${group.batch_id}">
+            <div class="batch-header">
+                <div class="batch-info">
+                    <div class="info-row">
+                        <div class="info-item">
+                            <i class="fas fa-store"></i>
+                            <strong>Outlet:</strong> ${group.outlet || '-'}
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-user"></i>
+                            <strong>Requestor:</strong> ${group.updated_by || '-'}
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-calendar"></i>
+                            <strong>Tanggal Request:</strong> ${formattedDate}
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-item">
+                            <i class="fas fa-hashtag"></i>
+                            <strong>Batch ID:</strong> <code>${group.batch_id}</code>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-sticky-note"></i>
+                            <strong>Catatan:</strong> ${group.notes || '-'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="request-items-table">
+                <div class="table-wrapper">
+                    <table class="batch-items-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px; padding: 12px 15px;">
+                                    <input type="checkbox" class="select-all-checkbox-stok" 
+                                           data-batch-id="${group.batch_id}" 
+                                           onchange="toggleSelectAllStokItems('${group.batch_id}', this.checked)">
+                                </th>
+                                <th style="width: 40px; padding: 12px 15px;">#</th>
+                                <th style="padding: 12px 15px;">Produk</th>
+                                <th style="width: 80px; padding: 12px 15px;">Jenis</th>
+                                <th style="width: 80px; padding: 12px 15px;">Qty</th>
+                                <th style="width: 100px; padding: 12px 15px;">Stok Sebelum</th>
+                                <th style="width: 100px; padding: 12px 15px;">Stok Sesudah</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${group.items.map((item, index) => {
+                                const isSelected = selectedOwnerItems[group.batch_id].includes(item.id);
+                                const typeClass = item.stok_type === 'masuk' ? 'type-in' : 'type-out';
+                                const typeText = item.stok_type === 'masuk' ? 'Masuk' : 'Keluar';
+                                
+                                return `
+                                <tr data-item-id="${item.id}" data-batch-id="${group.batch_id}">
+                                    <td style="padding: 12px 15px; text-align: center;">
+                                        <input type="checkbox" 
+                                               class="item-checkbox-stok" 
+                                               data-item-id="${item.id}"
+                                               data-batch-id="${group.batch_id}"
+                                               ${isSelected ? 'checked' : ''}
+                                               onchange="updateStokBatchSelection('${group.batch_id}')">
+                                    </td>
+                                    <td style="padding: 12px 15px;">${index + 1}</td>
+                                    <td style="padding: 12px 15px;">
+                                        <div class="item-name">${item.nama_produk}</div>
+                                        <div class="item-sku">Group: ${item.group_produk || '-'}</div>
+                                    </td>
+                                    <td style="padding: 12px 15px;">
+                                        <span class="${typeClass}">${typeText}</span>
+                                    </td>
+                                    <td style="padding: 12px 15px;" class="${typeClass}">
+                                        ${item.stok_type === 'masuk' ? '+' : '-'}${Math.abs(item.qty_change)}
+                                    </td>
+                                    <td style="padding: 12px 15px;">${item.qty_before}</td>
+                                    <td style="padding: 12px 15px;">${item.qty_after}</td>
+                                </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                        <tfoot>
+                            <tr style="background: #f8f9fa;">
+                                <td colspan="3" style="padding: 12px 15px;"><strong>Total Batch:</strong></td>
+                                <td style="padding: 12px 15px;"></td>
+                                <td style="padding: 12px 15px;">
+                                    <span class="text-success">+${group.total_masuk}</span> | 
+                                    <span class="text-danger">-${group.total_keluar}</span>
+                                </td>
+                                <td colspan="2" style="padding: 12px 15px;">
+                                    <strong>${group.total_items} items</strong>
+                                </td>
+                                <td colspan="2" style="padding: 12px 15px;">
+                                    <div class="action-buttons-row" style="display: flex; gap: 10px;">
+                                        <button class="btn-approve-selected-stok" 
+                                                data-batch-id="${group.batch_id}"
+                                                onclick="approveSelectedStokItems('${group.batch_id}')"
+                                                style="
+                                                    flex-shrink: 0;
+                                                    white-space: nowrap;
+                                                    min-width: 120px;
+                                                    width: auto;
+                                                    display: inline-flex;
+                                                    align-items: center;
+                                                    justify-content: center;
+                                                    gap: 8px;
+                                                    height: 42px;
+                                                    padding: 10px 16px;
+                                                    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                                                    color: white;
+                                                    border: none;
+                                                    border-radius: 6px;
+                                                    cursor: pointer;
+                                                    font-weight: 600;
+                                                    font-size: 14px;
+                                                ">
+                                            <i class="fas fa-check"></i> Approve
+                                        </button>
+                                        <button class="btn-reject-selected-stok" 
+                                                data-batch-id="${group.batch_id}"
+                                                onclick="rejectSelectedStokItems('${group.batch_id}')"
+                                                style="
+                                                    flex-shrink: 0;
+                                                    white-space: nowrap;
+                                                    min-width: 120px;
+                                                    width: auto;
+                                                    display: inline-flex;
+                                                    align-items: center;
+                                                    justify-content: center;
+                                                    gap: 8px;
+                                                    height: 42px;
+                                                    padding: 10px 16px;
+                                                    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+                                                    color: white;
+                                                    border: none;
+                                                    border-radius: 6px;
+                                                    cursor: pointer;
+                                                    font-weight: 600;
+                                                    font-size: 14px;
+                                                ">
+                                            <i class="fas fa-times"></i> Reject
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        `;
+    });
+    
+    pendingGrid.innerHTML = html;
+}
+
+// [27] Fungsi untuk toggle select all items dalam batch
+function toggleSelectAllStokItems(batchId, isChecked) {
+    // Get all items in this batch
+    const checkboxes = document.querySelectorAll(`
+        .batch-card[data-batch-id="${batchId}"] 
+        .item-checkbox-stok
+    `);
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = isChecked;
+        const itemId = checkbox.dataset.itemId;
+        
+        if (isChecked) {
+            if (!selectedOwnerItems[batchId].includes(itemId)) {
+                selectedOwnerItems[batchId].push(itemId);
+            }
+        } else {
+            const index = selectedOwnerItems[batchId].indexOf(itemId);
+            if (index > -1) {
+                selectedOwnerItems[batchId].splice(index, 1);
+            }
+        }
+    });
+}
+
+// [28] Fungsi untuk update batch selection status
+function updateStokBatchSelection(batchId) {
+    const checkboxes = document.querySelectorAll(`
+        .batch-card[data-batch-id="${batchId}"] 
+        .item-checkbox-stok
+    `);
+    
+    const selectAllCheckbox = document.querySelector(`
+        .batch-card[data-batch-id="${batchId}"] 
+        .select-all-checkbox-stok
+    `);
+    
+    if (checkboxes.length > 0 && selectAllCheckbox) {
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        const someChecked = Array.from(checkboxes).some(cb => cb.checked);
+        
+        selectAllCheckbox.checked = allChecked;
+        selectAllCheckbox.indeterminate = someChecked && !allChecked;
+        
+        // Update selectedOwnerItems
+        selectedOwnerItems[batchId] = [];
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                selectedOwnerItems[batchId].push(checkbox.dataset.itemId);
+            }
+        });
+    }
+}
+
+// [29] Fungsi untuk approve selected items
+async function approveSelectedStokItems(batchId) {
+    try {
+        const selectedItems = selectedOwnerItems[batchId] || [];
+        
+        if (selectedItems.length === 0) {
+            alert('Pilih minimal 1 item untuk di-approve!');
+            return;
+        }
+        
+        const approveAll = confirm(`Approve ${selectedItems.length} item yang dipilih?\n\nItem yang tidak dipilih akan tetap status pending.`);
+        if (!approveAll) return;
+        
+        // Get all selected items data
+        const { data: itemsData } = await supabase
+            .from('stok_update')
+            .select('*')
+            .in('id', selectedItems);
+        
+        if (!itemsData || itemsData.length === 0) {
+            alert('Data item tidak ditemukan!');
+            return;
+        }
+        
+        // Update each item dengan REAL-TIME STOCK CHECK
+        for (const item of itemsData) {
+            // 1. Cek stok real-time
+            const { data: produkData } = await supabase
+                .from('produk')
+                .select('stok')
+                .eq('nama_produk', item.nama_produk)
+                .eq('outlet', item.outlet)
+                .single();
+            
+            if (!produkData) {
+                console.warn(`Produk ${item.nama_produk} tidak ditemukan di outlet ${item.outlet}`);
+                continue;
+            }
+            
+            const stokSekarang = produkData.stok;
+            const stokSetelah = stokSekarang + item.qty_change;
+            
+            // Validasi untuk stok keluar
+            if (item.stok_type === 'keluar' && stokSetelah < 0) {
+                alert(`❌ GAGAL APPROVE: Stok tidak cukup untuk ${item.nama_produk}!\n` +
+                      `Stok saat ini: ${stokSekarang}\n` +
+                      `Butuh keluar: ${Math.abs(item.qty_change)}`);
+                return;
+            }
+            
+            // 2. Update status request
+            await supabase
+                .from('stok_update')
+                .update({
+                    approval_status: 'approved',
+                    approved_by: currentUserStok.nama_karyawan,
+                    updated_at: new Date().toISOString(),
+                    qty_before: stokSekarang,
+                    qty_after: stokSetelah
+                })
+                .eq('id', item.id);
+            
+            // 3. Update stok produk
+            await supabase
+                .from('produk')
+                .update({
+                    stok: stokSetelah,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('nama_produk', item.nama_produk)
+                .eq('outlet', item.outlet);
+        }
+        
+        // Kirim notifikasi WA
+        try {
+            await sendWAStokApprovalNotification(itemsData, currentUserStok);
+        } catch (waError) {
+            console.warn('Gagal kirim notifikasi WA:', waError);
+        }
+        
+        // Success message
+        showStokToast(`✅ ${selectedItems.length} item berhasil di-approve!`, 'success');
+        
+        // Clear selection
+        selectedOwnerItems[batchId] = [];
+        
+        // Reload data
+        await loadOwnerStokData();
+        
+    } catch (error) {
+        console.error('Error approving items:', error);
+        showStokToast(`❌ Gagal approve items: ${error.message}`, 'error');
+    }
+}
+
+// [30] Fungsi untuk reject selected items
+async function rejectSelectedStokItems(batchId) {
+    try {
+        const selectedItems = selectedOwnerItems[batchId] || [];
+        
+        if (selectedItems.length === 0) {
+            alert('Pilih minimal 1 item untuk di-reject!');
+            return;
+        }
+        
+        const reason = prompt('Masukkan alasan penolakan:');
+        if (reason === null) return; // User cancelled
+        if (!reason.trim()) {
+            alert('Harap masukkan alasan penolakan');
+            return;
+        }
+        
+        const rejectAll = confirm(`Reject ${selectedItems.length} item yang dipilih?\n\nItem yang tidak dipilih akan tetap status pending.`);
+        if (!rejectAll) return;
+        
+        // Update status in database
+        const { error } = await supabase
+            .from('stok_update')
+            .update({
+                approval_status: 'rejected',
+                approved_by: currentUserStok.nama_karyawan,
+                rejection_reason: reason,
+                updated_at: new Date().toISOString()
+            })
+            .in('id', selectedItems);
+        
+        if (error) throw error;
+        
+        // Get rejected items for notification
+        const { data: rejectedItems } = await supabase
+            .from('stok_update')
+            .select('*')
+            .in('id', selectedItems);
+        
+        // Kirim notifikasi WA
+        try {
+            await sendWAStokRejectionNotification(rejectedItems || [], currentUserStok, reason);
+        } catch (waError) {
+            console.warn('Gagal kirim notifikasi WA:', waError);
+        }
+        
+        showStokToast(`❌ ${selectedItems.length} item berhasil di-reject!`, 'success');
+        
+        // Clear selection
+        selectedOwnerItems[batchId] = [];
+        
+        // Reload data
+        await loadOwnerStokData();
+        
+    } catch (error) {
+        console.error('Error rejecting items:', error);
+        showStokToast(`❌ Gagal reject items: ${error.message}`, 'error');
+    }
+}
+
+// [31] Fungsi untuk load owner statistics
+async function loadOwnerStokStatistics(outletFilter, dateFilter) {
+    try {
+        // Pending count
+        let pendingQuery = supabase
+            .from('stok_update')
+            .select('id', { count: 'exact', head: true })
+            .eq('approval_status', 'pending');
+        
+        if (outletFilter !== 'all') {
+            pendingQuery = pendingQuery.eq('outlet', outletFilter);
+        }
+        
+        const { count: pendingCount } = await pendingQuery;
+        
+        // Approved today count
+        let approvedQuery = supabase
+            .from('stok_update')
+            .select('id', { count: 'exact', head: true })
+            .eq('approval_status', 'approved');
+        
+        if (outletFilter !== 'all') {
+            approvedQuery = approvedQuery.eq('outlet', outletFilter);
+        }
+        
+        // Apply today filter
+        const today = new Date().toISOString().split('T')[0];
+        approvedQuery = approvedQuery.gte('tanggal', today);
+        
+        const { count: approvedCount } = await approvedQuery;
+        
+        // Total items processed
+        let processedQuery = supabase
+            .from('stok_update')
+            .select('id', { count: 'exact', head: true })
+            .neq('approval_status', 'pending');
+        
+        if (outletFilter !== 'all') {
+            processedQuery = processedQuery.eq('outlet', outletFilter);
+        }
+        
+        applyDateFilter(processedQuery, dateFilter);
+        
+        const { count: processedCount } = await processedQuery;
+        
+        // Total outlets
+        let outletsQuery = supabase
+            .from('karyawan')
+            .select('outlet')
+            .not('outlet', 'is', null);
+        
+        const { data: outletsData } = await outletsQuery;
+        const totalOutlets = outletsData ? [...new Set(outletsData.map(o => o.outlet).filter(Boolean))].length : 0;
+        
+        // Update UI
+        document.getElementById('statPendingCount').textContent = pendingCount || 0;
+        document.getElementById('statApprovedToday').textContent = approvedCount || 0;
+        document.getElementById('statItemsProcessed').textContent = processedCount || 0;
+        document.getElementById('statTotalOutlets').textContent = totalOutlets || 0;
+        
+    } catch (error) {
+        console.error('Error loading statistics:', error);
+    }
+}
+
+// [32] Load outlet dropdown untuk owner
+async function loadOutletDropdownStok() {
+    const select = document.getElementById('filterOutletStokOwner');
+    if (!select) return;
+    
+    try {
+        const { data: outlets, error } = await supabase
+            .from('karyawan')
+            .select('outlet')
+            .not('outlet', 'is', null);
+        
+        if (error) {
+            console.error('Error loading outlets:', error);
+            return;
+        }
+        
+        // Get unique outlets
+        const outletsList = outlets ? [...new Set(outlets.map(o => o.outlet).filter(Boolean))] : [];
+        
+        let options = '<option value="all">Semua Outlet</option>';
+        outletsList.forEach(outlet => {
+            options += `<option value="${outlet}">${outlet}</option>`;
+        });
+        
+        select.innerHTML = options;
+        
+    } catch (error) {
+        console.error('Error loading outlets:', error);
+        select.innerHTML = '<option value="all">Semua Outlet</option>';
+    }
+}
+
+// [33] Fungsi untuk load owner history
+async function loadOwnerStokHistory() {
+    try {
+        const loadingEl = document.getElementById('loadingOwnerHistoryStok');
+        const tableEl = document.getElementById('historyTableStokOwner');
+        
+        if (loadingEl) loadingEl.style.display = 'block';
+        if (tableEl) tableEl.style.display = 'none';
+        
+        // Get filter values
+        const outletFilter = document.getElementById('filterOutletStokOwner')?.value || 'all';
+        const dateFilter = document.getElementById('filterOwnerHistoryDate')?.value || 'today';
+        
+        // Build query
+        let query = supabase
+            .from('stok_update')
+            .select('*')
+            .neq('approval_status', 'pending') // Hanya yang sudah diproses
+            .order('created_at', { ascending: false })
+            .limit(50);
+        
+        // Apply outlet filter
+        if (outletFilter !== 'all') {
+            query = query.eq('outlet', outletFilter);
+        }
+        
+        // Apply date filter
+        applyDateFilter(query, dateFilter);
+        
+        const { data: requests, error } = await query;
+        
+        if (error) throw error;
+        
+        displayOwnerStokHistory(requests || []);
+        
+    } catch (error) {
+        console.error('Error loading owner history:', error);
+        const tbody = document.getElementById('historyBodyStokOwner');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="12" class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Gagal memuat history: ${error.message}
+                    </td>
+                </tr>
+            `;
+        }
+    } finally {
+        const loadingEl = document.getElementById('loadingOwnerHistoryStok');
+        const tableEl = document.getElementById('historyTableStokOwner');
+        
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (tableEl) tableEl.style.display = 'table';
+    }
+}
+
+// [34] Display owner history
+function displayOwnerStokHistory(requests) {
+    const tbody = document.getElementById('historyBodyStokOwner');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    if (!requests || requests.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="12" class="empty-message">
+                    <i class="fas fa-history"></i>
+                    Tidak ada history request
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    requests.forEach(request => {
+        const createdDate = new Date(request.created_at);
+        const typeClass = request.stok_type === 'masuk' ? 'type-in' : 'type-out';
+        const typeText = request.stok_type === 'masuk' ? 'Masuk' : 'Keluar';
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>
+                ${createdDate.toLocaleDateString('id-ID')}<br>
+                <small>${createdDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>
+            </td>
+            <td><code title="${request.batch_id}">${request.batch_id ? request.batch_id.substring(0, 8) + '...' : '-'}</code></td>
+            <td>${request.outlet || '-'}</td>
+            <td>${request.updated_by || '-'}</td>
+            <td>
+                <div class="item-name">${request.nama_produk}</div>
+                <div class="item-sku"><small>Group: ${request.group_produk}</small></div>
+            </td>
+            <td>
+                <span class="${typeClass}">${typeText}</span>
+            </td>
+            <td>${Math.abs(request.qty_change)}</td>
+            <td>${request.qty_before}</td>
+            <td>${request.qty_after}</td>
+            <td>
+                <span class="status-pill ${getApprovalStatusClass(request.approval_status)}">
+                    ${getApprovalStatusText(request.approval_status)}
+                </span>
+            </td>
+            <td>${request.approved_by || '-'}</td>
+            <td>${request.notes || '-'}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// [35] Apply date filter to query
+function applyDateFilter(query, dateFilter) {
+    if (dateFilter !== 'all') {
+        const today = new Date();
+        let startDate = new Date();
+        
+        if (dateFilter === 'today') {
+            startDate.setHours(0, 0, 0, 0);
+        } else if (dateFilter === 'week') {
+            startDate.setDate(today.getDate() - 7);
+        } else if (dateFilter === 'month') {
+            startDate.setMonth(today.getMonth() - 1);
+        }
+        
+        query = query.gte('created_at', startDate.toISOString());
+    }
+    
+    return query;
+}
+
+// [36] WA Notification Functions
+
+// Kirim notifikasi saat kasir submit request
+async function sendWAStokRequestNotification(requests, kasirData, notes, batchId) {
+    try {
+        console.log('📤 Mengirim notifikasi WhatsApp untuk request stok...');
+        
+        if (typeof WA_API_URL === 'undefined' || typeof WA_API_KEY === 'undefined') {
+            console.warn('Konfigurasi WA API tidak ditemukan');
+            return false;
+        }
+        
+        // Format nomor owner
+        let phoneNumber = WA_OWNER_PHONE;
+        if (phoneNumber.startsWith('0')) {
+            phoneNumber = '62' + phoneNumber.substring(1);
+        }
+        const chatId = phoneNumber + '@c.us';
+        
+        // Format detail items
+        let itemsList = '';
+        let totalMasuk = 0;
+        let totalKeluar = 0;
+        
+        requests.forEach((req, index) => {
+            const typeIcon = req.stok_type === 'masuk' ? '⬆️' : '⬇️';
+            const changeSign = req.stok_type === 'masuk' ? '+' : '-';
+            
+            if (req.stok_type === 'masuk') {
+                totalMasuk += Math.abs(req.qty_change);
+            } else {
+                totalKeluar += Math.abs(req.qty_change);
+            }
+            
+            itemsList += `${index + 1}. ${req.nama_produk} ${changeSign}${Math.abs(req.qty_change)} unit (${req.qty_before} → ${req.qty_after})\n`;
+        });
+        
+        const message = `📦 *PERMINTAAN UPDATE STOK - MENUNGGU APPROVAL*
+=============================
+🏬 Outlet: ${requests[0].outlet}
+👤 Kasir: ${kasirData.nama_karyawan}
+🆔 Batch: ${batchId}
+📅 Tanggal: ${formatDateStok(requests[0].tanggal)}
+⏰ Waktu: ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+=============================
+📋 *DETAIL ITEMS:*
+${itemsList}
+=============================
+📊 *SUMMARY:*
+   📈 Stok Masuk: ${totalMasuk} unit
+   📉 Stok Keluar: ${totalKeluar} unit
+   📦 Total Items: ${requests.length}
+=============================
+📝 *Catatan:* ${notes || 'Tidak ada catatan'}
+=============================
+📋 *Status:* ⏳ MENUNGGU APPROVAL OWNER
+=============================
+⚠️ *Silakan buka aplikasi untuk approve/reject*
+⏰ *Mohon segera diproses maksimal 24 jam*`;
+        
+        const response = await fetch(WA_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Api-Key': WA_API_KEY
+            },
+            body: JSON.stringify({
+                session: 'Session1',
+                chatId: chatId,
+                text: message
+            })
+        });
+        
+        console.log('📤 Notifikasi request stok terkirim ke owner');
+        return response.ok;
+        
+    } catch (error) {
+        console.error('Error mengirim notifikasi request stok:', error);
+        return false;
+    }
+}
+
+// Kirim notifikasi saat owner approve
+async function sendWAStokApprovalNotification(approvedItems, ownerData) {
+    try {
+        console.log('📤 Mengirim notifikasi WhatsApp untuk approval stok...');
+        
+        if (typeof WA_API_URL === 'undefined' || typeof WA_API_KEY === 'undefined') {
+            console.warn('Konfigurasi WA API tidak ditemukan');
+            return false;
+        }
+        
+        // Group by batch
+        const groupedByBatch = {};
+        approvedItems.forEach(item => {
+            if (!groupedByBatch[item.batch_id]) {
+                groupedByBatch[item.batch_id] = {
+                    outlet: item.outlet,
+                    updated_by: item.updated_by,
+                    items: []
+                };
+            }
+            groupedByBatch[item.batch_id].items.push(item);
+        });
+        
+        // Kirim untuk setiap batch
+        for (const [batchId, batchData] of Object.entries(groupedByBatch)) {
+            // Format detail items
+            let itemsList = '';
+            batchData.items.forEach((item, index) => {
+                const typeIcon = item.stok_type === 'masuk' ? '⬆️' : '⬇️';
+                const changeSign = item.stok_type === 'masuk' ? '+' : '-';
+                
+                itemsList += `${index + 1}. ${item.nama_produk} ${changeSign}${Math.abs(item.qty_change)} unit (${item.qty_before} → ${item.qty_after})\n`;
+            });
+            
+            const message = `✅ *STOK UPDATE - DISETUJUI*
+=============================
+🏬 Outlet: ${batchData.outlet}
+👤 Kasir: ${batchData.updated_by}
+👑 Approver: ${ownerData.nama_karyawan}
+🆔 Batch: ${batchId}
+📅 Tanggal: ${formatDateStok(new Date())}
+⏰ Waktu: ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+=============================
+📋 *ITEMS YANG DISETUJUI:*
+${itemsList}
+=============================
+✅ *Status:* STOK BERHASIL DIPERBARUI
+📱 *Aplikasi:* Babeh Barbershop POS`;
+            
+            // Kirim ke group
+            const response1 = await fetch(WA_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Api-Key': WA_API_KEY
+                },
+                body: JSON.stringify({
+                    session: 'Session1',
+                    chatId: WA_CHAT_ID,
+                    text: message
+                })
+            });
+            
+            console.log(`📤 Notifikasi approval batch ${batchId} terkirim ke group`);
+        }
+        
+        return true;
+        
+    } catch (error) {
+        console.error('Error mengirim notifikasi approval stok:', error);
+        return false;
+    }
+}
+
+// Kirim notifikasi saat owner reject
+async function sendWAStokRejectionNotification(rejectedItems, ownerData, reason) {
+    try {
+        console.log('📤 Mengirim notifikasi WhatsApp untuk rejection stok...');
+        
+        if (typeof WA_API_URL === 'undefined' || typeof WA_API_KEY === 'undefined') {
+            console.warn('Konfigurasi WA API tidak ditemukan');
+            return false;
+        }
+        
+        // Group by batch
+        const groupedByBatch = {};
+        rejectedItems.forEach(item => {
+            if (!groupedByBatch[item.batch_id]) {
+                groupedByBatch[item.batch_id] = {
+                    outlet: item.outlet,
+                    updated_by: item.updated_by,
+                    items: []
+                };
+            }
+            groupedByBatch[item.batch_id].items.push(item);
+        });
+        
+        // Kirim untuk setiap batch
+        for (const [batchId, batchData] of Object.entries(groupedByBatch)) {
+            // Format detail items
+            let itemsList = '';
+            batchData.items.forEach((item, index) => {
+                const typeIcon = item.stok_type === 'masuk' ? '⬆️' : '⬇️';
+                const changeSign = item.stok_type === 'masuk' ? '+' : '-';
+                
+                itemsList += `${index + 1}. ${item.nama_produk} ${changeSign}${Math.abs(item.qty_change)} unit\n`;
+            });
+            
+            const message = `❌ *STOK UPDATE - DITOLAK*
+=============================
+🏬 Outlet: ${batchData.outlet}
+👤 Kasir: ${batchData.updated_by}
+👑 Rejector: ${ownerData.nama_karyawan}
+🆔 Batch: ${batchId}
+📅 Tanggal: ${formatDateStok(new Date())}
+⏰ Waktu: ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+=============================
+📋 *ITEMS YANG DITOLAK:*
+${itemsList}
+=============================
+📝 *Alasan Penolakan:*
+${reason}
+=============================
+❌ *Status:* REQUEST DITOLAK
+📱 *Aplikasi:* Babeh Barbershop POS`;
+            
+            // Kirim ke group
+            const response = await fetch(WA_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Api-Key': WA_API_KEY
+                },
+                body: JSON.stringify({
+                    session: 'Session1',
+                    chatId: WA_CHAT_ID,
+                    text: message
+                })
+            });
+            
+            console.log(`📤 Notifikasi rejection batch ${batchId} terkirim ke group`);
+        }
+        
+        return true;
+        
+    } catch (error) {
+        console.error('Error mengirim notifikasi rejection stok:', error);
+        return false;
+    }
+}
+
+// [37] Helper Functions
 
 function generateStokBatchId() {
     const timestamp = Date.now().toString(36);
@@ -2069,73 +3014,113 @@ function generateStokBatchId() {
     return `STK-${timestamp}-${random}`.toUpperCase();
 }
 
-function getStockStatusClass(stock) {
-    if (stock === 0) return 'stock-out';
-    if (stock <= 5) return 'stock-critical';
-    if (stock <= 10) return 'stock-low';
+function getStockStatusClass(currentStock) {
+    if (!currentStock || currentStock <= 0) return 'stock-out';
+    if (currentStock <= 10) return 'stock-low';
     return 'stock-ok';
 }
 
 function getApprovalStatusClass(status) {
     switch(status) {
         case 'approved': return 'status-approved';
-        case 'rejected': return 'status-rejected';
         case 'pending': return 'status-pending';
+        case 'rejected': return 'status-rejected';
         default: return 'status-unknown';
     }
 }
 
+function getApprovalStatusText(status) {
+    switch(status) {
+        case 'approved': return 'Disetujui';
+        case 'pending': return 'Menunggu';
+        case 'rejected': return 'Ditolak';
+        default: return status;
+    }
+}
+
+function formatDateStok(dateString) {
+    if (!dateString) return '-';
+    
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+    } catch (error) {
+        return dateString;
+    }
+}
+
 function showStokToast(message, type = 'info') {
-    const toast = document.getElementById('stokToast');
-    if (!toast) return;
+    // Hapus toast sebelumnya jika ada
+    const existingToast = document.getElementById('stokToast');
+    if (existingToast) {
+        existingToast.remove();
+    }
     
-    const typeIcon = type === 'success' ? 'fa-check-circle' : 
-                    type === 'error' ? 'fa-exclamation-circle' : 
-                    type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
-    
+    // Buat toast element
+    const toast = document.createElement('div');
+    toast.id = 'stokToast';
+    toast.className = `toast toast-${type}`;
     toast.innerHTML = `
-        <div class="toast-icon">
-            <i class="fas ${typeIcon}"></i>
+        <div class="toast-content">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+            <span>${message}</span>
         </div>
-        <div class="toast-message">${message}</div>
+        <button class="toast-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
     `;
     
-    toast.className = `toast toast-${type}`;
-    toast.style.display = 'flex';
+    // Tambahkan ke body
+    document.body.appendChild(toast);
     
+    // Tampilkan toast
     setTimeout(() => {
         toast.classList.add('show');
     }, 10);
     
+    // Auto remove setelah 5 detik
     setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => {
-            toast.style.display = 'none';
-        }, 300);
+        if (toast.parentElement) {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 300);
+        }
     }, 5000);
 }
 
-// ========== EXPORT FUNCTIONS UNTUK GLOBAL ACCESS ==========
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
 
-// Buat object untuk mengekspos fungsi ke global scope
-const stokModule = {
-    showStokPage,
-    loadKasirStokHistory,
-    loadOwnerHistory,
-    loadOwnerStokData,
-    // Export fungsi lain yang perlu diakses dari luar
-    toggleProductSelection,
-    closeAddItemModal,
-    confirmAddItem,
-    editBatchItem,
-    removeBatchItem,
-    toggleSelectAllInBatch,
-    updateBatchCheckbox,
-    approveSelectedInBatch,
-    rejectSelectedInBatch
-};
+// [38] Global functions untuk onclick events
+window.toggleStokItemSelection = toggleStokItemSelection;
+window.addSingleStokItemToRequest = addSingleStokItemToRequest;
+window.updateSelectedStokItemType = updateSelectedStokItemType;
+window.adjustSelectedStokItemQty = adjustSelectedStokItemQty;
+window.updateSelectedStokItemQty = updateSelectedStokItemQty;
+window.removeSelectedStokItem = removeSelectedStokItem;
+window.clearAllSelectedStokItems = clearAllSelectedStokItems;
+window.loadKasirStokHistory = loadKasirStokHistory;
+window.loadOwnerStokData = loadOwnerStokData;
+window.loadOwnerStokHistory = loadOwnerStokHistory;
+window.toggleSelectAllStokItems = toggleSelectAllStokItems;
+window.updateStokBatchSelection = updateStokBatchSelection;
+window.approveSelectedStokItems = approveSelectedStokItems;
+window.rejectSelectedStokItems = rejectSelectedStokItems;
 
-// Assign ke window object untuk akses global
-window.modules = window.modules || {};
-window.modules.stok = stokModule;
-
+// ========== END OF FILE ==========
