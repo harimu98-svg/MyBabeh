@@ -3015,6 +3015,7 @@ let kasState = {
 const WA_API_URL = 'https://waha-yetv8qi4e3zk.anakit.sumopod.my.id/api/sendText';
 const WA_API_KEY = 'sfcoGbpdLDkGZhKw2rx8sbb14vf4d8V6';
 const WA_CHAT_ID = '62811159429-1533260196@g.us';
+const WA_OWNER_PHONE = '0811159429'; // Nomor OWNER (yang approve stok)
 
 // [1] Fungsi untuk tampilkan halaman Kas & Setoran
 async function showKasPage() {
