@@ -102,16 +102,19 @@ function createStokPage() {
         
         /* Header - PERBAIKAN: Tambah z-index lebih tinggi */
         .stok-header {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 15px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
+    background: white;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    height: 70px;
+}
         
         .stok-header h2 {
             margin: 0;
@@ -123,36 +126,38 @@ function createStokPage() {
         }
         
         .back-btn {
-            background: #6c757d;
-            color: white;
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-        }
+    background: #6c757d;
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    z-index: 10000;
+}
         
         .back-btn:hover {
             background: #5a6268;
         }
         
         .refresh-btn {
-            background: #007bff;
-            color: white;
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-        }
+    background: #007bff;
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    z-index: 10000;
+}
         
         .refresh-btn:hover {
             background: #0056b3;
@@ -160,33 +165,46 @@ function createStokPage() {
         
         /* Info Header */
         .stok-info-header {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 15px;
-            margin: 10px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
+    background: white;
+    padding: 20px;
+    margin-top: 90px; /* Beri jarak dari header fixed */
+    margin-left: 20px;
+    margin-right: 20px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.info-row {
+    display: block; /* Ubah dari flex ke block */
+    margin-bottom: 15px;
+}
+
+.info-row:last-child {
+    margin-bottom: 0;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.info-item:last-child {
+    margin-bottom: 0;
+}
         
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-        
-        .info-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            color: #555;
-        }
-        
+      
         /* Content Sections */
-        .stok-content {
-            padding: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+       .stok-content {
+    padding: 20px;
+    padding-top: 0; /* Header sudah fixed, kurangi padding atas */
+    max-width: 1200px;
+    margin: 0 auto;
+}
         
         /* KASIR VIEW */
         .kasir-view {
@@ -881,7 +899,22 @@ function createStokPage() {
             margin-right: 5px;
             color: #007bff;
         }
-        
+        /* PERBAIKAN TAMBAHAN - Pastikan semua elemen terlihat */
+.stok-header * {
+    position: relative;
+    z-index: 10001;
+}
+
+/* Pastikan header tidak tertutup */
+body > .stok-page {
+    position: relative;
+    z-index: 1;
+}
+
+/* Tambahkan spacing untuk content */
+.stok-content {
+    margin-top: 80px;
+}
         /* Responsive */
         @media (max-width: 768px) {
             .selected-notes-submit {
