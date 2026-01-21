@@ -121,13 +121,13 @@ function createStokPage() {
             gap: 10px;
         }
         
-      .back-btn, .refresh-btn {
-    background: #6c757d;
+      .back-btn {
+    background: #6c757d; /* INI YANG BENAR */
     color: white;
     border: none;
     width: 40px;
     height: 40px;
-    border-radius: 8px; /* Ubah dari 50% ke 8px */
+    border-radius: 8px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -136,7 +136,17 @@ function createStokPage() {
 }
 
 .refresh-btn {
-    background: #007bff;
+    background: #007bff; /* INI YANG BENAR */
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
 }
         
         /* Info Header */
