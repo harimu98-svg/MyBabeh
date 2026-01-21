@@ -102,7 +102,7 @@ function createStokPage() {
         
         /* Header - PERBAIKAN: Tambah z-index lebih tinggi */
         .stok-header {
-    background: white;
+    background: #f8f9fa;
     padding: 15px 20px;
     display: flex;
     align-items: center;
@@ -110,6 +110,7 @@ function createStokPage() {
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     position: relative;
     z-index: 100;
+    border-bottom: 2px solid #dee2e6;
 }
         
         .stok-header h2 {
