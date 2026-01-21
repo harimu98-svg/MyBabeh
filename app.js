@@ -5795,9 +5795,9 @@ async function submitKasSetoran() {
         console.log('📝 Submit setoran:', { outlet, totalSetoran, metodeSetoran });
         
         // Validasi lengkap
-        if (totalSetoran < 0) {  // Hanya cek negatif, 0 diperbolehkan
-    showKasNotification('Total setoran tidak boleh negatif!', 'error');
-    return;
+       if (totalSetoran < 0) {  // Hanya cek negatif, 0 diperbolehkan
+        showKasNotification('Total setoran tidak boleh negatif!', 'error');
+        return;
         
         if (!metodeSetoran) {
             showKasNotification('Harap pilih metode setoran!', 'error');
