@@ -121,8 +121,8 @@ function createStokPage() {
             gap: 10px;
         }
         
-      .back-btn {
-    background: #6c757d; /* INI YANG BENAR */
+      .back-btn, .refresh-btn {
+    background: #6c757d;
     color: white;
     border: none;
     width: 40px;
@@ -133,20 +133,22 @@ function createStokPage() {
     align-items: center;
     justify-content: center;
     font-size: 16px;
+    font-weight: bold;
 }
 
 .refresh-btn {
-    background: #007bff; /* INI YANG BENAR */
-    color: white;
-    border: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
+    background: #007bff;
+}
+
+/* Hover effects */
+.back-btn:hover {
+    background: #5a6268;
+    transform: scale(1.05);
+}
+
+.refresh-btn:hover {
+    background: #0056b3;
+    transform: scale(1.05);
 }
         
         /* Info Header */
