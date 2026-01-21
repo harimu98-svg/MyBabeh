@@ -5798,7 +5798,6 @@ async function submitKasSetoran() {
         if (totalSetoran < 0) {  // Hanya cek negatif, 0 diperbolehkan
     showKasNotification('Total setoran tidak boleh negatif!', 'error');
     return;
-}
         
         if (!metodeSetoran) {
             showKasNotification('Harap pilih metode setoran!', 'error');
@@ -9633,30 +9632,30 @@ async function deleteAdjustment(index) {
         });
     });
 }
-/// ========== FUNGSI MENU KOMPONEN - UPDATE STOK (BATCH VERSION) ==========
+
+// ========== FUNGSI MENU KOMPONEN - UPDATE STOK (FINAL VERSION WITH WA) ==========
 // =======================================================================
 
 // Variabel global untuk stok
 let currentUserStok = null;
 let isOwnerStok = false;
 let currentOutletStok = null;
-let stokBatchItems = []; // Untuk menyimpan multiple items dalam batch
-let stokBatchId = null; // Batch ID untuk grouping
+let requestItems = []; // Untuk menyimpan multiple items
 let selectedOutletFilter = 'all'; // Untuk owner filter
 
-// Variabel untuk history pagination
-let currentHistoryPage = 1;
-let totalHistoryPages = 1;
-let historyLimit = 10;
+// **HAPUS BARIS INI karena sudah dideklarasikan di file lain**
+// const WA_API_URL = 'https://waha-yetv8qi4e3zk.anakit.sumopod.my.id/api/sendText';
+// const WA_API_KEY = 'sfcoGbpdLDkGZhKw2rx8sbb14vf4d8V6';
+// const WA_CHAT_ID = '62811159429-1533260196@g.us';
+const WA_OWNER_PHONE = '0811159429'; // Nomor OWNER (yang approve stok)
 
 // [1] Fungsi utama untuk tampilkan halaman stok
 async function showStokPage() {
     try {
-        console.log('=== SHOW STOK PAGE (BATCH VERSION) ===');
+        console.log('=== SHOW STOK PAGE ===');
         
         // Reset items
-        stokBatchItems = [];
-        stokBatchId = generateStokBatchId();
+        requestItems = [];
         
         // Ambil data user
         const { data: { user } } = await supabase.auth.getUser();
@@ -9696,9 +9695,6 @@ async function showStokPage() {
         // Buat halaman stok
         createStokPage();
         
-        // Load initial data
-        loadStokData();
-        
     } catch (error) {
         console.error('Error in showStokPage:', error);
         alert('Gagal memuat halaman stok!');
@@ -9727,7 +9723,7 @@ function createStokPage() {
             <button class="back-btn" id="backToMainFromStok">
                 <i class="fas fa-arrow-left"></i>
             </button>
-            <h2><i class="fas fa-boxes"></i> Update Stok ${isOwnerStok ? '(Owner)' : '(Kasir)'}</h2>
+            <h2><i class="fas fa-boxes"></i> Update Stok</h2>
             <div class="header-actions">
                 <button class="refresh-btn" id="refreshStok">
                     <i class="fas fa-sync-alt"></i>
@@ -9737,18 +9733,20 @@ function createStokPage() {
         
         <!-- CONTENT -->
         ${pageContent}
-        
-        <!-- Toast Notification -->
-        <div id="stokToast" class="toast" style="display: none;"></div>
     `;
     
     document.body.appendChild(stokPage);
     
     // Setup event listeners
     setupStokPageEvents();
+    
+    // Load initial data
+    setTimeout(() => {
+        loadStokData();
+    }, 100);
 }
 
-// [3] UI untuk KASIR (BATCH VERSION)
+// [3] UI untuk KASIR
 function createKasirStokUI() {
     return `
         <div class="stok-content kasir-view">
@@ -9756,7 +9754,7 @@ function createKasirStokUI() {
             <div class="kasir-action-section">
                 <button class="btn-update-stok" id="btnUpdateStok">
                     <i class="fas fa-plus-circle"></i>
-                    <span>Request Update Stok (Batch)</span>
+                    <span>Update Stok</span>
                 </button>
                 
                 <div class="summary-stats">
@@ -9792,174 +9790,137 @@ function createKasirStokUI() {
                 </div>
             </div>
             
-            <!-- PRODUCT LIST FOR BATCH SELECTION -->
-            <section class="product-list-section">
+            <!-- PRODUCT SUMMARY TABLE -->
+            <section class="product-summary-section">
                 <div class="section-header">
-                    <h3><i class="fas fa-list"></i> Daftar Produk - ${currentOutletStok}</h3>
-                    <div class="list-actions">
-                        <button class="btn-clear-selection" id="clearSelection">
-                            <i class="fas fa-times"></i> Hapus Pilihan
-                        </button>
-                        <span class="selected-count">
-                            <i class="fas fa-check-circle"></i>
-                            <span id="selectedProductsCount">0</span> produk dipilih
-                        </span>
-                    </div>
+                    <h3><i class="fas fa-list-alt"></i> Ringkasan Stok - ${currentOutletStok}</h3>
                 </div>
                 
-                <div class="product-grid" id="productGrid">
-                    <div class="loading">
-                        <i class="fas fa-spinner fa-spin"></i> Memuat produk...
-                    </div>
+                <div class="summary-table-container">
+                    <table class="summary-table" id="summaryTable">
+                        <thead>
+                            <tr>
+                                <th>Group Produk</th>
+                                <th>Nama Produk</th>
+                                <th>Stok</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryTableBody">
+                            <tr>
+                                <td colspan="3" class="loading-cell">
+                                    <i class="fas fa-spinner fa-spin"></i> Memuat data...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </section>
             
-            <!-- SELECTED ITEMS FOR BATCH -->
-            <section class="selected-batch-section" id="selectedBatchSection" style="display: none;">
-                <div class="section-header">
-                    <h3><i class="fas fa-shopping-cart"></i> Items dalam Batch Request</h3>
-                    <div class="batch-info">
-                        <span class="batch-id">Batch: <code id="currentBatchId">${stokBatchId}</code></span>
-                        <button class="btn-remove-all" id="removeAllItems">
-                            <i class="fas fa-trash"></i> Hapus Semua
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="batch-items-container">
-                    <div class="batch-items" id="batchItemsContainer">
-                        <!-- Items akan diisi oleh JavaScript -->
-                    </div>
-                    
-                    <div class="batch-summary" id="batchSummary">
-                        <div class="summary-row">
-                            <span>Total Items:</span>
-                            <strong id="batchTotalItems">0</strong>
-                        </div>
-                        <div class="summary-row">
-                            <span>Total Masuk:</span>
-                            <strong class="text-success" id="batchTotalMasuk">0 unit</strong>
-                        </div>
-                        <div class="summary-row">
-                            <span>Total Keluar:</span>
-                            <strong class="text-danger" id="batchTotalKeluar">0 unit</strong>
-                        </div>
-                        <div class="summary-row total">
-                            <span>Net Change:</span>
-                            <strong id="batchNetChange">0 unit</strong>
-                        </div>
-                    </div>
-                    
-                    <div class="batch-notes">
-                        <label for="batchNotes">
-                            <i class="fas fa-sticky-note"></i> Catatan Request (opsional):
-                        </label>
-                        <textarea id="batchNotes" placeholder="Contoh: Restock bulanan, permintaan pelanggan..." rows="2"></textarea>
-                    </div>
-                    
-                    <button class="btn-submit-batch" id="submitBatchRequest">
-                        <i class="fas fa-paper-plane"></i> Submit Batch Request
-                    </button>
-                </div>
-            </section>
-            
-            <!-- REQUEST HISTORY WITH FILTERS -->
+            <!-- REQUEST HISTORY -->
             <section class="request-history-section">
                 <div class="section-header">
-                    <h3><i class="fas fa-history"></i> Riwayat Request - ${currentOutletStok}</h3>
-                    <div class="history-filters">
-                        <!-- Date Filter -->
-                        <div class="filter-group">
-                            <label for="historyDateFilter"><i class="fas fa-calendar"></i> Periode:</label>
-                            <select id="historyDateFilter" class="date-filter">
-                                <option value="today">Hari Ini</option>
-                                <option value="yesterday">Kemarin</option>
-                                <option value="week">7 Hari Terakhir</option>
-                                <option value="month">Bulan Ini</option>
-                                <option value="all">Semua</option>
-                                <option value="custom">Custom Date</option>
-                            </select>
+                    <h3><i class="fas fa-history"></i> Riwayat Request</h3>
+                </div>
+                
+                <div class="requests-list" id="requestsList">
+                    <div class="loading">Memuat riwayat request...</div>
+                </div>
+            </section>
+        </div>
+        
+        <!-- MODAL REQUEST STOK (MULTIPLE ITEMS) -->
+        <div class="modal-overlay" id="requestModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-cart-plus"></i> Request Update Stok</h3>
+                    <button class="close-modal" id="closeRequestModal">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <!-- ADD ITEM FORM -->
+                    <div class="add-item-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="selectProdukRequest">Pilih Produk:</label>
+                                <select id="selectProdukRequest" class="form-select">
+                                    <option value="">-- Pilih Produk --</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="stokType">Jenis:</label>
+                                <select id="stokType" class="form-select">
+                                    <option value="masuk">Stok Masuk</option>
+                                    <option value="keluar">Stok Keluar</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="qtyChange">Jumlah:</label>
+                                <input type="number" id="qtyChange" min="1" value="1" 
+                                       class="form-input" placeholder="Jumlah">
+                                <div class="form-hint" id="currentStockInfo" style="display: none;">
+                                    Stok saat ini: <span id="currentStockValue">0</span>
+                                </div>
+                            </div>
                         </div>
                         
-                        <!-- Custom Date Range (hidden by default) -->
-                        <div class="filter-group custom-date-range" id="customDateRange" style="display: none;">
-                            <label for="startDate">Dari:</label>
-                            <input type="date" id="startDate" class="date-input">
-                            <label for="endDate">Sampai:</label>
-                            <input type="date" id="endDate" class="date-input">
-                            <button class="btn-apply-custom" id="applyCustomDate">Terapkan</button>
-                        </div>
-                        
-                        <!-- Status Filter -->
-                        <div class="filter-group">
-                            <label for="historyStatusFilter"><i class="fas fa-filter"></i> Status:</label>
-                            <select id="historyStatusFilter" class="status-filter">
-                                <option value="all">Semua Status</option>
-                                <option value="approved">Approved</option>
-                                <option value="rejected">Rejected</option>
-                                <option value="pending">Pending</option>
-                            </select>
-                        </div>
-                        
-                        <!-- Refresh Button -->
-                        <button class="btn-refresh-history" onclick="loadKasirStokHistory()">
-                            <i class="fas fa-sync-alt"></i>
+                        <button type="button" class="btn-add-item" id="btnAddItem">
+                            <i class="fas fa-plus"></i> Tambah ke List
                         </button>
+                    </div>
+                    
+                    <!-- ITEMS LIST -->
+                    <div class="items-list-section">
+                        <h4><i class="fas fa-list"></i> Items dalam Request</h4>
+                        
+                        <div class="items-list-container">
+                            <div class="items-list" id="itemsList">
+                                <div class="empty-list">
+                                    <i class="fas fa-clipboard-list"></i>
+                                    <p>Belum ada item ditambahkan</p>
+                                </div>
+                            </div>
+                            
+                            <div class="items-summary" id="itemsSummary" style="display: none;">
+                                <div class="summary-row">
+                                    <span>Total Items:</span>
+                                    <strong id="totalItemsCount">0</strong>
+                                </div>
+                                <div class="summary-row">
+                                    <span>Total Stok Masuk:</span>
+                                    <strong class="text-success" id="totalMasukCount">0</strong>
+                                </div>
+                                <div class="summary-row">
+                                    <span>Total Stok Keluar:</span>
+                                    <strong class="text-danger" id="totalKeluarCount">0</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- KETERANGAN -->
+                    <div class="form-group">
+                        <label for="requestNotes">Keterangan (Opsional):</label>
+                        <textarea id="requestNotes" class="form-textarea" 
+                                  rows="3" placeholder="Contoh: Restock bulanan, permintaan pelanggan"></textarea>
                     </div>
                 </div>
                 
-                <!-- History Table -->
-                <div class="history-table-container">
-                    <div class="loading" id="loadingHistoryKasir">
-                        <i class="fas fa-spinner fa-spin"></i> Memuat riwayat...
-                    </div>
-                    
-                    <div class="table-wrapper">
-                        <table class="history-table" id="kasirHistoryTable" style="display: none;">
-                            <thead>
-                                <tr>
-                                    <th width="120px">Tanggal</th>
-                                    <th width="100px">Batch ID</th>
-                                    <th width="150px">Produk</th>
-                                    <th width="80px">Tipe</th>
-                                    <th width="80px">Jumlah</th>
-                                    <th width="100px">Stok (Before→After)</th>
-                                    <th width="100px">Status</th>
-                                    <th width="150px">Disetujui Oleh</th>
-                                    <th width="150px">Catatan</th>
-                                </tr>
-                            </thead>
-                            <tbody id="kasirHistoryBody">
-                                <!-- History akan diisi di sini -->
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- No Data Message -->
-                    <div class="no-data" id="noHistoryData" style="display: none;">
-                        <i class="fas fa-history"></i>
-                        <p>Tidak ada data riwayat</p>
-                    </div>
-                    
-                    <!-- Pagination -->
-                    <div class="pagination" id="historyPagination" style="display: none;">
-                        <button class="btn-prev" id="prevPage" disabled>
-                            <i class="fas fa-chevron-left"></i> Sebelumnya
-                        </button>
-                        <span class="page-info">
-                            Halaman <span id="currentPage">1</span> dari <span id="totalPages">1</span>
-                        </span>
-                        <button class="btn-next" id="nextPage" disabled>
-                            Berikutnya <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="cancelRequest">
+                        <i class="fas fa-times"></i> Batal
+                    </button>
+                    <button type="button" class="btn-primary" id="submitRequest" disabled>
+                        <i class="fas fa-paper-plane"></i> Simpan Request
+                    </button>
                 </div>
-            </section>
+            </div>
         </div>
     `;
 }
 
-// [4] UI untuk OWNER (WITH CHECKBOX)
+// [4] UI untuk OWNER
 function createOwnerStokUI() {
     return `
         <div class="stok-content owner-view">
@@ -9989,13 +9950,8 @@ function createOwnerStokUI() {
                             <option value="today">Hari Ini</option>
                             <option value="week">7 Hari</option>
                             <option value="month">Bulan Ini</option>
-                            <option value="all">Semua</option>
                         </select>
                     </div>
-                    
-                    <button class="btn-apply-filter" onclick="loadOwnerStokData()">
-                        <i class="fas fa-filter"></i> Terapkan
-                    </button>
                 </div>
             </div>
             
@@ -10021,123 +9977,129 @@ function createOwnerStokUI() {
                     </div>
                 </div>
                 
-                <div class="summary-card rejected">
+                <div class="summary-card adjustment">
                     <div class="card-icon">
-                        <i class="fas fa-times-circle"></i>
+                        <i class="fas fa-exchange-alt"></i>
                     </div>
                     <div class="card-content">
-                        <div class="card-label">Rejected Today</div>
-                        <div class="card-value" id="statRejected">0</div>
+                        <div class="card-label">Adjustments</div>
+                        <div class="card-value" id="statAdjustments">0</div>
                     </div>
                 </div>
             </div>
             
-            <!-- PENDING REQUESTS WITH CHECKBOX -->
+            <!-- PENDING REQUESTS -->
             <section class="pending-requests-section">
                 <div class="section-header">
                     <h3><i class="fas fa-clock"></i> Permintaan Pending</h3>
                     <div class="section-badge" id="pendingRequestsCount">
-                        0 items
-                    </div>
-                    <div class="batch-actions">
-                        <button class="btn-select-all" id="selectAllPending">
-                            <i class="fas fa-check-square"></i> Pilih Semua
-                        </button>
-                        <button class="btn-approve-selected" id="approveSelectedItems">
-                            <i class="fas fa-check"></i> Approve Selected
-                        </button>
-                        <button class="btn-reject-selected" id="rejectSelectedItems">
-                            <i class="fas fa-times"></i> Reject Selected
-                        </button>
+                        0 requests
                     </div>
                 </div>
                 
                 <div class="pending-table-container">
-                    <div class="loading" id="loadingPending">
-                        <i class="fas fa-spinner fa-spin"></i> Memuat permintaan pending...
-                    </div>
-                    
-                    <div id="pendingRequestsGrid" style="display: none;">
-                        <!-- Grouped batch requests akan diisi di sini -->
-                    </div>
-                    
-                    <div class="no-data" id="noPendingData" style="display: none;">
-                        <i class="fas fa-check-circle"></i>
-                        <p>Tidak ada permintaan pending</p>
-                    </div>
+                    <table class="pending-table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Outlet</th>
+                                <th>Produk</th>
+                                <th>Kasir</th>
+                                <th>Jenis</th>
+                                <th>Jumlah</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pendingRequestsBody">
+                            <tr>
+                                <td colspan="8" class="loading-cell">
+                                    <i class="fas fa-spinner fa-spin"></i> Memuat data...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </section>
             
-            <!-- REQUEST HISTORY FOR OWNER -->
-            <section class="owner-history-section">
+            <!-- QUICK ADJUSTMENT -->
+            <section class="quick-adjust-section">
                 <div class="section-header">
-                    <h3><i class="fas fa-history"></i> Riwayat (Semua Outlet)</h3>
-                    <div class="history-filters">
-                        <div class="filter-group">
-                            <label for="ownerHistoryDateFilter">Periode:</label>
-                            <select id="ownerHistoryDateFilter" class="date-filter">
-                                <option value="today">Hari Ini</option>
-                                <option value="week">7 Hari</option>
-                                <option value="month">Bulan Ini</option>
-                                <option value="all">Semua</option>
-                            </select>
-                        </div>
-                        <button class="btn-refresh" onclick="loadOwnerHistory()">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
-                    </div>
+                    <h3><i class="fas fa-exchange-alt"></i> Quick Adjustment</h3>
+                    <button class="btn-primary btn-small" id="btnToggleAdjust">
+                        <i class="fas fa-edit"></i> Buat Adjustment
+                    </button>
                 </div>
                 
-                <div class="owner-history-container">
-                    <div class="loading" id="loadingOwnerHistory">
-                        Memuat riwayat...
-                    </div>
-                    
-                    <div class="table-wrapper">
-                        <table class="history-table" id="ownerHistoryTable" style="display: none;">
-                            <thead>
-                                <tr>
-                                    <th width="120px">Tanggal</th>
-                                    <th width="100px">Batch ID</th>
-                                    <th width="100px">Outlet</th>
-                                    <th width="120px">Kasir</th>
-                                    <th width="150px">Produk</th>
-                                    <th width="80px">Tipe</th>
-                                    <th width="80px">Jumlah</th>
-                                    <th width="100px">Stok (Before→After)</th>
-                                    <th width="100px">Status</th>
-                                    <th width="150px">Disetujui Oleh</th>
-                                    <th width="150px">Catatan</th>
-                                </tr>
-                            </thead>
-                            <tbody id="ownerHistoryBody">
-                                <!-- History akan diisi di sini -->
-                            </tbody>
-                        </table>
+                <div class="adjust-form-container" id="adjustFormContainer" style="display: none;">
+                    <form id="quickAdjustForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="adjustOutlet">Outlet:</label>
+                                <select id="adjustOutlet" class="form-select">
+                                    <option value="${currentOutletStok}">${currentOutletStok}</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="adjustProduk">Produk:</label>
+                                <select id="adjustProduk" class="form-select">
+                                    <option value="">-- Pilih Produk --</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="adjustType">Jenis:</label>
+                                <select id="adjustType" class="form-select">
+                                    <option value="masuk">Stok Masuk</option>
+                                    <option value="keluar">Stok Keluar</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="adjustQty">Jumlah:</label>
+                                <input type="number" id="adjustQty" min="1" value="1" 
+                                       class="form-input" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="adjustNotes">Alasan Adjustment:</label>
+                            <input type="text" id="adjustNotes" class="form-input" 
+                                   placeholder="Contoh: Barang rusak, stok opname, koreksi" required>
+                        </div>
+                        
+                        <div class="form-buttons">
+                            <button type="button" class="btn-secondary" id="cancelAdjust">
+                                <i class="fas fa-times"></i> Batal
+                            </button>
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-check"></i> Simpan Adjustment
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- RECENT ADJUSTMENTS -->
+                <div class="recent-adjustments">
+                    <h4><i class="fas fa-history"></i> Adjustment Terakhir</h4>
+                    <div class="adjustments-list" id="recentAdjustments">
+                        <div class="loading">Memuat data...</div>
                     </div>
                 </div>
-            </section>
-            
-            <!-- QUICK ADJUSTMENT (OPTIONAL - bisa dihide jika tidak perlu) -->
-            <section class="quick-adjust-section" style="display: none;">
-                <!-- ... existing quick adjustment code ... -->
             </section>
         </div>
         
-        <!-- MODAL REJECT REASON -->
-        <div class="modal-overlay" id="rejectModal" style="display: none;">
+        <!-- MODAL APPROVAL DETAIL -->
+        <div class="modal-overlay" id="approvalModal" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3><i class="fas fa-times-circle"></i> Alasan Penolakan</h3>
-                    <button class="close-modal" id="closeRejectModal">&times;</button>
+                    <h3><i class="fas fa-clipboard-check"></i> Detail Request</h3>
+                    <button class="close-modal" id="closeApprovalModal">&times;</button>
                 </div>
-                <div class="modal-body">
-                    <p>Masukkan alasan penolakan untuk item yang dipilih:</p>
-                    <textarea id="rejectReason" placeholder="Contoh: Stok tidak sesuai, data tidak valid, dll..." rows="4"></textarea>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn-secondary" id="cancelReject">Batal</button>
-                    <button class="btn-primary" id="confirmReject">Submit Reject</button>
+                
+                <div class="modal-body" id="approvalModalBody">
+                    <!-- Detail akan diisi -->
                 </div>
             </div>
         </div>
@@ -10165,85 +10127,94 @@ function setupStokPageEvents() {
 
 // [6] Setup events khusus untuk KASIR
 function setupKasirStokEvents() {
-    // Load produk untuk selection grid
-    loadProductsForSelection();
+    // Tombol Update Stok
+    const btnUpdate = document.getElementById('btnUpdateStok');
+    if (btnUpdate) {
+        btnUpdate.addEventListener('click', showRequestModal);
+    }
     
-    // Clear selection button
-    document.getElementById('clearSelection')?.addEventListener('click', clearAllSelection);
-    
-    // Remove all items button
-    document.getElementById('removeAllItems')?.addEventListener('click', clearBatchItems);
-    
-    // Submit batch request
-    document.getElementById('submitBatchRequest')?.addEventListener('click', submitBatchStokRequest);
-    
-    // History filter events
-    setupHistoryFilterEvents();
+    // Modal events
+    setupRequestModalEvents();
 }
 
 // [7] Setup events khusus untuk OWNER
 function setupOwnerStokEvents() {
     // Filter events
-    document.getElementById('filterOutletStok')?.addEventListener('change', loadOwnerStokData);
-    document.getElementById('filterStatusStok')?.addEventListener('change', loadOwnerStokData);
-    document.getElementById('filterDateStok')?.addEventListener('change', loadOwnerStokData);
+    const filterOutlet = document.getElementById('filterOutletStok');
+    const filterStatus = document.getElementById('filterStatusStok');
+    const filterDate = document.getElementById('filterDateStok');
     
-    // Checkbox actions
-    document.getElementById('selectAllPending')?.addEventListener('click', toggleSelectAllPending);
-    document.getElementById('approveSelectedItems')?.addEventListener('click', approveSelectedPendingItems);
-    document.getElementById('rejectSelectedItems')?.addEventListener('click', showRejectModalForSelected);
-    
-    // Reject modal events
-    document.getElementById('cancelReject')?.addEventListener('click', () => {
-        document.getElementById('rejectModal').style.display = 'none';
-    });
-    document.getElementById('confirmReject')?.addEventListener('click', rejectSelectedPendingItems);
-    document.getElementById('closeRejectModal')?.addEventListener('click', () => {
-        document.getElementById('rejectModal').style.display = 'none';
-    });
-    
-    // Owner history filter
-    document.getElementById('ownerHistoryDateFilter')?.addEventListener('change', loadOwnerHistory);
-}
-
-// [8] Setup history filter events untuk kasir
-function setupHistoryFilterEvents() {
-    const dateFilter = document.getElementById('historyDateFilter');
-    const statusFilter = document.getElementById('historyStatusFilter');
-    const customDateRange = document.getElementById('customDateRange');
-    const applyCustomBtn = document.getElementById('applyCustomDate');
-    
-    if (dateFilter) {
-        dateFilter.addEventListener('change', function() {
-            if (this.value === 'custom') {
-                customDateRange.style.display = 'flex';
-            } else {
-                customDateRange.style.display = 'none';
-                loadKasirStokHistory();
-            }
+    if (filterOutlet) {
+        filterOutlet.addEventListener('change', function() {
+            selectedOutletFilter = this.value;
+            loadStokData();
         });
     }
     
-    if (applyCustomBtn) {
-        applyCustomBtn.addEventListener('click', loadKasirStokHistory);
+    if (filterStatus) {
+        filterStatus.addEventListener('change', loadStokData);
     }
     
-    if (statusFilter) {
-        statusFilter.addEventListener('change', loadKasirStokHistory);
+    if (filterDate) {
+        filterDate.addEventListener('change', loadStokData);
     }
     
-    // Pagination events
-    document.getElementById('prevPage')?.addEventListener('click', () => {
-        if (currentHistoryPage > 1) {
-            currentHistoryPage--;
-            loadKasirStokHistory();
+    // Toggle adjustment form
+    document.getElementById('btnToggleAdjust')?.addEventListener('click', function() {
+        const container = document.getElementById('adjustFormContainer');
+        container.style.display = container.style.display === 'none' ? 'block' : 'none';
+        
+        if (container.style.display === 'block') {
+            loadProdukForAdjustment();
         }
     });
     
-    document.getElementById('nextPage')?.addEventListener('click', () => {
-        if (currentHistoryPage < totalHistoryPages) {
-            currentHistoryPage++;
-            loadKasirStokHistory();
+    // Cancel adjust
+    document.getElementById('cancelAdjust')?.addEventListener('click', function() {
+        document.getElementById('adjustFormContainer').style.display = 'none';
+        document.getElementById('quickAdjustForm').reset();
+    });
+    
+    // Quick adjust form submit
+    const adjustForm = document.getElementById('quickAdjustForm');
+    if (adjustForm) {
+        adjustForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleQuickAdjust();
+        });
+    }
+}
+
+// [8] Setup modal request events (MULTIPLE ITEMS)
+function setupRequestModalEvents() {
+    // Close modal buttons
+    document.getElementById('closeRequestModal')?.addEventListener('click', closeRequestModal);
+    document.getElementById('cancelRequest')?.addEventListener('click', closeRequestModal);
+    
+    // Produk select change
+    const produkSelect = document.getElementById('selectProdukRequest');
+    if (produkSelect) {
+        produkSelect.addEventListener('change', function() {
+            updateCurrentStockInfo(this.value);
+        });
+    }
+    
+    // Stok type change
+    const stokTypeSelect = document.getElementById('stokType');
+    if (stokTypeSelect) {
+        stokTypeSelect.addEventListener('change', updateQtyLimits);
+    }
+    
+    // Add item button
+    document.getElementById('btnAddItem')?.addEventListener('click', addItemToList);
+    
+    // Submit request button
+    document.getElementById('submitRequest')?.addEventListener('click', submitStokRequest);
+    
+    // Close modal on ESC key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeRequestModal();
         }
     });
 }
@@ -10261,78 +10232,81 @@ async function loadStokData() {
         
     } catch (error) {
         console.error('Error loading stok data:', error);
-        showStokToast('Gagal memuat data stok', 'error');
+        showError('Gagal memuat data stok');
     }
 }
 
 // [10] Load data untuk KASIR
 async function loadKasirStokData() {
     try {
-        // Load produk untuk summary dan selection
-        await loadProductsForSelection();
-        
-        // Load history dengan filter default (hari ini)
-        await loadKasirStokHistory();
-        
-    } catch (error) {
-        console.error('Error loading kasir stok data:', error);
-        showStokToast('Gagal memuat data produk', 'error');
-    }
-}
-
-// [11] Load produk untuk selection grid (KASIR)
-async function loadProductsForSelection() {
-    try {
-        const productGrid = document.getElementById('productGrid');
-        if (!productGrid) return;
-        
-        productGrid.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat produk...</div>';
-        
-        // Load produk (hanya inventory=true)
-        const { data: produkData, error } = await supabase
+        // Load produk untuk summary (hanya inventory=TRUE)
+        const { data: produkData, error: produkError } = await supabase
             .from('produk')
             .select('id, nama_produk, group_produk, stok, inventory')
             .eq('outlet', currentOutletStok)
             .eq('status', 'active')
-            .eq('inventory', true)
+            .eq('inventory', true) // Hanya produk inventory
             .order('group_produk')
             .order('nama_produk');
         
-        if (error) throw error;
+        if (produkError) throw produkError;
         
-        // Display produk dalam grid dengan checkbox
-        displayProductsGrid(produkData || []);
+        // Load riwayat request
+        const { data: requestData, error: requestError } = await supabase
+            .from('stok_update')
+            .select('*')
+            .eq('outlet', currentOutletStok)
+            .eq('updated_by', currentUserStok.nama_karyawan)
+            .order('created_at', { ascending: false })
+            .limit(10);
         
-        // Update summary stats
-        updateKasirSummaryStats(produkData || []);
+        if (requestError) throw requestError;
+        
+        // Update UI
+        updateKasirSummary(produkData || []);
+        displayRequestHistoryForKasir(requestData || []);
+        
+        // Load produk untuk dropdown modal
+        await loadProdukForRequest();
         
     } catch (error) {
-        console.error('Error loading products for selection:', error);
-        document.getElementById('productGrid').innerHTML = `
-            <div class="error-message">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>Gagal memuat produk: ${error.message}</p>
-            </div>
-        `;
+        console.error('Error loading kasir stok data:', error);
+        showError('Gagal memuat data produk');
     }
 }
 
-// [12] Display produk dalam grid dengan checkbox
-function displayProductsGrid(products) {
-    const productGrid = document.getElementById('productGrid');
-    if (!productGrid) return;
-    
+// [11] Update summary untuk KASIR
+function updateKasirSummary(products) {
     if (!products || products.length === 0) {
-        productGrid.innerHTML = `
-            <div class="no-data">
-                <i class="fas fa-box-open"></i>
-                <p>Tidak ada produk inventory</p>
-            </div>
-        `;
+        document.getElementById('totalProduk').textContent = '0';
+        document.getElementById('totalStok').textContent = '0';
+        document.getElementById('stokRendah').textContent = '0';
+        
+        const tbody = document.getElementById('summaryTableBody');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="3" class="no-data-cell">
+                        <i class="fas fa-box-open"></i>
+                        <p>Tidak ada produk inventory</p>
+                    </td>
+                </tr>
+            `;
+        }
         return;
     }
     
-    // Group products by category
+    // Calculate statistics
+    const totalProduk = products.length;
+    const totalStok = products.reduce((sum, p) => sum + (p.stok || 0), 0);
+    const stokRendah = products.filter(p => (p.stok || 0) <= 10).length;
+    
+    // Update stats
+    document.getElementById('totalProduk').textContent = totalProduk;
+    document.getElementById('totalStok').textContent = totalStok.toLocaleString();
+    document.getElementById('stokRendah').textContent = stokRendah;
+    
+    // Group products by group_produk
     const groupedProducts = {};
     products.forEach(product => {
         const group = product.group_produk || 'Lainnya';
@@ -10342,1335 +10316,259 @@ function displayProductsGrid(products) {
         groupedProducts[group].push(product);
     });
     
+    // Display in table
+    const tbody = document.getElementById('summaryTableBody');
+    if (!tbody) return;
+    
     let html = '';
     
     // Sort groups alphabetically
     const sortedGroups = Object.keys(groupedProducts).sort();
     
-    sortedGroups.forEach(group => {
+    sortedGroups.forEach((group, groupIndex) => {
         const groupProducts = groupedProducts[group];
         
-        html += `
-            <div class="product-group-section">
-                <h4 class="group-title">
-                    <i class="fas fa-folder"></i> ${group}
-                    <span class="group-count">(${groupProducts.length})</span>
-                </h4>
-                <div class="product-cards">
-                    ${groupProducts.map(product => {
-                        const isSelected = stokBatchItems.some(item => item.produk_id === product.id);
-                        const stockClass = getStockStatusClass(product.stok);
-                        
-                        return `
-                            <div class="product-card ${isSelected ? 'selected' : ''} ${stockClass}" 
-                                 data-id="${product.id}"
-                                 onclick="toggleProductSelection('${product.id}', '${product.nama_produk}', ${product.stok}, '${product.group_produk}')">
-                                <div class="product-checkbox">
-                                    <input type="checkbox" ${isSelected ? 'checked' : ''} 
-                                           onclick="event.stopPropagation(); toggleProductSelection('${product.id}', '${product.nama_produk}', ${product.stok}, '${product.group_produk}')">
-                                </div>
-                                <div class="product-info">
-                                    <div class="product-name">${product.nama_produk}</div>
-                                    <div class="product-stock ${stockClass}">
-                                        <i class="fas fa-cubes"></i>
-                                        Stok: ${product.stok}
-                                        ${product.stok <= 10 ? '<span class="low-stock-badge"><i class="fas fa-exclamation-triangle"></i></span>' : ''}
-                                    </div>
-                                    <div class="product-group">${product.group_produk || ''}</div>
-                                </div>
-                                ${isSelected ? 
-                                    '<div class="selected-badge"><i class="fas fa-check"></i></div>' : 
-                                    '<div class="select-hint">Klik untuk pilih</div>'
-                                }
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-        `;
-    });
-    
-    productGrid.innerHTML = html;
-    
-    // Update selected count
-    updateSelectedCount();
-}
-
-// [13] Toggle product selection untuk batch
-function toggleProductSelection(productId, productName, currentStock, productGroup) {
-    const existingIndex = stokBatchItems.findIndex(item => item.produk_id === productId);
-    
-    if (existingIndex === -1) {
-        // Add to batch items dengan modal untuk pilih type dan qty
-        showAddItemModal(productId, productName, currentStock, productGroup);
-    } else {
-        // Remove from batch items
-        stokBatchItems.splice(existingIndex, 1);
-        updateBatchSection();
-        updateSelectedCount();
-        
-        // Update UI
-        const productCard = document.querySelector(`.product-card[data-id="${productId}"]`);
-        if (productCard) {
-            productCard.classList.remove('selected');
-            productCard.querySelector('input[type="checkbox"]').checked = false;
-        }
-    }
-}
-
-// [14] Show modal untuk add item dengan pilihan type dan qty
-function showAddItemModal(productId, productName, currentStock, productGroup) {
-    // Buat modal sederhana
-    const modalHtml = `
-        <div class="modal-overlay" id="addItemModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3><i class="fas fa-plus-circle"></i> Tambah ke Batch</h3>
-                    <button class="close-modal" onclick="closeAddItemModal()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label>Produk:</label>
-                        <div class="product-display">${productName}</div>
-                        <div class="stock-info">Stok saat ini: <strong>${currentStock}</strong></div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="itemType">Jenis:</label>
-                            <select id="itemType" class="form-select">
-                                <option value="masuk">Stok Masuk</option>
-                                <option value="keluar">Stok Keluar</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="itemQty">Jumlah:</label>
-                            <input type="number" id="itemQty" class="form-input" 
-                                   min="1" value="1" placeholder="Jumlah">
-                            <div class="form-hint" id="maxQtyHint" style="display: none;">
-                                Maksimal: <span id="maxQtyValue">${currentStock}</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="itemNotes">Catatan (opsional):</label>
-                        <textarea id="itemNotes" class="form-textarea" 
-                                  placeholder="Contoh: Restock, permintaan pelanggan..." 
-                                  rows="2"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn-secondary" onclick="closeAddItemModal()">
-                        <i class="fas fa-times"></i> Batal
-                    </button>
-                    <button class="btn-primary" onclick="confirmAddItem('${productId}', '${productName}', ${currentStock}, '${productGroup}')">
-                        <i class="fas fa-check"></i> Tambah ke Batch
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Tambahkan modal ke body
-    const existingModal = document.getElementById('addItemModal');
-    if (existingModal) existingModal.remove();
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    // Setup event untuk update max qty berdasarkan type
-    const itemType = document.getElementById('itemType');
-    const itemQty = document.getElementById('itemQty');
-    const maxQtyHint = document.getElementById('maxQtyHint');
-    const maxQtyValue = document.getElementById('maxQtyValue');
-    
-    itemType.addEventListener('change', function() {
-        if (this.value === 'keluar') {
-            itemQty.max = currentStock;
-            maxQtyHint.style.display = 'block';
-            maxQtyValue.textContent = currentStock;
+        groupProducts.forEach((product, productIndex) => {
+            const isFirstInGroup = productIndex === 0;
+            const stockClass = getStockStatusClass(product.stok);
             
-            if (parseInt(itemQty.value) > currentStock) {
-                itemQty.value = currentStock;
-            }
-        } else {
-            itemQty.removeAttribute('max');
-            maxQtyHint.style.display = 'none';
-        }
-    });
-    
-    // Trigger change event untuk set initial state
-    itemType.dispatchEvent(new Event('change'));
-}
-
-// [15] Close add item modal
-function closeAddItemModal() {
-    const modal = document.getElementById('addItemModal');
-    if (modal) modal.remove();
-}
-
-// [16] Confirm add item to batch
-function confirmAddItem(productId, productName, currentStock, productGroup) {
-    const itemType = document.getElementById('itemType').value;
-    const itemQty = parseInt(document.getElementById('itemQty').value) || 1;
-    const itemNotes = document.getElementById('itemNotes').value.trim();
-    
-    // Validasi untuk stok keluar
-    if (itemType === 'keluar' && itemQty > currentStock) {
-        alert(`Stok tidak mencukupi! Stok saat ini: ${currentStock}`);
-        return;
-    }
-    
-    if (itemQty <= 0) {
-        alert('Jumlah harus lebih dari 0');
-        return;
-    }
-    
-    // Hitung qty change (positif untuk masuk, negatif untuk keluar)
-    const qtyChange = itemType === 'masuk' ? itemQty : -itemQty;
-    const qtyAfter = currentStock + qtyChange;
-    
-    // Add to batch items
-    stokBatchItems.push({
-        produk_id: productId,
-        nama_produk: productName,
-        group_produk: productGroup,
-        stok_type: itemType,
-        qty: itemQty,
-        qty_change: qtyChange,
-        qty_before: currentStock,
-        qty_after: qtyAfter,
-        notes: itemNotes
-    });
-    
-    // Update UI
-    closeAddItemModal();
-    updateBatchSection();
-    updateSelectedCount();
-    
-    // Update product card UI
-    const productCard = document.querySelector(`.product-card[data-id="${productId}"]`);
-    if (productCard) {
-        productCard.classList.add('selected');
-        productCard.querySelector('input[type="checkbox"]').checked = true;
-    }
-    
-    showStokToast(`"${productName}" ditambahkan ke batch`, 'success');
-}
-
-// [17] Update batch section UI
-function updateBatchSection() {
-    const section = document.getElementById('selectedBatchSection');
-    const container = document.getElementById('batchItemsContainer');
-    const summary = document.getElementById('batchSummary');
-    const submitBtn = document.getElementById('submitBatchRequest');
-    
-    if (!section || !container) return;
-    
-    if (stokBatchItems.length === 0) {
-        section.style.display = 'none';
-        if (submitBtn) submitBtn.disabled = true;
-        return;
-    }
-    
-    // Show section
-    section.style.display = 'block';
-    
-    // Update batch ID display
-    const batchIdEl = document.getElementById('currentBatchId');
-    if (batchIdEl) {
-        batchIdEl.textContent = stokBatchId;
-    }
-    
-    // Display batch items
-    let html = '';
-    let totalMasuk = 0;
-    let totalKeluar = 0;
-    
-    stokBatchItems.forEach((item, index) => {
-        const typeClass = item.stok_type === 'masuk' ? 'type-in' : 'type-out';
-        const typeIcon = item.stok_type === 'masuk' ? 'fa-arrow-down' : 'fa-arrow-up';
-        const typeText = item.stok_type === 'masuk' ? 'Masuk' : 'Keluar';
-        
-        if (item.stok_type === 'masuk') {
-            totalMasuk += item.qty;
-        } else {
-            totalKeluar += item.qty;
-        }
-        
-        html += `
-            <div class="batch-item">
-                <div class="item-info">
-                    <div class="item-header">
-                        <span class="item-name">${item.nama_produk}</span>
-                        <span class="item-type ${typeClass}">
-                            <i class="fas ${typeIcon}"></i> ${typeText}
-                        </span>
-                    </div>
-                    <div class="item-details">
-                        <span class="item-qty ${typeClass}">
-                            ${item.stok_type === 'masuk' ? '+' : '-'}${item.qty} unit
-                        </span>
-                        <span class="item-stock">
-                            <i class="fas fa-exchange-alt"></i>
-                            ${item.qty_before} → ${item.qty_after}
-                        </span>
-                        ${item.notes ? `
-                        <span class="item-notes">
-                            <i class="fas fa-sticky-note"></i>
-                            ${item.notes}
-                        </span>
-                        ` : ''}
-                    </div>
-                </div>
-                <div class="item-actions">
-                    <button class="btn-edit-item" onclick="editBatchItem(${index})" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn-remove-item" onclick="removeBatchItem(${index})" title="Hapus">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    });
-    
-    container.innerHTML = html;
-    
-    // Update summary
-    const netChange = totalMasuk - totalKeluar;
-    
-    document.getElementById('batchTotalItems').textContent = stokBatchItems.length;
-    document.getElementById('batchTotalMasuk').textContent = `${totalMasuk} unit`;
-    document.getElementById('batchTotalKeluar').textContent = `${totalKeluar} unit`;
-    document.getElementById('batchNetChange').textContent = `${netChange >= 0 ? '+' : ''}${netChange} unit`;
-    document.getElementById('batchNetChange').className = netChange >= 0 ? 'text-success' : 'text-danger';
-    
-    // Enable submit button
-    if (submitBtn) {
-        submitBtn.disabled = false;
-    }
-}
-
-// [18] Update selected count
-function updateSelectedCount() {
-    const countEl = document.getElementById('selectedProductsCount');
-    if (countEl) {
-        countEl.textContent = stokBatchItems.length;
-    }
-}
-
-// [19] Clear all selection
-function clearAllSelection() {
-    if (stokBatchItems.length === 0) return;
-    
-    if (confirm(`Hapus semua ${stokBatchItems.length} item yang dipilih?`)) {
-        // Uncheck semua checkbox
-        document.querySelectorAll('.product-card input[type="checkbox"]:checked').forEach(checkbox => {
-            checkbox.checked = false;
-        });
-        
-        // Remove selected class
-        document.querySelectorAll('.product-card.selected').forEach(card => {
-            card.classList.remove('selected');
-        });
-        
-        // Clear batch items
-        stokBatchItems = [];
-        updateBatchSection();
-        updateSelectedCount();
-    }
-}
-
-// [20] Clear batch items
-function clearBatchItems() {
-    if (stokBatchItems.length === 0) return;
-    
-    if (confirm(`Hapus semua ${stokBatchItems.length} item dari batch?`)) {
-        stokBatchItems = [];
-        updateBatchSection();
-        updateSelectedCount();
-        
-        // Juga uncheck product cards
-        document.querySelectorAll('.product-card.selected').forEach(card => {
-            card.classList.remove('selected');
-            card.querySelector('input[type="checkbox"]').checked = false;
-        });
-    }
-}
-
-// [21] Remove batch item
-function removeBatchItem(index) {
-    if (index >= 0 && index < stokBatchItems.length) {
-        const item = stokBatchItems[index];
-        
-        // Remove from array
-        stokBatchItems.splice(index, 1);
-        
-        // Update product card
-        const productCard = document.querySelector(`.product-card[data-id="${item.produk_id}"]`);
-        if (productCard) {
-            productCard.classList.remove('selected');
-            productCard.querySelector('input[type="checkbox"]').checked = false;
-        }
-        
-        // Update UI
-        updateBatchSection();
-        updateSelectedCount();
-        
-        showStokToast(`"${item.nama_produk}" dihapus dari batch`, 'info');
-    }
-}
-
-// [22] Edit batch item
-function editBatchItem(index) {
-    if (index >= 0 && index < stokBatchItems.length) {
-        const item = stokBatchItems[index];
-        
-        // Remove item dulu
-        stokBatchItems.splice(index, 1);
-        
-        // Update product card
-        const productCard = document.querySelector(`.product-card[data-id="${item.produk_id}"]`);
-        if (productCard) {
-            productCard.classList.remove('selected');
-            productCard.querySelector('input[type="checkbox"]').checked = false;
-        }
-        
-        // Update UI
-        updateBatchSection();
-        updateSelectedCount();
-        
-        // Show modal untuk edit
-        setTimeout(() => {
-            showAddItemModal(
-                item.produk_id,
-                item.nama_produk,
-                item.qty_before,
-                item.group_produk
-            );
-            
-            // Set values di modal
-            setTimeout(() => {
-                document.getElementById('itemType').value = item.stok_type;
-                document.getElementById('itemQty').value = item.qty;
-                document.getElementById('itemNotes').value = item.notes || '';
-                
-                // Trigger change event untuk validasi
-                document.getElementById('itemType').dispatchEvent(new Event('change'));
-            }, 100);
-        }, 100);
-    }
-}
-
-// [23] Submit batch stok request
-async function submitBatchStokRequest() {
-    try {
-        if (stokBatchItems.length === 0) {
-            showStokToast('Tambah minimal 1 item sebelum submit', 'error');
-            return;
-        }
-        
-        const batchNotes = document.getElementById('batchNotes')?.value.trim() || '';
-        const submitBtn = document.getElementById('submitBatchRequest');
-        const originalText = submitBtn.innerHTML;
-        
-        // Disable button dan show loading
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
-        
-        // Generate batch_id jika belum ada
-        if (!stokBatchId) {
-            stokBatchId = generateStokBatchId();
-        }
-        
-        // Prepare data untuk insert
-        const requests = stokBatchItems.map(item => ({
-            batch_id: stokBatchId,
-            tanggal: new Date().toISOString().split('T')[0],
-            outlet: currentOutletStok,
-            stok_type: item.stok_type,
-            updated_by: currentUserStok.nama_karyawan,
-            nama_produk: item.nama_produk,
-            group_produk: item.group_produk,
-            qty_before: item.qty_before,
-            qty_change: item.qty_change,
-            qty_after: item.qty_after,
-            approval_status: 'pending',
-            notes: batchNotes || item.notes || null,
-            created_at: new Date().toISOString()
-        }));
-        
-        // Insert ke database
-        const { data: savedRequests, error } = await supabase
-            .from('stok_update')
-            .insert(requests)
-            .select();
-        
-        if (error) throw error;
-        
-        // Kirim WA notifikasi ke owner
-        try {
-            await sendWABatchNotification(savedRequests, batchNotes);
-        } catch (waError) {
-            console.warn('Gagal kirim WA:', waError);
-            // Lanjutkan meski WA gagal
-        }
-        
-        // Success - reset form
-        showStokToast(`✅ Batch request berhasil dikirim! (${stokBatchItems.length} items)`, 'success');
-        
-        // Reset batch
-        stokBatchItems = [];
-        stokBatchId = generateStokBatchId();
-        document.getElementById('batchNotes').value = '';
-        
-        // Update UI
-        updateBatchSection();
-        updateSelectedCount();
-        
-        // Uncheck semua product cards
-        document.querySelectorAll('.product-card.selected').forEach(card => {
-            card.classList.remove('selected');
-            card.querySelector('input[type="checkbox"]').checked = false;
-        });
-        
-        // Reload history
-        await loadKasirStokHistory();
-        
-    } catch (error) {
-        console.error('Error submitting batch request:', error);
-        showStokToast(`❌ Gagal mengirim request: ${error.message}`, 'error');
-    } finally {
-        // Reset button
-        const submitBtn = document.getElementById('submitBatchRequest');
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Batch Request';
-        }
-    }
-}
-
-// [24] Load kasir stok history dengan filter
-async function loadKasirStokHistory() {
-    try {
-        const loadingEl = document.getElementById('loadingHistoryKasir');
-        const tableEl = document.getElementById('kasirHistoryTable');
-        const noDataEl = document.getElementById('noHistoryData');
-        const paginationEl = document.getElementById('historyPagination');
-        
-        if (loadingEl) loadingEl.style.display = 'block';
-        if (tableEl) tableEl.style.display = 'none';
-        if (noDataEl) noDataEl.style.display = 'none';
-        if (paginationEl) paginationEl.style.display = 'none';
-        
-        // Get filter values
-        const dateFilter = document.getElementById('historyDateFilter')?.value || 'today';
-        const statusFilter = document.getElementById('historyStatusFilter')?.value || 'all';
-        const startDate = document.getElementById('startDate')?.value;
-        const endDate = document.getElementById('endDate')?.value;
-        
-        // Calculate date range
-        let dateFrom = null;
-        let dateTo = new Date();
-        
-        switch (dateFilter) {
-            case 'today':
-                dateFrom = new Date();
-                dateFrom.setHours(0, 0, 0, 0);
-                break;
-            case 'yesterday':
-                dateFrom = new Date();
-                dateFrom.setDate(dateFrom.getDate() - 1);
-                dateFrom.setHours(0, 0, 0, 0);
-                dateTo = new Date(dateFrom);
-                dateTo.setHours(23, 59, 59, 999);
-                break;
-            case 'week':
-                dateFrom = new Date();
-                dateFrom.setDate(dateFrom.getDate() - 7);
-                break;
-            case 'month':
-                dateFrom = new Date();
-                dateFrom.setMonth(dateFrom.getMonth() - 1);
-                break;
-            case 'custom':
-                if (startDate && endDate) {
-                    dateFrom = new Date(startDate);
-                    dateTo = new Date(endDate);
-                    dateTo.setHours(23, 59, 59, 999);
-                }
-                break;
-            // 'all' tidak ada date filter
-        }
-        
-        // Build query
-        let query = supabase
-            .from('stok_update')
-            .select('*', { count: 'exact' })
-            .eq('outlet', currentOutletStok)
-            .order('created_at', { ascending: false });
-        
-        // Apply status filter
-        if (statusFilter !== 'all') {
-            query = query.eq('approval_status', statusFilter);
-        }
-        
-        // Apply date filter
-        if (dateFrom && dateFilter !== 'all') {
-            query = query.gte('created_at', dateFrom.toISOString());
-            
-            if (dateFilter !== 'custom' || endDate) {
-                query = query.lte('created_at', dateTo.toISOString());
-            }
-        }
-        
-        // Pagination
-        const from = (currentHistoryPage - 1) * historyLimit;
-        const to = from + historyLimit - 1;
-        query = query.range(from, to);
-        
-        const { data: requests, count, error } = await query;
-        
-        if (error) throw error;
-        
-        // Calculate total pages
-        totalHistoryPages = Math.ceil((count || 0) / historyLimit);
-        
-        // Display history
-        displayKasirHistory(requests || []);
-        
-        // Update pagination UI
-        updatePaginationUI();
-        
-    } catch (error) {
-        console.error('Error loading kasir history:', error);
-        const tbody = document.getElementById('kasirHistoryBody');
-        if (tbody) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="9" class="error-message">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Gagal memuat riwayat: ${error.message}
+            html += `
+                <tr class="${stockClass}">
+                    ${isFirstInGroup ? 
+                        `<td rowspan="${groupProducts.length}" class="group-cell">
+                            <strong>${group}</strong>
+                        </td>` : ''
+                    }
+                    <td class="product-cell">
+                        <div class="product-name">${product.nama_produk}</div>
+                        ${product.inventory === false ? 
+                            '<span class="non-inventory-badge">Non-Inventory</span>' : ''
+                        }
+                    </td>
+                    <td class="stock-cell ${stockClass}">
+                        ${product.stok || 0}
+                        ${product.stok <= 10 ? 
+                            '<span class="low-stock-badge"><i class="fas fa-exclamation-circle"></i></span>' : ''
+                        }
                     </td>
                 </tr>
             `;
-        }
-    } finally {
-        const loadingEl = document.getElementById('loadingHistoryKasir');
-        const tableEl = document.getElementById('kasirHistoryTable');
-        
-        if (loadingEl) loadingEl.style.display = 'none';
-        if (tableEl && tableEl.querySelector('tbody').children.length > 0) {
-            tableEl.style.display = 'table';
-        }
-    }
-}
-
-// [25] Display kasir history
-function displayKasirHistory(requests) {
-    const tbody = document.getElementById('kasirHistoryBody');
-    const noDataEl = document.getElementById('noHistoryData');
-    const tableEl = document.getElementById('kasirHistoryTable');
-    
-    if (!tbody || !noDataEl || !tableEl) return;
-    
-    if (!requests || requests.length === 0) {
-        tbody.innerHTML = '';
-        tableEl.style.display = 'none';
-        noDataEl.style.display = 'block';
-        return;
-    }
-    
-    let html = '';
-    
-    requests.forEach(request => {
-        const createdDate = new Date(request.created_at);
-        const approvedDate = request.approved_at ? new Date(request.approved_at) : null;
-        const statusClass = getApprovalStatusClass(request.approval_status);
-        const typeClass = request.stok_type === 'masuk' ? 'type-in' : 'type-out';
-        const typeText = request.stok_type === 'masuk' ? 'Masuk' : 'Keluar';
-        
-        html += `
-            <tr class="history-row ${statusClass}">
-                <td>
-                    ${createdDate.toLocaleDateString('id-ID')}<br>
-                    <small>${createdDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>
-                </td>
-                <td>
-                    <code class="batch-id" title="${request.batch_id}">
-                        ${request.batch_id ? request.batch_id.substring(0, 8) + '...' : 'N/A'}
-                    </code>
-                </td>
-                <td>
-                    <div class="product-name">${request.nama_produk}</div>
-                    <div class="product-group"><small>${request.group_produk || '-'}</small></div>
-                </td>
-                <td>
-                    <span class="type-badge ${typeClass}">${typeText}</span>
-                </td>
-                <td class="${typeClass}">
-                    ${request.qty_change > 0 ? '+' : ''}${request.qty_change}
-                </td>
-                <td>
-                    ${request.qty_before} → ${request.qty_after}
-                </td>
-                <td>
-                    <span class="status-badge ${statusClass}">
-                        ${request.approval_status === 'approved' ? 'Approved' : 
-                          request.approval_status === 'rejected' ? 'Rejected' : 'Pending'}
-                    </span>
-                </td>
-                <td>
-                    ${request.approved_by || '-'}
-                    ${approvedDate ? `<br><small>${approvedDate.toLocaleDateString('id-ID')}</small>` : ''}
-                </td>
-                <td>
-                    <div class="notes-content">
-                        ${request.notes || '-'}
-                        ${request.rejection_reason ? `<br><small class="rejection-reason">❌ ${request.rejection_reason}</small>` : ''}
-                    </div>
-                </td>
-            </tr>
-        `;
+        });
     });
     
-    tbody.innerHTML = html;
-    tableEl.style.display = 'table';
-    noDataEl.style.display = 'none';
+    tbody.innerHTML = html || `
+        <tr>
+            <td colspan="3" class="no-data-cell">
+                <i class="fas fa-box-open"></i>
+                <p>Tidak ada produk inventory</p>
+            </td>
+        </tr>
+    `;
 }
 
-// [26] Update pagination UI
-function updatePaginationUI() {
-    const paginationEl = document.getElementById('historyPagination');
-    const prevBtn = document.getElementById('prevPage');
-    const nextBtn = document.getElementById('nextPage');
-    const currentPageEl = document.getElementById('currentPage');
-    const totalPagesEl = document.getElementById('totalPages');
-    
-    if (!paginationEl || !prevBtn || !nextBtn) return;
-    
-    if (totalHistoryPages > 1) {
-        paginationEl.style.display = 'flex';
-        
-        // Update page numbers
-        if (currentPageEl) currentPageEl.textContent = currentHistoryPage;
-        if (totalPagesEl) totalPagesEl.textContent = totalHistoryPages;
-        
-        // Update button states
-        prevBtn.disabled = currentHistoryPage <= 1;
-        nextBtn.disabled = currentHistoryPage >= totalHistoryPages;
-    } else {
-        paginationEl.style.display = 'none';
-    }
-}
-
-// [27] Update kasir summary stats
-function updateKasirSummaryStats(products) {
-    if (!products || products.length === 0) {
-        document.getElementById('totalProduk').textContent = '0';
-        document.getElementById('totalStok').textContent = '0';
-        document.getElementById('stokRendah').textContent = '0';
-        return;
-    }
-    
-    const totalProduk = products.length;
-    const totalStok = products.reduce((sum, p) => sum + (p.stok || 0), 0);
-    const stokRendah = products.filter(p => (p.stok || 0) <= 10).length;
-    
-    document.getElementById('totalProduk').textContent = totalProduk;
-    document.getElementById('totalStok').textContent = totalStok.toLocaleString();
-    document.getElementById('stokRendah').textContent = stokRendah;
-}
-
-// [28] Load data untuk OWNER
-async function loadOwnerStokData() {
-    console.log('=== LOAD OWNER STOK DATA ===');
-    
-    try {
-        // Get filter values
-        const outletFilter = document.getElementById('filterOutletStok')?.value || 'all';
-        const statusFilter = document.getElementById('filterStatusStok')?.value || 'pending';
-        const dateFilter = document.getElementById('filterDateStok')?.value || 'today';
-        
-        // Load outlet dropdown
-        await loadOutletDropdownStok();
-        
-        // Load pending requests (status = 'pending')
-        await loadPendingRequestsForOwner(outletFilter, dateFilter);
-        
-        // Load stats
-        await loadOwnerStats(outletFilter, dateFilter);
-        
-        // Load history
-        await loadOwnerHistory();
-        
-    } catch (error) {
-        console.error('Error in loadOwnerStokData:', error);
-        showStokToast('Gagal memuat data requests', 'error');
-    }
-}
-
-// [29] Load pending requests untuk OWNER (dengan checkbox)
-async function loadPendingRequestsForOwner(outletFilter, dateFilter) {
-    try {
-        const loadingEl = document.getElementById('loadingPending');
-        const gridEl = document.getElementById('pendingRequestsGrid');
-        const noDataEl = document.getElementById('noPendingData');
-        
-        if (loadingEl) loadingEl.style.display = 'block';
-        if (gridEl) gridEl.style.display = 'none';
-        if (noDataEl) noDataEl.style.display = 'none';
-        
-        // Build query - HANYA YANG STATUS PENDING
-        let query = supabase
-            .from('stok_update')
-            .select('*')
-            .eq('approval_status', 'pending')
-            .order('created_at', { ascending: false });
-        
-        // Apply outlet filter
-        if (outletFilter !== 'all') {
-            query = query.eq('outlet', outletFilter);
-        }
-        
-        // Apply date filter
-        if (dateFilter !== 'all') {
-            const today = new Date();
-            let startDate = new Date();
-            
-            if (dateFilter === 'today') {
-                startDate.setHours(0, 0, 0, 0);
-            } else if (dateFilter === 'week') {
-                startDate.setDate(today.getDate() - 7);
-            } else if (dateFilter === 'month') {
-                startDate.setMonth(today.getMonth() - 1);
-            }
-            
-            query = query.gte('created_at', startDate.toISOString());
-        }
-        
-        const { data: requests, error } = await query;
-        
-        if (error) throw error;
-        
-        // Display pending requests dengan checkbox
-        displayPendingRequestsWithCheckbox(requests || []);
-        
-    } catch (error) {
-        console.error('Error loading pending requests:', error);
-        const gridEl = document.getElementById('pendingRequestsGrid');
-        if (gridEl) {
-            gridEl.innerHTML = `
-                <div class="error-message">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <p>Gagal memuat data: ${error.message}</p>
-                </div>
-            `;
-            gridEl.style.display = 'block';
-        }
-    } finally {
-        const loadingEl = document.getElementById('loadingPending');
-        if (loadingEl) loadingEl.style.display = 'none';
-    }
-}
-
-// [30] Display pending requests dengan checkbox
-function displayPendingRequestsWithCheckbox(requests) {
-    const gridEl = document.getElementById('pendingRequestsGrid');
-    const noDataEl = document.getElementById('noPendingData');
-    const countEl = document.getElementById('pendingRequestsCount');
-    
-    if (!gridEl || !noDataEl || !countEl) return;
+// [12] Display request history untuk KASIR
+function displayRequestHistoryForKasir(requests) {
+    const requestsList = document.getElementById('requestsList');
+    if (!requestsList) return;
     
     if (!requests || requests.length === 0) {
-        gridEl.style.display = 'none';
-        noDataEl.style.display = 'block';
-        countEl.textContent = '0 items';
+        requestsList.innerHTML = `
+            <div class="no-data">
+                <i class="fas fa-history"></i>
+                <p>Belum ada riwayat request</p>
+            </div>
+        `;
         return;
     }
     
-    // Group by batch_id
-    const batches = groupRequestsByBatch(requests);
-    
-    let html = '';
-    let totalPendingItems = 0;
-    
-    batches.forEach(batch => {
-        totalPendingItems += batch.items.length;
+    requestsList.innerHTML = requests.map(request => {
+        const statusClass = getApprovalStatusClass(request.approval_status);
+        const typeClass = request.stok_type === 'masuk' ? 'type-in' : 'type-out';
+        const typeIcon = request.stok_type === 'masuk' ? 'fa-arrow-down' : 'fa-arrow-up';
+        const typeText = request.stok_type === 'masuk' ? 'Stok Masuk' : 'Stok Keluar';
         
-        html += `
-            <div class="batch-approval-card" data-batch-id="${batch.batch_id}">
-                <div class="batch-header">
-                    <div class="batch-info">
-                        <h4>
-                            <i class="fas fa-layer-group"></i>
-                            Batch: <code>${batch.batch_id}</code>
-                            <span class="batch-count">(${batch.items.length} items)</span>
-                        </h4>
-                        <div class="batch-details">
-                            <span class="outlet-badge">
-                                <i class="fas fa-store"></i> ${batch.outlet}
-                            </span>
-                            <span class="requestor">
-                                <i class="fas fa-user"></i> ${batch.karyawan}
-                            </span>
-                            <span class="batch-date">
-                                <i class="fas fa-calendar"></i>
-                                ${new Date(batch.created_at).toLocaleDateString('id-ID')}
-                            </span>
+        return `
+            <div class="request-item ${statusClass}">
+                <div class="request-header">
+                    <div class="request-date">
+                        <i class="fas fa-calendar"></i>
+                        ${formatDateStok(request.tanggal)}
+                    </div>
+                    <div class="request-status ${statusClass}">
+                        ${getApprovalStatusText(request.approval_status)}
+                    </div>
+                </div>
+                
+                <div class="request-body">
+                    <div class="request-product">
+                        <strong>${request.nama_produk}</strong>
+                        <span class="request-type ${typeClass}">
+                            <i class="fas ${typeIcon}"></i>
+                            ${typeText}
+                        </span>
+                    </div>
+                    
+                    <div class="request-details">
+                        <div class="detail-item">
+                            <span>Jumlah:</span>
+                            <strong class="${typeClass}">
+                                ${request.stok_type === 'masuk' ? '+' : '-'}${Math.abs(request.qty_change)}
+                            </strong>
+                        </div>
+                        <div class="detail-item">
+                            <span>Stok:</span>
+                            <span>${request.qty_before} → ${request.qty_after}</span>
                         </div>
                     </div>
-                    <div class="batch-checkbox">
-                        <input type="checkbox" 
-                               class="batch-select-all"
-                               data-batch-id="${batch.batch_id}"
-                               onchange="toggleSelectAllInBatch('${batch.batch_id}', this.checked)">
-                        <label>Pilih Semua</label>
+                    
+                    ${request.notes ? `
+                    <div class="request-notes">
+                        <i class="fas fa-sticky-note"></i>
+                        ${request.notes}
                     </div>
-                </div>
-                
-                <div class="batch-items-list">
-                    <table class="batch-items-table">
-                        <thead>
-                            <tr>
-                                <th width="50px">Pilih</th>
-                                <th>Produk</th>
-                                <th width="100px">Tipe</th>
-                                <th width="100px">Jumlah</th>
-                                <th width="120px">Stok (Before→After)</th>
-                                <th width="150px">Catatan</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${batch.items.map((item, index) => {
-                                const typeClass = item.stok_type === 'masuk' ? 'type-in' : 'type-out';
-                                const typeText = item.stok_type === 'masuk' ? 'Masuk' : 'Keluar';
-                                
-                                return `
-                                    <tr data-item-id="${item.id}" data-batch-id="${batch.batch_id}">
-                                        <td>
-                                            <input type="checkbox" 
-                                                   class="item-checkbox"
-                                                   data-item-id="${item.id}"
-                                                   data-batch-id="${batch.batch_id}"
-                                                   onchange="updateBatchCheckbox('${batch.batch_id}')">
-                                        </td>
-                                        <td>
-                                            <div class="product-info">
-                                                <strong>${item.nama_produk}</strong>
-                                                <div class="product-group">${item.group_produk || '-'}</div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span class="type-badge ${typeClass}">${typeText}</span>
-                                        </td>
-                                        <td class="${typeClass}">
-                                            ${item.qty_change > 0 ? '+' : ''}${item.qty_change}
-                                        </td>
-                                        <td>
-                                            ${item.qty_before} → ${item.qty_after}
-                                        </td>
-                                        <td class="notes-cell">
-                                            ${item.notes || '-'}
-                                        </td>
-                                    </tr>
-                                `;
-                            }).join('')}
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div class="batch-actions">
-                    <button class="btn-approve-batch" onclick="approveSelectedInBatch('${batch.batch_id}')">
-                        <i class="fas fa-check"></i> Approve Selected
-                    </button>
-                    <button class="btn-reject-batch" onclick="rejectSelectedInBatch('${batch.batch_id}')">
-                        <i class="fas fa-times"></i> Reject Selected
-                    </button>
+                    ` : ''}
+                    
+                    ${request.rejection_reason ? `
+                    <div class="request-rejection">
+                        <i class="fas fa-times-circle"></i>
+                        <strong>Alasan ditolak:</strong> ${request.rejection_reason}
+                    </div>
+                    ` : ''}
                 </div>
             </div>
         `;
-    });
-    
-    gridEl.innerHTML = html;
-    gridEl.style.display = 'block';
-    noDataEl.style.display = 'none';
-    countEl.textContent = `${totalPendingItems} items`;
+    }).join('');
 }
 
-// [31] Group requests by batch
-function groupRequestsByBatch(requests) {
-    const grouped = {};
+// [13] Load data untuk OWNER - PERBAIKAN BAGIAN ADJUSTMENTS
+async function loadOwnerStokData() {
+  console.log('=== LOAD OWNER STOK DATA ===');
+  
+  try {
+    // 1. DAPATKAN FILTER DARI UI
+    const outletSelect = document.getElementById('filterOutletStok');
+    const statusSelect = document.getElementById('filterStatusStok');
+    const dateSelect = document.getElementById('filterDateStok');
     
-    requests.forEach(request => {
-        const batchId = request.batch_id || `IND-${request.id}`;
-        
-        if (!grouped[batchId]) {
-            grouped[batchId] = {
-                batch_id: batchId,
-                outlet: request.outlet,
-                karyawan: request.updated_by,
-                created_at: request.created_at,
-                items: []
-            };
-        }
-        
-        grouped[batchId].items.push(request);
-    });
+    const outletFilter = outletSelect ? outletSelect.value : 'all';
+    const statusFilter = statusSelect ? statusSelect.value : 'pending';
+    const dateFilter = dateSelect ? dateSelect.value : 'today';
     
-    return Object.values(grouped);
-}
-
-// [32] Toggle select all in batch
-function toggleSelectAllInBatch(batchId, isChecked) {
-    const checkboxes = document.querySelectorAll(`
-        .batch-approval-card[data-batch-id="${batchId}"] 
-        .item-checkbox
-    `);
+    console.log('Active Filters:', { outlet: outletFilter, status: statusFilter, date: dateFilter });
     
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = isChecked;
-    });
-}
-
-// [33] Update batch checkbox state
-function updateBatchCheckbox(batchId) {
-    const checkboxes = document.querySelectorAll(`
-        .batch-approval-card[data-batch-id="${batchId}"] 
-        .item-checkbox
-    `);
-    
-    const selectAllCheckbox = document.querySelector(`
-        .batch-approval-card[data-batch-id="${batchId}"] 
-        .batch-select-all
-    `);
-    
-    if (checkboxes.length > 0 && selectAllCheckbox) {
-        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-        const someChecked = Array.from(checkboxes).some(cb => cb.checked);
-        
-        selectAllCheckbox.checked = allChecked;
-        selectAllCheckbox.indeterminate = someChecked && !allChecked;
-    }
-}
-
-// [34] Toggle select all pending
-function toggleSelectAllPending() {
-    const allCheckboxes = document.querySelectorAll('.item-checkbox');
-    const selectAllBtn = document.getElementById('selectAllPending');
-    
-    if (!allCheckboxes.length) return;
-    
-    const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
-    const newState = !allChecked;
-    
-    allCheckboxes.forEach(checkbox => {
-        checkbox.checked = newState;
-    });
-    
-    // Update batch select-all checkboxes
-    document.querySelectorAll('.batch-select-all').forEach(cb => {
-        cb.checked = newState;
-        cb.indeterminate = false;
-    });
-    
-    // Update button text
-    selectAllBtn.innerHTML = newState ? 
-        '<i class="fas fa-times-circle"></i> Batal Pilih Semua' :
-        '<i class="fas fa-check-square"></i> Pilih Semua';
-}
-
-// [35] Approve selected pending items
-async function approveSelectedPendingItems() {
+    // 2. LOAD OUTLET DROPDOWN (SIMPLE VERSION)
     try {
-        const selectedCheckboxes = document.querySelectorAll('.item-checkbox:checked');
+      if (outletSelect) {
+        const { data: outlets } = await supabase
+          .from('karyawan')
+          .select('outlet')
+          .not('outlet', 'is', null);
         
-        if (selectedCheckboxes.length === 0) {
-            showStokToast('Pilih minimal 1 item untuk di-approve', 'warning');
-            return;
+        if (outlets && outlets.length > 0) {
+          const uniqueOutlets = [...new Set(outlets.map(o => o.outlet))].filter(Boolean);
+          let options = '<option value="all">Semua Outlet</option>';
+          uniqueOutlets.forEach(outlet => {
+            const selected = outlet === outletFilter ? 'selected' : '';
+            options += `<option value="${outlet}" ${selected}>${outlet}</option>`;
+          });
+          outletSelect.innerHTML = options;
+          outletSelect.value = outletFilter;
         }
-        
-        const itemIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.itemId);
-        const batchIds = [...new Set(Array.from(selectedCheckboxes).map(cb => cb.dataset.batchId))];
-        
-        if (!confirm(`Approve ${itemIds.length} item yang dipilih?`)) {
-            return;
-        }
-        
-        // Update status masing-masing item
-        const { error } = await supabase
-            .from('stok_update')
-            .update({ 
-                approval_status: 'approved',
-                approved_by: currentUserStok.nama_karyawan,
-                approved_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            })
-            .in('id', itemIds);
-        
-        if (error) throw error;
-        
-        // Update stok produk untuk setiap item
-        for (const itemId of itemIds) {
-            // Cari item untuk mendapatkan detail
-            const itemCheckbox = document.querySelector(`.item-checkbox[data-item-id="${itemId}"]`);
-            if (itemCheckbox) {
-                const row = itemCheckbox.closest('tr');
-                if (row) {
-                    const productName = row.querySelector('.product-info strong')?.textContent;
-                    const outlet = row.closest('.batch-approval-card')?.querySelector('.outlet-badge')?.textContent.replace('Outlet: ', '').trim();
-                    
-                    if (productName && outlet) {
-                        // Ambil data item untuk update stok
-                        const { data: itemData } = await supabase
-                            .from('stok_update')
-                            .select('qty_before, qty_change, qty_after')
-                            .eq('id', itemId)
-                            .single();
-                        
-                        if (itemData) {
-                            // Update stok di tabel produk
-                            await supabase
-                                .from('produk')
-                                .update({ 
-                                    stok: itemData.qty_after,
-                                    updated_at: new Date().toISOString()
-                                })
-                                .eq('nama_produk', productName)
-                                .eq('outlet', outlet);
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Kirim WA notifikasi per batch
-        for (const batchId of batchIds) {
-            const batchItems = itemIds.filter((id, index) => 
-                selectedCheckboxes[index].dataset.batchId === batchId
-            );
-            
-            if (batchItems.length > 0) {
-                await sendWABatchApproval(batchId, batchItems, 'approved');
-            }
-        }
-        
-        showStokToast(`✅ ${itemIds.length} item berhasil di-approve`, 'success');
-        
-        // Reload data
-        loadOwnerStokData();
-        
-    } catch (error) {
-        console.error('Error approving items:', error);
-        showStokToast(`❌ Gagal approve items: ${error.message}`, 'error');
-    }
-}
-
-// [36] Show reject modal untuk selected items
-function showRejectModalForSelected() {
-    const selectedCheckboxes = document.querySelectorAll('.item-checkbox:checked');
-    
-    if (selectedCheckboxes.length === 0) {
-        showStokToast('Pilih minimal 1 item untuk di-reject', 'warning');
-        return;
+      }
+    } catch (dropdownErr) {
+      console.warn('Outlet dropdown error:', dropdownErr.message);
     }
     
-    // Show reject modal
-    document.getElementById('rejectModal').style.display = 'flex';
-}
-
-// [37] Reject selected pending items
-async function rejectSelectedPendingItems() {
+    // 3. QUERY UTAMA UNTUK DATA
+    let requestQuery = supabase
+      .from('stok_update')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    // Apply filters
+    if (outletFilter !== 'all') {
+      requestQuery = requestQuery.eq('outlet', outletFilter);
+    }
+    
+    if (statusFilter !== 'all') {
+      requestQuery = requestQuery.eq('approval_status', statusFilter);
+    }
+    // Jika statusFilter = 'all', TIDAK ADA FILTER approval_status
+    
+    // Date filter (sementara non-aktif karena bug)
+    // if (dateFilter === 'today') { ... }
+    
+    const { data: requests, error: requestError } = await requestQuery;
+    
+    if (requestError) {
+      console.error('Query error:', requestError);
+      throw requestError;
+    }
+    
+    console.log(`Query success: ${requests?.length || 0} records`);
+    
+    // 4. LOAD STATS (DENGAN PERBAIKAN ERROR)
     try {
-        const selectedCheckboxes = document.querySelectorAll('.item-checkbox:checked');
-        const rejectReason = document.getElementById('rejectReason')?.value.trim();
-        
-        if (!rejectReason) {
-            showStokToast('Harap masukkan alasan penolakan', 'warning');
-            return;
-        }
-        
-        const itemIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.itemId);
-        const batchIds = [...new Set(Array.from(selectedCheckboxes).map(cb => cb.dataset.batchId))];
-        
-        if (!confirm(`Reject ${itemIds.length} item dengan alasan: "${rejectReason}"?`)) {
-            return;
-        }
-        
-        // Update status masing-masing item
-        const { error } = await supabase
-            .from('stok_update')
-            .update({ 
-                approval_status: 'rejected',
-                approved_by: currentUserStok.nama_karyawan,
-                approved_at: new Date().toISOString(),
-                rejection_reason: rejectReason,
-                updated_at: new Date().toISOString()
-            })
-            .in('id', itemIds);
-        
-        if (error) throw error;
-        
-        // Kirim WA notifikasi per batch
-        for (const batchId of batchIds) {
-            const batchItems = itemIds.filter((id, index) => 
-                selectedCheckboxes[index].dataset.batchId === batchId
-            );
-            
-            if (batchItems.length > 0) {
-                await sendWABatchApproval(batchId, batchItems, 'rejected', rejectReason);
-            }
-        }
-        
-        showStokToast(`❌ ${itemIds.length} item berhasil di-reject`, 'success');
-        
-        // Close modal dan reset
-        document.getElementById('rejectModal').style.display = 'none';
-        document.getElementById('rejectReason').value = '';
-        
-        // Reload data
-        loadOwnerStokData();
-        
-    } catch (error) {
-        console.error('Error rejecting items:', error);
-        showStokToast(`❌ Gagal reject items: ${error.message}`, 'error');
+      await loadOwnerStats(outletFilter, null, null); // Non-aktifkan date filter dulu
+    } catch (statsError) {
+      console.warn('Stats loading skipped:', statsError.message);
+      // Tetap lanjut meski stats error
     }
+    
+    // 5. LOAD RECENT ADJUSTMENTS - PERBAIKAN UTAMA DI SINI
+    try {
+      // Determine which outlet to show
+      const adjOutlet = outletFilter !== 'all' ? outletFilter : (currentOutletStok || 'Rempoa');
+      
+      let adjQuery = supabase
+        .from('stok_update')
+        .select('*')
+        .eq('approval_status', 'approved')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      // Filter by selected outlet
+      if (adjOutlet && adjOutlet !== 'all') {
+        adjQuery = adjQuery.eq('outlet', adjOutlet);
+      }
+      
+      // PERBAIKAN: Gunakan updated_by, bukan requested_by
+      // Hapus filter ini jika tidak ada kolom tersebut
+      // adjQuery = adjQuery.not('requested_by', 'is', null);
+      
+      // Sebagai ganti, filter hanya adjustment yang dilakukan oleh owner
+      // Atau tampilkan semua yang approved
+      adjQuery = adjQuery.not('updated_by', 'is', null);
+      
+      const { data: adjustments, error: adjError } = await adjQuery;
+      
+      if (adjError) {
+        console.error('Error loading adjustments:', adjError);
+        throw adjError;
+      }
+      
+      console.log(`Adjustments loaded: ${adjustments?.length || 0}`);
+      displayRecentAdjustments(adjustments || []);
+      
+    } catch (adjustError) {
+      console.warn('Adjustments loading skipped:', adjustError.message);
+      // Tampilkan pesan kosong jika error
+      displayRecentAdjustments([]);
+    }
+    
+    // 6. TAMPILKAN DATA
+    displayPendingRequests(requests || []);
+    
+  } catch (error) {
+    console.error('Error in loadOwnerStokData:', error);
+    showError('Gagal memuat data requests');
+  }
 }
 
-// [38] Approve selected in batch
-async function approveSelectedInBatch(batchId) {
-    const checkboxes = document.querySelectorAll(`
-        .batch-approval-card[data-batch-id="${batchId}"] 
-        .item-checkbox:checked
-    `);
-    
-    if (checkboxes.length === 0) {
-        showStokToast(`Pilih minimal 1 item di batch ${batchId}`, 'warning');
-        return;
-    }
-    
-    // Lanjutkan dengan approve
-    const itemIds = Array.from(checkboxes).map(cb => cb.dataset.itemId);
-    
-    if (!confirm(`Approve ${itemIds.length} item di batch ${batchId}?`)) {
-        return;
-    }
-    
+// [14] Load owner statistics
+async function loadOwnerStats(outletFilter, dateStart, dateEnd) {
     try {
-        // Update status
-        const { error } = await supabase
-            .from('stok_update')
-            .update({ 
-                approval_status: 'approved',
-                approved_by: currentUserStok.nama_karyawan,
-                approved_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            })
-            .in('id', itemIds);
-        
-        if (error) throw error;
-        
-        // Update stok produk
-        for (const itemId of itemIds) {
-            const itemCheckbox = document.querySelector(`.item-checkbox[data-item-id="${itemId}"]`);
-            if (itemCheckbox) {
-                const row = itemCheckbox.closest('tr');
-                if (row) {
-                    const productName = row.querySelector('.product-info strong')?.textContent;
-                    const outlet = row.closest('.batch-approval-card')?.querySelector('.outlet-badge')?.textContent.replace('Outlet: ', '').trim();
-                    
-                    if (productName && outlet) {
-                        const { data: itemData } = await supabase
-                            .from('stok_update')
-                            .select('qty_before, qty_change, qty_after')
-                            .eq('id', itemId)
-                            .single();
-                        
-                        if (itemData) {
-                            await supabase
-                                .from('produk')
-                                .update({ 
-                                    stok: itemData.qty_after,
-                                    updated_at: new Date().toISOString()
-                                })
-                                .eq('nama_produk', productName)
-                                .eq('outlet', outlet);
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Kirim WA notifikasi
-        await sendWABatchApproval(batchId, itemIds, 'approved');
-        
-        showStokToast(`✅ ${itemIds.length} item di batch ${batchId} berhasil di-approve`, 'success');
-        
-        // Reload data
-        loadOwnerStokData();
-        
-    } catch (error) {
-        console.error('Error approving batch items:', error);
-        showStokToast(`❌ Gagal approve items: ${error.message}`, 'error');
-    }
-}
-
-// [39] Reject selected in batch
-async function rejectSelectedInBatch(batchId) {
-    const checkboxes = document.querySelectorAll(`
-        .batch-approval-card[data-batch-id="${batchId}"] 
-        .item-checkbox:checked
-    `);
-    
-    if (checkboxes.length === 0) {
-        showStokToast(`Pilih minimal 1 item di batch ${batchId}`, 'warning');
-        return;
-    }
-    
-    // Minta alasan reject
-    const rejectReason = prompt(`Masukkan alasan penolakan untuk ${checkboxes.length} item di batch ${batchId}:`);
-    
-    if (!rejectReason) {
-        return;
-    }
-    
-    const itemIds = Array.from(checkboxes).map(cb => cb.dataset.itemId);
-    
-    try {
-        // Update status
-        const { error } = await supabase
-            .from('stok_update')
-            .update({ 
-                approval_status: 'rejected',
-                approved_by: currentUserStok.nama_karyawan,
-                approved_at: new Date().toISOString(),
-                rejection_reason: rejectReason,
-                updated_at: new Date().toISOString()
-            })
-            .in('id', itemIds);
-        
-        if (error) throw error;
-        
-        // Kirim WA notifikasi
-        await sendWABatchApproval(batchId, itemIds, 'rejected', rejectReason);
-        
-        showStokToast(`❌ ${itemIds.length} item di batch ${batchId} berhasil di-reject`, 'success');
-        
-        // Reload data
-        loadOwnerStokData();
-        
-    } catch (error) {
-        console.error('Error rejecting batch items:', error);
-        showStokToast(`❌ Gagal reject items: ${error.message}`, 'error');
-    }
-}
-
-// [40] Load owner stats
-async function loadOwnerStats(outletFilter, dateFilter) {
-    try {
-        // Pending count
+        // Pending requests count
         let pendingQuery = supabase
             .from('stok_update')
             .select('id', { count: 'exact', head: true })
@@ -11680,193 +10578,595 @@ async function loadOwnerStats(outletFilter, dateFilter) {
             pendingQuery = pendingQuery.eq('outlet', outletFilter);
         }
         
-        const { count: pendingCount } = await pendingQuery;
+        const { count: pendingCount, error: pendingError } = await pendingQuery;
+        
+        if (pendingError) throw pendingError;
         
         // Approved today count
-        const today = new Date().toISOString().split('T')[0];
         let approvedQuery = supabase
             .from('stok_update')
             .select('id', { count: 'exact', head: true })
             .eq('approval_status', 'approved')
-            .gte('approved_at', `${today}T00:00:00.000Z`);
+            .eq('tanggal', new Date().toISOString().split('T')[0]);
         
         if (outletFilter !== 'all') {
             approvedQuery = approvedQuery.eq('outlet', outletFilter);
         }
         
-        const { count: approvedCount } = await approvedQuery;
+        const { count: approvedCount, error: approvedError } = await approvedQuery;
         
-        // Rejected today count
-        let rejectedQuery = supabase
+        if (approvedError) throw approvedError;
+        
+        // Adjustments count (owner initiated)
+        let adjustQuery = supabase
             .from('stok_update')
             .select('id', { count: 'exact', head: true })
-            .eq('approval_status', 'rejected')
-            .gte('approved_at', `${today}T00:00:00.000Z`);
+            .eq('approval_status', 'approved')
+            .not('approved_by', 'is', null);
         
         if (outletFilter !== 'all') {
-            rejectedQuery = rejectedQuery.eq('outlet', outletFilter);
+            adjustQuery = adjustQuery.eq('outlet', outletFilter);
         }
         
-        const { count: rejectedCount } = await rejectedQuery;
+        if (dateStart && dateEnd) {
+            adjustQuery = adjustQuery.gte('tanggal', dateStart).lte('tanggal', dateEnd);
+        }
+        
+        const { count: adjustCount, error: adjustError } = await adjustQuery;
+        
+        if (adjustError) throw adjustError;
         
         // Update UI
         document.getElementById('statPending').textContent = pendingCount || 0;
         document.getElementById('statApproved').textContent = approvedCount || 0;
-        document.getElementById('statRejected').textContent = rejectedCount || 0;
+        document.getElementById('statAdjustments').textContent = adjustCount || 0;
         
     } catch (error) {
         console.error('Error loading owner stats:', error);
     }
 }
 
-// [41] Load owner history
-async function loadOwnerHistory() {
-    try {
-        const loadingEl = document.getElementById('loadingOwnerHistory');
-        const tableEl = document.getElementById('ownerHistoryTable');
-        
-        if (loadingEl) loadingEl.style.display = 'block';
-        if (tableEl) tableEl.style.display = 'none';
-        
-        // Get filter values
-        const dateFilter = document.getElementById('ownerHistoryDateFilter')?.value || 'today';
-        const outletFilter = document.getElementById('filterOutletStok')?.value || 'all';
-        
-        // Build query - HANYA YANG SUDAH DIPROSES
-        let query = supabase
-            .from('stok_update')
-            .select('*')
-            .in('approval_status', ['approved', 'rejected'])
-            .order('created_at', { ascending: false })
-            .limit(50);
-        
-        // Apply outlet filter
-        if (outletFilter !== 'all') {
-            query = query.eq('outlet', outletFilter);
-        }
-        
-        // Apply date filter
-        if (dateFilter !== 'all') {
-            const today = new Date();
-            let startDate = new Date();
-            
-            if (dateFilter === 'today') {
-                startDate.setHours(0, 0, 0, 0);
-            } else if (dateFilter === 'week') {
-                startDate.setDate(today.getDate() - 7);
-            } else if (dateFilter === 'month') {
-                startDate.setMonth(today.getMonth() - 1);
-            }
-            
-            query = query.gte('created_at', startDate.toISOString());
-        }
-        
-        const { data: requests, error } = await query;
-        
-        if (error) throw error;
-        
-        // Display history
-        displayOwnerHistory(requests || []);
-        
-    } catch (error) {
-        console.error('Error loading owner history:', error);
-        const tbody = document.getElementById('ownerHistoryBody');
-        if (tbody) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="11" class="error-message">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Gagal memuat history: ${error.message}
-                    </td>
-                </tr>
-            `;
-        }
-    } finally {
-        const loadingEl = document.getElementById('loadingOwnerHistory');
-        const tableEl = document.getElementById('ownerHistoryTable');
-        
-        if (loadingEl) loadingEl.style.display = 'none';
-        if (tableEl) tableEl.style.display = 'table';
-    }
-}
-
-// [42] Display owner history
-function displayOwnerHistory(requests) {
-    const tbody = document.getElementById('ownerHistoryBody');
-    const tableEl = document.getElementById('ownerHistoryTable');
+// [15] Display pending requests untuk OWNER - FIXED VERSION
+function displayPendingRequests(requests) {
+    console.log('displayPendingRequests called with:', requests?.length, 'requests');
     
-    if (!tbody || !tableEl) return;
+    const pendingBody = document.getElementById('pendingRequestsBody');
+    const pendingCount = document.getElementById('pendingRequestsCount');
     
-    if (!requests || requests.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="11" class="empty-message">
-                    <i class="fas fa-history"></i>
-                    Tidak ada data riwayat
-                </td>
-            </tr>
-        `;
-        tableEl.style.display = 'table';
+    if (!pendingBody) {
+        console.error('pendingRequestsBody element not found!');
         return;
     }
     
-    let html = '';
+    // Filter hanya yang pending
+    const pendingRequests = Array.isArray(requests) 
+        ? requests.filter(r => r.approval_status === 'pending') 
+        : [];
     
-    requests.forEach(request => {
-        const createdDate = new Date(request.created_at);
-        const approvedDate = request.approved_at ? new Date(request.approved_at) : null;
-        const statusClass = getApprovalStatusClass(request.approval_status);
-        const typeClass = request.stok_type === 'masuk' ? 'type-in' : 'type-out';
-        const typeText = request.stok_type === 'masuk' ? 'Masuk' : 'Keluar';
-        
-        html += `
-            <tr class="${statusClass}">
-                <td>
-                    ${createdDate.toLocaleDateString('id-ID')}<br>
-                    <small>${createdDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>
-                </td>
-                <td>
-                    <code class="batch-id">${request.batch_id ? request.batch_id.substring(0, 8) + '...' : 'N/A'}</code>
-                </td>
-                <td>${request.outlet || '-'}</td>
-                <td>${request.updated_by || '-'}</td>
-                <td>
-                    <div class="product-name">${request.nama_produk}</div>
-                    <div class="product-group"><small>${request.group_produk || '-'}</small></div>
-                </td>
-                <td>
-                    <span class="type-badge ${typeClass}">${typeText}</span>
-                </td>
-                <td class="${typeClass}">
-                    ${request.qty_change > 0 ? '+' : ''}${request.qty_change}
-                </td>
-                <td>
-                    ${request.qty_before} → ${request.qty_after}
-                </td>
-                <td>
-                    <span class="status-badge ${statusClass}">
-                        ${request.approval_status === 'approved' ? 'Approved' : 'Rejected'}
-                    </span>
-                </td>
-                <td>
-                    ${request.approved_by || '-'}
-                    ${approvedDate ? `<br><small>${approvedDate.toLocaleDateString('id-ID')}</small>` : ''}
-                </td>
-                <td>
-                    <div class="notes-content">
-                        ${request.notes || '-'}
-                        ${request.rejection_reason ? `<br><small class="rejection-reason">❌ ${request.rejection_reason}</small>` : ''}
-                    </div>
+    console.log('Pending requests after filter:', pendingRequests.length);
+    
+    if (pendingRequests.length === 0) {
+        pendingBody.innerHTML = `
+            <tr>
+                <td colspan="8" class="no-data-cell">
+                    <i class="fas fa-check-circle"></i>
+                    <p>Tidak ada request pending</p>
                 </td>
             </tr>
         `;
-    });
+        if (pendingCount) {
+            pendingCount.textContent = '0 requests';
+        }
+        return;
+    }
     
-    tbody.innerHTML = html;
-    tableEl.style.display = 'table';
+    // Update count
+    if (pendingCount) {
+        pendingCount.textContent = `${pendingRequests.length} pending`;
+    }
+    
+    // Generate HTML
+    try {
+        const html = pendingRequests.map(request => {
+            const typeClass = request.stok_type === 'masuk' ? 'type-in' : 'type-out';
+            const typeText = request.stok_type === 'masuk' ? 'Masuk' : 'Keluar';
+            const statusClass = getApprovalStatusClass(request.approval_status);
+            const statusText = getApprovalStatusText(request.approval_status);
+            
+            // Check if already approved/rejected to disable buttons
+            const isActionable = request.approval_status === 'pending';
+            
+            return `
+                <tr data-id="${request.id}" data-status="${request.approval_status}">
+                    <td>${formatDateStok(request.tanggal)}</td>
+                    <td>${request.outlet || '-'}</td>
+                    <td>
+                        <div class="product-info">
+                            <strong>${request.nama_produk || 'No Name'}</strong>
+                            ${request.group_produk ? `<div class="product-group">${request.group_produk}</div>` : ''}
+                        </div>
+                    </td>
+                    <td>${request.updated_by || '-'}</td>
+                    <td>
+                        <span class="type-badge ${typeClass}">
+                            ${typeText}
+                        </span>
+                    </td>
+                    <td>
+                        <strong class="${typeClass}">
+                            ${request.stok_type === 'masuk' ? '+' : '-'}${Math.abs(request.qty_change || 0)}
+                        </strong>
+                    </td>
+                    <td>
+                        <span class="status-badge ${statusClass}">
+                            ${statusText}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            ${isActionable ? `
+                                <button class="btn-action btn-approve" data-id="${request.id}" 
+                                        title="Approve">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn-action btn-reject" data-id="${request.id}" 
+                                        title="Reject">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <button class="btn-action btn-view" data-id="${request.id}" 
+                                        title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            ` : `
+                                <button class="btn-action btn-view" data-id="${request.id}" 
+                                        title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            `}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
+        pendingBody.innerHTML = html;
+        
+        // Add event listeners to action buttons
+        setupRequestActionButtons();
+        
+    } catch (error) {
+        console.error('Error in displayPendingRequests:', error);
+        pendingBody.innerHTML = `
+            <tr>
+                <td colspan="8" class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Error loading data: ${error.message}</p>
+                </td>
+            </tr>
+        `;
+    }
 }
 
-// [43] Load outlet dropdown untuk OWNER
+// [16] Setup request action buttons (OWNER)
+function setupRequestActionButtons() {
+    // Approve buttons
+    document.querySelectorAll('.btn-approve').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const requestId = this.dataset.id;
+            approveStokRequest(requestId);
+        });
+    });
+    
+    // Reject buttons
+    document.querySelectorAll('.btn-reject').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const requestId = this.dataset.id;
+            showRejectModal(requestId);
+        });
+    });
+    
+    // View buttons
+    document.querySelectorAll('.btn-view').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const requestId = this.dataset.id;
+            showRequestDetail(requestId);
+        });
+    });
+}
+
+// [17] Approve stok request - VERSI SIMPLE YANG SELALU CEK STOK REAL
+async function approveStokRequest(requestId) {
+    if (!confirm('Approve request ini? Stok produk akan diupdate.')) return;
+    
+    try {
+        // 1. Ambil data request
+        const { data: request } = await supabase
+            .from('stok_update')
+            .select('*')
+            .eq('id', requestId)
+            .single();
+        
+        if (!request) {
+            alert('Request tidak ditemukan!');
+            return;
+        }
+        
+        if (request.approval_status !== 'pending') {
+            alert('Request sudah diproses sebelumnya');
+            return;
+        }
+        
+        // 2. ⭐ AMBIL STOK REAL-TIME SEKARANG ⭐
+        const { data: produkSekarang } = await supabase
+            .from('produk')
+            .select('stok')
+            .eq('nama_produk', request.nama_produk)
+            .eq('outlet', request.outlet)
+            .single();
+        
+        if (!produkSekarang) {
+            alert('Produk tidak ditemukan!');
+            return;
+        }
+        
+        const stokSekarang = produkSekarang.stok;
+        const stokDiRequest = request.qty_before;
+        
+        console.log(`🔄 Stok di request: ${stokDiRequest}`);
+        console.log(`🔄 Stok sekarang: ${stokSekarang}`);
+        
+        // 3. ⭐ HITUNG STOK BARU DARI STOK SEKARANG ⭐
+        const stokSetelah = stokSekarang + request.qty_change;
+        
+        console.log(`🧮 ${stokSekarang} ${request.qty_change > 0 ? '+' : ''}${request.qty_change} = ${stokSetelah}`);
+        
+        // 4. Validasi untuk stok keluar
+        if (request.stok_type === 'keluar' && stokSetelah < 0) {
+            alert(`❌ GAGAL: Stok tidak cukup!\n` +
+                  `Stok saat ini: ${stokSekarang}\n` +
+                  `Butuh keluar: ${Math.abs(request.qty_change)}\n` +
+                  `Hasil: ${stokSetelah} (negatif!)`);
+            return;
+        }
+        
+        // 5. Konfirmasi jika stok berubah
+        let stokBerubah = false;
+        if (stokSekarang !== stokDiRequest) {
+            const selisih = stokSekarang - stokDiRequest;
+            const lanjut = confirm(
+                `⚠️ STOK BERUBAH!\n\n` +
+                `Saat request: ${stokDiRequest}\n` +
+                `Sekarang: ${stokSekarang}\n` +
+                `Selisih: ${selisih > 0 ? '+' : ''}${selisih}\n\n` +
+                `Stok akan diubah dari ${stokSekarang} menjadi ${stokSetelah}\n\n` +
+                `Lanjutkan?`
+            );
+            
+            if (!lanjut) return;
+            stokBerubah = true;
+        }
+        
+        // 6. Update ke database
+        // A. Update status request
+        await supabase
+            .from('stok_update')
+            .update({
+                approval_status: 'approved',
+                approved_by: currentUserStok.nama_karyawan,
+                updated_at: new Date().toISOString(),
+                qty_before: stokSekarang,   // Update dengan stok sekarang
+                qty_after: stokSetelah      // Update dengan hasil hitung
+            })
+            .eq('id', requestId);
+        
+        // B. Update stok produk
+        await supabase
+            .from('produk')
+            .update({
+                stok: stokSetelah,
+                updated_at: new Date().toISOString()
+            })
+            .eq('nama_produk', request.nama_produk)
+            .eq('outlet', request.outlet);
+        
+        // 7. Kirim WA
+        try {
+            const waData = { ...request, qty_before: stokSekarang, qty_after: stokSetelah };
+            await sendWAStokApproval(waData);
+        } catch (e) {
+            console.warn('WA gagal:', e);
+        }
+        
+        // 8. Tampilkan pesan sukses
+        let pesan = `✅ APPROVED!\n\n` +
+                   `Produk: ${request.nama_produk}\n` +
+                   `Outlet: ${request.outlet}\n` +
+                   `Stok: ${stokSekarang} → ${stokSetelah}`;
+        
+        if (stokBerubah) {
+            pesan += `\n\n⚠️ Stok disesuaikan dari ${stokDiRequest}`;
+        }
+        
+        pesan += `\n\n📱 Notifikasi WA terkirim`;
+        alert(pesan);
+        
+        // 9. Update UI
+        const row = document.querySelector(`tr[data-id="${requestId}"]`);
+        if (row) {
+            row.querySelectorAll('.btn-approve, .btn-reject').forEach(b => b.disabled = true);
+            const badge = row.querySelector('.status-badge');
+            if (badge) {
+                badge.className = 'status-badge status-approved';
+                badge.textContent = 'Disetujui';
+            }
+        }
+        
+        // 10. Refresh
+        loadStokData();
+        
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Gagal: ' + error.message);
+    }
+}
+// [18] Show reject modal
+async function showRejectModal(requestId) {
+    const reason = prompt('Masukkan alasan penolakan:');
+    if (reason === null) return; // User cancelled
+    if (!reason.trim()) {
+        alert('Harap masukkan alasan penolakan');
+        return;
+    }
+    
+    await rejectStokRequest(requestId, reason);
+}
+
+// [19] Reject stok request (OWNER)
+async function rejectStokRequest(requestId, rejectionReason) {
+    try {
+        // Get request data to check status
+        const { data: request } = await supabase
+            .from('stok_update')
+            .select('approval_status')
+            .eq('id', requestId)
+            .single();
+        
+        if (request.approval_status !== 'pending') {
+            alert('Request ini sudah diproses sebelumnya.');
+            return;
+        }
+        
+        const { error } = await supabase
+            .from('stok_update')
+            .update({
+                approval_status: 'rejected',
+                approved_by: currentUserStok.nama_karyawan,
+                rejection_reason: rejectionReason,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', requestId);
+        
+        if (error) throw error;
+        
+        alert('Request telah ditolak.');
+        
+        // Disable action buttons for this row
+        const row = document.querySelector(`tr[data-id="${requestId}"]`);
+        if (row) {
+            const buttons = row.querySelectorAll('.btn-approve, .btn-reject');
+            buttons.forEach(btn => btn.disabled = true);
+            
+            // Update status badge
+            const statusBadge = row.querySelector('.status-badge');
+            if (statusBadge) {
+                statusBadge.className = 'status-badge status-rejected';
+                statusBadge.textContent = 'Ditolak';
+            }
+        }
+        
+        loadStokData(); // Refresh
+        
+    } catch (error) {
+        console.error('Error rejecting request:', error);
+        alert('Gagal menolak request: ' + error.message);
+    }
+}
+
+// [20] Show request detail (OWNER)
+async function showRequestDetail(requestId) {
+    try {
+        const { data: request, error } = await supabase
+            .from('stok_update')
+            .select('*')
+            .eq('id', requestId)
+            .single();
+        
+        if (error) throw error;
+        
+        const modal = document.getElementById('approvalModal');
+        const modalBody = document.getElementById('approvalModalBody');
+        
+        if (!modal || !modalBody) return;
+        
+        const typeText = request.stok_type === 'masuk' ? 'Stok Masuk' : 'Stok Keluar';
+        const typeClass = request.stok_type === 'masuk' ? 'type-in' : 'type-out';
+        const statusText = getApprovalStatusText(request.approval_status);
+        const statusClass = getApprovalStatusClass(request.approval_status);
+        
+        const isActionable = request.approval_status === 'pending';
+        
+        modalBody.innerHTML = `
+            <div class="request-detail">
+                <div class="detail-section">
+                    <h4>Informasi Request</h4>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <span class="label">Tanggal:</span>
+                            <span class="value">${formatDateStok(request.tanggal)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Outlet:</span>
+                            <span class="value">${request.outlet}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Dibuat Oleh:</span>
+                            <span class="value">${request.updated_by}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Status:</span>
+                            <span class="value ${statusClass}">${statusText}</span>
+                        </div>
+                        ${request.approved_by ? `
+                        <div class="detail-item">
+                            <span class="label">Disetujui Oleh:</span>
+                            <span class="value">${request.approved_by}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Waktu Approval:</span>
+                            <span class="value">${formatDateTime(request.updated_at)}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                
+                <div class="detail-section">
+                    <h4>Detail Produk</h4>
+                    <div class="product-detail">
+                        <div class="product-name">${request.nama_produk}</div>
+                        <div class="product-group">${request.group_produk || '-'}</div>
+                    </div>
+                </div>
+                
+                <div class="detail-section">
+                    <h4>Perubahan Stok</h4>
+                    <div class="stock-change ${typeClass}">
+                        <div class="stock-before">
+                            <span>Stok Sebelum:</span>
+                            <strong>${request.qty_before}</strong>
+                        </div>
+                        <div class="stock-arrow">
+                            <i class="fas fa-arrow-right"></i>
+                            <span class="change-amount ${typeClass}">
+                                ${request.qty_change > 0 ? '+' : ''}${request.qty_change}
+                            </span>
+                        </div>
+                        <div class="stock-after">
+                            <span>Stok Sesudah:</span>
+                            <strong>${request.qty_after}</strong>
+                        </div>
+                    </div>
+                </div>
+                
+                ${request.notes ? `
+                <div class="detail-section">
+                    <h4>Keterangan</h4>
+                    <div class="notes-box">${request.notes}</div>
+                </div>
+                ` : ''}
+                
+                ${request.rejection_reason ? `
+                <div class="detail-section">
+                    <h4>Alasan Penolakan</h4>
+                    <div class="rejection-box">${request.rejection_reason}</div>
+                </div>
+                ` : ''}
+                
+                ${isActionable ? `
+                <div class="detail-actions">
+                    <button class="btn-primary btn-approve-action" data-id="${request.id}">
+                        <i class="fas fa-check"></i> Approve
+                    </button>
+                    <button class="btn-secondary btn-reject-action" data-id="${request.id}">
+                        <i class="fas fa-times"></i> Reject
+                    </button>
+                </div>
+                ` : ''}
+            </div>
+        `;
+        
+        // Show modal
+        modal.style.display = 'flex';
+        
+        // Add event listeners for action buttons in modal
+        document.querySelector('.btn-approve-action')?.addEventListener('click', function() {
+            approveStokRequest(this.dataset.id);
+            modal.style.display = 'none';
+        });
+        
+        document.querySelector('.btn-reject-action')?.addEventListener('click', function() {
+            modal.style.display = 'none';
+            showRejectModal(this.dataset.id);
+        });
+        
+    } catch (error) {
+        console.error('Error showing request detail:', error);
+        alert('Gagal memuat detail request');
+    }
+}
+
+// [21] Display recent adjustments untuk OWNER - FIXED
+function displayRecentAdjustments(adjustments) {
+    const recentEl = document.getElementById('recentAdjustments');
+    if (!recentEl) {
+        console.log('Recent adjustments element not found');
+        return;
+    }
+    
+    if (!adjustments || adjustments.length === 0) {
+        recentEl.innerHTML = `
+            <div class="no-data">
+                <i class="fas fa-history"></i>
+                <p>Belum ada adjustment</p>
+            </div>
+        `;
+        console.log('No adjustments to display');
+        return;
+    }
+    
+    console.log(`Displaying ${adjustments.length} adjustments`);
+    
+    recentEl.innerHTML = adjustments.map(adj => {
+        const typeClass = adj.stok_type === 'masuk' ? 'type-in' : 'type-out';
+        const typeIcon = adj.stok_type === 'masuk' ? 'fa-arrow-down' : 'fa-arrow-up';
+        
+        // Format date
+        const date = formatDateStok(adj.tanggal) || adj.tanggal;
+        
+        return `
+            <div class="adjustment-item">
+                <div class="adjustment-header">
+                    <div class="adjustment-date">
+                        <i class="fas fa-calendar"></i>
+                        ${date}
+                    </div>
+                    <div class="adjustment-type ${typeClass}">
+                        <i class="fas ${typeIcon}"></i>
+                    </div>
+                </div>
+                <div class="adjustment-body">
+                    <div class="adjustment-product">
+                        <strong>${adj.nama_produk}</strong>
+                        <span class="adjustment-outlet">${adj.outlet}</span>
+                    </div>
+                    <div class="adjustment-qty ${typeClass}">
+                        ${adj.stok_type === 'masuk' ? '+' : '-'}${Math.abs(adj.qty_change)} unit
+                    </div>
+                    <div class="adjustment-info">
+                        <span class="adjustment-by">Oleh: ${adj.updated_by || '-'}</span>
+                        ${adj.notes ? `
+                        <div class="adjustment-notes">
+                            <i class="fas fa-sticky-note"></i>
+                            ${adj.notes}
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// [22] Load outlet dropdown untuk OWNER (FIX TIDAK RESET)
 async function loadOutletDropdownStok() {
     const select = document.getElementById('filterOutletStok');
     if (!select) return;
@@ -11885,11 +11185,19 @@ async function loadOutletDropdownStok() {
         
         let options = '<option value="all">Semua Outlet</option>';
         uniqueOutlets.forEach(outlet => {
-            const selected = selectedOutletFilter === outlet ? 'selected' : '';
+            // Check if this outlet should be selected
+            const shouldSelect = selectedOutletFilter === outlet || 
+                               (selectedOutletFilter === 'all' && outlet === currentOutletStok);
+            const selected = shouldSelect ? 'selected' : '';
             options += `<option value="${outlet}" ${selected}>${outlet}</option>`;
         });
         
         select.innerHTML = options;
+        
+        // Force update selected value
+        if (selectedOutletFilter && selectedOutletFilter !== 'all') {
+            select.value = selectedOutletFilter;
+        }
         
     } catch (error) {
         console.error('Error loading outlets for stok:', error);
@@ -11897,14 +11205,459 @@ async function loadOutletDropdownStok() {
     }
 }
 
-// [44] WA Notification Functions
-async function sendWABatchNotification(requests, batchNotes) {
-    try {
-        console.log('📤 Mengirim notifikasi WA untuk batch request...');
+// [23] Show request modal untuk KASIR (MULTIPLE ITEMS)
+async function showRequestModal() {
+    const modal = document.getElementById('requestModal');
+    if (!modal) return;
+    
+    // Reset items list
+    requestItems = [];
+    updateItemsList();
+    
+    // Load produk untuk dropdown
+    await loadProdukForRequest();
+    
+    // Reset form
+    document.getElementById('stokRequestForm')?.reset();
+    document.getElementById('currentStockInfo').style.display = 'none';
+    document.getElementById('submitRequest').disabled = true;
+    
+    // Show modal
+    modal.style.display = 'flex';
+}
+
+// [24] Close request modal
+function closeRequestModal() {
+    const modal = document.getElementById('requestModal');
+    if (modal) {
+        modal.style.display = 'none';
         
-        // Cek apakah WA API tersedia
+        // Reset items
+        requestItems = [];
+        updateItemsList();
+        
+        // Reset form
+        const form = document.getElementById('stokRequestForm');
+        if (form) form.reset();
+    }
+}
+
+// [25] Load produk untuk request dropdown (HANYA INVENTORY=TRUE)
+async function loadProdukForRequest() {
+    const select = document.getElementById('selectProdukRequest');
+    if (!select) return;
+    
+    try {
+        const { data: produkData, error } = await supabase
+            .from('produk')
+            .select('id, nama_produk, stok, group_produk')
+            .eq('outlet', currentOutletStok)
+            .eq('status', 'active')
+            .eq('inventory', true) // Hanya produk inventory
+            .order('nama_produk');
+        
+        if (error) throw error;
+        
+        select.innerHTML = `
+            <option value="">-- Pilih Produk --</option>
+            ${produkData.map(p => `
+                <option value="${p.id}" data-stock="${p.stok}">
+                    ${p.nama_produk} (Stok: ${p.stok})
+                </option>
+            `).join('')}
+        `;
+        
+    } catch (error) {
+        console.error('Error loading produk for request:', error);
+        select.innerHTML = '<option value="">Error loading produk</option>';
+    }
+}
+
+// [26] Load produk untuk owner adjustment (HANYA INVENTORY=TRUE) - FIXED
+async function loadProdukForAdjustment() {
+    const outletSelect = document.getElementById('adjustOutlet');
+    const produkSelect = document.getElementById('adjustProduk');
+    
+    if (!outletSelect || !produkSelect) return;
+    
+    try {
+        // Load semua outlet untuk owner
+        const { data: outlets } = await supabase
+            .from('karyawan')
+            .select('outlet')
+            .not('outlet', 'is', null);
+        
+        if (outlets && outlets.length > 0) {
+            const uniqueOutlets = [...new Set(outlets.map(o => o.outlet))].filter(Boolean);
+            let options = '<option value="">-- Pilih Outlet --</option>';
+            uniqueOutlets.forEach(outlet => {
+                options += `<option value="${outlet}">${outlet}</option>`;
+            });
+            outletSelect.innerHTML = options;
+        } else {
+            outletSelect.innerHTML = `<option value="${currentOutletStok}">${currentOutletStok}</option>`;
+        }
+        
+        // Reset produk dropdown dulu
+        produkSelect.innerHTML = '<option value="">-- Pilih Outlet terlebih dahulu --</option>';
+        
+        // Event listener untuk load produk ketika outlet dipilih
+        outletSelect.addEventListener('change', async function() {
+            const selectedOutlet = this.value;
+            if (!selectedOutlet) {
+                produkSelect.innerHTML = '<option value="">-- Pilih Outlet terlebih dahulu --</option>';
+                return;
+            }
+            
+            // Load produk untuk outlet yang dipilih
+            const { data: produkData, error } = await supabase
+                .from('produk')
+                .select('id, nama_produk, stok')
+                .eq('outlet', selectedOutlet)
+                .eq('status', 'active')
+                .eq('inventory', true)
+                .order('nama_produk');
+            
+            if (error) {
+                console.error('Error loading produk:', error);
+                produkSelect.innerHTML = '<option value="">Error loading produk</option>';
+                return;
+            }
+            
+            if (produkData && produkData.length > 0) {
+                produkSelect.innerHTML = `
+                    <option value="">-- Pilih Produk --</option>
+                    ${produkData.map(p => `
+                        <option value="${p.id}">
+                            ${p.nama_produk} (Stok: ${p.stok})
+                        </option>
+                    `).join('')}
+                `;
+            } else {
+                produkSelect.innerHTML = '<option value="">Tidak ada produk inventory</option>';
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error loading produk for adjustment:', error);
+        outletSelect.innerHTML = '<option value="">Error loading outlets</option>';
+        produkSelect.innerHTML = '<option value="">Error loading produk</option>';
+    }
+}
+
+// [27] Update current stock info in modal
+async function updateCurrentStockInfo(productId) {
+    const stockValue = document.getElementById('currentStockValue');
+    const stockInfo = document.getElementById('currentStockInfo');
+    
+    if (!productId) {
+        stockInfo.style.display = 'none';
+        return;
+    }
+    
+    try {
+        const { data: produk, error } = await supabase
+            .from('produk')
+            .select('stok')
+            .eq('id', productId)
+            .single();
+        
+        if (error) throw error;
+        
+        if (stockValue) stockValue.textContent = produk.stok;
+        if (stockInfo) stockInfo.style.display = 'block';
+        
+        // Update qty limits
+        updateQtyLimits();
+        
+    } catch (error) {
+        console.error('Error getting current stock:', error);
+        if (stockValue) stockValue.textContent = 'Error';
+    }
+}
+
+// [28] Update quantity limits based on stok type
+function updateQtyLimits() {
+    const stokType = document.getElementById('stokType')?.value;
+    const qtyInput = document.getElementById('qtyChange');
+    const currentStock = parseInt(document.getElementById('currentStockValue')?.textContent || 0);
+    
+    if (!qtyInput) return;
+    
+    if (stokType === 'keluar') {
+        // Untuk stok keluar, maksimal tidak boleh melebihi stok saat ini
+        qtyInput.max = currentStock;
+        qtyInput.title = `Maksimal: ${currentStock} unit (stok saat ini)`;
+    } else {
+        // Untuk stok masuk, tidak ada batas maksimal
+        qtyInput.removeAttribute('max');
+        qtyInput.title = '';
+    }
+}
+
+// [29] Add item to list (MULTIPLE ITEMS)
+async function addItemToList() {
+    try {
+        const productId = document.getElementById('selectProdukRequest')?.value;
+        const productSelect = document.getElementById('selectProdukRequest');
+        const productName = productSelect?.selectedOptions[0]?.text.split(' (Stok:')[0] || '';
+        const stokType = document.getElementById('stokType')?.value;
+        const qtyChange = parseInt(document.getElementById('qtyChange')?.value || 0);
+        
+        if (!productId) {
+            alert('Pilih produk terlebih dahulu');
+            return;
+        }
+        
+        if (qtyChange <= 0) {
+            alert('Jumlah harus lebih dari 0');
+            return;
+        }
+        
+        // Get current stock
+        const { data: produk, error } = await supabase
+            .from('produk')
+            .select('stok, group_produk')
+            .eq('id', productId)
+            .single();
+        
+        if (error) throw error;
+        
+        // Check for stok keluar
+        if (stokType === 'keluar' && qtyChange > produk.stok) {
+            alert(`Stok tidak mencukupi! Stok saat ini: ${produk.stok}`);
+            return;
+        }
+        
+        // Check if product already in list
+        const existingItemIndex = requestItems.findIndex(item => 
+            item.produk_id === productId && item.stok_type === stokType
+        );
+        
+        if (existingItemIndex !== -1) {
+            // Update existing item
+            requestItems[existingItemIndex].qty_change += stokType === 'masuk' ? qtyChange : -qtyChange;
+            
+            // Check stock again for updated quantity
+            if (stokType === 'keluar') {
+                const totalQty = Math.abs(requestItems[existingItemIndex].qty_change);
+                if (totalQty > produk.stok) {
+                    alert(`Total stok keluar (${totalQty}) melebihi stok saat ini (${produk.stok})`);
+                    requestItems[existingItemIndex].qty_change = stokType === 'masuk' ? qtyChange : -qtyChange;
+                    return;
+                }
+            }
+        } else {
+            // Add new item
+            requestItems.push({
+                produk_id: productId,
+                nama_produk: productName,
+                group_produk: produk.group_produk || '',
+                stok_type: stokType,
+                qty_change: stokType === 'masuk' ? qtyChange : -qtyChange,
+                current_stock: produk.stok,
+                qty_before: produk.stok,
+                qty_after: stokType === 'masuk' ? produk.stok + qtyChange : produk.stok - qtyChange
+            });
+        }
+        
+        // Update UI
+        updateItemsList();
+        
+        // Reset form
+        document.getElementById('qtyChange').value = 1;
+        
+    } catch (error) {
+        console.error('Error adding item:', error);
+        alert('Gagal menambah item: ' + error.message);
+    }
+}
+
+// [30] Update items list display
+function updateItemsList() {
+    const itemsList = document.getElementById('itemsList');
+    const itemsSummary = document.getElementById('itemsSummary');
+    const submitBtn = document.getElementById('submitRequest');
+    
+    if (!itemsList || !itemsSummary || !submitBtn) return;
+    
+    if (requestItems.length === 0) {
+        itemsList.innerHTML = `
+            <div class="empty-list">
+                <i class="fas fa-clipboard-list"></i>
+                <p>Belum ada item ditambahkan</p>
+            </div>
+        `;
+        itemsSummary.style.display = 'none';
+        submitBtn.disabled = true;
+        return;
+    }
+    
+    // Display items
+    itemsList.innerHTML = requestItems.map((item, index) => {
+        const typeClass = item.stok_type === 'masuk' ? 'type-in' : 'type-out';
+        const typeIcon = item.stok_type === 'masuk' ? 'fa-arrow-down' : 'fa-arrow-up';
+        const typeText = item.stok_type === 'masuk' ? 'Stok Masuk' : 'Stok Keluar';
+        
+        return `
+            <div class="item-row" data-index="${index}">
+                <div class="item-info">
+                    <div class="item-name">${item.nama_produk}</div>
+                    <div class="item-details">
+                        <span class="item-type ${typeClass}">
+                            <i class="fas ${typeIcon}"></i> ${typeText}
+                        </span>
+                        <span class="item-qty ${typeClass}">
+                            ${item.stok_type === 'masuk' ? '+' : '-'}${Math.abs(item.qty_change)} unit
+                        </span>
+                        <span class="item-stock">
+                            Stok: ${item.qty_before} → ${item.qty_after}
+                        </span>
+                    </div>
+                </div>
+                <button class="btn-remove-item" data-index="${index}" title="Hapus item">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+    }).join('');
+    
+    // Calculate summary
+    const totalItems = requestItems.length;
+    const totalMasuk = requestItems
+        .filter(item => item.stok_type === 'masuk')
+        .reduce((sum, item) => sum + Math.abs(item.qty_change), 0);
+    const totalKeluar = requestItems
+        .filter(item => item.stok_type === 'keluar')
+        .reduce((sum, item) => sum + Math.abs(item.qty_change), 0);
+    
+    // Update summary
+    document.getElementById('totalItemsCount').textContent = totalItems;
+    document.getElementById('totalMasukCount').textContent = totalMasuk;
+    document.getElementById('totalKeluarCount').textContent = totalKeluar;
+    
+    itemsSummary.style.display = 'block';
+    submitBtn.disabled = false;
+    
+    // Add event listeners for remove buttons
+    document.querySelectorAll('.btn-remove-item').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const index = parseInt(this.dataset.index);
+            removeItemFromList(index);
+        });
+    });
+}
+
+// [31] Remove item from list
+function removeItemFromList(index) {
+    if (index >= 0 && index < requestItems.length) {
+        requestItems.splice(index, 1);
+        updateItemsList();
+    }
+}
+// [44] Helper: Kirim notifikasi WA ke OWNER saat kasir submit request
+async function sendWAToOwner(requestData, kasirData) {
+    try {
+        console.log('📤 Mengirim notifikasi WhatsApp ke OWNER...');
+        
+        // Cek apakah konstanta WA sudah didefinisikan
         if (typeof WA_API_URL === 'undefined' || typeof WA_API_KEY === 'undefined') {
-            console.warn('WA API tidak dikonfigurasi');
+            console.error('Konfigurasi WA API tidak ditemukan!');
+            return false;
+        }
+        
+        if (!WA_OWNER_PHONE) {
+            console.warn('Nomor OWNER tidak dikonfigurasi');
+            return false;
+        }
+        
+        // Format nomor telepon (62 untuk Indonesia)
+        let phoneNumber = WA_OWNER_PHONE;
+        if (phoneNumber.startsWith('0')) {
+            phoneNumber = '62' + phoneNumber.substring(1);
+        } else if (!phoneNumber.startsWith('62')) {
+            phoneNumber = '62' + phoneNumber;
+        }
+        
+        // Tambahkan @c.us untuk chat personal
+        const chatId = phoneNumber + '@c.us';
+        
+        console.log(`📱 Mengirim ke OWNER: ${chatId}`);
+        
+        // Format pesan untuk OWNER
+        const typeText = requestData.stok_type === 'masuk' ? '📈 STOK MASUK' : '📉 STOK KELUAR';
+        const typeIcon = requestData.stok_type === 'masuk' ? '⬆️' : '⬇️';
+        const changeSign = requestData.stok_type === 'masuk' ? '+' : '-';
+        
+        const message = `🔄 *PERMINTAAN UPDATE STOK - MENUNGGU APPROVAL*
+=============================
+🏬 *Outlet:* ${requestData.outlet}
+👤 *Kasir:* ${kasirData.nama_karyawan}
+📅 *Tanggal:* ${formatDateStok(requestData.tanggal)}
+⏰ *Waktu:* ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+=============================
+${typeIcon} *${typeText}*
+📦 *Produk:* ${requestData.nama_produk}
+📊 *Group:* ${requestData.group_produk || '-'}
+=============================
+📈 *Detail Perubahan:*
+   Sebelum: ${requestData.qty_before} unit
+   Perubahan: ${changeSign}${Math.abs(requestData.qty_change)} unit
+   Setelah: ${requestData.qty_after} unit
+=============================
+📝 *Catatan:* ${requestData.notes || 'Tidak ada catatan'}
+=============================
+🆔 *ID Request:* ${requestData.id || 'BARU'}
+📋 *Status:* ⏳ MENUNGGU APPROVAL
+=============================
+⚠️ *Silakan buka aplikasi untuk:*
+   ✅ Approve  ❌ Reject
+=============================
+⏰ *Mohon segera diproses maksimal 24 jam*`;
+        
+        console.log('🔑 Menggunakan X-Api-Key header untuk owner notification');
+        
+        const response = await fetch(WA_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Api-Key': WA_API_KEY
+            },
+            body: JSON.stringify({
+                session: 'Session1',
+                chatId: chatId,  // Kirim ke chat personal owner
+                text: message
+            })
+        });
+        
+        console.log('📥 Response status:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ WA API Error untuk owner:', errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ WA API Response untuk owner:', data);
+        
+        // Cek berdasarkan HTTP status
+        return (response.status === 201 || response.status === 200);
+        
+    } catch (error) {
+        console.error('❌ Error mengirim notifikasi WA ke owner:', error);
+        return false;
+    }
+}
+
+    // [45] Helper: Kirim notifikasi WA ke OWNER untuk multiple items
+async function sendWAToOwnerMultiple(requests, kasirData, notes) {
+    try {
+        console.log(`📤 Mengirim notifikasi WhatsApp ke OWNER untuk ${requests.length} items...`);
+        
+        // Cek apakah konstanta WA sudah didefinisikan
+        if (typeof WA_API_URL === 'undefined' || typeof WA_API_KEY === 'undefined') {
+            console.error('Konfigurasi WA API tidak ditemukan!');
             return false;
         }
         
@@ -11922,22 +11675,22 @@ async function sendWABatchNotification(requests, batchNotes) {
         }
         
         const chatId = phoneNumber + '@c.us';
-        const batchId = requests[0]?.batch_id || 'N/A';
-        const outlet = requests[0]?.outlet || 'N/A';
-        const kasir = requests[0]?.updated_by || 'N/A';
         
         // Hitung summary
         let totalMasuk = 0;
         let totalKeluar = 0;
-        let itemsList = '';
         
-        requests.forEach((req, index) => {
+        requests.forEach(req => {
             if (req.stok_type === 'masuk') {
                 totalMasuk += Math.abs(req.qty_change);
             } else {
                 totalKeluar += Math.abs(req.qty_change);
             }
-            
+        });
+        
+        // Format pesan untuk multiple items
+        let itemsList = '';
+        requests.forEach((req, index) => {
             const typeIcon = req.stok_type === 'masuk' ? '⬆️' : '⬇️';
             const changeSign = req.stok_type === 'masuk' ? '+' : '-';
             
@@ -11949,31 +11702,28 @@ async function sendWABatchNotification(requests, batchNotes) {
             }
         });
         
-        // Format pesan
-        const message = `🔄 *REQUEST UPDATE STOK BATCH - BABEH BARBERSHOP*
+        const message = `📋 *PERMINTAAN UPDATE STOK - ${requests.length} ITEMS*
 =============================
-🏬 *Outlet:* ${outlet}
-👤 *Kasir:* ${kasir}
-🏷️ *Batch ID:* ${batchId}
-📅 *Tanggal:* ${new Date().toLocaleDateString('id-ID')}
+🏬 *Outlet:* ${requests[0].outlet}
+👤 *Kasir:* ${kasirData.nama_karyawan}
+📅 *Tanggal:* ${formatDateStok(requests[0].tanggal)}
 ⏰ *Waktu:* ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
 =============================
-📊 *SUMMARY:*
+📊 *Summary Request:*
    📈 Stok Masuk: ${totalMasuk} unit
    📉 Stok Keluar: ${totalKeluar} unit
    📦 Total Items: ${requests.length}
 =============================
-📋 *DETAIL ITEMS:*
+📋 *Detail Items:*
 ${itemsList}
 =============================
-📝 *Catatan:* ${batchNotes || 'Tidak ada catatan'}
+📝 *Catatan:* ${notes || 'Tidak ada catatan'}
 =============================
 📋 *Status:* ⏳ MENUNGGU APPROVAL OWNER
 =============================
 ⚠️ *Silakan buka aplikasi untuk approve/reject*
 ⏰ *Mohon segera diproses maksimal 24 jam*`;
         
-        // Kirim WA
         const response = await fetch(WA_API_URL, {
             method: 'POST',
             headers: {
@@ -11987,175 +11737,424 @@ ${itemsList}
             })
         });
         
-        console.log('📤 WA notification sent for batch:', batchId);
-        return response.ok;
+        console.log('📤 Notifikasi multiple items terkirim ke owner');
+        
+        return (response.status === 201 || response.status === 200);
         
     } catch (error) {
-        console.error('Error sending WA batch notification:', error);
+        console.error('Error mengirim notifikasi multiple ke owner:', error);
         return false;
     }
 }
-
-async function sendWABatchApproval(batchId, itemIds, action, reason = '') {
+// [32] Submit stok request (MULTIPLE ITEMS)
+async function submitStokRequest() {
     try {
-        // Cek apakah WA API tersedia
-        if (typeof WA_API_URL === 'undefined' || typeof WA_API_KEY === 'undefined') {
-            console.warn('WA API tidak dikonfigurasi');
-            return false;
+        if (requestItems.length === 0) {
+            alert('Tambah minimal satu item sebelum submit');
+            return;
         }
         
-        if (!WA_OWNER_PHONE) {
-            console.warn('Nomor OWNER tidak dikonfigurasi');
-            return false;
-        }
+        const notes = document.getElementById('requestNotes')?.value || '';
         
-        // Ambil detail items
-        const { data: items } = await supabase
+        // Create requests for all items
+        const requests = requestItems.map(item => ({
+            tanggal: new Date().toISOString().split('T')[0],
+            outlet: currentOutletStok,
+            stok_type: item.stok_type,
+            updated_by: currentUserStok.nama_karyawan,
+            nama_produk: item.nama_produk,
+            group_produk: item.group_produk,
+            qty_before: item.qty_before,
+            qty_change: item.qty_change,
+            qty_after: item.qty_after,
+            approval_status: 'pending',
+            notes: notes,
+            created_at: new Date().toISOString()
+        }));
+        
+        const { data: savedRequests, error } = await supabase
             .from('stok_update')
-            .select('*')
-            .in('id', itemIds);
+            .insert(requests)
+            .select();
         
-        if (!items || items.length === 0) return false;
+        if (error) throw error;
         
-        // Format nomor telepon (kirim ke kasir yang request)
-        const kasirPhone = '0811159429'; // Ganti dengan nomor kasir sebenarnya
-        let phoneNumber = kasirPhone;
-        if (phoneNumber.startsWith('0')) {
-            phoneNumber = '62' + phoneNumber.substring(1);
+        // ✅ TAMBAHKAN: Kirim notifikasi WA ke OWNER (0811159429)
+        try {
+            if (savedRequests.length === 1) {
+                // Single item - kirim detail lengkap
+                await sendWAToOwner(savedRequests[0], currentUserStok);
+            } else {
+                // Multiple items - kirim summary
+                await sendWAToOwnerMultiple(savedRequests, currentUserStok, notes);
+            }
+        } catch (waError) {
+            console.warn('Gagal kirim notifikasi WA ke owner:', waError);
+            // Lanjutkan meski WA gagal
         }
         
-        const chatId = phoneNumber + '@c.us';
-        const outlet = items[0]?.outlet || 'N/A';
-        const kasir = items[0]?.updated_by || 'N/A';
-        const actionText = action === 'approved' ? '✅ APPROVED' : '❌ REJECTED';
-        const actionIcon = action === 'approved' ? '✅' : '❌';
+        // Success
+        alert(`✅ Request berhasil dikirim!\n\n📦 Total ${requestItems.length} item\n👑 Menunggu approval owner\n📱 Notifikasi terkirim ke WhatsApp`);
+        closeRequestModal();
         
-        // Format items list
-        let itemsList = '';
-        items.forEach((item, index) => {
-            const typeIcon = item.stok_type === 'masuk' ? '⬆️' : '⬇️';
-            const changeSign = item.qty_change > 0 ? '+' : '';
-            
-            itemsList += `${index + 1}. ${typeIcon} ${item.nama_produk}\n`;
-            itemsList += `   ${changeSign}${item.qty_change} unit (${item.qty_before} → ${item.qty_after})\n`;
-            itemsList += `   Status: ${actionIcon} ${action.toUpperCase()}\n`;
-            
-            if (index < items.length - 1) {
-                itemsList += '\n';
-            }
-        });
-        
-        // Format pesan
-        const message = `${action === 'approved' ? '✅' : '❌'} *${actionText} - UPDATE STOK BATCH*
-=============================
-🏬 *Outlet:* ${outlet}
-👤 *Kasir:* ${kasir}
-🏷️ *Batch ID:* ${batchId}
-👑 *Approver:* ${currentUserStok?.nama_karyawan || 'Owner'}
-📅 *Tanggal:* ${new Date().toLocaleDateString('id-ID')}
-⏰ *Waktu:* ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-=============================
-📋 *ITEMS ${action.toUpperCase()}:*
-${itemsList}
-=============================
-${reason ? `📝 *Alasan ${action === 'rejected' ? 'Penolakan' : 'Approval'}:*\n${reason}\n=============================\n` : ''}
-ℹ️ *Info:* Item telah diproses oleh owner. Silakan cek aplikasi untuk detail lengkap.`;
-        
-        // Kirim WA
-        const response = await fetch(WA_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Api-Key': WA_API_KEY
-            },
-            body: JSON.stringify({
-                session: 'Session1',
-                chatId: chatId,
-                text: message
-            })
-        });
-        
-        console.log(`📤 WA ${action} notification sent for batch:`, batchId);
-        return response.ok;
+        // Refresh data
+        loadStokData();
         
     } catch (error) {
-        console.error(`Error sending WA ${action} notification:`, error);
-        return false;
+        console.error('Error submitting stok request:', error);
+        alert('Gagal mengirim request: ' + error.message);
     }
 }
 
-// [45] Helper Functions
-function generateStokBatchId() {
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substring(2, 8);
-    return `STK-${timestamp}-${random}`.toUpperCase();
+// [33] Handle quick adjustment (OWNER) - UPDATE PRODUK.STOK - FIXED dengan WA NOTIFIKASI
+async function handleQuickAdjust() {
+    try {
+        const outlet = document.getElementById('adjustOutlet')?.value;
+        const productId = document.getElementById('adjustProduk')?.value;
+        const stokType = document.getElementById('adjustType')?.value;
+        const qtyChange = parseInt(document.getElementById('adjustQty')?.value || 0);
+        const notes = document.getElementById('adjustNotes')?.value;
+        
+        if (!outlet) {
+            alert('Pilih outlet terlebih dahulu');
+            return;
+        }
+        
+        if (!productId) {
+            alert('Pilih produk terlebih dahulu');
+            return;
+        }
+        
+        if (qtyChange <= 0) {
+            alert('Jumlah harus lebih dari 0');
+            return;
+        }
+        
+        if (!notes) {
+            alert('Harap isi alasan adjustment');
+            return;
+        }
+        
+        // Get product info (dengan outlet yang spesifik)
+        const { data: produk, error: produkError } = await supabase
+            .from('produk')
+            .select('nama_produk, group_produk, stok')
+            .eq('id', productId)
+            .eq('outlet', outlet) // PASTIKAN outlet sesuai
+            .single();
+        
+        if (produkError) {
+            console.error('Product error:', produkError);
+            alert('Produk tidak ditemukan di outlet ini!');
+            return;
+        }
+        
+        // Calculate quantities
+        const qtyBefore = produk.stok;
+        const qtyChangeFinal = stokType === 'masuk' ? qtyChange : -qtyChange;
+        const qtyAfter = qtyBefore + qtyChangeFinal;
+        
+        // Validate untuk stok keluar
+        if (stokType === 'keluar' && qtyAfter < 0) {
+            alert('Stok tidak mencukupi! Stok saat ini: ' + qtyBefore);
+            return;
+        }
+        
+        // Create adjustment (auto approved for owner)
+        const adjustmentData = {
+            tanggal: new Date().toISOString().split('T')[0],
+            outlet: outlet,
+            stok_type: stokType,
+            updated_by: currentUserStok.nama_karyawan,
+            nama_produk: produk.nama_produk,
+            group_produk: produk.group_produk || '',
+            qty_before: qtyBefore,
+            qty_change: qtyChangeFinal,
+            qty_after: qtyAfter,
+            approval_status: 'approved',
+            approved_by: currentUserStok.nama_karyawan,
+            notes: notes,
+            created_at: new Date().toISOString()
+        };
+        
+        // Insert ke stok_update
+        const { data, error } = await supabase
+            .from('stok_update')
+            .insert([adjustmentData]);
+        
+        if (error) throw error;
+        
+        // UPDATE PRODUK.STOK
+        const { error: updateError } = await supabase
+            .from('produk')
+            .update({ 
+                stok: qtyAfter,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', productId)
+            .eq('outlet', outlet); // PASTIKAN outlet sesuai
+        
+        if (updateError) {
+            console.error('Update produk error:', updateError);
+            throw updateError;
+        }
+        
+        // Kirim notifikasi WA untuk Quick Adjustment
+        try {
+            await sendWAQuickAdjustment(adjustmentData);
+        } catch (waError) {
+            console.warn('Gagal kirim notifikasi WA:', waError);
+            // Lanjutkan meski WA gagal
+        }
+        
+        // Success
+        alert('Adjustment berhasil disimpan! Stok produk diperbarui.');
+        
+        // Reset form
+        document.getElementById('quickAdjustForm').reset();
+        document.getElementById('adjustFormContainer').style.display = 'none';
+        
+        // Refresh data
+        loadStokData();
+        
+    } catch (error) {
+        console.error('Error handling quick adjustment:', error);
+        alert('Gagal menyimpan adjustment: ' + error.message);
+    }
 }
 
+// [34] Helper: Get stock status class
 function getStockStatusClass(stock) {
     if (stock === 0) return 'stock-out';
-    if (stock <= 5) return 'stock-critical';
     if (stock <= 10) return 'stock-low';
     return 'stock-ok';
 }
 
+// [35] Helper: Get approval status class
 function getApprovalStatusClass(status) {
     switch(status) {
         case 'approved': return 'status-approved';
         case 'rejected': return 'status-rejected';
-        case 'pending': return 'status-pending';
-        default: return 'status-unknown';
+        default: return 'status-pending';
     }
 }
 
-function showStokToast(message, type = 'info') {
-    const toast = document.getElementById('stokToast');
-    if (!toast) return;
-    
-    const typeIcon = type === 'success' ? 'fa-check-circle' : 
-                    type === 'error' ? 'fa-exclamation-circle' : 
-                    type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
-    
-    toast.innerHTML = `
-        <div class="toast-icon">
-            <i class="fas ${typeIcon}"></i>
-        </div>
-        <div class="toast-message">${message}</div>
-    `;
-    
-    toast.className = `toast toast-${type}`;
-    toast.style.display = 'flex';
-    
-    setTimeout(() => {
-        toast.style.display = 'none';
-    }, 5000);
+// [36] Helper: Get approval status text
+function getApprovalStatusText(status) {
+    switch(status) {
+        case 'approved': return 'Disetujui';
+        case 'rejected': return 'Ditolak';
+        default: return 'Menunggu';
+    }
 }
 
+// [37] Helper: Format date for stok
 function formatDateStok(dateString) {
     if (!dateString) return '-';
+    
     try {
         const date = new Date(dateString);
         return date.toLocaleDateString('id-ID', {
             day: '2-digit',
-            month: 'short',
-            year: 'numeric'
+            month: 'short'
         });
     } catch (error) {
         return dateString;
     }
 }
 
-// [46] Global Functions untuk onclick events
-window.toggleProductSelection = toggleProductSelection;
-window.closeAddItemModal = closeAddItemModal;
-window.confirmAddItem = confirmAddItem;
-window.editBatchItem = editBatchItem;
-window.removeBatchItem = removeBatchItem;
-window.toggleSelectAllInBatch = toggleSelectAllInBatch;
-window.updateBatchCheckbox = updateBatchCheckbox;
-window.approveSelectedInBatch = approveSelectedInBatch;
-window.rejectSelectedInBatch = rejectSelectedInBatch;
-window.loadKasirStokHistory = loadKasirStokHistory;
-window.loadOwnerHistory = loadOwnerHistory;
+// [38] Helper: Format date time
+function formatDateTime(dateTimeString) {
+    if (!dateTimeString) return '-';
+    
+    try {
+        const date = new Date(dateTimeString);
+        return date.toLocaleString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (error) {
+        return dateTimeString;
+    }
+}
 
-// ========== END OF FILE ==========
+// [39] Helper: Show error message
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.innerHTML = `
+        <i class="fas fa-exclamation-circle"></i>
+        <span>${message}</span>
+    `;
+    
+    const content = document.querySelector('.stok-content');
+    if (content) {
+        content.prepend(errorDiv);
+        setTimeout(() => errorDiv.remove(), 5000);
+    }
+}
+
+// [40] Helper: Kirim notifikasi WhatsApp untuk stok approval - FIXED VERSION
+async function sendWAStokApproval(request) {
+    try {
+        console.log('📤 Mengirim notifikasi WhatsApp untuk approval stok...');
+        
+        // Cek apakah konstanta WA sudah didefinisikan
+        if (typeof WA_API_URL === 'undefined' || typeof WA_API_KEY === 'undefined') {
+            console.error('Konfigurasi WA API tidak ditemukan!');
+            return false;
+        }
+        
+        // Format pesan
+        const message = `*✅ STOK UPDATE - BABEH BARBERSHOP*
+=============================
+🏬 Outlet : ${request.outlet}
+📅 Tanggal : ${formatDateStok(request.tanggal)}
+🔄 Jenis : ${request.stok_type === 'masuk' ? 'STOK MASUK' : 'STOK KELUAR'}
+=============================
+📦 Produk : ${request.nama_produk}
+📊 Group  : ${request.group_produk || '-'}
+=============================
+📈 Perubahan Stok:
+   Sebelum : ${request.qty_before} unit
+   Perubahan : ${request.qty_change > 0 ? '+' : ''}${request.qty_change} unit
+   Sesudah : ${request.qty_after} unit
+=============================
+👤 Kasir : ${request.updated_by}
+👑 Approver : ${request.approved_by || currentUserStok?.nama_karyawan}
+📝 Catatan : ${request.notes || '-'}
+=============================
+🕐 Waktu : ${formatDateTime(new Date())}
+✅ Status : STOK BERHASIL DIPERBARUI`;
+        
+        console.log('🔑 Menggunakan header: X-Api-Key');
+        console.log('🗂️ Session: Session1');
+        
+        const response = await fetch(WA_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Api-Key': WA_API_KEY
+            },
+            body: JSON.stringify({
+                session: 'Session1',
+                chatId: WA_CHAT_ID,
+                text: message
+            })
+        });
+        
+        console.log('📥 Response status:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ WA API Error:', errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ WA API Response:', data);
+        
+        // ⭐⭐ LOGIKA BARU: Cek berdasarkan response actual ⭐⭐
+        // Response memiliki: key, message, messageTimestamp, status, participant
+        
+        if (response.status === 201 || response.status === 200) {
+            // HTTP 201 Created atau 200 OK berarti berhasil
+            console.log('🎉 HTTP', response.status, '- Notifikasi WhatsApp berhasil dikirim!');
+            console.log('📱 Message ID:', data.key?.id || 'N/A');
+            console.log('📊 Status:', data.status || 'N/A');
+            console.log('👥 Participant:', data.participant || 'N/A');
+            return true;
+        } else {
+            console.warn('⚠️ Unexpected HTTP status:', response.status);
+            return false;
+        }
+        
+    } catch (error) {
+        console.error('❌ Error mengirim notifikasi WhatsApp:', error);
+        return false;
+    }
+}
+
+// [41] Helper: Kirim notifikasi WA untuk Quick Adjustment - JUGA PERBAIKI
+async function sendWAQuickAdjustment(adjustmentData) {
+    try {
+        // Cek apakah konstanta WA sudah didefinisikan
+        if (typeof WA_API_URL === 'undefined' || typeof WA_API_KEY === 'undefined') {
+            console.warn('Konfigurasi WA API tidak ditemukan. Melewatkan notifikasi.');
+            return false;
+        }
+        
+        const message = `*⚡ QUICK ADJUSTMENT STOK - BABEH BARBERSHOP*
+=============================
+🏬 Outlet : ${adjustmentData.outlet}
+📅 Tanggal : ${formatDateStok(adjustmentData.tanggal)}
+🔄 Jenis : ${adjustmentData.stok_type === 'masuk' ? 'STOK MASUK' : 'STOK KELUAR'}
+=============================
+📦 Produk : ${adjustmentData.nama_produk}
+📊 Group  : ${adjustmentData.group_produk || '-'}
+=============================
+📈 Perubahan Stok:
+   Sebelum : ${adjustmentData.qty_before} unit
+   Perubahan : ${adjustmentData.qty_change > 0 ? '+' : ''}${adjustmentData.qty_change} unit
+   Sesudah : ${adjustmentData.qty_after} unit
+=============================
+👑 Dilakukan Oleh : ${adjustmentData.updated_by}
+📝 Alasan : ${adjustmentData.notes}
+=============================
+🕐 Waktu : ${formatDateTime(new Date())}
+⚡ Tipe : QUICK ADJUSTMENT (Owner)`;
+        
+        console.log('🔑 Menggunakan X-Api-Key header untuk quick adjustment');
+        
+        const response = await fetch(WA_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Api-Key': WA_API_KEY
+            },
+            body: JSON.stringify({
+                session: 'Session1',
+                chatId: WA_CHAT_ID,
+                text: message
+            })
+        });
+        
+        const data = await response.json();
+        console.log('Hasil notifikasi Quick Adjustment:', data);
+        
+        // Cek berdasarkan HTTP status
+        return (response.status === 201 || response.status === 200);
+        
+    } catch (error) {
+        console.error('Error mengirim notifikasi adjustment:', error);
+        return false;
+    }
+}
+
+// [42] Helper: Format currency untuk WhatsApp (jika diperlukan)
+function formatCurrencyForWA(amount) {
+    if (!amount) return '0';
+    return new Intl.NumberFormat('id-ID').format(amount);
+}
+
+// [43] Close modals on outside click
+document.addEventListener('click', function(e) {
+    // Close approval modal
+    if (e.target.id === 'closeApprovalModal' || e.target.id === 'approvalModal') {
+        document.getElementById('approvalModal').style.display = 'none';
+    }
+    
+    // Close request modal on outside click
+    const requestModal = document.getElementById('requestModal');
+    if (e.target === requestModal) {
+        closeRequestModal();
+    }
+
+    
+});
+// ========== END OF STOK FUNCTIONS ==========
+
 // ========== END OF FILE ==========
