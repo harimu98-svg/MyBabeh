@@ -90,15 +90,15 @@ function createStokPage() {
         <style>
         /* Stok Page Styles */
         .stok-page {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            z-index: 1000;
-            overflow-y: auto;
-        }
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #f5f7fa; /* Background solid, tidak gradient */
+    z-index: 1000;
+    overflow-y: auto;
+}
         
         /* Header - PERBAIKAN: Tambah z-index lebih tinggi */
         .stok-header {
