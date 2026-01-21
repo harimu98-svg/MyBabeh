@@ -10,12 +10,6 @@ let stokBatchId = null;
 let stokInventoryData = [];
 let selectedOwnerItems = {}; // Untuk owner approval {batch_id: [item_ids]}
 
-// WA Configuration (gunakan dari config global jika ada)
-// const WA_API_URL = window.WA_API_URL || 'https://waha-yetv8qi4e3zk.anakit.sumopod.my.id/api/sendText';
-// const WA_API_KEY = window.WA_API_KEY || 'sfcoGbpdLDkGZhKw2rx8sbb14vf4d8V6';
-// const WA_CHAT_ID = window.WA_CHAT_ID || '62811159429-1533260196@g.us';
-// const WA_OWNER_PHONE = '0811159429';
-
 // [1] Fungsi untuk tampilkan halaman stok
 async function showStokPage() {
     try {
@@ -106,7 +100,7 @@ function createStokPage() {
             overflow-y: auto;
         }
         
-        /* Header */
+        /* Header - PERBAIKAN: Tambah z-index lebih tinggi */
         .stok-header {
             background: rgba(255, 255, 255, 0.95);
             padding: 15px 20px;
@@ -116,7 +110,7 @@ function createStokPage() {
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             position: sticky;
             top: 0;
-            z-index: 100;
+            z-index: 1000;
         }
         
         .stok-header h2 {
@@ -139,6 +133,11 @@ function createStokPage() {
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 16px;
+        }
+        
+        .back-btn:hover {
+            background: #5a6268;
         }
         
         .refresh-btn {
@@ -152,6 +151,11 @@ function createStokPage() {
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 16px;
+        }
+        
+        .refresh-btn:hover {
+            background: #0056b3;
         }
         
         /* Info Header */
@@ -273,6 +277,10 @@ function createStokPage() {
             gap: 8px;
         }
         
+        .btn-search-action:hover {
+            opacity: 0.9;
+        }
+        
         /* Inventory Table */
         .inventory-table-section {
             background: white;
@@ -373,6 +381,10 @@ function createStokPage() {
             cursor: not-allowed;
         }
         
+        .btn-add-to-request:hover:not(:disabled) {
+            opacity: 0.9;
+        }
+        
         /* Selected Items Section */
         .selected-items-section {
             background: white;
@@ -402,6 +414,10 @@ function createStokPage() {
             align-items: center;
             gap: 5px;
             font-size: 14px;
+        }
+        
+        .btn-clear:hover {
+            background: #c82333;
         }
         
         .selected-items-table-container {
@@ -448,6 +464,15 @@ function createStokPage() {
             justify-content: center;
         }
         
+        .qty-btn:hover {
+            background: #5a6268;
+        }
+        
+        .qty-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
         .qty-input {
             width: 50px;
             text-align: center;
@@ -467,6 +492,10 @@ function createStokPage() {
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+        
+        .btn-remove:hover {
+            background: #c82333;
         }
         
         .selected-notes-submit {
@@ -537,6 +566,10 @@ function createStokPage() {
             cursor: not-allowed;
         }
         
+        .submit-btn:hover:not(:disabled) {
+            opacity: 0.9;
+        }
+        
         /* History Section */
         .kasir-history-section {
             background: white;
@@ -584,6 +617,10 @@ function createStokPage() {
             justify-content: center;
         }
         
+        .btn-refresh-history:hover {
+            background: #5a6268;
+        }
+        
         /* OWNER VIEW */
         .owner-view {
             background: transparent;
@@ -618,6 +655,10 @@ function createStokPage() {
             justify-content: center;
             gap: 8px;
             height: 42px;
+        }
+        
+        .btn-apply-filter:hover {
+            opacity: 0.9;
         }
         
         /* Owner Stats */
@@ -1431,7 +1472,7 @@ async function loadGroupFilterOptions() {
     }
 }
 
-// [10] Fungsi untuk load inventory dengan filter
+// [10] Fungsi untuk load inventory dengan filter - PERBAIKAN: HAPUS SKU FILTER
 async function loadInventoryStokWithFilter() {
     try {
         const loadingEl = document.getElementById('loadingInventoryStok');
@@ -1448,7 +1489,7 @@ async function loadInventoryStokWithFilter() {
         const statusFilter = document.getElementById('filterStatusStokKasir').value;
         const searchTerm = document.getElementById('searchInventoryStok').value.trim();
         
-        // Build query
+        // Build query - PERBAIKAN: Hapus sku dari query
         let query = supabase
             .from('produk')
             .select('*')
@@ -1465,8 +1506,9 @@ async function loadInventoryStokWithFilter() {
             query = query.eq('status', 'active');
         }
         
+        // PERBAIKAN: Hanya search berdasarkan nama_produk saja (tanpa sku)
         if (searchTerm && searchTerm.length >= 2) {
-            query = query.or(`nama_produk.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%`);
+            query = query.ilike('nama_produk', `%${searchTerm}%`);
         }
         
         const { data: items, error } = await query;
@@ -1537,7 +1579,6 @@ function displayInventoryStokTable(items) {
                 </td>
                 <td>
                     <div class="item-name">${item.nama_produk || '-'}</div>
-                    <div class="item-sku"><small>SKU: ${item.sku || '-'}</small></div>
                 </td>
                 <td>${item.group_produk || '-'}</td>
                 <td class="${getStockStatusClass(item.stok)}">${item.stok || 0}</td>
@@ -2775,18 +2816,30 @@ function applyDateFilter(query, dateFilter) {
 
 // [36] WA Notification Functions
 
+// Helper function untuk mendapatkan WA config dari global scope
+function getWAConfig() {
+    return {
+        apiUrl: typeof WA_API_URL !== 'undefined' ? WA_API_URL : window.WA_API_URL,
+        apiKey: typeof WA_API_KEY !== 'undefined' ? WA_API_KEY : window.WA_API_KEY,
+        chatId: typeof WA_CHAT_ID !== 'undefined' ? WA_CHAT_ID : window.WA_CHAT_ID,
+        ownerPhone: typeof WA_OWNER_PHONE !== 'undefined' ? WA_OWNER_PHONE : window.WA_OWNER_PHONE
+    };
+}
+
 // Kirim notifikasi saat kasir submit request
 async function sendWAStokRequestNotification(requests, kasirData, notes, batchId) {
     try {
         console.log('📤 Mengirim notifikasi WhatsApp untuk request stok...');
         
-        if (typeof WA_API_URL === 'undefined' || typeof WA_API_KEY === 'undefined') {
+        const waConfig = getWAConfig();
+        
+        if (!waConfig.apiUrl || !waConfig.apiKey) {
             console.warn('Konfigurasi WA API tidak ditemukan');
             return false;
         }
         
         // Format nomor owner
-        let phoneNumber = WA_OWNER_PHONE;
+        let phoneNumber = waConfig.ownerPhone || '0811159429';
         if (phoneNumber.startsWith('0')) {
             phoneNumber = '62' + phoneNumber.substring(1);
         }
@@ -2833,11 +2886,11 @@ ${itemsList}
 ⚠️ *Silakan buka aplikasi untuk approve/reject*
 ⏰ *Mohon segera diproses maksimal 24 jam*`;
         
-        const response = await fetch(WA_API_URL, {
+        const response = await fetch(waConfig.apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Api-Key': WA_API_KEY
+                'X-Api-Key': waConfig.apiKey
             },
             body: JSON.stringify({
                 session: 'Session1',
@@ -2860,7 +2913,9 @@ async function sendWAStokApprovalNotification(approvedItems, ownerData) {
     try {
         console.log('📤 Mengirim notifikasi WhatsApp untuk approval stok...');
         
-        if (typeof WA_API_URL === 'undefined' || typeof WA_API_KEY === 'undefined') {
+        const waConfig = getWAConfig();
+        
+        if (!waConfig.apiUrl || !waConfig.apiKey) {
             console.warn('Konfigurasi WA API tidak ditemukan');
             return false;
         }
@@ -2905,15 +2960,15 @@ ${itemsList}
 📱 *Aplikasi:* Babeh Barbershop POS`;
             
             // Kirim ke group
-            const response1 = await fetch(WA_API_URL, {
+            const response1 = await fetch(waConfig.apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Api-Key': WA_API_KEY
+                    'X-Api-Key': waConfig.apiKey
                 },
                 body: JSON.stringify({
                     session: 'Session1',
-                    chatId: WA_CHAT_ID,
+                    chatId: waConfig.chatId || '62811159429-1533260196@g.us',
                     text: message
                 })
             });
@@ -2934,7 +2989,9 @@ async function sendWAStokRejectionNotification(rejectedItems, ownerData, reason)
     try {
         console.log('📤 Mengirim notifikasi WhatsApp untuk rejection stok...');
         
-        if (typeof WA_API_URL === 'undefined' || typeof WA_API_KEY === 'undefined') {
+        const waConfig = getWAConfig();
+        
+        if (!waConfig.apiUrl || !waConfig.apiKey) {
             console.warn('Konfigurasi WA API tidak ditemukan');
             return false;
         }
@@ -2982,15 +3039,15 @@ ${reason}
 📱 *Aplikasi:* Babeh Barbershop POS`;
             
             // Kirim ke group
-            const response = await fetch(WA_API_URL, {
+            const response = await fetch(waConfig.apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Api-Key': WA_API_KEY
+                    'X-Api-Key': waConfig.apiKey
                 },
                 body: JSON.stringify({
                     session: 'Session1',
-                    chatId: WA_CHAT_ID,
+                    chatId: waConfig.chatId || '62811159429-1533260196@g.us',
                     text: message
                 })
             });
