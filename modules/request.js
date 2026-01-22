@@ -71,7 +71,7 @@ async function showRequestPage() {
     }
 }
 
-// [2] Fungsi untuk buat halaman request - DIMODIFIKASI
+// [2] Fungsi untuk buat halaman request - DIMODIFIKASI (tombol refresh bulat)
 function createRequestPage() {
     // Hapus halaman request sebelumnya jika ada
     const existingPage = document.getElementById('requestPage');
@@ -136,7 +136,7 @@ function createRequestPage() {
             </div>
         </div>
         
-        <!-- Untuk KASIR: Form Request Multi-Item - DIMODIFIKASI -->
+        <!-- Untuk KASIR: Form Request Multi-Item -->
         ${isKasir ? `
         <div class="kasir-request-section">
             <!-- Filter Section - 2 BARIS -->
@@ -182,7 +182,7 @@ function createRequestPage() {
                 </div>
             </div>
             
-            <!-- Inventory List Table - DIMODIFIKASI: Scroll Horizontal -->
+            <!-- Inventory List Table -->
             <div class="inventory-table-section">
                 <div class="section-header">
                     <h3><i class="fas fa-boxes"></i> Daftar Inventory</h3>
@@ -218,7 +218,7 @@ function createRequestPage() {
                 </div>
             </div>
             
-            <!-- Selected Items Section - DIMODIFIKASI: Tombol Submit dipindah -->
+            <!-- Selected Items Section -->
             <div class="selected-items-section" id="selectedItemsSection" style="display: none;">
                 <div class="section-header">
                     <h3><i class="fas fa-shopping-cart"></i> Items yang akan di-Request <span class="badge" id="selectedCount">0</span></h3>
@@ -246,7 +246,7 @@ function createRequestPage() {
                     </table>
                 </div>
                 
-                <!-- Notes & Submit Button - DIMODIFIKASI: Tombol Submit di sini -->
+                <!-- Notes & Submit Button -->
                 <div class="selected-notes-submit">
                     <div class="notes-section">
                         <label for="requestNotes"><i class="fas fa-sticky-note"></i> Catatan (opsional):</label>
@@ -275,7 +275,7 @@ function createRequestPage() {
                 </div>
             </div>
             
-            <!-- Request History untuk Kasir - DIMODIFIKASI: Scroll Horizontal -->
+            <!-- Request History untuk Kasir -->
             <div class="kasir-history-section">
                 <div class="section-header">
                     <h3><i class="fas fa-history"></i> Request History - Semua Karyawan di Outlet ${currentUserOutletRequest}</h3>
@@ -289,7 +289,8 @@ function createRequestPage() {
                                 <option value="all">Semua</option>
                             </select>
                         </div>
-                        <button class="btn-refresh-history" onclick="loadKasirHistory()">
+                        <!-- Tombol Refresh Bulat -->
+                        <button class="btn-refresh-history-round" id="refreshKasirHistory" title="Refresh History">
                             <i class="fas fa-sync-alt"></i>
                         </button>
                     </div>
@@ -300,16 +301,16 @@ function createRequestPage() {
                         <table class="history-table horizontal-scroll" id="historyTableKasir" style="display: none;">
                             <thead>
                                 <tr>
-                                    <th width="120px">Tanggal</th>
-                                    <th width="100px">Batch ID</th>
-                                    <th width="120px">Karyawan</th>
-                                    <th width="150px">Item</th>
-                                    <th width="80px">Qty</th>
-                                    <th width="100px">Harga Satuan</th>
-                                    <th width="120px">Subtotal</th>
-                                    <th width="100px">Status</th>
-                                    <th width="150px">Disetujui Oleh</th>
-                                    <th width="150px">Tanggal Approve</th>
+                                    <th width="100px">Tanggal</th>
+                                    <th width="80px">Batch ID</th>
+                                    <th width="100px">Karyawan</th>
+                                    <th width="120px">Item</th>
+                                    <th width="60px">Qty</th>
+                                    <th width="90px">Harga Satuan</th>
+                                    <th width="100px">Subtotal</th>
+                                    <th width="110px">Status</th>
+                                    <th width="100px">Disetujui Oleh</th>
+                                    <th width="100px">Tanggal Approve</th>
                                 </tr>
                             </thead>
                             <tbody id="historyBodyKasir">
@@ -345,7 +346,7 @@ function createRequestPage() {
             </div>
         </div>
         ` : `
-        <!-- Untuk OWNER: Approval Requests - DIMODIFIKASI: TAMBAH CHECKBOX -->
+        <!-- Untuk OWNER: Approval Requests -->
         <div class="owner-request-section">
             <!-- Filter untuk Owner -->
             <div class="owner-filter-section">
@@ -387,6 +388,10 @@ function createRequestPage() {
                     <h3><i class="fas fa-clock"></i> Pending Requests</h3>
                     <div class="request-stats">
                         <span id="pendingCount">0 requests</span>
+                        <!-- Tombol Refresh Bulat -->
+                        <button class="btn-refresh-history-round" id="refreshOwnerPending" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
                     </div>
                 </div>
                 <div class="pending-requests-container">
@@ -401,6 +406,10 @@ function createRequestPage() {
             <div class="request-history-section">
                 <div class="section-header">
                     <h3><i class="fas fa-history"></i> Request History (Semua Outlet)</h3>
+                    <!-- Tombol Refresh Bulat -->
+                    <button class="btn-refresh-history-round" id="refreshOwnerHistory" title="Refresh History">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
                 </div>
                 <div class="history-table-container">
                     <div class="loading" id="loadingHistory">Memuat history...</div>
@@ -408,17 +417,17 @@ function createRequestPage() {
                         <table class="history-table horizontal-scroll" id="historyTable" style="display: none;">
                             <thead>
                                 <tr>
-                                    <th width="120px">Tanggal</th>
-                                    <th width="100px">Batch ID</th>
-                                    <th width="100px">Outlet</th>
-                                    <th width="120px">Karyawan</th>
-                                    <th width="150px">Item</th>
-                                    <th width="80px">Qty</th>
-                                    <th width="120px">Harga Satuan</th>
-                                    <th width="120px">Subtotal</th>
-                                    <th width="100px">Status</th>
-                                    <th width="120px">Disetujui Oleh</th>
-                                    <th width="150px">Catatan</th>
+                                    <th width="100px">Tanggal</th>
+                                    <th width="80px">Batch ID</th>
+                                    <th width="80px">Outlet</th>
+                                    <th width="100px">Karyawan</th>
+                                    <th width="120px">Item</th>
+                                    <th width="60px">Qty</th>
+                                    <th width="90px">Harga Satuan</th>
+                                    <th width="100px">Subtotal</th>
+                                    <th width="110px">Status</th>
+                                    <th width="100px">Disetujui Oleh</th>
+                                    <th width="100px">Tanggal Approve</th>
                                 </tr>
                             </thead>
                             <tbody id="historyBody">
@@ -463,9 +472,12 @@ function setupRequestPageEvents() {
         // OWNER: Setup event listeners
         setupOwnerRequestEvents();
     }
+    
+    // Setup tombol refresh bulat
+    setupRefreshButtons();
 }
 
-// [4] Setup events untuk KASIR - DIMODIFIKASI
+// [4] Setup events untuk KASIR
 function setupKasirRequestEvents() {
     // Tombol submit request
     const submitBtn = document.getElementById('submitRequestBtn');
@@ -473,7 +485,7 @@ function setupKasirRequestEvents() {
         submitBtn.addEventListener('click', submitRequest);
     }
     
-    // Tombol refresh
+    // Tombol refresh header
     const refreshBtn = document.getElementById('refreshRequestsKasir');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', async () => {
@@ -535,9 +547,9 @@ function setupKasirRequestEvents() {
     setupKasirPaginationEvents();
 }
 
-// [5] Setup events untuk OWNER - DIMODIFIKASI
+// [5] Setup events untuk OWNER
 function setupOwnerRequestEvents() {
-    // Tombol refresh
+    // Tombol refresh header
     const refreshBtn = document.getElementById('refreshRequests');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', async () => {
@@ -557,9 +569,14 @@ function setupOwnerRequestEvents() {
     document.getElementById('filterDateOwner')?.addEventListener('change', async () => {
         await loadRequestsForOwner();
     });
+    
+    // Tombol apply filter
+    document.querySelector('.btn-apply-filter')?.addEventListener('click', async () => {
+        await loadRequestsForOwner();
+    });
 }
 
-// [6] Fungsi untuk load initial data kasir - DIMODIFIKASI
+// [6] Fungsi untuk load initial data kasir
 async function loadKasirInitialData() {
     try {
         // Load filter options
@@ -638,7 +655,7 @@ async function loadCategoryOptionsByGroup(selectedGroup) {
     }
 }
 
-// [9] Fungsi untuk load inventory dengan filter - BARU
+// [9] Fungsi untuk load inventory dengan filter
 async function loadInventoryWithFilter() {
     try {
         const loadingEl = document.getElementById('loadingInventory');
@@ -714,7 +731,7 @@ async function loadInventoryWithFilter() {
     }
 }
 
-// [10] Fungsi untuk display inventory table - BARU
+// [10] Fungsi untuk display inventory table
 function displayInventoryTable(items) {
     const tableEl = document.getElementById('inventoryTable');
     const tbody = document.getElementById('inventoryBody');
@@ -788,7 +805,7 @@ function displayInventoryTable(items) {
     noDataEl.style.display = 'none';
 }
 
-// [11] Fungsi untuk clear inventory table - BARU
+// [11] Fungsi untuk clear inventory table
 function clearInventoryTable() {
     const tableEl = document.getElementById('inventoryTable');
     const tbody = document.getElementById('inventoryBody');
@@ -801,7 +818,7 @@ function clearInventoryTable() {
     if (countEl) countEl.textContent = '0 items';
 }
 
-// [12] Fungsi untuk toggle item selection di inventory - BARU
+// [12] Fungsi untuk toggle item selection di inventory
 function toggleInventoryItemSelection(sku, unitPrice, itemName, category, itemGroup, unitType, isChecked) {
     if (isChecked) {
         // Cek apakah item sudah ada di selectedItems
@@ -838,7 +855,7 @@ function toggleInventoryItemSelection(sku, unitPrice, itemName, category, itemGr
     }
 }
 
-// [13] Fungsi untuk add single item to request - BARU
+// [13] Fungsi untuk add single item to request
 function addSingleItemToRequest(sku, unitPrice, itemName, category, itemGroup, unitType) {
     // Cek apakah item sudah ada di selectedItems
     const existingIndex = selectedItems.findIndex(item => item.sku === sku);
@@ -870,11 +887,18 @@ function addSingleItemToRequest(sku, unitPrice, itemName, category, itemGroup, u
     }
 }
 
-// [14] Fungsi untuk load kasir history - DIMODIFIKASI
+// [14] Fungsi untuk load kasir history - DIMODIFIKASI (semua karyawan di outlet)
 async function loadKasirHistory() {
     try {
         const loadingEl = document.getElementById('loadingHistoryKasir');
         const tableEl = document.getElementById('historyTableKasir');
+        const refreshBtn = document.getElementById('refreshKasirHistory');
+        
+        // Tambahkan animasi loading ke tombol refresh
+        if (refreshBtn) {
+            refreshBtn.classList.add('loading');
+            refreshBtn.disabled = true;
+        }
         
         if (loadingEl) loadingEl.style.display = 'block';
         if (tableEl) tableEl.style.display = 'none';
@@ -935,13 +959,20 @@ async function loadKasirHistory() {
     } finally {
         const loadingEl = document.getElementById('loadingHistoryKasir');
         const tableEl = document.getElementById('historyTableKasir');
+        const refreshBtn = document.getElementById('refreshKasirHistory');
+        
+        // Hapus animasi loading dari tombol refresh
+        if (refreshBtn) {
+            refreshBtn.classList.remove('loading');
+            refreshBtn.disabled = false;
+        }
         
         if (loadingEl) loadingEl.style.display = 'none';
         if (tableEl) tableEl.style.display = 'table';
     }
 }
 
-// [15] Fungsi untuk display kasir history - DIMODIFIKASI
+// [15] Fungsi untuk display kasir history - DIMODIFIKASI (gabungkan catatan ke status)
 function displayKasirHistory(requests) {
     const tbody = document.getElementById('historyBodyKasir');
     const tableEl = document.getElementById('historyTableKasir');
@@ -966,19 +997,20 @@ function displayKasirHistory(requests) {
         const createdDate = new Date(request.created_at);
         const approvedDate = request.approved_at ? new Date(request.approved_at) : null;
         
+        // Tambahkan highlight jika request dibuat oleh karyawan yang login
         const isOwnRequest = request.karyawan === currentKaryawanRequest.nama_karyawan;
         
-        // Buat status dengan catatan jika ada
+        // BUAT STATUS DENGAN CATATAN
         let statusHTML = '';
         if (request.status === 'rejected' && request.notes) {
             statusHTML = `
                 <div class="status-with-notes">
                     <span class="status-pill status-rejected">
-                        ${request.status}
+                        <i class="fas fa-times-circle"></i> ${request.status}
                     </span>
                     <div class="reject-reason" title="${request.notes}">
                         <i class="fas fa-exclamation-circle"></i>
-                        <span>${truncateText(request.notes, 25)}</span>
+                        <span>${truncateText(request.notes, 30)}</span>
                     </div>
                 </div>
             `;
@@ -986,17 +1018,27 @@ function displayKasirHistory(requests) {
             statusHTML = `
                 <div class="status-with-notes">
                     <span class="status-pill status-approved">
-                        ${request.status}
+                        <i class="fas fa-check-circle"></i> ${request.status}
                     </span>
                     <div class="approve-notes" title="${request.notes}">
                         <i class="fas fa-sticky-note"></i>
-                        <span>${truncateText(request.notes, 25)}</span>
+                        <span>${truncateText(request.notes, 30)}</span>
                     </div>
+                </div>
+            `;
+        } else if (request.status === 'pending') {
+            statusHTML = `
+                <div class="status-with-notes">
+                    <span class="status-pill status-pending">
+                        <i class="fas fa-clock"></i> ${request.status}
+                    </span>
                 </div>
             `;
         } else {
             statusHTML = `
                 <span class="status-pill ${getRequestStatusClass(request.status)}">
+                    ${request.status === 'approved' ? '<i class="fas fa-check-circle"></i> ' : ''}
+                    ${request.status === 'rejected' ? '<i class="fas fa-times-circle"></i> ' : ''}
                     ${request.status}
                 </span>
             `;
@@ -1036,7 +1078,8 @@ function displayKasirHistory(requests) {
     
     tableEl.style.display = 'table';
 }
-// [16] Fungsi untuk update selected items section - DIMODIFIKASI
+
+// [16] Fungsi untuk update selected items section
 function updateSelectedItemsSection() {
     const section = document.getElementById('selectedItemsSection');
     const submitBtn = document.getElementById('submitRequestBtn');
@@ -1243,7 +1286,7 @@ async function submitRequest() {
     }
 }
 
-// [22] Fungsi untuk load requests untuk owner - DIMODIFIKASI
+// [22] Fungsi untuk load requests untuk owner
 async function loadRequestsForOwner() {
     try {
         // Tampilkan loading
@@ -1251,6 +1294,13 @@ async function loadRequestsForOwner() {
         const pendingGrid = document.getElementById('pendingRequestsGrid');
         const loadingHistory = document.getElementById('loadingHistory');
         const historyTable = document.getElementById('historyTable');
+        const refreshBtn = document.getElementById('refreshOwnerPending');
+        
+        // Tambahkan animasi loading ke tombol refresh
+        if (refreshBtn) {
+            refreshBtn.classList.add('loading');
+            refreshBtn.disabled = true;
+        }
         
         if (loadingPending) loadingPending.style.display = 'block';
         if (pendingGrid) pendingGrid.style.display = 'none';
@@ -1297,7 +1347,7 @@ async function loadRequestsForOwner() {
         // Group requests by batch_id untuk pending section
         const groupedRequests = groupRequestsByBatch(requests || []);
         
-        // Display data - gunakan function yang sudah diperbaiki
+        // Display data
         displayPendingRequestsForRequestModule(groupedRequests);
         
         // Load history (semua status)
@@ -1314,6 +1364,13 @@ async function loadRequestsForOwner() {
         const loadingPending = document.getElementById('loadingPending');
         const pendingGrid = document.getElementById('pendingRequestsGrid');
         const loadingHistory = document.getElementById('loadingHistory');
+        const refreshBtn = document.getElementById('refreshOwnerPending');
+        
+        // Hapus animasi loading dari tombol refresh
+        if (refreshBtn) {
+            refreshBtn.classList.remove('loading');
+            refreshBtn.disabled = false;
+        }
         
         if (loadingPending) loadingPending.style.display = 'none';
         if (pendingGrid) pendingGrid.style.display = 'block';
@@ -1324,6 +1381,14 @@ async function loadRequestsForOwner() {
 // Fungsi untuk load history untuk Owner
 async function loadRequestHistoryForOwner(outletFilter, dateFilter) {
     try {
+        const refreshBtn = document.getElementById('refreshOwnerHistory');
+        
+        // Tambahkan animasi loading ke tombol refresh
+        if (refreshBtn) {
+            refreshBtn.classList.add('loading');
+            refreshBtn.disabled = true;
+        }
+        
         // Build query untuk history (semua status kecuali pending)
         let query = supabase
             .from('request_barang')
@@ -1373,6 +1438,14 @@ async function loadRequestHistoryForOwner(outletFilter, dateFilter) {
                 </tr>
             `;
         }
+    } finally {
+        const refreshBtn = document.getElementById('refreshOwnerHistory');
+        
+        // Hapus animasi loading dari tombol refresh
+        if (refreshBtn) {
+            refreshBtn.classList.remove('loading');
+            refreshBtn.disabled = false;
+        }
     }
 }
 
@@ -1407,17 +1480,12 @@ function groupRequestsByBatch(requests) {
     return Object.values(grouped);
 }
 
-// [24] Display pending requests for REQUEST MODULE - PERBAIKAN BESAR
+// [24] Display pending requests for REQUEST MODULE
 function displayPendingRequestsForRequestModule(groupedRequests) {
-    console.log('📦 REQUEST MODULE: displayPendingRequestsForRequestModule called');
-    
     const pendingGrid = document.getElementById('pendingRequestsGrid');
     const pendingCountEl = document.getElementById('pendingCount');
     
-    if (!pendingGrid) {
-        console.error('pendingRequestsGrid not found');
-        return;
-    }
+    if (!pendingGrid) return;
     
     // Update count - hitung total item pending, bukan batch
     let totalPendingItems = 0;
@@ -1591,7 +1659,7 @@ function displayPendingRequestsForRequestModule(groupedRequests) {
     pendingGrid.innerHTML = html;
 }
 
-// [25] Display request history untuk Owner - DIMODIFIKASI
+// [25] Display request history untuk Owner - DIMODIFIKASI (konsisten dengan kasir)
 function displayRequestHistory(requests) {
     const tbody = document.getElementById('historyBody');
     const historyTable = document.getElementById('historyTable');
@@ -1603,7 +1671,7 @@ function displayRequestHistory(requests) {
     if (!requests || requests.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="11" class="empty-message">
+                <td colspan="10" class="empty-message">
                     <i class="fas fa-history"></i>
                     Tidak ada history request
                 </td>
@@ -1620,13 +1688,57 @@ function displayRequestHistory(requests) {
         const createdDate = new Date(request.created_at);
         const approvedDate = request.approved_at ? new Date(request.approved_at) : null;
         
+        // SAMA SEPERTI KASIR: Gabungkan catatan dengan status
+        let statusHTML = '';
+        if (request.status === 'rejected' && request.notes) {
+            statusHTML = `
+                <div class="status-with-notes">
+                    <span class="status-pill status-rejected">
+                        <i class="fas fa-times-circle"></i> ${request.status}
+                    </span>
+                    <div class="reject-reason" title="${request.notes}">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>${truncateText(request.notes, 30)}</span>
+                    </div>
+                </div>
+            `;
+        } else if (request.status === 'approved' && request.notes) {
+            statusHTML = `
+                <div class="status-with-notes">
+                    <span class="status-pill status-approved">
+                        <i class="fas fa-check-circle"></i> ${request.status}
+                    </span>
+                    <div class="approve-notes" title="${request.notes}">
+                        <i class="fas fa-sticky-note"></i>
+                        <span>${truncateText(request.notes, 30)}</span>
+                    </div>
+                </div>
+            `;
+        } else if (request.status === 'pending') {
+            statusHTML = `
+                <div class="status-with-notes">
+                    <span class="status-pill status-pending">
+                        <i class="fas fa-clock"></i> ${request.status}
+                    </span>
+                </div>
+            `;
+        } else {
+            statusHTML = `
+                <span class="status-pill ${getRequestStatusClass(request.status)}">
+                    ${request.status === 'approved' ? '<i class="fas fa-check-circle"></i> ' : ''}
+                    ${request.status === 'rejected' ? '<i class="fas fa-times-circle"></i> ' : ''}
+                    ${request.status}
+                </span>
+            `;
+        }
+        
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>
                 ${createdDate.toLocaleDateString('id-ID')}<br>
                 <small>${createdDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>
             </td>
-            <td><code>${request.batch_id ? request.batch_id.substring(0, 8) + '...' : '-'}</code></td>
+            <td><code>${request.batch_id ? request.batch_id.substring(0, 6) + '...' : '-'}</code></td>
             <td>${request.outlet || '-'}</td>
             <td>${request.karyawan || '-'}</td>
             <td>
@@ -1636,16 +1748,17 @@ function displayRequestHistory(requests) {
             <td>${request.qty} ${request.unit_type || 'pcs'}</td>
             <td>${formatRupiah(request.unit_price || 0)}</td>
             <td>${formatRupiah(request.total_price || 0)}</td>
-            <td>
-                <span class="status-pill ${getRequestStatusClass(request.status)}">
-                    ${request.status}
-                </span>
+            <td class="status-cell">
+                ${statusHTML}
             </td>
             <td>
                 ${request.approved_by || '-'}
                 ${approvedDate ? `<br><small>${approvedDate.toLocaleDateString('id-ID')}</small>` : ''}
             </td>
-            <td>${request.notes || '-'}</td>
+            <td>
+                ${approvedDate ? approvedDate.toLocaleDateString('id-ID') : '-'}<br>
+                ${approvedDate ? `<small>${approvedDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>` : ''}
+            </td>
         `;
         tbody.appendChild(row);
     });
@@ -1655,7 +1768,7 @@ function displayRequestHistory(requests) {
         const infoRow = document.createElement('tr');
         infoRow.className = 'info-row';
         infoRow.innerHTML = `
-            <td colspan="11" style="text-align: center; color: #6c757d; font-style: italic;">
+            <td colspan="10" style="text-align: center; color: #6c757d; font-style: italic;">
                 <i class="fas fa-info-circle"></i> Menampilkan 10 dari ${requests.length} history request.
             </td>
         `;
@@ -1976,16 +2089,340 @@ function goToKasirHistoryPage(page) {
 function addRequestPageStyles() {
     const styleId = 'request-page-styles';
     
-    // Hapus style sebelumnya jika ada
     const existingStyle = document.getElementById(styleId);
-    if (existingStyle) {
-        existingStyle.remove();
-    }
+    if (existingStyle) existingStyle.remove();
     
     const style = document.createElement('style');
     style.id = styleId;
     style.textContent = `
-        /* Pagination Styles */
+        /* ===== STYLING UMUM ===== */
+        .request-page {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        /* Header */
+        .request-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        
+        .request-header h2 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .back-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .back-btn:hover {
+            background: #5a6268;
+            transform: translateX(-3px);
+        }
+        
+        /* Info Header */
+        .request-info-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        
+        /* ===== STYLING UNTUK STATUS DENGAN CATATAN ===== */
+        
+        /* Container utama status dengan catatan */
+        .status-with-notes {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 120px;
+        }
+        
+        /* Style untuk status pill dengan icon */
+        .status-pill {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            text-transform: capitalize;
+            white-space: nowrap;
+            max-width: 120px;
+        }
+        
+        /* Status pill dengan icon */
+        .status-pill i {
+            font-size: 10px;
+        }
+        
+        /* Warna status */
+        .status-approved {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .status-rejected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status-partial {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        /* Container untuk catatan */
+        .reject-reason, .approve-notes {
+            font-size: 11px;
+            padding: 5px 8px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: help;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            line-height: 1.3;
+        }
+        
+        /* Catatan untuk rejected */
+        .reject-reason {
+            background-color: rgba(220, 53, 69, 0.08);
+            color: #dc3545;
+            border-left: 3px solid #dc3545;
+            border-top: 1px solid rgba(220, 53, 69, 0.1);
+            border-right: 1px solid rgba(220, 53, 69, 0.1);
+            border-bottom: 1px solid rgba(220, 53, 69, 0.1);
+        }
+        
+        /* Catatan untuk approved */
+        .approve-notes {
+            background-color: rgba(40, 167, 69, 0.08);
+            color: #28a745;
+            border-left: 3px solid #28a745;
+            border-top: 1px solid rgba(40, 167, 69, 0.1);
+            border-right: 1px solid rgba(40, 167, 69, 0.1);
+            border-bottom: 1px solid rgba(40, 167, 69, 0.1);
+        }
+        
+        /* Icon dalam catatan */
+        .reject-reason i, .approve-notes i {
+            font-size: 10px;
+            flex-shrink: 0;
+            opacity: 0.8;
+        }
+        
+        /* Sel status */
+        .status-cell {
+            min-width: 130px;
+            max-width: 160px;
+        }
+        
+        /* Tooltip untuk catatan panjang */
+        .reject-reason[title]:hover::after,
+        .approve-notes[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            z-index: 1000;
+            max-width: 300px;
+            white-space: normal;
+            word-wrap: break-word;
+            margin-top: 5px;
+            margin-left: 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid #555;
+            line-height: 1.4;
+        }
+        
+        /* Efek hover untuk catatan */
+        .reject-reason:hover {
+            background-color: rgba(220, 53, 69, 0.12);
+        }
+        
+        .approve-notes:hover {
+            background-color: rgba(40, 167, 69, 0.12);
+        }
+        
+        /* ===== STYLING TOMBOL REFRESH BULAT ===== */
+        
+        .btn-refresh-history-round {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 123, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-refresh-history-round:hover {
+            background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
+        }
+        
+        .btn-refresh-history-round:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 3px rgba(0, 123, 255, 0.3);
+        }
+        
+        .btn-refresh-history-round i {
+            font-size: 14px;
+            transition: transform 0.3s ease;
+        }
+        
+        .btn-refresh-history-round.loading i {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Efek ripple saat klik */
+        .btn-refresh-history-round::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+        }
+        
+        .btn-refresh-history-round:active::after {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Untuk section header kasir */
+        .kasir-history-section .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .kasir-history-section .history-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Untuk owner section */
+        .pending-requests-section .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .pending-requests-section .request-stats {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .request-history-section .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        /* Tombol refresh di header utama */
+        .request-header .refresh-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .request-header .refresh-btn:hover {
+            background: linear-gradient(135deg, #495057 0%, #343a40 100%);
+            transform: translateY(-2px);
+        }
+        
+        /* ===== PAGINATION STYLES ===== */
         .pagination-section {
             display: flex;
             justify-content: space-between;
@@ -2036,10 +2473,11 @@ function addRequestPageStyles() {
             color: #495057;
         }
         
-        .history-controls {
+        /* ===== KARYAWAN INFO ===== */
+        .karyawan-info {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 5px;
         }
         
         .own-request {
@@ -2047,27 +2485,12 @@ function addRequestPageStyles() {
             font-weight: 600;
         }
         
-        .date-select {
-            padding: 8px 12px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            background: white;
-            font-size: 14px;
-            min-width: 150px;
-        }
-        
-        .karyawan-info {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
         .karyawan-info i.fa-user-check {
             color: #28a745;
             font-size: 12px;
         }
         
-        /* Filter group styling */
+        /* ===== FILTER STYLES ===== */
         .filter-group {
             display: flex;
             align-items: center;
@@ -2080,12 +2503,123 @@ function addRequestPageStyles() {
             color: #495057;
             white-space: nowrap;
         }
+        
+        .date-select {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            background: white;
+            font-size: 14px;
+            min-width: 150px;
+        }
+        
+        /* ===== RESPONSIVE ADJUSTMENTS ===== */
+        @media (max-width: 768px) {
+            .request-page {
+                padding: 10px;
+            }
+            
+            .info-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .status-with-notes {
+                min-width: 110px;
+            }
+            
+            .status-pill {
+                padding: 5px 10px;
+                font-size: 11px;
+            }
+            
+            .reject-reason, .approve-notes {
+                font-size: 10px;
+                max-width: 120px;
+            }
+            
+            .status-cell {
+                min-width: 110px;
+                max-width: 130px;
+            }
+            
+            .btn-refresh-history-round {
+                width: 32px;
+                height: 32px;
+            }
+            
+            .btn-refresh-history-round i {
+                font-size: 12px;
+            }
+            
+            .request-header .refresh-btn {
+                width: 32px;
+                height: 32px;
+            }
+            
+            .pagination-section {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+            
+            .pagination-controls {
+                justify-content: center;
+            }
+        }
+        
+        /* Animation untuk status baru */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .status-with-notes {
+            animation: fadeIn 0.3s ease;
+        }
     `;
     
     document.head.appendChild(style);
 }
 
-// [36] Global functions untuk onclick events
+// [36] Helper function untuk memotong teks panjang
+function truncateText(text, maxLength) {
+    if (!text || typeof text !== 'string') return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+}
+
+// [37] Setup tombol refresh
+function setupRefreshButtons() {
+    // Refresh kasir history
+    const refreshKasirBtn = document.getElementById('refreshKasirHistory');
+    if (refreshKasirBtn) {
+        refreshKasirBtn.addEventListener('click', async function() {
+            await loadKasirHistory();
+        });
+    }
+    
+    // Refresh owner pending
+    const refreshOwnerPendingBtn = document.getElementById('refreshOwnerPending');
+    if (refreshOwnerPendingBtn) {
+        refreshOwnerPendingBtn.addEventListener('click', async function() {
+            await loadRequestsForOwner();
+        });
+    }
+    
+    // Refresh owner history
+    const refreshOwnerHistoryBtn = document.getElementById('refreshOwnerHistory');
+    if (refreshOwnerHistoryBtn) {
+        refreshOwnerHistoryBtn.addEventListener('click', async function() {
+            await loadRequestHistoryForOwner(
+                document.getElementById('filterOutletOwner')?.value || 'all',
+                document.getElementById('filterDateOwner')?.value || 'today'
+            );
+        });
+    }
+}
+
+// [38] Global functions untuk onclick events
 window.adjustSelectedItemQty = adjustSelectedItemQty;
 window.updateSelectedItemQty = updateSelectedItemQty;
 window.removeSelectedItem = removeSelectedItem;
@@ -2099,5 +2633,6 @@ window.approveSelectedItemsInBatch = approveSelectedItemsInBatch;
 window.rejectSelectedItemsInBatch = rejectSelectedItemsInBatch;
 window.clearAllSelectedItems = clearAllSelectedItems;
 window.goToKasirHistoryPage = goToKasirHistoryPage;
+window.truncateText = truncateText;
 
 // ========== END OF FILE ==========
