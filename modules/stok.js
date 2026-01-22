@@ -2916,7 +2916,6 @@ ${itemsList}
 }
 
 // Kirim notifikasi saat owner approve
-// Kirim notifikasi saat owner approve - DENGAN REAL-TIME STOCK
 async function sendWAStokApprovalNotification(approvedItems, ownerData) {
     try {
         console.log('📤 Mengirim notifikasi WhatsApp untuk approval stok...');
@@ -2943,26 +2942,14 @@ async function sendWAStokApprovalNotification(approvedItems, ownerData) {
         
         // Kirim untuk setiap batch
         for (const [batchId, batchData] of Object.entries(groupedByBatch)) {
-            // Format detail items dengan REAL-TIME STOCK
+            // Format detail items
             let itemsList = '';
-            
-            for (const item of batchData.items) {
-                // ⭐⭐ AMBIL STOK REAL-TIME SEBELUM APPROVE ⭐⭐
-                const { data: produkData } = await supabase
-                    .from('produk')
-                    .select('stok')
-                    .eq('nama_produk', item.nama_produk)
-                    .eq('outlet', item.outlet)
-                    .single();
-                
-                const stokSebelum = produkData?.stok || item.qty_before;
-                const stokSetelah = stokSebelum + item.qty_change;
-                
+            batchData.items.forEach((item, index) => {
                 const typeIcon = item.stok_type === 'masuk' ? '⬆️' : '⬇️';
                 const changeSign = item.stok_type === 'masuk' ? '+' : '-';
                 
-                itemsList += `${itemsList ? '\n' : ''}${typeIcon} ${item.nama_produk} ${changeSign}${Math.abs(item.qty_change)} unit (${stokSebelum} → ${stokSetelah})`;
-            }
+                itemsList += `${index + 1}. ${item.nama_produk} ${changeSign}${Math.abs(item.qty_change)} unit (${item.qty_before} → ${item.qty_after})\n`;
+            });
             
             const message = `✅ *STOK UPDATE - DISETUJUI*
 =============================
@@ -2973,14 +2960,14 @@ async function sendWAStokApprovalNotification(approvedItems, ownerData) {
 📅 Tanggal: ${formatDateStok(new Date())}
 ⏰ Waktu: ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
 =============================
-📋 *ITEMS YANG DISETUJUI (STOK REAL):*
+📋 *ITEMS YANG DISETUJUI:*
 ${itemsList}
 =============================
 ✅ *Status:* STOK BERHASIL DIPERBARUI
 📱 *Aplikasi:* Babeh Barbershop POS`;
             
             // Kirim ke group
-            const response = await fetch(waConfig.apiUrl, {
+            const response1 = await fetch(waConfig.apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -3004,7 +2991,6 @@ ${itemsList}
     }
 }
 // Kirim notifikasi saat owner reject
-// Kirim notifikasi saat owner reject - DENGAN REAL-TIME STOCK
 async function sendWAStokRejectionNotification(rejectedItems, ownerData, reason) {
     try {
         console.log('📤 Mengirim notifikasi WhatsApp untuk rejection stok...');
@@ -3031,24 +3017,14 @@ async function sendWAStokRejectionNotification(rejectedItems, ownerData, reason)
         
         // Kirim untuk setiap batch
         for (const [batchId, batchData] of Object.entries(groupedByBatch)) {
-            // Format detail items dengan REAL-TIME STOCK
+            // Format detail items
             let itemsList = '';
-            
-            for (const item of batchData.items) {
-                // ⭐⭐ AMBIL STOK REAL-TIME SAAT INI ⭐⭐
-                const { data: produkData } = await supabase
-                    .from('produk')
-                    .select('stok')
-                    .eq('nama_produk', item.nama_produk)
-                    .eq('outlet', item.outlet)
-                    .single();
-                
-                const stokSekarang = produkData?.stok || item.qty_before;
+            batchData.items.forEach((item, index) => {
                 const typeIcon = item.stok_type === 'masuk' ? '⬆️' : '⬇️';
                 const changeSign = item.stok_type === 'masuk' ? '+' : '-';
                 
-                itemsList += `${itemsList ? '\n' : ''}${typeIcon} ${item.nama_produk} ${changeSign}${Math.abs(item.qty_change)} unit (Stok saat ini: ${stokSekarang})`;
-            }
+                itemsList += `${index + 1}. ${item.nama_produk} ${changeSign}${Math.abs(item.qty_change)} unit\n`;
+            });
             
             const message = `❌ *STOK UPDATE - DITOLAK*
 =============================
@@ -3059,7 +3035,7 @@ async function sendWAStokRejectionNotification(rejectedItems, ownerData, reason)
 📅 Tanggal: ${formatDateStok(new Date())}
 ⏰ Waktu: ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
 =============================
-📋 *ITEMS YANG DITOLAK (STOK REAL):*
+📋 *ITEMS YANG DITOLAK:*
 ${itemsList}
 =============================
 📝 *Alasan Penolakan:*
