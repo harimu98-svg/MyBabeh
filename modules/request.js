@@ -9,6 +9,11 @@ let selectedItems = []; // Untuk menyimpan items yang akan di-request
 let batchId = null; // ID batch untuk grouping multi-item
 let inventoryData = []; // Untuk menyimpan data inventory
 
+// Variabel untuk pagination history kasir
+let currentKasirHistoryPage = 1;
+let kasirHistoryTotalRecords = 0;
+const KASIR_HISTORY_PER_PAGE = 10;
+
 // [1] Fungsi untuk tampilkan halaman request
 async function showRequestPage() {
     try {
@@ -273,10 +278,21 @@ function createRequestPage() {
             <!-- Request History untuk Kasir - DIMODIFIKASI: Scroll Horizontal -->
             <div class="kasir-history-section">
                 <div class="section-header">
-                    <h3><i class="fas fa-history"></i> Request History</h3>
-                    <button class="btn-refresh-history" onclick="loadKasirHistory()">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
+                    <h3><i class="fas fa-history"></i> Request History - Semua Karyawan di Outlet ${currentUserOutletRequest}</h3>
+                    <div class="history-controls">
+                        <!-- Filter Tanggal -->
+                        <div class="filter-group" style="margin-right: 10px;">
+                            <select id="filterDateKasir" class="date-select">
+                                <option value="today">Hari Ini</option>
+                                <option value="week">7 Hari Terakhir</option>
+                                <option value="month">Bulan Ini</option>
+                                <option value="all">Semua</option>
+                            </select>
+                        </div>
+                        <button class="btn-refresh-history" onclick="loadKasirHistory()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="history-table-container">
                     <div class="loading" id="loadingHistoryKasir">Memuat history request...</div>
@@ -286,6 +302,7 @@ function createRequestPage() {
                                 <tr>
                                     <th width="120px">Tanggal</th>
                                     <th width="100px">Batch ID</th>
+                                    <th width="120px">Karyawan</th>
                                     <th width="150px">Item</th>
                                     <th width="80px">Qty</th>
                                     <th width="100px">Harga Satuan</th>
@@ -299,6 +316,30 @@ function createRequestPage() {
                                 <!-- History akan diisi di sini -->
                             </tbody>
                         </table>
+                    </div>
+                </div>
+                
+                <!-- Pagination Controls -->
+                <div class="pagination-section" id="kasirHistoryPagination" style="display: none;">
+                    <div class="pagination-info">
+                        Menampilkan <span id="kasirHistoryStart">0</span>-<span id="kasirHistoryEnd">0</span> dari <span id="kasirHistoryTotal">0</span> records
+                    </div>
+                    <div class="pagination-controls">
+                        <button class="pagination-btn" id="firstPageKasir" disabled>
+                            <i class="fas fa-angle-double-left"></i>
+                        </button>
+                        <button class="pagination-btn" id="prevPageKasir" disabled>
+                            <i class="fas fa-angle-left"></i>
+                        </button>
+                        <span class="page-info">
+                            Halaman <span id="currentPageKasir">1</span> dari <span id="totalPagesKasir">1</span>
+                        </span>
+                        <button class="pagination-btn" id="nextPageKasir" disabled>
+                            <i class="fas fa-angle-right"></i>
+                        </button>
+                        <button class="pagination-btn" id="lastPageKasir" disabled>
+                            <i class="fas fa-angle-double-right"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -400,6 +441,9 @@ function createRequestPage() {
     
     // Setup event listeners
     setupRequestPageEvents();
+    
+    // Tambahkan CSS untuk styling
+    addRequestPageStyles();
 }
 
 // [3] Setup event listeners untuk halaman request
@@ -486,6 +530,9 @@ function setupKasirRequestEvents() {
     if (clearAllBtn) {
         clearAllBtn.addEventListener('click', clearAllSelectedItems);
     }
+    
+    // Setup pagination events
+    setupKasirPaginationEvents();
 }
 
 // [5] Setup events untuk OWNER - DIMODIFIKASI
@@ -832,17 +879,45 @@ async function loadKasirHistory() {
         if (loadingEl) loadingEl.style.display = 'block';
         if (tableEl) tableEl.style.display = 'none';
         
-        // Query request history untuk karyawan ini
-        const { data: requests, error } = await supabase
+        // Get filter values
+        const dateFilter = document.getElementById('filterDateKasir')?.value || 'today';
+        const page = currentKasirHistoryPage || 1;
+        const limit = KASIR_HISTORY_PER_PAGE;
+        const offset = (page - 1) * limit;
+        
+        // Query request history untuk SEMUA karyawan di outlet yang sama
+        let query = supabase
             .from('request_barang')
-            .select('*')
-            .eq('karyawan', currentKaryawanRequest.nama_karyawan)
+            .select('*', { count: 'exact' })
+            .eq('outlet', currentUserOutletRequest) // Filter berdasarkan outlet, bukan karyawan
             .order('created_at', { ascending: false })
-            .limit(50); // Tampilkan lebih banyak data
+            .range(offset, offset + limit - 1);
+        
+        // Apply date filter
+        if (dateFilter !== 'all') {
+            const today = new Date();
+            let startDate = new Date();
+            
+            if (dateFilter === 'today') {
+                startDate.setHours(0, 0, 0, 0);
+            } else if (dateFilter === 'week') {
+                startDate.setDate(today.getDate() - 7);
+            } else if (dateFilter === 'month') {
+                startDate.setMonth(today.getMonth() - 1);
+            }
+            
+            query = query.gte('created_at', startDate.toISOString());
+        }
+        
+        const { data: requests, error, count } = await query;
         
         if (error) throw error;
         
+        // Update total records untuk pagination
+        kasirHistoryTotalRecords = count || 0;
+        
         displayKasirHistory(requests || []);
+        updateKasirHistoryPagination();
         
     } catch (error) {
         console.error('Error loading kasir history:', error);
@@ -850,7 +925,7 @@ async function loadKasirHistory() {
         if (tbody) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="9" class="error-message">
+                    <td colspan="10" class="error-message">
                         <i class="fas fa-exclamation-triangle"></i>
                         Gagal memuat history: ${error.message}
                     </td>
@@ -869,14 +944,16 @@ async function loadKasirHistory() {
 // [15] Fungsi untuk display kasir history - DIMODIFIKASI
 function displayKasirHistory(requests) {
     const tbody = document.getElementById('historyBodyKasir');
-    if (!tbody) return;
+    const tableEl = document.getElementById('historyTableKasir');
+    if (!tbody || !tableEl) return;
     
     tbody.innerHTML = '';
     
     if (!requests || requests.length === 0) {
+        tableEl.style.display = 'table';
         tbody.innerHTML = `
             <tr>
-                <td colspan="9" class="empty-message">
+                <td colspan="10" class="empty-message">
                     <i class="fas fa-inbox"></i>
                     Belum ada request
                 </td>
@@ -885,12 +962,12 @@ function displayKasirHistory(requests) {
         return;
     }
     
-    // Batasi maksimal 10 baris untuk performance
-    const displayRequests = requests.slice(0, 10);
-    
-    displayRequests.forEach((request, index) => {
+    requests.forEach((request, index) => {
         const createdDate = new Date(request.created_at);
         const approvedDate = request.approved_at ? new Date(request.approved_at) : null;
+        
+        // Tambahkan highlight jika request dibuat oleh karyawan yang login
+        const isOwnRequest = request.karyawan === currentKaryawanRequest.nama_karyawan;
         
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -899,6 +976,12 @@ function displayKasirHistory(requests) {
                 <small>${createdDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>
             </td>
             <td><code title="${request.batch_id}">${request.batch_id ? request.batch_id.substring(0, 8) + '...' : '-'}</code></td>
+            <td>
+                <div class="karyawan-info ${isOwnRequest ? 'own-request' : ''}">
+                    ${request.karyawan}
+                    ${isOwnRequest ? ' <i class="fas fa-user-check" title="Request Anda"></i>' : ''}
+                </div>
+            </td>
             <td>
                 <div class="item-name">${request.item}</div>
                 <div class="item-sku"><small>SKU: ${request.sku}</small></div>
@@ -920,17 +1003,7 @@ function displayKasirHistory(requests) {
         tbody.appendChild(row);
     });
     
-    // Jika ada lebih dari 10 item, tambahkan note
-    if (requests.length > 10) {
-        const infoRow = document.createElement('tr');
-        infoRow.className = 'info-row';
-        infoRow.innerHTML = `
-            <td colspan="9" style="text-align: center; color: #6c757d; font-style: italic;">
-                <i class="fas fa-info-circle"></i> Menampilkan 10 dari ${requests.length} history request.
-            </td>
-        `;
-        tbody.appendChild(infoRow);
-    }
+    tableEl.style.display = 'table';
 }
 
 // [16] Fungsi untuk update selected items section - DIMODIFIKASI
@@ -1796,7 +1869,193 @@ function formatRupiah(amount) {
     return 'Rp ' + amount.toLocaleString('id-ID');
 }
 
-// [32] Global functions untuk onclick events
+// [32] Setup pagination events untuk kasir
+function setupKasirPaginationEvents() {
+    // First page
+    document.getElementById('firstPageKasir')?.addEventListener('click', () => {
+        goToKasirHistoryPage(1);
+    });
+    
+    // Previous page
+    document.getElementById('prevPageKasir')?.addEventListener('click', () => {
+        goToKasirHistoryPage(currentKasirHistoryPage - 1);
+    });
+    
+    // Next page
+    document.getElementById('nextPageKasir')?.addEventListener('click', () => {
+        goToKasirHistoryPage(currentKasirHistoryPage + 1);
+    });
+    
+    // Last page
+    document.getElementById('lastPageKasir')?.addEventListener('click', () => {
+        const totalPages = Math.ceil(kasirHistoryTotalRecords / KASIR_HISTORY_PER_PAGE);
+        goToKasirHistoryPage(totalPages);
+    });
+    
+    // Filter date change
+    document.getElementById('filterDateKasir')?.addEventListener('change', () => {
+        currentKasirHistoryPage = 1; // Reset ke halaman 1 saat filter berubah
+        loadKasirHistory();
+    });
+}
+
+// [33] Fungsi untuk update pagination history kasir
+function updateKasirHistoryPagination() {
+    const paginationSection = document.getElementById('kasirHistoryPagination');
+    const totalPages = Math.ceil(kasirHistoryTotalRecords / KASIR_HISTORY_PER_PAGE);
+    
+    if (!paginationSection) return;
+    
+    // Tampilkan/hide pagination
+    if (kasirHistoryTotalRecords > 0) {
+        paginationSection.style.display = 'flex';
+    } else {
+        paginationSection.style.display = 'none';
+        return;
+    }
+    
+    // Update info
+    const start = Math.min((currentKasirHistoryPage - 1) * KASIR_HISTORY_PER_PAGE + 1, kasirHistoryTotalRecords);
+    const end = Math.min(currentKasirHistoryPage * KASIR_HISTORY_PER_PAGE, kasirHistoryTotalRecords);
+    
+    document.getElementById('kasirHistoryStart').textContent = start;
+    document.getElementById('kasirHistoryEnd').textContent = end;
+    document.getElementById('kasirHistoryTotal').textContent = kasirHistoryTotalRecords;
+    document.getElementById('currentPageKasir').textContent = currentKasirHistoryPage;
+    document.getElementById('totalPagesKasir').textContent = totalPages;
+    
+    // Update button states
+    document.getElementById('firstPageKasir').disabled = currentKasirHistoryPage === 1;
+    document.getElementById('prevPageKasir').disabled = currentKasirHistoryPage === 1;
+    document.getElementById('nextPageKasir').disabled = currentKasirHistoryPage >= totalPages;
+    document.getElementById('lastPageKasir').disabled = currentKasirHistoryPage >= totalPages;
+}
+
+// [34] Fungsi untuk ganti halaman history kasir
+function goToKasirHistoryPage(page) {
+    if (page < 1) page = 1;
+    
+    const totalPages = Math.ceil(kasirHistoryTotalRecords / KASIR_HISTORY_PER_PAGE);
+    if (page > totalPages) page = totalPages;
+    
+    currentKasirHistoryPage = page;
+    loadKasirHistory();
+}
+
+// [35] Tambahkan CSS untuk styling
+function addRequestPageStyles() {
+    const styleId = 'request-page-styles';
+    
+    // Hapus style sebelumnya jika ada
+    const existingStyle = document.getElementById(styleId);
+    if (existingStyle) {
+        existingStyle.remove();
+    }
+    
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+        /* Pagination Styles */
+        .pagination-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            margin-top: 10px;
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .pagination-info {
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .pagination-btn {
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #495057;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .pagination-btn:hover:not(:disabled) {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .page-info {
+            padding: 6px 12px;
+            font-size: 14px;
+            color: #495057;
+        }
+        
+        .history-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .own-request {
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        .date-select {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            background: white;
+            font-size: 14px;
+            min-width: 150px;
+        }
+        
+        .karyawan-info {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .karyawan-info i.fa-user-check {
+            color: #28a745;
+            font-size: 12px;
+        }
+        
+        /* Filter group styling */
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .filter-group label {
+            font-weight: 600;
+            font-size: 14px;
+            color: #495057;
+            white-space: nowrap;
+        }
+    `;
+    
+    document.head.appendChild(style);
+}
+
+// [36] Global functions untuk onclick events
 window.adjustSelectedItemQty = adjustSelectedItemQty;
 window.updateSelectedItemQty = updateSelectedItemQty;
 window.removeSelectedItem = removeSelectedItem;
@@ -1809,5 +2068,6 @@ window.updateBatchSelection = updateBatchSelection;
 window.approveSelectedItemsInBatch = approveSelectedItemsInBatch;
 window.rejectSelectedItemsInBatch = rejectSelectedItemsInBatch;
 window.clearAllSelectedItems = clearAllSelectedItems;
+window.goToKasirHistoryPage = goToKasirHistoryPage;
 
 // ========== END OF FILE ==========
