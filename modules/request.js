@@ -75,7 +75,6 @@ async function showRequestPage() {
     }
 }
 
-// [2] Fungsi untuk buat halaman request - DIMODIFIKASI (tambah kolom note)
 function createRequestPage() {
     // Hapus halaman request sebelumnya jika ada
     const existingPage = document.getElementById('requestPage');
@@ -325,29 +324,31 @@ function createRequestPage() {
                     </div>
                 </div>
                 
-               <!-- Pagination Controls untuk Kasir -->
-<div class="pagination-section" id="kasirHistoryPagination" style="display: none;">
-    <div class="pagination-info">
-        Menampilkan <span id="kasirHistoryStart">0</span>-<span id="kasirHistoryEnd">0</span> dari <span id="kasirHistoryTotal">0</span> records
-    </div>
-    <div class="pagination-controls">
-        <button class="pagination-btn" id="firstPageKasir" disabled>
-            <i class="fas fa-angle-double-left"></i>
-        </button>
-        <button class="pagination-btn" id="prevPageKasir" disabled>
-            <i class="fas fa-angle-left"></i>
-        </button>
-        <span class="page-info">
-            Halaman <span id="currentPageKasir">1</span> dari <span id="totalPagesKasir">1</span>
-        </span>
-        <button class="pagination-btn" id="nextPageKasir" disabled>
-            <i class="fas fa-angle-right"></i>
-        </button>
-        <button class="pagination-btn" id="lastPageKasir" disabled>
-            <i class="fas fa-angle-double-right"></i>
-        </button>
-    </div>
-</div>
+                <!-- Pagination Controls untuk Kasir - HTML LENGKAP -->
+                <div class="pagination-section" id="kasirHistoryPagination" style="display: none;">
+                    <div class="pagination-info">
+                        Menampilkan <span id="kasirHistoryStart">0</span>-<span id="kasirHistoryEnd">0</span> dari <span id="kasirHistoryTotal">0</span> records
+                    </div>
+                    <div class="pagination-controls">
+                        <button class="pagination-btn" id="firstPageKasir" disabled>
+                            <i class="fas fa-angle-double-left"></i>
+                        </button>
+                        <button class="pagination-btn" id="prevPageKasir" disabled>
+                            <i class="fas fa-angle-left"></i>
+                        </button>
+                        <span class="page-info">
+                            Halaman <span id="currentPageKasir">1</span> dari <span id="totalPagesKasir">1</span>
+                        </span>
+                        <button class="pagination-btn" id="nextPageKasir" disabled>
+                            <i class="fas fa-angle-right"></i>
+                        </button>
+                        <button class="pagination-btn" id="lastPageKasir" disabled>
+                            <i class="fas fa-angle-double-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
         ` : `
         <!-- Untuk OWNER: Approval Requests -->
         <div class="owner-request-section">
@@ -482,7 +483,6 @@ function createRequestPage() {
     // Tambahkan CSS untuk styling
     addRequestPageStyles();
 }
-
 // [3] Setup event listeners untuk halaman request
 function setupRequestPageEvents() {
     // Tombol kembali
