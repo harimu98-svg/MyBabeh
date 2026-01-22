@@ -156,10 +156,10 @@ function createStokPage() {
         .stok-info-header {
     background: white;
     padding: 5px;
-    margin-top: 90px; /* Beri jarak dari header fixed */
+    margin-top: 10px; /* Beri jarak dari header fixed */
     margin-left: 20px;
     margin-right: 20px;
-    margin-bottom: 20px;
+    margin-bottom:120px;
     border-radius: 10px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
