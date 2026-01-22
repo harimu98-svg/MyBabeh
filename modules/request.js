@@ -966,8 +966,41 @@ function displayKasirHistory(requests) {
         const createdDate = new Date(request.created_at);
         const approvedDate = request.approved_at ? new Date(request.approved_at) : null;
         
-        // Tambahkan highlight jika request dibuat oleh karyawan yang login
         const isOwnRequest = request.karyawan === currentKaryawanRequest.nama_karyawan;
+        
+        // Buat status dengan catatan jika ada
+        let statusHTML = '';
+        if (request.status === 'rejected' && request.notes) {
+            statusHTML = `
+                <div class="status-with-notes">
+                    <span class="status-pill status-rejected">
+                        ${request.status}
+                    </span>
+                    <div class="reject-reason" title="${request.notes}">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>${truncateText(request.notes, 25)}</span>
+                    </div>
+                </div>
+            `;
+        } else if (request.status === 'approved' && request.notes) {
+            statusHTML = `
+                <div class="status-with-notes">
+                    <span class="status-pill status-approved">
+                        ${request.status}
+                    </span>
+                    <div class="approve-notes" title="${request.notes}">
+                        <i class="fas fa-sticky-note"></i>
+                        <span>${truncateText(request.notes, 25)}</span>
+                    </div>
+                </div>
+            `;
+        } else {
+            statusHTML = `
+                <span class="status-pill ${getRequestStatusClass(request.status)}">
+                    ${request.status}
+                </span>
+            `;
+        }
         
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -975,7 +1008,7 @@ function displayKasirHistory(requests) {
                 ${createdDate.toLocaleDateString('id-ID')}<br>
                 <small>${createdDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>
             </td>
-            <td><code title="${request.batch_id}">${request.batch_id ? request.batch_id.substring(0, 8) + '...' : '-'}</code></td>
+            <td><code title="${request.batch_id}">${request.batch_id ? request.batch_id.substring(0, 6) + '...' : '-'}</code></td>
             <td>
                 <div class="karyawan-info ${isOwnRequest ? 'own-request' : ''}">
                     ${request.karyawan}
@@ -989,10 +1022,8 @@ function displayKasirHistory(requests) {
             <td>${request.qty || 0}</td>
             <td>${formatRupiah(request.unit_price || 0)}</td>
             <td>${formatRupiah(request.total_price || 0)}</td>
-            <td>
-                <span class="status-pill ${getRequestStatusClass(request.status)}">
-                    ${request.status}
-                </span>
+            <td class="status-cell">
+                ${statusHTML}
             </td>
             <td>${request.approved_by || '-'}</td>
             <td>
@@ -1005,7 +1036,6 @@ function displayKasirHistory(requests) {
     
     tableEl.style.display = 'table';
 }
-
 // [16] Fungsi untuk update selected items section - DIMODIFIKASI
 function updateSelectedItemsSection() {
     const section = document.getElementById('selectedItemsSection');
