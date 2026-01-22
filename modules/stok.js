@@ -10,15 +10,25 @@ let stokBatchId = null;
 let stokInventoryData = [];
 let selectedOwnerItems = {}; // Untuk owner approval {batch_id: [item_ids]}
 
+// Variabel untuk paginasi
+let currentPageKasirHistory = 1;
+let currentPageOwnerHistory = 1;
+const itemsPerPage = 20;
+let totalHistoryRecordsKasir = 0;
+let totalHistoryRecordsOwner = 0;
+let allKasirHistoryData = []; // Untuk menyimpan semua data history kasir
+
 // [1] Fungsi untuk tampilkan halaman stok
 async function showStokPage() {
     try {
         console.log('=== SHOW STOK PAGE (BATCH SYSTEM) ===');
         
-        // Reset items
+        // Reset items dan paginasi
         selectedStokItems = [];
         selectedOwnerItems = {};
         stokBatchId = generateStokBatchId();
+        currentPageKasirHistory = 1;
+        currentPageOwnerHistory = 1;
         
         // Ambil data user
         const { data: { user } } = await supabase.auth.getUser();
@@ -90,28 +100,28 @@ function createStokPage() {
         <style>
         /* Stok Page Styles */
         .stok-page {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: #f5f7fa; /* Background solid, tidak gradient */
-    z-index: 1000;
-    overflow-y: auto;
-}
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f5f7fa;
+            z-index: 1000;
+            overflow-y: auto;
+        }
         
-        /* Header - PERBAIKAN: Tambah z-index lebih tinggi */
+        /* Header */
         .stok-header {
-    background: #FF8C00 ;
-    padding: 15px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    position: relative;
-    z-index: 100;
-    border-bottom: 2px solid #dee2e6;
-}
+            background: #FF8C00;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 100;
+            border-bottom: 2px solid #dee2e6;
+        }
         
         .stok-header h2 {
             margin: 0;
@@ -122,78 +132,76 @@ function createStokPage() {
             gap: 10px;
         }
         
-      .back-btn, .refresh-btn {
-    background: #00008B  ;
-    color: white;
-    border: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: bold;
-}
-
-.refresh-btn {
-    background: #007bff;
-}
-
-/* Hover effects */
-.back-btn:hover {
-    background: #5a6268;
-    transform: scale(1.05);
-}
-
-.refresh-btn:hover {
-    background: #0056b3;
-    transform: scale(1.05);
-}
+        .back-btn, .refresh-btn {
+            background: #00008B;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .refresh-btn {
+            background: #007bff;
+        }
+        
+        .back-btn:hover {
+            background: #5a6268;
+            transform: scale(1.05);
+        }
+        
+        .refresh-btn:hover {
+            background: #0056b3;
+            transform: scale(1.05);
+        }
         
         /* Info Header */
         .stok-info-header {
-    background: white;
-    padding: 5px;
-    margin-top: 10px; /* Beri jarak dari header fixed */
-    margin-left: 20px;
-    margin-right: 20px;
-    margin-bottom:10px;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.info-row {
-    display: block; /* Ubah dari flex ke block */
-    margin-bottom: 15px;
-}
-
-.info-row:last-child {
-    margin-bottom: 0;
-}
-
-.info-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    color: #555;
-    margin-bottom: 8px;
-}
-
-.info-item:last-child {
-    margin-bottom: 0;
-}
+            background: white;
+            padding: 5px;
+            margin-top: 10px;
+            margin-left: 20px;
+            margin-right: 20px;
+            margin-bottom:10px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
         
-      
+        .info-row {
+            display: block;
+            margin-bottom: 15px;
+        }
+        
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 8px;
+        }
+        
+        .info-item:last-child {
+            margin-bottom: 0;
+        }
+        
         /* Content Sections */
-       .stok-content {
-    padding: 20px;
-    padding-top: 0; /* Header sudah fixed, kurangi padding atas */
-    max-width: 1200px;
-    margin: 0 auto;
-}
+        .stok-content {
+            padding: 20px;
+            padding-top: 0;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
         
         /* KASIR VIEW */
         .kasir-view {
@@ -577,12 +585,13 @@ function createStokPage() {
             opacity: 0.9;
         }
         
-        /* History Section */
+        /* History Section - MODIFIKASI: Tambah kolom */
         .kasir-history-section {
             background: white;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-top: 20px;
         }
         
         .history-table-container {
@@ -592,7 +601,7 @@ function createStokPage() {
         .history-table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 1200px;
+            min-width: 1400px; /* Diperlebar untuk kolom tambahan */
         }
         
         .history-table th {
@@ -611,13 +620,23 @@ function createStokPage() {
             border-bottom: 1px solid #eee;
         }
         
+        /* Highlight untuk request milik user */
+        .my-request-row {
+            background: #e8f4ff !important;
+            border-left: 3px solid #007bff;
+        }
+        
+        .my-request-row:hover {
+            background: #d4e7ff !important;
+        }
+        
         .btn-refresh-history {
-            background: #6c757d;
+            background: #4a6cf7;
             color: white;
             border: none;
             width: 40px;
             height: 40px;
-            border-radius: 50%;
+            border-radius: 6px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -625,7 +644,62 @@ function createStokPage() {
         }
         
         .btn-refresh-history:hover {
-            background: #5a6268;
+            background: #3a5ce5;
+        }
+        
+        /* Pagination Styles */
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .pagination-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        .pagination-btn:hover:not(:disabled) {
+            background: #0056b3;
+        }
+        
+        .pagination-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .pagination-info {
+            font-size: 14px;
+            color: #666;
+            margin: 0 15px;
+        }
+        
+        /* Kolom catatan khusus untuk rejection */
+        .notes-column {
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         /* OWNER VIEW */
@@ -903,6 +977,10 @@ function createStokPage() {
             .filter-row-owner {
                 grid-template-columns: 1fr;
             }
+            
+            .history-table {
+                min-width: 1200px;
+            }
         }
         
         /* Scrollbar Styling */
@@ -949,7 +1027,7 @@ function createStokPage() {
     const pageContent = isOwnerStok ? createOwnerStokUI() : createKasirStokUI();
     
     stokPage.innerHTML = styles + `
-    <!-- HEADER - SAMA DENGAN REQUEST.JS -->
+    <!-- HEADER -->
     <header class="stok-header">
         <button class="back-btn" id="backToMainFromStok">
             <i class="fas fa-arrow-left"></i>
@@ -1006,7 +1084,7 @@ function createStokPage() {
     setupStokPageEvents();
 }
 
-// [3] UI untuk KASIR - BATCH SYSTEM
+// [3] UI untuk KASIR - BATCH SYSTEM - MODIFIKASI: Tambah kolom dan paginasi
 function createKasirStokUI() {
     return `
         <div class="stok-content kasir-view">
@@ -1138,32 +1216,29 @@ function createKasirStokUI() {
                 </div>
             </div>
             
-            <!-- REQUEST HISTORY untuk Kasir -->
+            <!-- REQUEST HISTORY untuk Kasir - MODIFIKASI: Tambah kolom dan paginasi -->
             <div class="kasir-history-section">
-    <div class="section-header">
-        <h3><i class="fas fa-history"></i> Riwayat Request Stok</h3>
-        <div class="filter-row" style="margin-top: 15px; display: grid; grid-template-columns: auto 40px 1fr; gap: 10px; align-items: center;">
-            <!-- Label -->
-            <label for="filterHistoryDate" style="white-space: nowrap; font-weight: 500;">
-                <i class="fas fa-calendar"></i> Periode:
-            </label>
-            
-            <!-- Tombol Refresh di Tengah -->
-            <button class="btn-refresh-history" onclick="loadKasirStokHistory()" 
-                    style="background: #4a6cf7; color: white; border: none; border-radius: 6px; padding: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                <i class="fas fa-sync-alt"></i>
-            </button>
-            
-            <!-- Dropdown -->
-            <select id="filterHistoryDate" class="form-select">
-                <option value="today">Hari Ini</option>
-                <option value="week">7 Hari Terakhir</option>
-                <option value="month">Bulan Ini</option>
-                <option value="all">Semua</option>
-            </select>
-        </div>
-    </div>
-</div>
+                <div class="section-header">
+                    <h3><i class="fas fa-history"></i> Riwayat Request Stok - Outlet ${currentOutletStok}</h3>
+                    <div class="filter-row" style="margin-top: 15px; display: grid; grid-template-columns: auto 40px 1fr; gap: 10px; align-items: center;">
+                        <label for="filterHistoryDate" style="white-space: nowrap; font-weight: 500;">
+                            <i class="fas fa-calendar"></i> Periode:
+                        </label>
+                        
+                        <button class="btn-refresh-history" onclick="loadKasirStokHistory()" 
+                                title="Refresh data">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        
+                        <select id="filterHistoryDate" class="form-select">
+                            <option value="today">Hari Ini</option>
+                            <option value="week">7 Hari Terakhir</option>
+                            <option value="month">Bulan Ini</option>
+                            <option value="all">Semua</option>
+                        </select>
+                    </div>
+                </div>
+                
                 <div class="history-table-container">
                     <div class="loading" id="loadingHistoryStokKasir">Memuat riwayat...</div>
                     <div class="table-wrapper">
@@ -1173,12 +1248,14 @@ function createKasirStokUI() {
                                     <th width="120px">Tanggal</th>
                                     <th width="100px">Batch ID</th>
                                     <th width="150px">Produk</th>
+                                    <th width="100px">Requestor</th>
                                     <th width="80px">Jenis</th>
                                     <th width="80px">Qty</th>
-                                    <th width="120px">Stok Sebelum</th>
-                                    <th width="120px">Stok Sesudah</th>
+                                    <th width="100px">Stok Sebelum</th>
+                                    <th width="100px">Stok Sesudah</th>
                                     <th width="100px">Status</th>
-                                    <th width="150px">Disetujui Oleh</th>
+                                    <th width="120px">Disetujui Oleh</th>
+                                    <th width="150px">Catatan</th>
                                 </tr>
                             </thead>
                             <tbody id="historyBodyStokKasir">
@@ -1186,13 +1263,22 @@ function createKasirStokUI() {
                             </tbody>
                         </table>
                     </div>
+                    <div class="no-data" id="noHistoryDataStokKasir" style="display: none;">
+                        <i class="fas fa-history"></i>
+                        <p>Tidak ada riwayat request</p>
+                    </div>
+                </div>
+                
+                <!-- PAGINATION CONTAINER -->
+                <div class="pagination-container" id="kasirHistoryPagination" style="display: none;">
+                    <!-- Pagination controls akan diisi di sini -->
                 </div>
             </div>
         </div>
     `;
 }
 
-// [4] UI untuk OWNER - DENGAN CHECKLIST
+// [4] UI untuk OWNER - DENGAN CHECKLIST (tidak banyak perubahan)
 function createOwnerStokUI() {
     return `
         <div class="stok-content owner-view">
@@ -1404,6 +1490,7 @@ function setupKasirStokEvents() {
     const dateFilter = document.getElementById('filterHistoryDate');
     if (dateFilter) {
         dateFilter.addEventListener('change', async () => {
+            currentPageKasirHistory = 1; // Reset ke halaman 1 saat filter berubah
             await loadKasirStokHistory();
         });
     }
@@ -1444,7 +1531,7 @@ async function loadKasirStokData() {
         // Kosongkan inventory table
         clearInventoryStokTable();
         
-        // Load history request (default hari ini)
+        // Load history request
         await loadKasirStokHistory();
         
     } catch (error) {
@@ -1486,7 +1573,7 @@ async function loadGroupFilterOptions() {
     }
 }
 
-// [10] Fungsi untuk load inventory dengan filter - PERBAIKAN: HAPUS SKU FILTER
+// [10] Fungsi untuk load inventory dengan filter
 async function loadInventoryStokWithFilter() {
     try {
         const loadingEl = document.getElementById('loadingInventoryStok');
@@ -1503,7 +1590,7 @@ async function loadInventoryStokWithFilter() {
         const statusFilter = document.getElementById('filterStatusStokKasir').value;
         const searchTerm = document.getElementById('searchInventoryStok').value.trim();
         
-        // Build query - PERBAIKAN: Hapus sku dari query
+        // Build query
         let query = supabase
             .from('produk')
             .select('*')
@@ -1520,7 +1607,6 @@ async function loadInventoryStokWithFilter() {
             query = query.eq('status', 'active');
         }
         
-        // PERBAIKAN: Hanya search berdasarkan nama_produk saja (tanpa sku)
         if (searchTerm && searchTerm.length >= 2) {
             query = query.ilike('nama_produk', `%${searchTerm}%`);
         }
@@ -1971,34 +2057,73 @@ async function submitStokBatch() {
     }
 }
 
-// [22] Fungsi untuk load kasir history - DENGAN FILTER TANGGAL
+// [22] FUNGSI BARU: loadKasirStokHistory() dengan paginasi dan semua data
 async function loadKasirStokHistory() {
     try {
         const loadingEl = document.getElementById('loadingHistoryStokKasir');
         const tableEl = document.getElementById('historyTableStokKasir');
+        const noDataEl = document.getElementById('noHistoryDataStokKasir');
+        const paginationEl = document.getElementById('kasirHistoryPagination');
         
         if (loadingEl) loadingEl.style.display = 'block';
         if (tableEl) tableEl.style.display = 'none';
+        if (noDataEl) noDataEl.style.display = 'none';
+        if (paginationEl) paginationEl.style.display = 'none';
         
         // Get date filter
-        const dateFilter = document.getElementById('filterHistoryDate').value;
+        const dateFilter = document.getElementById('filterHistoryDate')?.value || 'today';
         
-        // Build query
+        // Build query - Tampilkan SEMUA data (termasuk pending)
         let query = supabase
             .from('stok_update')
-            .select('*')
-            .eq('outlet', currentOutletStok)
-            .neq('approval_status', 'pending') // Hanya yang sudah diproses
+            .select('*', { count: 'exact' }) // Ambil count untuk paginasi
+            .eq('outlet', currentOutletStok) // Filter berdasarkan outlet kasir
             .order('created_at', { ascending: false });
         
         // Apply date filter
-        applyDateFilter(query, dateFilter);
+        if (dateFilter !== 'all') {
+            const today = new Date();
+            let startDate = new Date();
+            
+            if (dateFilter === 'today') {
+                startDate.setHours(0, 0, 0, 0);
+            } else if (dateFilter === 'week') {
+                startDate.setDate(today.getDate() - 7);
+            } else if (dateFilter === 'month') {
+                startDate.setMonth(today.getMonth() - 1);
+            }
+            
+            query = query.gte('created_at', startDate.toISOString());
+        }
         
-        const { data: requests, error } = await query;
+        const { data: requests, error, count } = await query;
         
         if (error) throw error;
         
-        displayKasirStokHistory(requests || []);
+        // Simpan semua data untuk paginasi
+        allKasirHistoryData = requests || [];
+        totalHistoryRecordsKasir = count || 0;
+        
+        // Apply paginasi
+        const startIndex = (currentPageKasirHistory - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const paginatedData = allKasirHistoryData.slice(startIndex, endIndex);
+        
+        // Tampilkan data
+        displayKasirStokHistory(paginatedData);
+        
+        // Update paginasi controls
+        updateKasirHistoryPagination();
+        
+        // Show/hide no data message
+        if (allKasirHistoryData.length === 0) {
+            if (noDataEl) noDataEl.style.display = 'block';
+            if (paginationEl) paginationEl.style.display = 'none';
+        } else {
+            if (tableEl) tableEl.style.display = 'table';
+            if (noDataEl) noDataEl.style.display = 'none';
+            if (paginationEl) paginationEl.style.display = 'block';
+        }
         
     } catch (error) {
         console.error('Error loading kasir history:', error);
@@ -2006,7 +2131,7 @@ async function loadKasirStokHistory() {
         if (tbody) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="9" class="error-message">
+                    <td colspan="11" class="error-message">
                         <i class="fas fa-exclamation-triangle"></i>
                         Gagal memuat history: ${error.message}
                     </td>
@@ -2015,14 +2140,64 @@ async function loadKasirStokHistory() {
         }
     } finally {
         const loadingEl = document.getElementById('loadingHistoryStokKasir');
-        const tableEl = document.getElementById('historyTableStokKasir');
-        
         if (loadingEl) loadingEl.style.display = 'none';
-        if (tableEl) tableEl.style.display = 'table';
     }
 }
 
-// [23] Display kasir history
+// [23] FUNGSI BARU: updateKasirHistoryPagination()
+function updateKasirHistoryPagination() {
+    const paginationContainer = document.getElementById('kasirHistoryPagination');
+    if (!paginationContainer) return;
+    
+    const totalPages = Math.ceil(totalHistoryRecordsKasir / itemsPerPage);
+    
+    if (totalPages <= 1) {
+        paginationContainer.innerHTML = '';
+        return;
+    }
+    
+    let html = `
+        <div class="pagination-controls">
+            <button class="pagination-btn" onclick="goToKasirHistoryPage(1)" ${currentPageKasirHistory === 1 ? 'disabled' : ''}>
+                <i class="fas fa-angle-double-left"></i>
+            </button>
+            <button class="pagination-btn" onclick="goToKasirHistoryPage(${currentPageKasirHistory - 1})" ${currentPageKasirHistory === 1 ? 'disabled' : ''}>
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            
+            <span class="pagination-info">
+                Halaman ${currentPageKasirHistory} dari ${totalPages} 
+                (Total: ${totalHistoryRecordsKasir} records)
+            </span>
+            
+            <button class="pagination-btn" onclick="goToKasirHistoryPage(${currentPageKasirHistory + 1})" ${currentPageKasirHistory === totalPages ? 'disabled' : ''}>
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            <button class="pagination-btn" onclick="goToKasirHistoryPage(${totalPages})" ${currentPageKasirHistory === totalPages ? 'disabled' : ''}>
+                <i class="fas fa-angle-double-right"></i>
+            </button>
+        </div>
+    `;
+    
+    paginationContainer.innerHTML = html;
+}
+
+// [24] FUNGSI BARU: goToKasirHistoryPage()
+function goToKasirHistoryPage(page) {
+    if (page < 1 || page > Math.ceil(totalHistoryRecordsKasir / itemsPerPage)) return;
+    
+    currentPageKasirHistory = page;
+    
+    // Apply paginasi ke data
+    const startIndex = (currentPageKasirHistory - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedData = allKasirHistoryData.slice(startIndex, endIndex);
+    
+    displayKasirStokHistory(paginatedData);
+    updateKasirHistoryPagination();
+}
+
+// [25] FUNGSI BARU: displayKasirStokHistory() dengan highlight dan kolom tambahan
 function displayKasirStokHistory(requests) {
     const tbody = document.getElementById('historyBodyStokKasir');
     if (!tbody) return;
@@ -2032,7 +2207,7 @@ function displayKasirStokHistory(requests) {
     if (!requests || requests.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="9" class="empty-message">
+                <td colspan="11" class="empty-message">
                     <i class="fas fa-inbox"></i>
                     Belum ada riwayat request
                 </td>
@@ -2046,7 +2221,18 @@ function displayKasirStokHistory(requests) {
         const typeClass = request.stok_type === 'masuk' ? 'type-in' : 'type-out';
         const typeIcon = request.stok_type === 'masuk' ? 'fa-arrow-down' : 'fa-arrow-up';
         
+        // Cek apakah request dibuat oleh user saat ini
+        const isMyRequest = request.updated_by === currentUserStok?.nama_karyawan;
+        const rowClass = isMyRequest ? 'my-request-row' : '';
+        
+        // Tentukan catatan yang ditampilkan
+        let displayNotes = request.notes || '-';
+        if (request.approval_status === 'rejected' && request.rejection_reason) {
+            displayNotes = `<span class="text-danger"><i class="fas fa-times-circle"></i> ${request.rejection_reason}</span>`;
+        }
+        
         const row = document.createElement('tr');
+        row.className = rowClass;
         row.innerHTML = `
             <td>
                 ${createdDate.toLocaleDateString('id-ID')}<br>
@@ -2056,6 +2242,11 @@ function displayKasirStokHistory(requests) {
             <td>
                 <div class="item-name">${request.nama_produk}</div>
                 <div class="item-sku"><small>Group: ${request.group_produk}</small></div>
+            </td>
+            <!-- Kolom Requestor -->
+            <td>
+                <strong>${request.updated_by || '-'}</strong>
+                ${isMyRequest ? '<br><small class="text-info"><i class="fas fa-user"></i> (Request Anda)</small>' : ''}
             </td>
             <td>
                 <span class="${typeClass}">
@@ -2072,12 +2263,16 @@ function displayKasirStokHistory(requests) {
                 </span>
             </td>
             <td>${request.approved_by || '-'}</td>
+            <!-- Kolom Catatan -->
+            <td class="notes-column" title="${displayNotes.replace(/<[^>]*>/g, '')}">
+                ${displayNotes}
+            </td>
         `;
         tbody.appendChild(row);
     });
 }
 
-// [24] Fungsi untuk load data owner - DIMODIFIKASI untuk batch system
+// [26] Fungsi untuk load data owner
 async function loadOwnerStokData() {
     try {
         console.log('=== LOAD OWNER STOK DATA ===');
@@ -2149,7 +2344,7 @@ async function loadOwnerStokData() {
     }
 }
 
-// [25] Group stok requests by batch_id
+// [27] Group stok requests by batch_id
 function groupStokRequestsByBatch(requests) {
     const grouped = {};
     
@@ -2186,7 +2381,7 @@ function groupStokRequestsByBatch(requests) {
     return Object.values(grouped);
 }
 
-// [26] Display pending requests untuk Owner - DENGAN CHECKLIST
+// [28] Display pending requests untuk Owner - DENGAN CHECKLIST
 function displayPendingStokRequests(groupedRequests) {
     console.log('Displaying pending stok requests:', groupedRequests.length);
     
@@ -2390,7 +2585,7 @@ function displayPendingStokRequests(groupedRequests) {
     pendingGrid.innerHTML = html;
 }
 
-// [27] Fungsi untuk toggle select all items dalam batch
+// [29] Fungsi untuk toggle select all items dalam batch
 function toggleSelectAllStokItems(batchId, isChecked) {
     // Get all items in this batch
     const checkboxes = document.querySelectorAll(`
@@ -2415,7 +2610,7 @@ function toggleSelectAllStokItems(batchId, isChecked) {
     });
 }
 
-// [28] Fungsi untuk update batch selection status
+// [30] Fungsi untuk update batch selection status
 function updateStokBatchSelection(batchId) {
     const checkboxes = document.querySelectorAll(`
         .batch-card[data-batch-id="${batchId}"] 
@@ -2444,7 +2639,7 @@ function updateStokBatchSelection(batchId) {
     }
 }
 
-// [29] Fungsi untuk approve selected items
+// [31] Fungsi untuk approve selected items
 async function approveSelectedStokItems(batchId) {
     try {
         const selectedItems = selectedOwnerItems[batchId] || [];
@@ -2539,7 +2734,7 @@ async function approveSelectedStokItems(batchId) {
     }
 }
 
-// [30] Fungsi untuk reject selected items
+// [32] Fungsi untuk reject selected items
 async function rejectSelectedStokItems(batchId) {
     try {
         const selectedItems = selectedOwnerItems[batchId] || [];
@@ -2599,7 +2794,7 @@ async function rejectSelectedStokItems(batchId) {
     }
 }
 
-// [31] Fungsi untuk load owner statistics
+// [33] Fungsi untuk load owner statistics
 async function loadOwnerStokStatistics(outletFilter, dateFilter) {
     try {
         // Pending count
@@ -2664,7 +2859,7 @@ async function loadOwnerStokStatistics(outletFilter, dateFilter) {
     }
 }
 
-// [32] Load outlet dropdown untuk owner
+// [34] Load outlet dropdown untuk owner
 async function loadOutletDropdownStok() {
     const select = document.getElementById('filterOutletStokOwner');
     if (!select) return;
@@ -2696,7 +2891,7 @@ async function loadOutletDropdownStok() {
     }
 }
 
-// [33] Fungsi untuk load owner history
+// [35] Fungsi untuk load owner history
 async function loadOwnerStokHistory() {
     try {
         const loadingEl = document.getElementById('loadingOwnerHistoryStok');
@@ -2753,7 +2948,7 @@ async function loadOwnerStokHistory() {
     }
 }
 
-// [34] Display owner history
+// [36] Display owner history
 function displayOwnerStokHistory(requests) {
     const tbody = document.getElementById('historyBodyStokOwner');
     if (!tbody) return;
@@ -2808,7 +3003,7 @@ function displayOwnerStokHistory(requests) {
     });
 }
 
-// [35] Apply date filter to query
+// [37] Apply date filter to query
 function applyDateFilter(query, dateFilter) {
     if (dateFilter !== 'all') {
         const today = new Date();
@@ -2828,7 +3023,7 @@ function applyDateFilter(query, dateFilter) {
     return query;
 }
 
-// [36] WA Notification Functions
+// [38] WA Notification Functions
 
 // Helper function untuk mendapatkan WA config dari global scope
 function getWAConfig() {
@@ -2997,6 +3192,7 @@ ${itemsList}
         return false;
     }
 }
+
 // Kirim notifikasi saat owner reject
 async function sendWAStokRejectionNotification(rejectedItems, ownerData, reason) {
     try {
@@ -3076,7 +3272,7 @@ ${reason}
     }
 }
 
-// [37] Helper Functions
+// [39] Helper Functions
 
 function generateStokBatchId() {
     const timestamp = Date.now().toString(36);
@@ -3177,7 +3373,7 @@ function debounce(func, wait) {
     };
 }
 
-// [38] Global functions untuk onclick events
+// [40] Global functions untuk onclick events
 window.toggleStokItemSelection = toggleStokItemSelection;
 window.addSingleStokItemToRequest = addSingleStokItemToRequest;
 window.updateSelectedStokItemType = updateSelectedStokItemType;
@@ -3192,5 +3388,6 @@ window.toggleSelectAllStokItems = toggleSelectAllStokItems;
 window.updateStokBatchSelection = updateStokBatchSelection;
 window.approveSelectedStokItems = approveSelectedStokItems;
 window.rejectSelectedStokItems = rejectSelectedStokItems;
+window.goToKasirHistoryPage = goToKasirHistoryPage;
 
 // ========== END OF FILE ==========
