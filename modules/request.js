@@ -932,12 +932,15 @@ function addSingleItemToRequest(sku, unitPrice, itemName, category, itemGroup, u
     }
 }
 
-// [14] Fungsi untuk load kasir history - DIMODIFIKASI (PERBAIKAN PAGINASI)
+// [14] Fungsi untuk load kasir history - DIPERBAIKI (SESUAI OWNER)
 async function loadKasirHistory() {
     try {
         const loadingEl = document.getElementById('loadingHistoryKasir');
         const tableEl = document.getElementById('historyTableKasir');
         const refreshBtn = document.getElementById('refreshKasirHistory');
+        const paginationSection = document.getElementById('kasirHistoryPagination');
+        
+        console.log('DEBUG loadKasirHistory: Mulai, page=', currentKasirHistoryPage);
         
         // Tambahkan animasi loading ke tombol refresh
         if (refreshBtn) {
@@ -947,6 +950,7 @@ async function loadKasirHistory() {
         
         if (loadingEl) loadingEl.style.display = 'block';
         if (tableEl) tableEl.style.display = 'none';
+        if (paginationSection) paginationSection.style.display = 'none';
         
         // Get filter values
         const dateFilter = document.getElementById('filterDateKasir')?.value || 'today';
@@ -954,12 +958,15 @@ async function loadKasirHistory() {
         const limit = KASIR_HISTORY_PER_PAGE;
         const offset = (page - 1) * limit;
         
-        // Query request history untuk SEMUA karyawan di outlet yang sama
+        console.log('DEBUG: dateFilter=', dateFilter, 'page=', page, 'limit=', limit, 'offset=', offset);
+        
+        // Query request history - SAMA DENGAN OWNER STYLE
         let query = supabase
             .from('request_barang')
             .select('*', { count: 'exact' })
             .eq('outlet', currentUserOutletRequest)
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .range(offset, offset + limit - 1); // PASTIKAN .range() DI CHAIN
         
         // Apply date filter
         if (dateFilter !== 'all') {
@@ -977,23 +984,24 @@ async function loadKasirHistory() {
             query = query.gte('created_at', startDate.toISOString());
         }
         
-        // Terapkan paginasi
-        query = query.range(offset, offset + limit - 1);
-        
         const { data: requests, error, count } = await query;
         
         if (error) throw error;
         
+        console.log('DEBUG: Data diterima, count=', count, 'data length=', requests?.length);
+        
         // Update total records untuk pagination
         kasirHistoryTotalRecords = count || 0;
         
-        // Display data dengan paginasi
+        console.log('DEBUG: kasirHistoryTotalRecords=', kasirHistoryTotalRecords);
+        
+        // Display data dengan paginasi - PASTIKAN displayKasirHistory() DIPANGGIL
         displayKasirHistory(requests || []);
         
-          // PASTIKAN INI DIPANGGIL SETELAH display
-         setTimeout(() => {
-            updateKasirHistoryPagination();
-        }, 100);
+        // LANGSUNG PANGGIL updateKasirHistoryPagination() - TANPA setTimeout
+        updateKasirHistoryPagination();
+        
+        console.log('DEBUG: updateKasirHistoryPagination() dipanggil');
         
     } catch (error) {
         console.error('Error loading kasir history:', error);
@@ -1027,21 +1035,27 @@ async function loadKasirHistory() {
         }
         
         if (loadingEl) loadingEl.style.display = 'none';
-        if (tableEl && tableEl.style.display !== 'table') {
-            tableEl.style.display = 'table';
-        }
+        if (tableEl) tableEl.style.display = 'table';
     }
 }
 
-// [15] Fungsi untuk display kasir history - DIMODIFIKASI (kolom note terpisah)
+// [15] Fungsi untuk display kasir history - DIPERBAIKI
 function displayKasirHistory(requests) {
+    console.log('DEBUG displayKasirHistory: Mulai, data length=', requests?.length);
+    
     const tbody = document.getElementById('historyBodyKasir');
     const tableEl = document.getElementById('historyTableKasir');
-    if (!tbody || !tableEl) return;
+    const paginationSection = document.getElementById('kasirHistoryPagination');
+    
+    if (!tbody || !tableEl) {
+        console.error('DEBUG: Element table tidak ditemukan!');
+        return;
+    }
     
     tbody.innerHTML = '';
     
     if (!requests || requests.length === 0) {
+        console.log('DEBUG: Tidak ada data');
         tableEl.style.display = 'table';
         tbody.innerHTML = `
             <tr>
@@ -1052,18 +1066,18 @@ function displayKasirHistory(requests) {
             </tr>
         `;
         
-        // Sembunyikan pagination jika tidak ada data
-        const paginationSection = document.getElementById('kasirHistoryPagination');
+        // Update pagination untuk kasus tidak ada data
         if (paginationSection) {
-            paginationSection.style.display = 'none';
+            kasirHistoryTotalRecords = 0;
+            updateKasirHistoryPagination();
         }
         return;
     }
     
-    // TAMPILKAN HANYA 10 DATA PER HALAMAN (sesuai KASIR_HISTORY_PER_PAGE)
-    const displayData = requests.slice(0, KASIR_HISTORY_PER_PAGE);
+    console.log('DEBUG: Menampilkan', requests.length, 'data');
     
-    displayData.forEach((request, index) => {
+    // Tampilkan semua data yang diterima (sudah difilter pagination oleh Supabase)
+    requests.forEach((request, index) => {
         const createdDate = new Date(request.created_at);
         const approvedDate = request.approved_at ? new Date(request.approved_at) : null;
         
@@ -1139,11 +1153,8 @@ function displayKasirHistory(requests) {
     });
     
     tableEl.style.display = 'table';
-    
-    // TAMPILKAN INFO PAGINASI
-    updateKasirHistoryPagination();
+    console.log('DEBUG displayKasirHistory: Selesai');
 }
-
 
 // [16] Fungsi untuk update selected items section
 function updateSelectedItemsSection() {
@@ -2079,73 +2090,61 @@ function formatRupiah(amount) {
     return 'Rp ' + amount.toLocaleString('id-ID');
 }
 
-// [32] Setup pagination events untuk kasir
+// [32] Setup pagination events untuk kasir - DIPERBAIKI
 function setupKasirPaginationEvents() {
-    console.log('DEBUG setupKasirPaginationEvents: Mulai setup...');
+    console.log('DEBUG setupKasirPaginationEvents: Mulai');
     
-    // First page
-    const firstBtn = document.getElementById('firstPageKasir');
-    if (firstBtn) {
-        firstBtn.addEventListener('click', () => {
-            console.log('DEBUG: firstPageKasir diklik');
-            goToKasirHistoryPage(1);
-        });
-        console.log('DEBUG: Event listener firstPageKasir ditambahkan');
-    } else {
-        console.error('ERROR: Button #firstPageKasir tidak ditemukan!');
-    }
+    // Setup untuk semua button dengan delay untuk memastikan element ada
+    setTimeout(() => {
+        // First page
+        const firstBtn = document.getElementById('firstPageKasir');
+        if (firstBtn && !firstBtn.hasAttribute('data-events-setup')) {
+            firstBtn.setAttribute('data-events-setup', 'true');
+            firstBtn.addEventListener('click', () => {
+                console.log('firstPageKasir diklik');
+                goToKasirHistoryPage(1);
+            });
+            console.log('DEBUG: Event listener firstPageKasir ditambahkan');
+        }
+        
+        // Previous page
+        const prevBtn = document.getElementById('prevPageKasir');
+        if (prevBtn && !prevBtn.hasAttribute('data-events-setup')) {
+            prevBtn.setAttribute('data-events-setup', 'true');
+            prevBtn.addEventListener('click', () => {
+                console.log('prevPageKasir diklik');
+                goToKasirHistoryPage(currentKasirHistoryPage - 1);
+            });
+            console.log('DEBUG: Event listener prevPageKasir ditambahkan');
+        }
+        
+        // Next page
+        const nextBtn = document.getElementById('nextPageKasir');
+        if (nextBtn && !nextBtn.hasAttribute('data-events-setup')) {
+            nextBtn.setAttribute('data-events-setup', 'true');
+            nextBtn.addEventListener('click', () => {
+                console.log('nextPageKasir diklik');
+                goToKasirHistoryPage(currentKasirHistoryPage + 1);
+            });
+            console.log('DEBUG: Event listener nextPageKasir ditambahkan');
+        }
+        
+        // Last page
+        const lastBtn = document.getElementById('lastPageKasir');
+        if (lastBtn && !lastBtn.hasAttribute('data-events-setup')) {
+            lastBtn.setAttribute('data-events-setup', 'true');
+            lastBtn.addEventListener('click', () => {
+                console.log('lastPageKasir diklik');
+                const totalPages = Math.ceil(kasirHistoryTotalRecords / KASIR_HISTORY_PER_PAGE);
+                goToKasirHistoryPage(totalPages);
+            });
+            console.log('DEBUG: Event listener lastPageKasir ditambahkan');
+        }
+    }, 200);
     
-    // Previous page
-    const prevBtn = document.getElementById('prevPageKasir');
-    if (prevBtn) {
-        prevBtn.addEventListener('click', () => {
-            console.log('DEBUG: prevPageKasir diklik');
-            goToKasirHistoryPage(currentKasirHistoryPage - 1);
-        });
-        console.log('DEBUG: Event listener prevPageKasir ditambahkan');
-    } else {
-        console.error('ERROR: Button #prevPageKasir tidak ditemukan!');
-    }
-    
-    // Next page
-    const nextBtn = document.getElementById('nextPageKasir');
-    if (nextBtn) {
-        nextBtn.addEventListener('click', () => {
-            console.log('DEBUG: nextPageKasir diklik');
-            goToKasirHistoryPage(currentKasirHistoryPage + 1);
-        });
-        console.log('DEBUG: Event listener nextPageKasir ditambahkan');
-    } else {
-        console.error('ERROR: Button #nextPageKasir tidak ditemukan!');
-    }
-    
-    // Last page
-    const lastBtn = document.getElementById('lastPageKasir');
-    if (lastBtn) {
-        lastBtn.addEventListener('click', () => {
-            console.log('DEBUG: lastPageKasir diklik');
-            const totalPages = Math.ceil(kasirHistoryTotalRecords / KASIR_HISTORY_PER_PAGE);
-            goToKasirHistoryPage(totalPages);
-        });
-        console.log('DEBUG: Event listener lastPageKasir ditambahkan');
-    } else {
-        console.error('ERROR: Button #lastPageKasir tidak ditemukan!');
-    }
-    
-    // Filter date change
-    const dateFilter = document.getElementById('filterDateKasir');
-    if (dateFilter) {
-        dateFilter.addEventListener('change', () => {
-            console.log('DEBUG: filterDateKasir berubah');
-            currentKasirHistoryPage = 1;
-            loadKasirHistory();
-        });
-    }
-    
-    console.log('DEBUG setupKasirPaginationEvents: Selesai setup');
+    console.log('DEBUG setupKasirPaginationEvents: Selesai');
 }
-
-// [33] Fungsi untuk update pagination history kasir - DIPERBAIKI (SELALU TAMPILKAN INFO)
+// [33] Fungsi untuk update pagination history kasir - DIPERBAIKI
 function updateKasirHistoryPagination() {
     console.log('DEBUG updateKasirHistoryPagination: Mulai');
     
@@ -2155,7 +2154,7 @@ function updateKasirHistoryPagination() {
         return;
     }
     
-    console.log('DEBUG: Element ditemukan, child count:', paginationSection.children.length);
+    console.log('DEBUG: Element ditemukan, child count sebelum:', paginationSection.children.length);
     
     // Jika element kosong, isi dengan HTML
     if (paginationSection.children.length === 0) {
@@ -2182,14 +2181,19 @@ function updateKasirHistoryPagination() {
                 </button>
             </div>
         `;
+        
+        // Setup events setelah isi HTML
+        setTimeout(() => setupKasirPaginationEvents(), 100);
     }
     
     const totalPages = Math.max(1, Math.ceil(kasirHistoryTotalRecords / KASIR_HISTORY_PER_PAGE));
     
+    console.log('DEBUG: kasirHistoryTotalRecords=', kasirHistoryTotalRecords, 'totalPages=', totalPages);
+    
     // SELALU TAMPILKAN PAGINATION JIKA ADA DATA
     if (kasirHistoryTotalRecords > 0) {
         paginationSection.style.display = 'flex';
-        console.log('DEBUG: Menampilkan pagination');
+        console.log('DEBUG: Menampilkan pagination (ada data)');
     } else {
         paginationSection.style.display = 'none';
         console.log('DEBUG: Menyembunyikan pagination (tidak ada data)');
@@ -2197,45 +2201,46 @@ function updateKasirHistoryPagination() {
     }
     
     // Update info
-    const start = Math.min((currentKasirHistoryPage - 1) * KASIR_HISTORY_PER_PAGE + 1, kasirHistoryTotalRecords);
-    const end = Math.min(currentKasirHistoryPage * KASIR_HISTORY_PER_PAGE, kasirHistoryTotalRecords);
+    const start = kasirHistoryTotalRecords > 0 
+        ? Math.min((currentKasirHistoryPage - 1) * KASIR_HISTORY_PER_PAGE + 1, kasirHistoryTotalRecords)
+        : 0;
     
-    console.log('DEBUG: start=', start, 'end=', end, 'total=', kasirHistoryTotalRecords);
+    const end = kasirHistoryTotalRecords > 0
+        ? Math.min(currentKasirHistoryPage * KASIR_HISTORY_PER_PAGE, kasirHistoryTotalRecords)
+        : 0;
     
-    // Update semua element dengan pengecekan
-    const elements = {
-        'kasirHistoryStart': start,
-        'kasirHistoryEnd': end,
-        'kasirHistoryTotal': kasirHistoryTotalRecords,
-        'currentPageKasir': currentKasirHistoryPage,
-        'totalPagesKasir': totalPages
-    };
+    console.log('DEBUG: start=', start, 'end=', end);
     
-    Object.entries(elements).forEach(([id, value]) => {
+    // Update semua element
+    const updateElement = (id, value) => {
         const el = document.getElementById(id);
         if (el) {
             el.textContent = value;
         } else {
             console.error(`ERROR: Element #${id} tidak ditemukan!`);
         }
-    });
-    
-    // Update button states
-    const buttons = {
-        'firstPageKasir': currentKasirHistoryPage === 1,
-        'prevPageKasir': currentKasirHistoryPage === 1,
-        'nextPageKasir': currentKasirHistoryPage >= totalPages,
-        'lastPageKasir': currentKasirHistoryPage >= totalPages
     };
     
-    Object.entries(buttons).forEach(([id, disabled]) => {
+    updateElement('kasirHistoryStart', start);
+    updateElement('kasirHistoryEnd', end);
+    updateElement('kasirHistoryTotal', kasirHistoryTotalRecords);
+    updateElement('currentPageKasir', currentKasirHistoryPage);
+    updateElement('totalPagesKasir', totalPages);
+    
+    // Update button states
+    const updateButton = (id, disabled) => {
         const btn = document.getElementById(id);
         if (btn) {
             btn.disabled = disabled;
         } else {
             console.error(`ERROR: Button #${id} tidak ditemukan!`);
         }
-    });
+    };
+    
+    updateButton('firstPageKasir', currentKasirHistoryPage === 1);
+    updateButton('prevPageKasir', currentKasirHistoryPage === 1);
+    updateButton('nextPageKasir', currentKasirHistoryPage >= totalPages);
+    updateButton('lastPageKasir', currentKasirHistoryPage >= totalPages);
     
     console.log('DEBUG updateKasirHistoryPagination: Selesai');
 }
