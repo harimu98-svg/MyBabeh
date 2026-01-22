@@ -9,15 +9,6 @@ let selectedItems = []; // Untuk menyimpan items yang akan di-request
 let batchId = null; // ID batch untuk grouping multi-item
 let inventoryData = []; // Untuk menyimpan data inventory
 
-// Variabel untuk pagination
-let currentKasirHistoryPage = 1;
-let kasirHistoryTotalRecords = 0;
-const KASIR_HISTORY_PER_PAGE = 10;
-
-let currentOwnerHistoryPage = 1;
-let ownerHistoryTotalRecords = 0;
-const OWNER_HISTORY_PER_PAGE = 10;
-
 // [1] Fungsi untuk tampilkan halaman request
 async function showRequestPage() {
     try {
@@ -75,7 +66,7 @@ async function showRequestPage() {
     }
 }
 
-// [2] Fungsi untuk buat halaman request - DIPERBAIKI (HTML PAGINATION LENGKAP)
+// [2] Fungsi untuk buat halaman request - DIPERBAIKI (HAPUS PAGINATION)
 function createRequestPage() {
     // Hapus halaman request sebelumnya jika ada
     const existingPage = document.getElementById('requestPage');
@@ -90,58 +81,6 @@ function createRequestPage() {
     const requestPage = document.createElement('div');
     requestPage.id = 'requestPage';
     requestPage.className = 'request-page';
-    
-    // HTML untuk pagination kasir (LENGKAP seperti owner)
-    const kasirPaginationHTML = `
-        <div class="pagination-section" id="kasirHistoryPagination" style="display: none;">
-            <div class="pagination-info">
-                Menampilkan <span id="kasirHistoryStart">0</span>-<span id="kasirHistoryEnd">0</span> dari <span id="kasirHistoryTotal">0</span> records
-            </div>
-            <div class="pagination-controls">
-                <button class="pagination-btn" id="firstPageKasir" disabled>
-                    <i class="fas fa-angle-double-left"></i>
-                </button>
-                <button class="pagination-btn" id="prevPageKasir" disabled>
-                    <i class="fas fa-angle-left"></i>
-                </button>
-                <span class="page-info">
-                    Halaman <span id="currentPageKasir">1</span> dari <span id="totalPagesKasir">1</span>
-                </span>
-                <button class="pagination-btn" id="nextPageKasir" disabled>
-                    <i class="fas fa-angle-right"></i>
-                </button>
-                <button class="pagination-btn" id="lastPageKasir" disabled>
-                    <i class="fas fa-angle-double-right"></i>
-                </button>
-            </div>
-        </div>
-    `;
-    
-    // HTML untuk pagination owner
-    const ownerPaginationHTML = `
-        <div class="pagination-section" id="ownerHistoryPagination" style="display: none;">
-            <div class="pagination-info">
-                Menampilkan <span id="ownerHistoryStart">0</span>-<span id="ownerHistoryEnd">0</span> dari <span id="ownerHistoryTotal">0</span> records
-            </div>
-            <div class="pagination-controls">
-                <button class="pagination-btn" id="firstPageOwner" disabled>
-                    <i class="fas fa-angle-double-left"></i>
-                </button>
-                <button class="pagination-btn" id="prevPageOwner" disabled>
-                    <i class="fas fa-angle-left"></i>
-                </button>
-                <span class="page-info">
-                    Halaman <span id="currentPageOwner">1</span> dari <span id="totalPagesOwner">1</span>
-                </span>
-                <button class="pagination-btn" id="nextPageOwner" disabled>
-                    <i class="fas fa-angle-right"></i>
-                </button>
-                <button class="pagination-btn" id="lastPageOwner" disabled>
-                    <i class="fas fa-angle-double-right"></i>
-                </button>
-            </div>
-        </div>
-    `;
     
     requestPage.innerHTML = `
         <!-- Header -->
@@ -376,9 +315,6 @@ function createRequestPage() {
                         </table>
                     </div>
                 </div>
-                
-                <!-- PAGINATION KASIR - HTML LENGKAP -->
-                ${kasirPaginationHTML}
             </div>
         </div>
         ` : `
@@ -473,9 +409,6 @@ function createRequestPage() {
                         </table>
                     </div>
                 </div>
-                
-                <!-- PAGINATION OWNER -->
-                ${ownerPaginationHTML}
             </div>
         </div>
         `}
@@ -582,9 +515,6 @@ function setupKasirRequestEvents() {
     if (clearAllBtn) {
         clearAllBtn.addEventListener('click', clearAllSelectedItems);
     }
-    
-    // Setup pagination events
-    setupKasirPaginationEvents();
 }
 
 // [5] Setup events untuk OWNER
@@ -599,28 +529,21 @@ function setupOwnerRequestEvents() {
     
     // Filter dropdowns
     document.getElementById('filterOutletOwner')?.addEventListener('change', async () => {
-        currentOwnerHistoryPage = 1;
         await loadRequestsForOwner();
     });
     
     document.getElementById('filterStatusOwner')?.addEventListener('change', async () => {
-        currentOwnerHistoryPage = 1;
         await loadRequestsForOwner();
     });
     
     document.getElementById('filterDateOwner')?.addEventListener('change', async () => {
-        currentOwnerHistoryPage = 1;
         await loadRequestsForOwner();
     });
     
     // Tombol apply filter
     document.querySelector('.btn-apply-filter')?.addEventListener('click', async () => {
-        currentOwnerHistoryPage = 1;
         await loadRequestsForOwner();
     });
-    
-    // Setup pagination events untuk owner
-    setupOwnerPaginationEvents();
 }
 
 // [6] Fungsi untuk load initial data kasir
@@ -934,7 +857,7 @@ function addSingleItemToRequest(sku, unitPrice, itemName, category, itemGroup, u
     }
 }
 
-// [14] Fungsi untuk load kasir history - DIPERBAIKI (SEDERHANA seperti Owner)
+// [14] Fungsi untuk load kasir history - DIPERBAIKI (TANPA PAGINATION)
 async function loadKasirHistory() {
     try {
         const loadingEl = document.getElementById('loadingHistoryKasir');
@@ -952,17 +875,13 @@ async function loadKasirHistory() {
         
         // Get filter values
         const dateFilter = document.getElementById('filterDateKasir')?.value || 'today';
-        const page = currentKasirHistoryPage || 1;
-        const limit = KASIR_HISTORY_PER_PAGE;
-        const offset = (page - 1) * limit;
         
-        // Query request history - SEDERHANA seperti Owner
+        // Query request history - SEMUA DATA TANPA PAGINATION
         let query = supabase
             .from('request_barang')
-            .select('*', { count: 'exact' })
+            .select('*')
             .eq('outlet', currentUserOutletRequest)
-            .order('created_at', { ascending: false })
-            .range(offset, offset + limit - 1);
+            .order('created_at', { ascending: false });
         
         // Apply date filter
         if (dateFilter !== 'all') {
@@ -980,18 +899,12 @@ async function loadKasirHistory() {
             query = query.gte('created_at', startDate.toISOString());
         }
         
-        const { data: requests, error, count } = await query;
+        const { data: requests, error } = await query;
         
         if (error) throw error;
         
-        // Update total records untuk pagination
-        kasirHistoryTotalRecords = count || 0;
-        
         // Display data
         displayKasirHistory(requests || []);
-        
-        // LANGSUNG PANGGIL updateKasirHistoryPagination() - SAMA DENGAN OWNER
-        updateKasirHistoryPagination();
         
     } catch (error) {
         console.error('Error loading kasir history:', error);
@@ -1022,7 +935,7 @@ async function loadKasirHistory() {
     }
 }
 
-// [15] Fungsi untuk display kasir history - DIPERBAIKI
+// [15] Fungsi untuk display kasir history
 function displayKasirHistory(requests) {
     const tbody = document.getElementById('historyBodyKasir');
     const tableEl = document.getElementById('historyTableKasir');
@@ -1354,11 +1267,45 @@ async function loadRequestsForOwner() {
         const statusFilter = document.getElementById('filterStatusOwner')?.value || 'all';
         const dateFilter = document.getElementById('filterDateOwner')?.value || 'today';
         
+        // 1. Load pending requests
+        await loadPendingRequestsForOwner(outletFilter, dateFilter);
+        
+        // 2. Load history (semua status kecuali pending)
+        await loadRequestHistoryForOwner(outletFilter, statusFilter, dateFilter);
+        
+        // 3. Load outlet dropdown options
+        await loadOutletDropdownForOwner();
+        
+    } catch (error) {
+        console.error('Error loading requests:', error);
+        showToast(`Gagal memuat data request: ${error.message}`, 'error');
+    } finally {
+        // Hide loading
+        const loadingPending = document.getElementById('loadingPending');
+        const pendingGrid = document.getElementById('pendingRequestsGrid');
+        const loadingHistory = document.getElementById('loadingHistory');
+        const refreshBtn = document.getElementById('refreshOwnerPending');
+        
+        // Hapus animasi loading dari tombol refresh
+        if (refreshBtn) {
+            refreshBtn.classList.remove('loading');
+            refreshBtn.disabled = false;
+        }
+        
+        if (loadingPending) loadingPending.style.display = 'none';
+        if (pendingGrid) pendingGrid.style.display = 'block';
+        if (loadingHistory) loadingHistory.style.display = 'none';
+    }
+}
+
+// Fungsi untuk load pending requests untuk Owner
+async function loadPendingRequestsForOwner(outletFilter, dateFilter) {
+    try {
         // Build query - HANYA AMBIL ITEM YANG STATUS PENDING
         let query = supabase
             .from('request_barang')
             .select('*')
-            .eq('status', 'pending') // HANYA YANG PENDING
+            .eq('status', 'pending')
             .order('created_at', { ascending: false });
         
         // Apply outlet filter
@@ -1392,36 +1339,14 @@ async function loadRequestsForOwner() {
         // Display data
         displayPendingRequestsForRequestModule(groupedRequests);
         
-        // Load history (semua status dengan pagination)
-        await loadRequestHistoryForOwner(outletFilter, dateFilter);
-        
-        // Load outlet dropdown options
-        await loadOutletDropdownForOwner(requests || []);
-        
     } catch (error) {
-        console.error('Error loading requests:', error);
-        showToast(`Gagal memuat data request: ${error.message}`, 'error');
-    } finally {
-        // Hide loading
-        const loadingPending = document.getElementById('loadingPending');
-        const pendingGrid = document.getElementById('pendingRequestsGrid');
-        const loadingHistory = document.getElementById('loadingHistory');
-        const refreshBtn = document.getElementById('refreshOwnerPending');
-        
-        // Hapus animasi loading dari tombol refresh
-        if (refreshBtn) {
-            refreshBtn.classList.remove('loading');
-            refreshBtn.disabled = false;
-        }
-        
-        if (loadingPending) loadingPending.style.display = 'none';
-        if (pendingGrid) pendingGrid.style.display = 'block';
-        if (loadingHistory) loadingHistory.style.display = 'none';
+        console.error('Error loading pending requests:', error);
+        showToast(`Gagal memuat pending requests: ${error.message}`, 'error');
     }
 }
 
-// Fungsi untuk load history untuk Owner dengan pagination
-async function loadRequestHistoryForOwner(outletFilter, dateFilter) {
+// Fungsi untuk load history untuk Owner - DIPERBAIKI (TANPA PAGINATION)
+async function loadRequestHistoryForOwner(outletFilter, statusFilter, dateFilter) {
     try {
         const refreshBtn = document.getElementById('refreshOwnerHistory');
         
@@ -1431,21 +1356,21 @@ async function loadRequestHistoryForOwner(outletFilter, dateFilter) {
             refreshBtn.disabled = true;
         }
         
-        const page = currentOwnerHistoryPage || 1;
-        const limit = OWNER_HISTORY_PER_PAGE;
-        const offset = (page - 1) * limit;
-        
         // Build query untuk history (semua status kecuali pending)
         let query = supabase
             .from('request_barang')
-            .select('*', { count: 'exact' })
-            .neq('status', 'pending') // HANYA YANG BUKAN PENDING
-            .order('created_at', { ascending: false })
-            .range(offset, offset + limit - 1);
+            .select('*')
+            .neq('status', 'pending')
+            .order('created_at', { ascending: false });
         
         // Apply outlet filter
         if (outletFilter !== 'all') {
             query = query.eq('outlet', outletFilter);
+        }
+        
+        // Apply status filter
+        if (statusFilter !== 'all') {
+            query = query.eq('status', statusFilter);
         }
         
         // Apply date filter
@@ -1464,16 +1389,12 @@ async function loadRequestHistoryForOwner(outletFilter, dateFilter) {
             query = query.gte('created_at', startDate.toISOString());
         }
         
-        const { data: requests, error, count } = await query;
+        const { data: requests, error } = await query;
         
         if (error) throw error;
         
-        // Update total records untuk pagination
-        ownerHistoryTotalRecords = count || 0;
-        
         // Display history
         displayRequestHistory(requests || []);
-        updateOwnerHistoryPagination();
         
     } catch (error) {
         console.error('Error loading history:', error);
@@ -1806,7 +1727,7 @@ function displayRequestHistory(requests) {
 }
 
 // [26] Load outlet dropdown for owner
-async function loadOutletDropdownForOwner(requests) {
+async function loadOutletDropdownForOwner() {
     const select = document.getElementById('filterOutletOwner');
     if (!select) return;
     
@@ -2037,192 +1958,6 @@ function showToast(message, type = 'info') {
 function formatRupiah(amount) {
     if (amount === 0 || !amount) return 'Rp 0';
     return 'Rp ' + amount.toLocaleString('id-ID');
-}
-
-// [32] Setup pagination events untuk kasir - DIPERBAIKI
-function setupKasirPaginationEvents() {
-    // Setup dengan delay untuk memastikan element sudah ada
-    setTimeout(() => {
-        // First page
-        const firstBtn = document.getElementById('firstPageKasir');
-        if (firstBtn && !firstBtn.hasAttribute('data-event-setup')) {
-            firstBtn.setAttribute('data-event-setup', 'true');
-            firstBtn.addEventListener('click', () => {
-                goToKasirHistoryPage(1);
-            });
-        }
-        
-        // Previous page
-        const prevBtn = document.getElementById('prevPageKasir');
-        if (prevBtn && !prevBtn.hasAttribute('data-event-setup')) {
-            prevBtn.setAttribute('data-event-setup', 'true');
-            prevBtn.addEventListener('click', () => {
-                goToKasirHistoryPage(currentKasirHistoryPage - 1);
-            });
-        }
-        
-        // Next page
-        const nextBtn = document.getElementById('nextPageKasir');
-        if (nextBtn && !nextBtn.hasAttribute('data-event-setup')) {
-            nextBtn.setAttribute('data-event-setup', 'true');
-            nextBtn.addEventListener('click', () => {
-                goToKasirHistoryPage(currentKasirHistoryPage + 1);
-            });
-        }
-        
-        // Last page
-        const lastBtn = document.getElementById('lastPageKasir');
-        if (lastBtn && !lastBtn.hasAttribute('data-event-setup')) {
-            lastBtn.setAttribute('data-event-setup', 'true');
-            lastBtn.addEventListener('click', () => {
-                const totalPages = Math.ceil(kasirHistoryTotalRecords / KASIR_HISTORY_PER_PAGE);
-                goToKasirHistoryPage(totalPages);
-            });
-        }
-        
-        // Filter date change
-        const dateFilter = document.getElementById('filterDateKasir');
-        if (dateFilter) {
-            dateFilter.addEventListener('change', () => {
-                currentKasirHistoryPage = 1;
-                loadKasirHistory();
-            });
-        }
-    }, 500);
-}
-
-// [33] Fungsi untuk update pagination history kasir - DIPERBAIKI (SAMA DENGAN OWNER)
-function updateKasirHistoryPagination() {
-    const paginationSection = document.getElementById('kasirHistoryPagination');
-    if (!paginationSection) return;
-    
-    const totalPages = Math.max(1, Math.ceil(kasirHistoryTotalRecords / KASIR_HISTORY_PER_PAGE));
-    
-    // SELALU TAMPILKAN PAGINATION JIKA ADA DATA
-    if (kasirHistoryTotalRecords > 0) {
-        paginationSection.style.display = 'flex';
-    } else {
-        paginationSection.style.display = 'none';
-        return;
-    }
-    
-    // Update info
-    const start = kasirHistoryTotalRecords > 0 
-        ? Math.min((currentKasirHistoryPage - 1) * KASIR_HISTORY_PER_PAGE + 1, kasirHistoryTotalRecords)
-        : 0;
-    
-    const end = kasirHistoryTotalRecords > 0
-        ? Math.min(currentKasirHistoryPage * KASIR_HISTORY_PER_PAGE, kasirHistoryTotalRecords)
-        : 0;
-    
-    // Update semua element
-    const updateElement = (id, value) => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.textContent = value;
-        }
-    };
-    
-    updateElement('kasirHistoryStart', start);
-    updateElement('kasirHistoryEnd', end);
-    updateElement('kasirHistoryTotal', kasirHistoryTotalRecords);
-    updateElement('currentPageKasir', currentKasirHistoryPage);
-    updateElement('totalPagesKasir', totalPages);
-    
-    // Update button states
-    const updateButton = (id, disabled) => {
-        const btn = document.getElementById(id);
-        if (btn) {
-            btn.disabled = disabled;
-        }
-    };
-    
-    updateButton('firstPageKasir', currentKasirHistoryPage === 1);
-    updateButton('prevPageKasir', currentKasirHistoryPage === 1);
-    updateButton('nextPageKasir', currentKasirHistoryPage >= totalPages);
-    updateButton('lastPageKasir', currentKasirHistoryPage >= totalPages);
-}
-
-// [34] Fungsi untuk ganti halaman history kasir
-function goToKasirHistoryPage(page) {
-    if (page < 1) page = 1;
-    
-    const totalPages = Math.ceil(kasirHistoryTotalRecords / KASIR_HISTORY_PER_PAGE);
-    if (page > totalPages) page = totalPages;
-    
-    currentKasirHistoryPage = page;
-    loadKasirHistory();
-}
-
-// [35] Setup pagination events untuk owner
-function setupOwnerPaginationEvents() {
-    // First page
-    document.getElementById('firstPageOwner')?.addEventListener('click', () => {
-        goToOwnerHistoryPage(1);
-    });
-    
-    // Previous page
-    document.getElementById('prevPageOwner')?.addEventListener('click', () => {
-        goToOwnerHistoryPage(currentOwnerHistoryPage - 1);
-    });
-    
-    // Next page
-    document.getElementById('nextPageOwner')?.addEventListener('click', () => {
-        goToOwnerHistoryPage(currentOwnerHistoryPage + 1);
-    });
-    
-    // Last page
-    document.getElementById('lastPageOwner')?.addEventListener('click', () => {
-        const totalPages = Math.ceil(ownerHistoryTotalRecords / OWNER_HISTORY_PER_PAGE);
-        goToOwnerHistoryPage(totalPages);
-    });
-}
-
-// [36] Fungsi untuk update pagination history owner
-function updateOwnerHistoryPagination() {
-    const paginationSection = document.getElementById('ownerHistoryPagination');
-    const totalPages = Math.ceil(ownerHistoryTotalRecords / OWNER_HISTORY_PER_PAGE);
-    
-    if (!paginationSection) return;
-    
-    // SELALU TAMPILKAN PAGINATION JIKA ADA DATA
-    if (ownerHistoryTotalRecords > 0) {
-        paginationSection.style.display = 'flex';
-    } else {
-        paginationSection.style.display = 'none';
-        return;
-    }
-    
-    // Update info
-    const start = Math.min((currentOwnerHistoryPage - 1) * OWNER_HISTORY_PER_PAGE + 1, ownerHistoryTotalRecords);
-    const end = Math.min(currentOwnerHistoryPage * OWNER_HISTORY_PER_PAGE, ownerHistoryTotalRecords);
-    
-    document.getElementById('ownerHistoryStart').textContent = start;
-    document.getElementById('ownerHistoryEnd').textContent = end;
-    document.getElementById('ownerHistoryTotal').textContent = ownerHistoryTotalRecords;
-    document.getElementById('currentPageOwner').textContent = currentOwnerHistoryPage;
-    document.getElementById('totalPagesOwner').textContent = totalPages;
-    
-    // Update button states
-    document.getElementById('firstPageOwner').disabled = currentOwnerHistoryPage === 1;
-    document.getElementById('prevPageOwner').disabled = currentOwnerHistoryPage === 1;
-    document.getElementById('nextPageOwner').disabled = currentOwnerHistoryPage >= totalPages;
-    document.getElementById('lastPageOwner').disabled = currentOwnerHistoryPage >= totalPages;
-}
-
-// [37] Fungsi untuk ganti halaman history owner
-function goToOwnerHistoryPage(page) {
-    if (page < 1) page = 1;
-    
-    const totalPages = Math.ceil(ownerHistoryTotalRecords / OWNER_HISTORY_PER_PAGE);
-    if (page > totalPages) page = totalPages;
-    
-    currentOwnerHistoryPage = page;
-    
-    // Reload history dengan filter yang aktif
-    const outletFilter = document.getElementById('filterOutletOwner')?.value || 'all';
-    const dateFilter = document.getElementById('filterDateOwner')?.value || 'today';
-    loadRequestHistoryForOwner(outletFilter, dateFilter);
 }
 
 // [38] Tambahkan CSS untuk styling
@@ -2497,57 +2232,6 @@ function addRequestPageStyles() {
             transform: translateY(-2px);
         }
         
-        /* ===== PAGINATION STYLES ===== */
-        .pagination-section {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            background: #f8f9fa;
-            border-top: 1px solid #dee2e6;
-            margin-top: 10px;
-            border-radius: 0 0 8px 8px;
-        }
-        
-        .pagination-info {
-            font-size: 14px;
-            color: #6c757d;
-        }
-        
-        .pagination-controls {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .pagination-btn {
-            padding: 6px 12px;
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            cursor: pointer;
-            color: #495057;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-        
-        .pagination-btn:hover:not(:disabled) {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
-        
-        .pagination-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .page-info {
-            padding: 6px 12px;
-            font-size: 14px;
-            color: #495057;
-        }
-        
         /* ===== KARYAWAN INFO ===== */
         .karyawan-info {
             display: flex;
@@ -2626,16 +2310,6 @@ function addRequestPageStyles() {
                 width: 32px;
                 height: 32px;
             }
-            
-            .pagination-section {
-                flex-direction: column;
-                gap: 10px;
-                align-items: stretch;
-            }
-            
-            .pagination-controls {
-                justify-content: center;
-            }
         }
         
         /* Animation untuk status */
@@ -2658,7 +2332,6 @@ function setupRefreshButtons() {
     const refreshKasirBtn = document.getElementById('refreshKasirHistory');
     if (refreshKasirBtn) {
         refreshKasirBtn.addEventListener('click', async function() {
-            currentKasirHistoryPage = 1;
             await loadKasirHistory();
         });
     }
@@ -2667,7 +2340,6 @@ function setupRefreshButtons() {
     const refreshOwnerPendingBtn = document.getElementById('refreshOwnerPending');
     if (refreshOwnerPendingBtn) {
         refreshOwnerPendingBtn.addEventListener('click', async function() {
-            currentOwnerHistoryPage = 1;
             await loadRequestsForOwner();
         });
     }
@@ -2676,11 +2348,7 @@ function setupRefreshButtons() {
     const refreshOwnerHistoryBtn = document.getElementById('refreshOwnerHistory');
     if (refreshOwnerHistoryBtn) {
         refreshOwnerHistoryBtn.addEventListener('click', async function() {
-            currentOwnerHistoryPage = 1;
-            await loadRequestHistoryForOwner(
-                document.getElementById('filterOutletOwner')?.value || 'all',
-                document.getElementById('filterDateOwner')?.value || 'today'
-            );
+            await loadRequestsForOwner();
         });
     }
 }
@@ -2698,7 +2366,5 @@ window.updateBatchSelection = updateBatchSelection;
 window.approveSelectedItemsInBatch = approveSelectedItemsInBatch;
 window.rejectSelectedItemsInBatch = rejectSelectedItemsInBatch;
 window.clearAllSelectedItems = clearAllSelectedItems;
-window.goToKasirHistoryPage = goToKasirHistoryPage;
-window.goToOwnerHistoryPage = goToOwnerHistoryPage;
 
 // ========== END OF FILE ==========
