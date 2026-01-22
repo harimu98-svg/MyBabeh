@@ -9,10 +9,14 @@ let selectedItems = []; // Untuk menyimpan items yang akan di-request
 let batchId = null; // ID batch untuk grouping multi-item
 let inventoryData = []; // Untuk menyimpan data inventory
 
-// Variabel untuk pagination history kasir
+// Variabel untuk pagination
 let currentKasirHistoryPage = 1;
 let kasirHistoryTotalRecords = 0;
 const KASIR_HISTORY_PER_PAGE = 10;
+
+let currentOwnerHistoryPage = 1;
+let ownerHistoryTotalRecords = 0;
+const OWNER_HISTORY_PER_PAGE = 10;
 
 // [1] Fungsi untuk tampilkan halaman request
 async function showRequestPage() {
@@ -71,7 +75,7 @@ async function showRequestPage() {
     }
 }
 
-// [2] Fungsi untuk buat halaman request - DIMODIFIKASI (tombol refresh bulat)
+// [2] Fungsi untuk buat halaman request - DIMODIFIKASI (tambah kolom note)
 function createRequestPage() {
     // Hapus halaman request sebelumnya jika ada
     const existingPage = document.getElementById('requestPage');
@@ -308,9 +312,10 @@ function createRequestPage() {
                                     <th width="60px">Qty</th>
                                     <th width="90px">Harga Satuan</th>
                                     <th width="100px">Subtotal</th>
-                                    <th width="110px">Status</th>
+                                    <th width="90px">Status</th>
                                     <th width="100px">Disetujui Oleh</th>
                                     <th width="100px">Tanggal Approve</th>
+                                    <th width="150px">Catatan</th>
                                 </tr>
                             </thead>
                             <tbody id="historyBodyKasir">
@@ -425,15 +430,40 @@ function createRequestPage() {
                                     <th width="60px">Qty</th>
                                     <th width="90px">Harga Satuan</th>
                                     <th width="100px">Subtotal</th>
-                                    <th width="110px">Status</th>
+                                    <th width="90px">Status</th>
                                     <th width="100px">Disetujui Oleh</th>
                                     <th width="100px">Tanggal Approve</th>
+                                    <th width="150px">Catatan</th>
                                 </tr>
                             </thead>
                             <tbody id="historyBody">
                                 <!-- History akan diisi di sini -->
                             </tbody>
                         </table>
+                    </div>
+                </div>
+                
+                <!-- Pagination Controls untuk Owner -->
+                <div class="pagination-section" id="ownerHistoryPagination" style="display: none;">
+                    <div class="pagination-info">
+                        Menampilkan <span id="ownerHistoryStart">0</span>-<span id="ownerHistoryEnd">0</span> dari <span id="ownerHistoryTotal">0</span> records
+                    </div>
+                    <div class="pagination-controls">
+                        <button class="pagination-btn" id="firstPageOwner" disabled>
+                            <i class="fas fa-angle-double-left"></i>
+                        </button>
+                        <button class="pagination-btn" id="prevPageOwner" disabled>
+                            <i class="fas fa-angle-left"></i>
+                        </button>
+                        <span class="page-info">
+                            Halaman <span id="currentPageOwner">1</span> dari <span id="totalPagesOwner">1</span>
+                        </span>
+                        <button class="pagination-btn" id="nextPageOwner" disabled>
+                            <i class="fas fa-angle-right"></i>
+                        </button>
+                        <button class="pagination-btn" id="lastPageOwner" disabled>
+                            <i class="fas fa-angle-double-right"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -559,21 +589,28 @@ function setupOwnerRequestEvents() {
     
     // Filter dropdowns
     document.getElementById('filterOutletOwner')?.addEventListener('change', async () => {
+        currentOwnerHistoryPage = 1;
         await loadRequestsForOwner();
     });
     
     document.getElementById('filterStatusOwner')?.addEventListener('change', async () => {
+        currentOwnerHistoryPage = 1;
         await loadRequestsForOwner();
     });
     
     document.getElementById('filterDateOwner')?.addEventListener('change', async () => {
+        currentOwnerHistoryPage = 1;
         await loadRequestsForOwner();
     });
     
     // Tombol apply filter
     document.querySelector('.btn-apply-filter')?.addEventListener('click', async () => {
+        currentOwnerHistoryPage = 1;
         await loadRequestsForOwner();
     });
+    
+    // Setup pagination events untuk owner
+    setupOwnerPaginationEvents();
 }
 
 // [6] Fungsi untuk load initial data kasir
@@ -887,7 +924,7 @@ function addSingleItemToRequest(sku, unitPrice, itemName, category, itemGroup, u
     }
 }
 
-// [14] Fungsi untuk load kasir history - DIMODIFIKASI (semua karyawan di outlet)
+// [14] Fungsi untuk load kasir history - DIMODIFIKASI
 async function loadKasirHistory() {
     try {
         const loadingEl = document.getElementById('loadingHistoryKasir');
@@ -913,7 +950,7 @@ async function loadKasirHistory() {
         let query = supabase
             .from('request_barang')
             .select('*', { count: 'exact' })
-            .eq('outlet', currentUserOutletRequest) // Filter berdasarkan outlet, bukan karyawan
+            .eq('outlet', currentUserOutletRequest)
             .order('created_at', { ascending: false })
             .range(offset, offset + limit - 1);
         
@@ -949,7 +986,7 @@ async function loadKasirHistory() {
         if (tbody) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="10" class="error-message">
+                    <td colspan="11" class="error-message">
                         <i class="fas fa-exclamation-triangle"></i>
                         Gagal memuat history: ${error.message}
                     </td>
@@ -972,7 +1009,7 @@ async function loadKasirHistory() {
     }
 }
 
-// [15] Fungsi untuk display kasir history - DIMODIFIKASI (gabungkan catatan ke status)
+// [15] Fungsi untuk display kasir history - DIMODIFIKASI (kolom note terpisah)
 function displayKasirHistory(requests) {
     const tbody = document.getElementById('historyBodyKasir');
     const tableEl = document.getElementById('historyTableKasir');
@@ -984,7 +1021,7 @@ function displayKasirHistory(requests) {
         tableEl.style.display = 'table';
         tbody.innerHTML = `
             <tr>
-                <td colspan="10" class="empty-message">
+                <td colspan="11" class="empty-message">
                     <i class="fas fa-inbox"></i>
                     Belum ada request
                 </td>
@@ -1000,45 +1037,32 @@ function displayKasirHistory(requests) {
         // Tambahkan highlight jika request dibuat oleh karyawan yang login
         const isOwnRequest = request.karyawan === currentKaryawanRequest.nama_karyawan;
         
-        // BUAT STATUS DENGAN CATATAN
+        // Format note
+        const noteDisplay = request.notes || '-';
+        
+        // Status dengan icon
         let statusHTML = '';
-        if (request.status === 'rejected' && request.notes) {
+        if (request.status === 'rejected') {
             statusHTML = `
-                <div class="status-with-notes">
-                    <span class="status-pill status-rejected">
-                        <i class="fas fa-times-circle"></i> ${request.status}
-                    </span>
-                    <div class="reject-reason" title="${request.notes}">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <span>${truncateText(request.notes, 30)}</span>
-                    </div>
-                </div>
+                <span class="status-pill status-rejected">
+                    <i class="fas fa-times-circle"></i> ${request.status}
+                </span>
             `;
-        } else if (request.status === 'approved' && request.notes) {
+        } else if (request.status === 'approved') {
             statusHTML = `
-                <div class="status-with-notes">
-                    <span class="status-pill status-approved">
-                        <i class="fas fa-check-circle"></i> ${request.status}
-                    </span>
-                    <div class="approve-notes" title="${request.notes}">
-                        <i class="fas fa-sticky-note"></i>
-                        <span>${truncateText(request.notes, 30)}</span>
-                    </div>
-                </div>
+                <span class="status-pill status-approved">
+                    <i class="fas fa-check-circle"></i> ${request.status}
+                </span>
             `;
         } else if (request.status === 'pending') {
             statusHTML = `
-                <div class="status-with-notes">
-                    <span class="status-pill status-pending">
-                        <i class="fas fa-clock"></i> ${request.status}
-                    </span>
-                </div>
+                <span class="status-pill status-pending">
+                    <i class="fas fa-clock"></i> ${request.status}
+                </span>
             `;
         } else {
             statusHTML = `
                 <span class="status-pill ${getRequestStatusClass(request.status)}">
-                    ${request.status === 'approved' ? '<i class="fas fa-check-circle"></i> ' : ''}
-                    ${request.status === 'rejected' ? '<i class="fas fa-times-circle"></i> ' : ''}
                     ${request.status}
                 </span>
             `;
@@ -1071,6 +1095,11 @@ function displayKasirHistory(requests) {
             <td>
                 ${approvedDate ? approvedDate.toLocaleDateString('id-ID') : '-'}<br>
                 ${approvedDate ? `<small>${approvedDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>` : ''}
+            </td>
+            <td class="notes-cell">
+                <div class="notes-content" title="${noteDisplay}">
+                    ${noteDisplay}
+                </div>
             </td>
         `;
         tbody.appendChild(row);
@@ -1350,7 +1379,7 @@ async function loadRequestsForOwner() {
         // Display data
         displayPendingRequestsForRequestModule(groupedRequests);
         
-        // Load history (semua status)
+        // Load history (semua status dengan pagination)
         await loadRequestHistoryForOwner(outletFilter, dateFilter);
         
         // Load outlet dropdown options
@@ -1378,7 +1407,7 @@ async function loadRequestsForOwner() {
     }
 }
 
-// Fungsi untuk load history untuk Owner
+// Fungsi untuk load history untuk Owner dengan pagination
 async function loadRequestHistoryForOwner(outletFilter, dateFilter) {
     try {
         const refreshBtn = document.getElementById('refreshOwnerHistory');
@@ -1389,13 +1418,17 @@ async function loadRequestHistoryForOwner(outletFilter, dateFilter) {
             refreshBtn.disabled = true;
         }
         
+        const page = currentOwnerHistoryPage || 1;
+        const limit = OWNER_HISTORY_PER_PAGE;
+        const offset = (page - 1) * limit;
+        
         // Build query untuk history (semua status kecuali pending)
         let query = supabase
             .from('request_barang')
-            .select('*')
+            .select('*', { count: 'exact' })
             .neq('status', 'pending') // HANYA YANG BUKAN PENDING
             .order('created_at', { ascending: false })
-            .limit(50);
+            .range(offset, offset + limit - 1);
         
         // Apply outlet filter
         if (outletFilter !== 'all') {
@@ -1418,12 +1451,16 @@ async function loadRequestHistoryForOwner(outletFilter, dateFilter) {
             query = query.gte('created_at', startDate.toISOString());
         }
         
-        const { data: requests, error } = await query;
+        const { data: requests, error, count } = await query;
         
         if (error) throw error;
         
+        // Update total records untuk pagination
+        ownerHistoryTotalRecords = count || 0;
+        
         // Display history
         displayRequestHistory(requests || []);
+        updateOwnerHistoryPagination();
         
     } catch (error) {
         console.error('Error loading history:', error);
@@ -1431,7 +1468,7 @@ async function loadRequestHistoryForOwner(outletFilter, dateFilter) {
         if (tbody) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="11" class="error-message">
+                    <td colspan="12" class="error-message">
                         <i class="fas fa-exclamation-triangle"></i>
                         Gagal memuat history: ${error.message}
                     </td>
@@ -1659,7 +1696,7 @@ function displayPendingRequestsForRequestModule(groupedRequests) {
     pendingGrid.innerHTML = html;
 }
 
-// [25] Display request history untuk Owner - DIMODIFIKASI (konsisten dengan kasir)
+// [25] Display request history untuk Owner - DIMODIFIKASI (kolom note terpisah)
 function displayRequestHistory(requests) {
     const tbody = document.getElementById('historyBody');
     const historyTable = document.getElementById('historyTable');
@@ -1671,7 +1708,7 @@ function displayRequestHistory(requests) {
     if (!requests || requests.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="10" class="empty-message">
+                <td colspan="12" class="empty-message">
                     <i class="fas fa-history"></i>
                     Tidak ada history request
                 </td>
@@ -1681,52 +1718,36 @@ function displayRequestHistory(requests) {
         return;
     }
     
-    // Batasi maksimal 10 baris untuk performance
-    const displayRequests = requests.slice(0, 10);
-    
-    displayRequests.forEach(request => {
+    requests.forEach(request => {
         const createdDate = new Date(request.created_at);
         const approvedDate = request.approved_at ? new Date(request.approved_at) : null;
         
-        // SAMA SEPERTI KASIR: Gabungkan catatan dengan status
+        // Format note
+        const noteDisplay = request.notes || '-';
+        
+        // Status dengan icon
         let statusHTML = '';
-        if (request.status === 'rejected' && request.notes) {
+        if (request.status === 'rejected') {
             statusHTML = `
-                <div class="status-with-notes">
-                    <span class="status-pill status-rejected">
-                        <i class="fas fa-times-circle"></i> ${request.status}
-                    </span>
-                    <div class="reject-reason" title="${request.notes}">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <span>${truncateText(request.notes, 30)}</span>
-                    </div>
-                </div>
+                <span class="status-pill status-rejected">
+                    <i class="fas fa-times-circle"></i> ${request.status}
+                </span>
             `;
-        } else if (request.status === 'approved' && request.notes) {
+        } else if (request.status === 'approved') {
             statusHTML = `
-                <div class="status-with-notes">
-                    <span class="status-pill status-approved">
-                        <i class="fas fa-check-circle"></i> ${request.status}
-                    </span>
-                    <div class="approve-notes" title="${request.notes}">
-                        <i class="fas fa-sticky-note"></i>
-                        <span>${truncateText(request.notes, 30)}</span>
-                    </div>
-                </div>
+                <span class="status-pill status-approved">
+                    <i class="fas fa-check-circle"></i> ${request.status}
+                </span>
             `;
         } else if (request.status === 'pending') {
             statusHTML = `
-                <div class="status-with-notes">
-                    <span class="status-pill status-pending">
-                        <i class="fas fa-clock"></i> ${request.status}
-                    </span>
-                </div>
+                <span class="status-pill status-pending">
+                    <i class="fas fa-clock"></i> ${request.status}
+                </span>
             `;
         } else {
             statusHTML = `
                 <span class="status-pill ${getRequestStatusClass(request.status)}">
-                    ${request.status === 'approved' ? '<i class="fas fa-check-circle"></i> ' : ''}
-                    ${request.status === 'rejected' ? '<i class="fas fa-times-circle"></i> ' : ''}
                     ${request.status}
                 </span>
             `;
@@ -1759,21 +1780,14 @@ function displayRequestHistory(requests) {
                 ${approvedDate ? approvedDate.toLocaleDateString('id-ID') : '-'}<br>
                 ${approvedDate ? `<small>${approvedDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small>` : ''}
             </td>
+            <td class="notes-cell">
+                <div class="notes-content" title="${noteDisplay}">
+                    ${noteDisplay}
+                </div>
+            </td>
         `;
         tbody.appendChild(row);
     });
-    
-    // Jika ada lebih dari 10 item, tambahkan note
-    if (requests.length > 10) {
-        const infoRow = document.createElement('tr');
-        infoRow.className = 'info-row';
-        infoRow.innerHTML = `
-            <td colspan="10" style="text-align: center; color: #6c757d; font-style: italic;">
-                <i class="fas fa-info-circle"></i> Menampilkan 10 dari ${requests.length} history request.
-            </td>
-        `;
-        tbody.appendChild(infoRow);
-    }
     
     historyTable.style.display = 'table';
 }
@@ -2085,7 +2099,78 @@ function goToKasirHistoryPage(page) {
     loadKasirHistory();
 }
 
-// [35] Tambahkan CSS untuk styling
+// [35] Setup pagination events untuk owner
+function setupOwnerPaginationEvents() {
+    // First page
+    document.getElementById('firstPageOwner')?.addEventListener('click', () => {
+        goToOwnerHistoryPage(1);
+    });
+    
+    // Previous page
+    document.getElementById('prevPageOwner')?.addEventListener('click', () => {
+        goToOwnerHistoryPage(currentOwnerHistoryPage - 1);
+    });
+    
+    // Next page
+    document.getElementById('nextPageOwner')?.addEventListener('click', () => {
+        goToOwnerHistoryPage(currentOwnerHistoryPage + 1);
+    });
+    
+    // Last page
+    document.getElementById('lastPageOwner')?.addEventListener('click', () => {
+        const totalPages = Math.ceil(ownerHistoryTotalRecords / OWNER_HISTORY_PER_PAGE);
+        goToOwnerHistoryPage(totalPages);
+    });
+}
+
+// [36] Fungsi untuk update pagination history owner
+function updateOwnerHistoryPagination() {
+    const paginationSection = document.getElementById('ownerHistoryPagination');
+    const totalPages = Math.ceil(ownerHistoryTotalRecords / OWNER_HISTORY_PER_PAGE);
+    
+    if (!paginationSection) return;
+    
+    // Tampilkan/hide pagination
+    if (ownerHistoryTotalRecords > 0) {
+        paginationSection.style.display = 'flex';
+    } else {
+        paginationSection.style.display = 'none';
+        return;
+    }
+    
+    // Update info
+    const start = Math.min((currentOwnerHistoryPage - 1) * OWNER_HISTORY_PER_PAGE + 1, ownerHistoryTotalRecords);
+    const end = Math.min(currentOwnerHistoryPage * OWNER_HISTORY_PER_PAGE, ownerHistoryTotalRecords);
+    
+    document.getElementById('ownerHistoryStart').textContent = start;
+    document.getElementById('ownerHistoryEnd').textContent = end;
+    document.getElementById('ownerHistoryTotal').textContent = ownerHistoryTotalRecords;
+    document.getElementById('currentPageOwner').textContent = currentOwnerHistoryPage;
+    document.getElementById('totalPagesOwner').textContent = totalPages;
+    
+    // Update button states
+    document.getElementById('firstPageOwner').disabled = currentOwnerHistoryPage === 1;
+    document.getElementById('prevPageOwner').disabled = currentOwnerHistoryPage === 1;
+    document.getElementById('nextPageOwner').disabled = currentOwnerHistoryPage >= totalPages;
+    document.getElementById('lastPageOwner').disabled = currentOwnerHistoryPage >= totalPages;
+}
+
+// [37] Fungsi untuk ganti halaman history owner
+function goToOwnerHistoryPage(page) {
+    if (page < 1) page = 1;
+    
+    const totalPages = Math.ceil(ownerHistoryTotalRecords / OWNER_HISTORY_PER_PAGE);
+    if (page > totalPages) page = totalPages;
+    
+    currentOwnerHistoryPage = page;
+    
+    // Reload history dengan filter yang aktif
+    const outletFilter = document.getElementById('filterOutletOwner')?.value || 'all';
+    const dateFilter = document.getElementById('filterDateOwner')?.value || 'today';
+    loadRequestHistoryForOwner(outletFilter, dateFilter);
+}
+
+// [38] Tambahkan CSS untuk styling
 function addRequestPageStyles() {
     const styleId = 'request-page-styles';
     
@@ -2170,17 +2255,7 @@ function addRequestPageStyles() {
             font-size: 14px;
         }
         
-        /* ===== STYLING UNTUK STATUS DENGAN CATATAN ===== */
-        
-        /* Container utama status dengan catatan */
-        .status-with-notes {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            min-width: 120px;
-        }
-        
-        /* Style untuk status pill dengan icon */
+        /* ===== STYLING UNTUK STATUS ===== */
         .status-pill {
             padding: 6px 12px;
             border-radius: 20px;
@@ -2195,7 +2270,6 @@ function addRequestPageStyles() {
             max-width: 120px;
         }
         
-        /* Status pill dengan icon */
         .status-pill i {
             font-size: 10px;
         }
@@ -2225,87 +2299,33 @@ function addRequestPageStyles() {
             border: 1px solid #bee5eb;
         }
         
-        /* Container untuk catatan */
-        .reject-reason, .approve-notes {
-            font-size: 11px;
-            padding: 5px 8px;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: help;
-            max-width: 150px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            line-height: 1.3;
-        }
-        
-        /* Catatan untuk rejected */
-        .reject-reason {
-            background-color: rgba(220, 53, 69, 0.08);
-            color: #dc3545;
-            border-left: 3px solid #dc3545;
-            border-top: 1px solid rgba(220, 53, 69, 0.1);
-            border-right: 1px solid rgba(220, 53, 69, 0.1);
-            border-bottom: 1px solid rgba(220, 53, 69, 0.1);
-        }
-        
-        /* Catatan untuk approved */
-        .approve-notes {
-            background-color: rgba(40, 167, 69, 0.08);
-            color: #28a745;
-            border-left: 3px solid #28a745;
-            border-top: 1px solid rgba(40, 167, 69, 0.1);
-            border-right: 1px solid rgba(40, 167, 69, 0.1);
-            border-bottom: 1px solid rgba(40, 167, 69, 0.1);
-        }
-        
-        /* Icon dalam catatan */
-        .reject-reason i, .approve-notes i {
-            font-size: 10px;
-            flex-shrink: 0;
-            opacity: 0.8;
-        }
-        
-        /* Sel status */
         .status-cell {
-            min-width: 130px;
-            max-width: 160px;
+            min-width: 100px;
         }
         
-        /* Tooltip untuk catatan panjang */
-        .reject-reason[title]:hover::after,
-        .approve-notes[title]:hover::after {
-            content: attr(title);
-            position: absolute;
-            background: #333;
-            color: white;
-            padding: 10px 12px;
-            border-radius: 6px;
+        /* ===== STYLING UNTUK KOLOM CATATAN ===== */
+        .notes-cell {
+            max-width: 200px;
+            min-width: 150px;
+        }
+        
+        .notes-content {
             font-size: 12px;
-            z-index: 1000;
-            max-width: 300px;
-            white-space: normal;
-            word-wrap: break-word;
-            margin-top: 5px;
-            margin-left: 0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border: 1px solid #555;
             line-height: 1.4;
+            color: #495057;
+            word-wrap: break-word;
+            white-space: normal;
+            overflow: visible;
+            max-height: none;
         }
         
-        /* Efek hover untuk catatan */
-        .reject-reason:hover {
-            background-color: rgba(220, 53, 69, 0.12);
-        }
-        
-        .approve-notes:hover {
-            background-color: rgba(40, 167, 69, 0.12);
+        /* Highlight untuk catatan rejected */
+        .status-rejected ~ .notes-cell .notes-content {
+            color: #dc3545;
+            font-weight: 500;
         }
         
         /* ===== STYLING TOMBOL REFRESH BULAT ===== */
-        
         .btn-refresh-history-round {
             width: 36px;
             height: 36px;
@@ -2524,23 +2544,18 @@ function addRequestPageStyles() {
                 gap: 10px;
             }
             
-            .status-with-notes {
-                min-width: 110px;
-            }
-            
             .status-pill {
                 padding: 5px 10px;
                 font-size: 11px;
             }
             
-            .reject-reason, .approve-notes {
-                font-size: 10px;
+            .notes-cell {
                 max-width: 120px;
+                min-width: 100px;
             }
             
-            .status-cell {
-                min-width: 110px;
-                max-width: 130px;
+            .notes-content {
+                font-size: 11px;
             }
             
             .btn-refresh-history-round {
@@ -2568,13 +2583,13 @@ function addRequestPageStyles() {
             }
         }
         
-        /* Animation untuk status baru */
+        /* Animation untuk status */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-5px); }
             to { opacity: 1; transform: translateY(0); }
         }
         
-        .status-with-notes {
+        .status-pill {
             animation: fadeIn 0.3s ease;
         }
     `;
@@ -2582,19 +2597,13 @@ function addRequestPageStyles() {
     document.head.appendChild(style);
 }
 
-// [36] Helper function untuk memotong teks panjang
-function truncateText(text, maxLength) {
-    if (!text || typeof text !== 'string') return '';
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-}
-
-// [37] Setup tombol refresh
+// [39] Setup tombol refresh
 function setupRefreshButtons() {
     // Refresh kasir history
     const refreshKasirBtn = document.getElementById('refreshKasirHistory');
     if (refreshKasirBtn) {
         refreshKasirBtn.addEventListener('click', async function() {
+            currentKasirHistoryPage = 1;
             await loadKasirHistory();
         });
     }
@@ -2603,6 +2612,7 @@ function setupRefreshButtons() {
     const refreshOwnerPendingBtn = document.getElementById('refreshOwnerPending');
     if (refreshOwnerPendingBtn) {
         refreshOwnerPendingBtn.addEventListener('click', async function() {
+            currentOwnerHistoryPage = 1;
             await loadRequestsForOwner();
         });
     }
@@ -2611,6 +2621,7 @@ function setupRefreshButtons() {
     const refreshOwnerHistoryBtn = document.getElementById('refreshOwnerHistory');
     if (refreshOwnerHistoryBtn) {
         refreshOwnerHistoryBtn.addEventListener('click', async function() {
+            currentOwnerHistoryPage = 1;
             await loadRequestHistoryForOwner(
                 document.getElementById('filterOutletOwner')?.value || 'all',
                 document.getElementById('filterDateOwner')?.value || 'today'
@@ -2619,7 +2630,7 @@ function setupRefreshButtons() {
     }
 }
 
-// [38] Global functions untuk onclick events
+// [40] Global functions untuk onclick events
 window.adjustSelectedItemQty = adjustSelectedItemQty;
 window.updateSelectedItemQty = updateSelectedItemQty;
 window.removeSelectedItem = removeSelectedItem;
@@ -2633,6 +2644,6 @@ window.approveSelectedItemsInBatch = approveSelectedItemsInBatch;
 window.rejectSelectedItemsInBatch = rejectSelectedItemsInBatch;
 window.clearAllSelectedItems = clearAllSelectedItems;
 window.goToKasirHistoryPage = goToKasirHistoryPage;
-window.truncateText = truncateText;
+window.goToOwnerHistoryPage = goToOwnerHistoryPage;
 
 // ========== END OF FILE ==========
