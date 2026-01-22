@@ -6754,6 +6754,11 @@ function createSlipPage() {
                             <button class="btn-load" id="loadSlipData">
                                 <i class="fas fa-search"></i> Tampilkan
                             </button>
+                            ${isOwnerSlip ? `
+                            <button class="btn-finalize" id="finalizeSlipData" title="Finalize data untuk periode ini">
+                                <i class="fas fa-lock"></i> Finalize
+                            </button>
+                            ` : ''}
                         </div>
                     </div>
                     
@@ -6798,6 +6803,170 @@ function createSlipPage() {
      `;
     document.body.appendChild(slipPage);
     
+    // Tambah styling untuk tombol Finalize
+    const style = document.createElement('style');
+    style.textContent = `
+        .periode-inputs {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .bulan-select, .tahun-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            min-width: 120px;
+        }
+        
+        .btn-load {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .btn-finalize {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .btn-finalize:hover {
+            background: linear-gradient(135deg, #8E24AA, #6A1B9A);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+        }
+        
+        .btn-finalize:active {
+            transform: translateY(0);
+        }
+        
+        .btn-finalize:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-finalize i {
+            font-size: 0.9rem;
+        }
+        
+        /* Modal Finalize */
+        .finalize-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .finalize-modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .loading-spinner-large {
+            font-size: 3rem;
+            color: #4CAF50;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+        
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+        
+        .result-table th, .result-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .result-table th {
+            background: #f8f9ff;
+            font-weight: 600;
+        }
+        
+        .status-success {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+        
+        .status-failed {
+            color: #f44336;
+            font-weight: 600;
+        }
+        
+        .status-skipped {
+            color: #FF9800;
+            font-weight: 600;
+        }
+    `;
+    document.head.appendChild(style);
+    
     // Setup event listeners
     setupSlipPageEvents();
 }
@@ -6823,6 +6992,16 @@ function setupSlipPageEvents() {
         const tahun = parseInt(document.getElementById('selectTahun').value);
         await loadSlipData(bulan, tahun);
     });
+    
+    // Tombol Finalize (hanya untuk owner)
+    if (isOwnerSlip) {
+        const finalizeBtn = document.getElementById('finalizeSlipData');
+        if (finalizeBtn) {
+            finalizeBtn.addEventListener('click', async () => {
+                await finalizeMonthlyData();
+            });
+        }
+    }
     
     // Filter untuk owner
     if (isOwnerSlip) {
@@ -8359,7 +8538,7 @@ function renderBarbermanSlip(data, dataSource) {
                             <tr class="summary-total-row">
                                 <td colspan="3"><strong>Sub Total</strong></td>
                                 <td class="summary-value-cell"><strong>${formatRupiah(data.sub_total || 0)}</strong></td>
-                            </tr>
+            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -8980,7 +9159,335 @@ function parseAmountFromRupiah(rupiahString) {
     return parseFloat(cleanString) || 0;
 }
 
-// [25] Modal untuk tambah/edit adjustment
+// [24] Fungsi untuk finalize data bulanan
+async function finalizeMonthlyData() {
+    try {
+        // Validasi: hanya owner yang bisa finalize
+        if (!isOwnerSlip || !window.isOwnerSlip) {
+            alert('Hanya owner yang dapat melakukan finalisasi!');
+            return;
+        }
+        
+        // Ambil periode yang dipilih
+        const bulan = parseInt(document.getElementById('selectBulan').value);
+        const tahun = parseInt(document.getElementById('selectTahun').value);
+        const periode = `${bulan.toString().padStart(2, '0')}/${tahun}`;
+        
+        // Validasi periode
+        const now = new Date();
+        const currentMonth = now.getMonth() + 1;
+        const currentYear = now.getFullYear();
+        
+        // Cek apakah periode adalah bulan ini atau masa depan
+        if (tahun > currentYear || (tahun === currentYear && bulan >= currentMonth)) {
+            const confirm = window.confirm(
+                `Periode ${periode} adalah bulan ini atau masa depan.\n` +
+                `Data final biasanya untuk bulan sebelumnya.\n\n` +
+                `Apakah Anda yakin ingin melanjutkan?`
+            );
+            
+            if (!confirm) return;
+        }
+        
+        // Cek apakah sudah ada data final untuk periode ini
+        const { data: existingData } = await supabase
+            .from('penghasilan')
+            .select('id, finalized_at')
+            .eq('periode', periode)
+            .limit(1);
+        
+        if (existingData && existingData.length > 0) {
+            const confirm = window.confirm(
+                `Data untuk periode ${periode} sudah difinalisasi sebelumnya.\n\n` +
+                `Finalize lagi akan mengupdate data yang ada.\n\n` +
+                `Lanjutkan?`
+            );
+            
+            if (!confirm) return;
+        }
+        
+        // Konfirmasi finalisasi
+        const confirmation = window.confirm(
+            `Finalize data penghasilan untuk periode ${periode}?\n\n` +
+            `Proses ini akan:\n` +
+            `1. Menghitung ulang semua data karyawan\n` +
+            `2. Menyimpan ke tabel penghasilan sebagai data final\n` +
+            `3. Tidak dapat dibatalkan\n\n` +
+            `Pastikan semua data absen, komisi, dan transaksi sudah lengkap.`
+        );
+        
+        if (!confirmation) return;
+        
+        // Tampilkan modal loading
+        showFinalizeLoading(true);
+        
+        // Dapatkan nama karyawan yang sedang login
+        const { data: { user } } = await supabase.auth.getUser();
+        const executedBy = user?.user_metadata?.nama_karyawan || 'owner_manual';
+        
+        // Siapkan payload untuk edge function
+        const payload = {
+            month: bulan,
+            year: tahun,
+            single_employee: null, // null untuk semua karyawan
+            force_update: true, // true untuk mengupdate jika sudah ada
+            executed_by: executedBy,
+            is_manual: true // flag bahwa ini manual dari UI
+        };
+        
+        console.log('Calling edge function with payload:', payload);
+        
+        // Panggil edge function
+        const response = await fetch(
+            `${supabaseUrl}/functions/v1/finalize-penghasilan-monthly`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${supabaseAnonKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            }
+        );
+        
+        const result = await response.json();
+        
+        // Sembunyikan loading
+        showFinalizeLoading(false);
+        
+        if (!response.ok) {
+            throw new Error(result.error || 'Gagal memproses finalisasi');
+        }
+        
+        // Tampilkan hasil
+        showFinalizeResult(result, periode, executedBy);
+        
+        // Refresh data slip untuk melihat perubahan
+        setTimeout(() => {
+            loadSlipData(bulan, tahun);
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Error in finalizeMonthlyData:', error);
+        showFinalizeLoading(false);
+        alert('Gagal melakukan finalisasi: ' + error.message);
+    }
+}
+
+// [25] Fungsi untuk tampilkan loading finalisasi
+function showFinalizeLoading(show) {
+    // Cari atau buat modal loading
+    let modal = document.getElementById('finalizeLoadingModal');
+    
+    if (show) {
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'finalizeLoadingModal';
+            modal.className = 'finalize-modal';
+            modal.innerHTML = `
+                <div class="finalize-modal-content">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-cogs"></i> Memproses Finalisasi</h3>
+                    </div>
+                    <div class="modal-body">
+                        <div class="loading-spinner-large">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                        <p>Sedang memproses finalisasi data...</p>
+                        <p class="loading-subtext">Harap tunggu, proses mungkin memakan waktu beberapa menit.</p>
+                        <div class="progress-container">
+                            <div class="progress-bar" id="finalizeProgressBar"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        modal.style.display = 'flex';
+        
+        // Animasikan progress bar
+        const progressBar = document.getElementById('finalizeProgressBar');
+        if (progressBar) {
+            let width = 0;
+            const interval = setInterval(() => {
+                if (width >= 90) {
+                    clearInterval(interval);
+                    return;
+                }
+                width += 5;
+                progressBar.style.width = width + '%';
+            }, 500);
+        }
+        
+    } else {
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+}
+
+// [26] Fungsi untuk tampilkan hasil finalisasi
+function showFinalizeResult(result, periode, executedBy) {
+    // Hapus modal loading jika masih ada
+    showFinalizeLoading(false);
+    
+    // Buat modal hasil
+    const modal = document.createElement('div');
+    modal.id = 'finalizeResultModal';
+    modal.className = 'finalize-modal';
+    
+    // Format hasil untuk ditampilkan
+    const successCount = result.success_count || result.statistics?.success_count || 0;
+    const failedCount = result.failed_count || result.statistics?.failed_count || 0;
+    const totalEmployees = result.statistics?.total_employees || 0;
+    const duration = result.duration_seconds || 0;
+    
+    modal.innerHTML = `
+        <div class="finalize-modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-check-circle"></i> Finalisasi Selesai</h3>
+                <button class="close-modal" id="closeFinalizeResult">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <i class="fas fa-lock" style="font-size: 3rem; color: #4CAF50; margin-bottom: 15px;"></i>
+                    <h4>Periode: ${periode}</h4>
+                    <p>Dilakukan oleh: ${executedBy}</p>
+                    <p>Waktu eksekusi: ${duration} detik</p>
+                </div>
+                
+                <div style="display: flex; gap: 20px; margin-bottom: 25px; justify-content: center;">
+                    <div style="text-align: center; background: #e8f5e9; padding: 15px; border-radius: 8px; min-width: 120px;">
+                        <div style="font-size: 2rem; color: #4CAF50; font-weight: bold;">${successCount}</div>
+                        <div style="font-size: 0.9rem; color: #666;">Berhasil</div>
+                    </div>
+                    <div style="text-align: center; background: #ffebee; padding: 15px; border-radius: 8px; min-width: 120px;">
+                        <div style="font-size: 2rem; color: #f44336; font-weight: bold;">${failedCount}</div>
+                        <div style="font-size: 0.9rem; color: #666;">Gagal</div>
+                    </div>
+                    <div style="text-align: center; background: #e3f2fd; padding: 15px; border-radius: 8px; min-width: 120px;">
+                        <div style="font-size: 2rem; color: #2196F3; font-weight: bold;">${totalEmployees}</div>
+                        <div style="font-size: 0.9rem; color: #666;">Total</div>
+                    </div>
+                </div>
+                
+                <div style="background: #f8f9ff; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h5 style="margin-top: 0; margin-bottom: 10px;">Ringkasan per Role:</h5>
+                    ${result.statistics?.by_role ? Object.entries(result.statistics.by_role).map(([role, count]) => `
+                        <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee;">
+                            <span>${role}</span>
+                            <span style="font-weight: 600;">${count}</span>
+                        </div>
+                    `).join('') : '<p>Tidak ada data role</p>'}
+                </div>
+                
+                ${result.results && result.results.length > 0 ? `
+                <details style="margin-top: 15px;">
+                    <summary style="cursor: pointer; font-weight: 600; color: #666; padding: 10px; background: #f5f5f5; border-radius: 6px;">
+                        <i class="fas fa-list"></i> Lihat Detail (${result.results.length} karyawan)
+                    </summary>
+                    <div style="max-height: 300px; overflow-y: auto; margin-top: 10px;">
+                        <table class="result-table">
+                            <thead>
+                                <tr>
+                                    <th>Karyawan</th>
+                                    <th>Status</th>
+                                    <th>Role</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${result.results.slice(0, 20).map(r => `
+                                <tr>
+                                    <td class="text-small">${r.karyawan}</td>
+                                    <td class="text-small ${r.status === 'success' ? 'status-success' : r.status === 'failed' ? 'status-failed' : 'status-skipped'}">
+                                        ${r.status}
+                                    </td>
+                                    <td class="text-small">${r.role || '-'}</td>
+                                    <td class="text-small">${r.total_penghasilan ? formatRupiahShort(r.total_penghasilan) : '-'}</td>
+                                </tr>
+                                `).join('')}
+                                ${result.results.length > 20 ? `
+                                <tr>
+                                    <td colspan="4" style="text-align: center; padding: 10px; font-style: italic;">
+                                        ... dan ${result.results.length - 20} karyawan lainnya
+                                    </td>
+                                </tr>
+                                ` : ''}
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                ` : ''}
+                
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
+                    <p style="color: #666; font-size: 0.9rem;">
+                        <i class="fas fa-info-circle"></i> Data telah disimpan ke tabel <strong>penghasilan</strong>
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal-cancel" id="closeResultBtn">
+                    Tutup
+                </button>
+                <button class="btn-modal-save" id="refreshResultBtn">
+                    <i class="fas fa-sync-alt"></i> Refresh Data
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Setup event listeners untuk modal
+    const closeBtn = document.getElementById('closeFinalizeResult');
+    const closeResultBtn = document.getElementById('closeResultBtn');
+    const refreshBtn = document.getElementById('refreshResultBtn');
+    
+    const closeModal = () => {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            modal.remove();
+        }, 300);
+    };
+    
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (closeResultBtn) closeResultBtn.addEventListener('click', closeModal);
+    
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            closeModal();
+            const bulan = parseInt(document.getElementById('selectBulan').value);
+            const tahun = parseInt(document.getElementById('selectTahun').value);
+            loadSlipData(bulan, tahun);
+        });
+    }
+    
+    // Close on escape
+    document.addEventListener('keydown', function escHandler(e) {
+        if (e.key === 'Escape') {
+            closeModal();
+            document.removeEventListener('keydown', escHandler);
+        }
+    });
+    
+    // Close on outside click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+    
+    // Tampilkan modal
+    setTimeout(() => {
+        modal.classList.add('active');
+    }, 10);
+}
+
+// [27] Modal untuk tambah/edit adjustment
 function showAddAdjustmentModal() {
     showAdjustmentModal(null);
 }
@@ -9245,7 +9752,7 @@ function setupTabNavigation(elements) {
     });
 }
 
-// [26] Fungsi untuk save adjustment
+// [28] Fungsi untuk save adjustment
 async function saveAdjustment(index) {
     try {
         const dateInput = document.getElementById('adjustmentDate');
@@ -9463,7 +9970,7 @@ async function saveAdjustment(index) {
     }
 }
 
-// [27] Fungsi untuk delete adjustment
+// [29] Fungsi untuk delete adjustment
 async function deleteAdjustment(index) {
     // Ambil data dari UI untuk mendapatkan type
     const adjustmentRows = document.querySelectorAll('tr[data-index]');
@@ -9631,4 +10138,5 @@ async function deleteAdjustment(index) {
     });
 }
 
+// ========== END OF FILE ==========
 // ========== END OF FILE ==========
