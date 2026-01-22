@@ -930,7 +930,6 @@ async function loadKasirHistory() {
         const loadingEl = document.getElementById('loadingHistoryKasir');
         const tableEl = document.getElementById('historyTableKasir');
         const refreshBtn = document.getElementById('refreshKasirHistory');
-        const paginationSection = document.getElementById('kasirHistoryPagination');
         
         // Tambahkan animasi loading ke tombol refresh
         if (refreshBtn) {
@@ -940,7 +939,6 @@ async function loadKasirHistory() {
         
         if (loadingEl) loadingEl.style.display = 'block';
         if (tableEl) tableEl.style.display = 'none';
-        if (paginationSection) paginationSection.style.display = 'none';
         
         // Get filter values
         const dateFilter = document.getElementById('filterDateKasir')?.value || 'today';
@@ -953,8 +951,7 @@ async function loadKasirHistory() {
             .from('request_barang')
             .select('*', { count: 'exact' })
             .eq('outlet', currentUserOutletRequest)
-            .order('created_at', { ascending: false })
-            .range(offset, offset + limit - 1);
+            .order('created_at', { ascending: false });
         
         // Apply date filter
         if (dateFilter !== 'all') {
@@ -972,6 +969,9 @@ async function loadKasirHistory() {
             query = query.gte('created_at', startDate.toISOString());
         }
         
+        // Terapkan paginasi
+        query = query.range(offset, offset + limit - 1);
+        
         const { data: requests, error, count } = await query;
         
         if (error) throw error;
@@ -979,12 +979,17 @@ async function loadKasirHistory() {
         // Update total records untuk pagination
         kasirHistoryTotalRecords = count || 0;
         
+        // Display data dengan paginasi
         displayKasirHistory(requests || []);
-        updateKasirHistoryPagination(); // Panggil fungsi update pagination
+        
+        // JANGAN panggil updateKasirHistoryPagination() di sini
+        // karena sudah dipanggil di displayKasirHistory()
         
     } catch (error) {
         console.error('Error loading kasir history:', error);
         const tbody = document.getElementById('historyBodyKasir');
+        const paginationSection = document.getElementById('kasirHistoryPagination');
+        
         if (tbody) {
             tbody.innerHTML = `
                 <tr>
@@ -994,6 +999,11 @@ async function loadKasirHistory() {
                     </td>
                 </tr>
             `;
+        }
+        
+        // Sembunyikan pagination jika error
+        if (paginationSection) {
+            paginationSection.style.display = 'none';
         }
     } finally {
         const loadingEl = document.getElementById('loadingHistoryKasir');
@@ -1007,7 +1017,9 @@ async function loadKasirHistory() {
         }
         
         if (loadingEl) loadingEl.style.display = 'none';
-        if (tableEl) tableEl.style.display = 'table';
+        if (tableEl && tableEl.style.display !== 'table') {
+            tableEl.style.display = 'table';
+        }
     }
 }
 
@@ -1029,10 +1041,19 @@ function displayKasirHistory(requests) {
                 </td>
             </tr>
         `;
+        
+        // Sembunyikan pagination jika tidak ada data
+        const paginationSection = document.getElementById('kasirHistoryPagination');
+        if (paginationSection) {
+            paginationSection.style.display = 'none';
+        }
         return;
     }
     
-    requests.forEach((request, index) => {
+    // TAMPILKAN HANYA 10 DATA PER HALAMAN (sesuai KASIR_HISTORY_PER_PAGE)
+    const displayData = requests.slice(0, KASIR_HISTORY_PER_PAGE);
+    
+    displayData.forEach((request, index) => {
         const createdDate = new Date(request.created_at);
         const approvedDate = request.approved_at ? new Date(request.approved_at) : null;
         
@@ -1108,7 +1129,11 @@ function displayKasirHistory(requests) {
     });
     
     tableEl.style.display = 'table';
+    
+    // TAMPILKAN INFO PAGINASI
+    updateKasirHistoryPagination();
 }
+
 
 // [16] Fungsi untuk update selected items section
 function updateSelectedItemsSection() {
@@ -1706,12 +1731,14 @@ function displayPendingRequestsForRequestModule(groupedRequests) {
 function displayRequestHistory(requests) {
     const tbody = document.getElementById('historyBody');
     const historyTable = document.getElementById('historyTable');
+    const paginationSection = document.getElementById('ownerHistoryPagination');
     
     if (!tbody || !historyTable) return;
     
     tbody.innerHTML = '';
     
     if (!requests || requests.length === 0) {
+        historyTable.style.display = 'table';
         tbody.innerHTML = `
             <tr>
                 <td colspan="12" class="empty-message">
@@ -1720,11 +1747,18 @@ function displayRequestHistory(requests) {
                 </td>
             </tr>
         `;
-        historyTable.style.display = 'table';
+        
+        // Sembunyikan pagination jika tidak ada data
+        if (paginationSection) {
+            paginationSection.style.display = 'none';
+        }
         return;
     }
     
-    requests.forEach(request => {
+    // TAMPILKAN HANYA 10 DATA PER HALAMAN (sesuai OWNER_HISTORY_PER_PAGE)
+    const displayData = requests.slice(0, OWNER_HISTORY_PER_PAGE);
+    
+    displayData.forEach(request => {
         const createdDate = new Date(request.created_at);
         const approvedDate = request.approved_at ? new Date(request.approved_at) : null;
         
@@ -1796,6 +1830,9 @@ function displayRequestHistory(requests) {
     });
     
     historyTable.style.display = 'table';
+    
+    // TAMPILKAN INFO PAGINASI
+    updateOwnerHistoryPagination();
 }
 
 // [26] Load outlet dropdown for owner
@@ -2065,29 +2102,41 @@ function setupKasirPaginationEvents() {
 // [33] Fungsi untuk update pagination history kasir - DIPERBAIKI (SELALU TAMPILKAN INFO)
 function updateKasirHistoryPagination() {
     const paginationSection = document.getElementById('kasirHistoryPagination');
-    const totalPages = Math.ceil(kasirHistoryTotalRecords / KASIR_HISTORY_PER_PAGE);
-    
     if (!paginationSection) return;
     
-    // PERBAIKAN: SELALU TAMPILKAN PAGINATION JIKA ADA DATA
+    // Hitung total pages
+    const totalPages = Math.max(1, Math.ceil(kasirHistoryTotalRecords / KASIR_HISTORY_PER_PAGE));
+    
+    // SELALU TAMPILKAN PAGINATION JIKA ADA DATA
     if (kasirHistoryTotalRecords > 0) {
         paginationSection.style.display = 'flex';
     } else {
-        // Hanya hide jika benar-benar tidak ada data sama sekali
+        // Hanya hide jika benar-benar tidak ada data
         paginationSection.style.display = 'none';
         return;
     }
     
     // Update info - SELALU TAMPILKAN MESKI HANYA 1 HALAMAN
-    const start = Math.min((currentKasirHistoryPage - 1) * KASIR_HISTORY_PER_PAGE + 1, kasirHistoryTotalRecords);
-    const end = Math.min(currentKasirHistoryPage * KASIR_HISTORY_PER_PAGE, kasirHistoryTotalRecords);
+    const start = kasirHistoryTotalRecords > 0 
+        ? Math.min((currentKasirHistoryPage - 1) * KASIR_HISTORY_PER_PAGE + 1, kasirHistoryTotalRecords)
+        : 0;
     
-    // Update elemen dengan informasi lengkap
-    document.getElementById('kasirHistoryStart').textContent = start;
-    document.getElementById('kasirHistoryEnd').textContent = end;
-    document.getElementById('kasirHistoryTotal').textContent = kasirHistoryTotalRecords;
-    document.getElementById('currentPageKasir').textContent = currentKasirHistoryPage;
-    document.getElementById('totalPagesKasir').textContent = totalPages;
+    const end = kasirHistoryTotalRecords > 0
+        ? Math.min(currentKasirHistoryPage * KASIR_HISTORY_PER_PAGE, kasirHistoryTotalRecords)
+        : 0;
+    
+    // Update semua elemen dengan informasi lengkap
+    const startSpan = document.getElementById('kasirHistoryStart');
+    const endSpan = document.getElementById('kasirHistoryEnd');
+    const totalSpan = document.getElementById('kasirHistoryTotal');
+    const currentPageSpan = document.getElementById('currentPageKasir');
+    const totalPagesSpan = document.getElementById('totalPagesKasir');
+    
+    if (startSpan) startSpan.textContent = start;
+    if (endSpan) endSpan.textContent = end;
+    if (totalSpan) totalSpan.textContent = kasirHistoryTotalRecords;
+    if (currentPageSpan) currentPageSpan.textContent = currentKasirHistoryPage;
+    if (totalPagesSpan) totalPagesSpan.textContent = totalPages;
     
     // Update button states
     const firstPageBtn = document.getElementById('firstPageKasir');
