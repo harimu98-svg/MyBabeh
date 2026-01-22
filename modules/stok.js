@@ -1140,23 +1140,30 @@ function createKasirStokUI() {
             
             <!-- REQUEST HISTORY untuk Kasir -->
             <div class="kasir-history-section">
-                <div class="section-header">
-                    <h3><i class="fas fa-history"></i> Riwayat Request Stok</h3>
-                    <div class="filter-row" style="margin-top: 15px; gap: 10px;">
-                        <div class="filter-group" style="flex: 1;">
-                            <label for="filterHistoryDate"><i class="fas fa-calendar"></i> Periode:</label>
-                            <select id="filterHistoryDate" class="form-select">
-                                <option value="today">Hari Ini</option>
-                                <option value="week">7 Hari Terakhir</option>
-                                <option value="month">Bulan Ini</option>
-                                <option value="all">Semua</option>
-                            </select>
-                        </div>
-                        <button class="btn-refresh-history" onclick="loadKasirStokHistory()">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
-                    </div>
-                </div>
+    <div class="section-header">
+        <h3><i class="fas fa-history"></i> Riwayat Request Stok</h3>
+        <div class="filter-row" style="margin-top: 15px; display: grid; grid-template-columns: auto 40px 1fr; gap: 10px; align-items: center;">
+            <!-- Label -->
+            <label for="filterHistoryDate" style="white-space: nowrap; font-weight: 500;">
+                <i class="fas fa-calendar"></i> Periode:
+            </label>
+            
+            <!-- Tombol Refresh di Tengah -->
+            <button class="btn-refresh-history" onclick="loadKasirStokHistory()" 
+                    style="background: #4a6cf7; color: white; border: none; border-radius: 6px; padding: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            
+            <!-- Dropdown -->
+            <select id="filterHistoryDate" class="form-select">
+                <option value="today">Hari Ini</option>
+                <option value="week">7 Hari Terakhir</option>
+                <option value="month">Bulan Ini</option>
+                <option value="all">Semua</option>
+            </select>
+        </div>
+    </div>
+</div>
                 <div class="history-table-container">
                     <div class="loading" id="loadingHistoryStokKasir">Memuat riwayat...</div>
                     <div class="table-wrapper">
