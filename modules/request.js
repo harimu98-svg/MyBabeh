@@ -75,6 +75,7 @@ async function showRequestPage() {
     }
 }
 
+// [2] Fungsi untuk buat halaman request - FIX PAGINATION KOSONG
 function createRequestPage() {
     // Hapus halaman request sebelumnya jika ada
     const existingPage = document.getElementById('requestPage');
@@ -89,6 +90,59 @@ function createRequestPage() {
     const requestPage = document.createElement('div');
     requestPage.id = 'requestPage';
     requestPage.className = 'request-page';
+    
+    // ===== BAGIAN PENTING: HTML untuk PAGINATION KASIR HARUS LENGKAP =====
+    const kasirPaginationHTML = `
+        <!-- Pagination Controls untuk Kasir -->
+        <div class="pagination-section" id="kasirHistoryPagination" style="display: none;">
+            <div class="pagination-info">
+                Menampilkan <span id="kasirHistoryStart">0</span>-<span id="kasirHistoryEnd">0</span> dari <span id="kasirHistoryTotal">0</span> records
+            </div>
+            <div class="pagination-controls">
+                <button class="pagination-btn" id="firstPageKasir" disabled>
+                    <i class="fas fa-angle-double-left"></i>
+                </button>
+                <button class="pagination-btn" id="prevPageKasir" disabled>
+                    <i class="fas fa-angle-left"></i>
+                </button>
+                <span class="page-info">
+                    Halaman <span id="currentPageKasir">1</span> dari <span id="totalPagesKasir">1</span>
+                </span>
+                <button class="pagination-btn" id="nextPageKasir" disabled>
+                    <i class="fas fa-angle-right"></i>
+                </button>
+                <button class="pagination-btn" id="lastPageKasir" disabled>
+                    <i class="fas fa-angle-double-right"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    const ownerPaginationHTML = `
+        <!-- Pagination Controls untuk Owner -->
+        <div class="pagination-section" id="ownerHistoryPagination" style="display: none;">
+            <div class="pagination-info">
+                Menampilkan <span id="ownerHistoryStart">0</span>-<span id="ownerHistoryEnd">0</span> dari <span id="ownerHistoryTotal">0</span> records
+            </div>
+            <div class="pagination-controls">
+                <button class="pagination-btn" id="firstPageOwner" disabled>
+                    <i class="fas fa-angle-double-left"></i>
+                </button>
+                <button class="pagination-btn" id="prevPageOwner" disabled>
+                    <i class="fas fa-angle-left"></i>
+                </button>
+                <span class="page-info">
+                    Halaman <span id="currentPageOwner">1</span> dari <span id="totalPagesOwner">1</span>
+                </span>
+                <button class="pagination-btn" id="nextPageOwner" disabled>
+                    <i class="fas fa-angle-right"></i>
+                </button>
+                <button class="pagination-btn" id="lastPageOwner" disabled>
+                    <i class="fas fa-angle-double-right"></i>
+                </button>
+            </div>
+        </div>
+    `;
     
     requestPage.innerHTML = `
         <!-- Header -->
@@ -324,29 +378,7 @@ function createRequestPage() {
                     </div>
                 </div>
                 
-                <!-- Pagination Controls untuk Kasir - HTML LENGKAP -->
-                <div class="pagination-section" id="kasirHistoryPagination" style="display: none;">
-                    <div class="pagination-info">
-                        Menampilkan <span id="kasirHistoryStart">0</span>-<span id="kasirHistoryEnd">0</span> dari <span id="kasirHistoryTotal">0</span> records
-                    </div>
-                    <div class="pagination-controls">
-                        <button class="pagination-btn" id="firstPageKasir" disabled>
-                            <i class="fas fa-angle-double-left"></i>
-                        </button>
-                        <button class="pagination-btn" id="prevPageKasir" disabled>
-                            <i class="fas fa-angle-left"></i>
-                        </button>
-                        <span class="page-info">
-                            Halaman <span id="currentPageKasir">1</span> dari <span id="totalPagesKasir">1</span>
-                        </span>
-                        <button class="pagination-btn" id="nextPageKasir" disabled>
-                            <i class="fas fa-angle-right"></i>
-                        </button>
-                        <button class="pagination-btn" id="lastPageKasir" disabled>
-                            <i class="fas fa-angle-double-right"></i>
-                        </button>
-                    </div>
-                </div>
+                ${kasirPaginationHTML}
             </div>
         </div>
         ` : `
@@ -442,29 +474,7 @@ function createRequestPage() {
                     </div>
                 </div>
                 
-                <!-- Pagination Controls untuk Owner - SELALU DITAMPILKAN JIKA ADA DATA -->
-                <div class="pagination-section" id="ownerHistoryPagination" style="display: none;">
-                    <div class="pagination-info">
-                        Menampilkan <span id="ownerHistoryStart">0</span>-<span id="ownerHistoryEnd">0</span> dari <span id="ownerHistoryTotal">0</span> records
-                    </div>
-                    <div class="pagination-controls">
-                        <button class="pagination-btn" id="firstPageOwner" disabled>
-                            <i class="fas fa-angle-double-left"></i>
-                        </button>
-                        <button class="pagination-btn" id="prevPageOwner" disabled>
-                            <i class="fas fa-angle-left"></i>
-                        </button>
-                        <span class="page-info">
-                            Halaman <span id="currentPageOwner">1</span> dari <span id="totalPagesOwner">1</span>
-                        </span>
-                        <button class="pagination-btn" id="nextPageOwner" disabled>
-                            <i class="fas fa-angle-right"></i>
-                        </button>
-                        <button class="pagination-btn" id="lastPageOwner" disabled>
-                            <i class="fas fa-angle-double-right"></i>
-                        </button>
-                    </div>
-                </div>
+                ${ownerPaginationHTML}
             </div>
         </div>
         `}
@@ -980,8 +990,10 @@ async function loadKasirHistory() {
         // Display data dengan paginasi
         displayKasirHistory(requests || []);
         
-        // JANGAN panggil updateKasirHistoryPagination() di sini
-        // karena sudah dipanggil di displayKasirHistory()
+          // PASTIKAN INI DIPANGGIL SETELAH display
+         setTimeout(() => {
+            updateKasirHistoryPagination();
+        }, 100);
         
     } catch (error) {
         console.error('Error loading kasir history:', error);
@@ -2135,10 +2147,41 @@ function setupKasirPaginationEvents() {
 
 // [33] Fungsi untuk update pagination history kasir - DIPERBAIKI (SELALU TAMPILKAN INFO)
 function updateKasirHistoryPagination() {
+    console.log('DEBUG updateKasirHistoryPagination: Mulai');
+    
     const paginationSection = document.getElementById('kasirHistoryPagination');
     if (!paginationSection) {
         console.error('ERROR: Element #kasirHistoryPagination tidak ditemukan!');
         return;
+    }
+    
+    console.log('DEBUG: Element ditemukan, child count:', paginationSection.children.length);
+    
+    // Jika element kosong, isi dengan HTML
+    if (paginationSection.children.length === 0) {
+        console.log('DEBUG: Element kosong, mengisi HTML...');
+        paginationSection.innerHTML = `
+            <div class="pagination-info">
+                Menampilkan <span id="kasirHistoryStart">0</span>-<span id="kasirHistoryEnd">0</span> dari <span id="kasirHistoryTotal">0</span> records
+            </div>
+            <div class="pagination-controls">
+                <button class="pagination-btn" id="firstPageKasir" disabled>
+                    <i class="fas fa-angle-double-left"></i>
+                </button>
+                <button class="pagination-btn" id="prevPageKasir" disabled>
+                    <i class="fas fa-angle-left"></i>
+                </button>
+                <span class="page-info">
+                    Halaman <span id="currentPageKasir">1</span> dari <span id="totalPagesKasir">1</span>
+                </span>
+                <button class="pagination-btn" id="nextPageKasir" disabled>
+                    <i class="fas fa-angle-right"></i>
+                </button>
+                <button class="pagination-btn" id="lastPageKasir" disabled>
+                    <i class="fas fa-angle-double-right"></i>
+                </button>
+            </div>
+        `;
     }
     
     const totalPages = Math.max(1, Math.ceil(kasirHistoryTotalRecords / KASIR_HISTORY_PER_PAGE));
@@ -2146,8 +2189,10 @@ function updateKasirHistoryPagination() {
     // SELALU TAMPILKAN PAGINATION JIKA ADA DATA
     if (kasirHistoryTotalRecords > 0) {
         paginationSection.style.display = 'flex';
+        console.log('DEBUG: Menampilkan pagination');
     } else {
         paginationSection.style.display = 'none';
+        console.log('DEBUG: Menyembunyikan pagination (tidak ada data)');
         return;
     }
     
@@ -2155,43 +2200,44 @@ function updateKasirHistoryPagination() {
     const start = Math.min((currentKasirHistoryPage - 1) * KASIR_HISTORY_PER_PAGE + 1, kasirHistoryTotalRecords);
     const end = Math.min(currentKasirHistoryPage * KASIR_HISTORY_PER_PAGE, kasirHistoryTotalRecords);
     
-    // Debug: Cek semua element
-    console.log('DEBUG updateKasirHistoryPagination:');
-    console.log('  - start:', start, 'end:', end, 'total:', kasirHistoryTotalRecords);
-    console.log('  - Element #kasirHistoryStart:', document.getElementById('kasirHistoryStart'));
-    console.log('  - Element #kasirHistoryEnd:', document.getElementById('kasirHistoryEnd'));
-    console.log('  - Element #kasirHistoryTotal:', document.getElementById('kasirHistoryTotal'));
+    console.log('DEBUG: start=', start, 'end=', end, 'total=', kasirHistoryTotalRecords);
     
-    // Update semua element dengan pengecekan null
-    const updateElement = (id, value) => {
+    // Update semua element dengan pengecekan
+    const elements = {
+        'kasirHistoryStart': start,
+        'kasirHistoryEnd': end,
+        'kasirHistoryTotal': kasirHistoryTotalRecords,
+        'currentPageKasir': currentKasirHistoryPage,
+        'totalPagesKasir': totalPages
+    };
+    
+    Object.entries(elements).forEach(([id, value]) => {
         const el = document.getElementById(id);
         if (el) {
             el.textContent = value;
         } else {
             console.error(`ERROR: Element #${id} tidak ditemukan!`);
         }
-    };
-    
-    updateElement('kasirHistoryStart', start);
-    updateElement('kasirHistoryEnd', end);
-    updateElement('kasirHistoryTotal', kasirHistoryTotalRecords);
-    updateElement('currentPageKasir', currentKasirHistoryPage);
-    updateElement('totalPagesKasir', totalPages);
+    });
     
     // Update button states
-    const updateButtonState = (id, disabled) => {
+    const buttons = {
+        'firstPageKasir': currentKasirHistoryPage === 1,
+        'prevPageKasir': currentKasirHistoryPage === 1,
+        'nextPageKasir': currentKasirHistoryPage >= totalPages,
+        'lastPageKasir': currentKasirHistoryPage >= totalPages
+    };
+    
+    Object.entries(buttons).forEach(([id, disabled]) => {
         const btn = document.getElementById(id);
         if (btn) {
             btn.disabled = disabled;
         } else {
             console.error(`ERROR: Button #${id} tidak ditemukan!`);
         }
-    };
+    });
     
-    updateButtonState('firstPageKasir', currentKasirHistoryPage === 1);
-    updateButtonState('prevPageKasir', currentKasirHistoryPage === 1);
-    updateButtonState('nextPageKasir', currentKasirHistoryPage >= totalPages);
-    updateButtonState('lastPageKasir', currentKasirHistoryPage >= totalPages);
+    console.log('DEBUG updateKasirHistoryPagination: Selesai');
 }
 
 // [34] Fungsi untuk ganti halaman history kasir
