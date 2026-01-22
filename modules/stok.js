@@ -159,7 +159,7 @@ function createStokPage() {
     margin-top: 10px; /* Beri jarak dari header fixed */
     margin-left: 20px;
     margin-right: 20px;
-    margin-bottom:120px;
+    margin-bottom:10px;
     border-radius: 10px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
