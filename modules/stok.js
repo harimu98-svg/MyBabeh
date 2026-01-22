@@ -155,7 +155,7 @@ function createStokPage() {
         /* Info Header */
         .stok-info-header {
     background: white;
-    padding: 20px;
+    padding: 5px;
     margin-top: 90px; /* Beri jarak dari header fixed */
     margin-left: 20px;
     margin-right: 20px;
