@@ -2211,21 +2211,31 @@ function addRequestPageStyles() {
         
         /* ===== STYLING UNTUK FILTER PERIODE (DESKTOP & MOBILE) ===== */
         /* Untuk semua filter date */
-        .date-select {
-            padding: 8px 12px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            background: white;
-            font-size: 14px;
-            min-width: 150px;
-            max-width: 180px; /* Batasi maksimum lebar */
-            height: 36px; /* Sama dengan tinggi tombol refresh */
-            flex-shrink: 0;
-            line-height: 1.4; /* Perbaiki line-height untuk teks panjang */
-            overflow: visible; /* Pastikan teks tidak terpotong */
-            white-space: nowrap; /* Jangan wrap teks */
-            text-overflow: ellipsis; /* Tambahkan ellipsis jika terlalu panjang */
-        }
+       .date-select {
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background: white;
+    font-size: 14px;
+    min-width: 150px;
+    max-width: 180px;
+    height: 36px; /* FIXED HEIGHT */
+    flex-shrink: 0;
+    line-height: 20px; /* UBAH INI: line-height yang sesuai dengan tinggi */
+    overflow: visible;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    display: flex; /* TAMBAHKAN INI */
+    align-items: center; /* TAMBAHKAN INI: vertikal tengah */
+}
+
+/* Untuk desktop - tambahan */
+@media (min-width: 769px) {
+    .date-select {
+        padding: 0 12px; /* HAPUS padding atas-bawah, gunakan line-height */
+        line-height: 36px; /* SAMA DENGAN HEIGHT untuk tengah vertikal */
+    }
+}
         
         /* Khusus untuk kasir */
         #filterDateKasir {
@@ -2377,24 +2387,32 @@ function addRequestPageStyles() {
             }
             
             /* SECTION HEADER DI MOBILE */
-            .kasir-history-section .section-header {
-                flex-direction: row; /* Tetap row, bukan column */
-                align-items: center;
-                justify-content: space-between;
-            }
-            
-            .kasir-history-section .section-header h3 {
-                font-size: 1.1rem;
-                min-width: auto;
-                flex: 1;
-            }
-            
-            .kasir-history-section .history-controls {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                flex-shrink: 0;
-            }
+              .kasir-history-section .section-header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: nowrap; /* UBAH DARI wrap KE nowrap */
+        overflow: hidden; /* TAMBAHKAN */
+    }
+    
+    .kasir-history-section .section-header h3 {
+        font-size: 1rem; /* PERKECIL */
+        min-width: auto;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-right: 10px; /* TAMBAHKAN margin */
+    }
+    
+    .kasir-history-section .history-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+        min-width: fit-content; /* TAMBAHKAN */
+    }
+    
             
             /* FILTER PERIODE DI MOBILE - PERBAIKAN */
             #filterDateKasir, #filterDateOwner {
