@@ -1968,7 +1968,7 @@ function formatRupiah(amount) {
     return 'Rp ' + amount.toLocaleString('id-ID');
 }
 
-// [38] Tambahkan CSS untuk styling - DIPERBAIKI UNTUK VISIBILITAS DROPDOWN
+// [38] Tambahkan CSS untuk styling - PERBAIKAN FINAL
 function addRequestPageStyles() {
     const styleId = 'request-page-styles';
     
@@ -2167,25 +2167,6 @@ function addRequestPageStyles() {
             100% { transform: rotate(360deg); }
         }
         
-        /* Efek ripple saat klik */
-        .btn-refresh-history-round::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.3s, height 0.3s;
-        }
-        
-        .btn-refresh-history-round:active::after {
-            width: 100%;
-            height: 100%;
-        }
-        
         /* ===== STYLING UNTUK KASIR HISTORY SECTION ===== */
         .kasir-history-section .section-header {
             display: flex;
@@ -2209,11 +2190,10 @@ function addRequestPageStyles() {
             flex-shrink: 0;
         }
         
-        /* ===== STYLING UNTUK FILTER PERIODE - FIX VISIBILITY ===== */
-        /* Untuk semua filter date - PERBAIKAN UTAMA */
+        /* ===== STYLING UNTUK FILTER PERIODE - FIX UNTUK DESKTOP ===== */
+        /* Untuk semua filter date */
         .date-select {
-            padding: 8px 12px; /* KEMBALIKAN padding normal */
-            padding-right: 32px; /* Untuk dropdown arrow */
+            padding: 8px 32px 8px 12px; /* Padding normal dengan ruang untuk arrow */
             border: 1px solid #ced4da;
             border-radius: 4px;
             background: white;
@@ -2222,10 +2202,10 @@ function addRequestPageStyles() {
             max-width: 180px;
             height: 36px;
             flex-shrink: 0;
-            line-height: normal; /* LINE HEIGHT NORMAL, bukan 36px */
-            overflow: visible;
-            white-space: normal; /* UBAH: normal, bukan nowrap */
-            text-overflow: clip; /* UBAH: clip, bukan ellipsis */
+            line-height: 1.4; /* Line height normal untuk teks lengkap */
+            overflow: visible; /* Pastikan teks tidak terpotong */
+            white-space: normal; /* Biarkan teks wrap jika perlu */
+            text-overflow: unset; /* HAPUS text-overflow */
             appearance: none;
             -webkit-appearance: none;
             -moz-appearance: none;
@@ -2235,9 +2215,10 @@ function addRequestPageStyles() {
             background-repeat: no-repeat;
             background-position: right 12px center;
             background-size: 12px;
-            color: #495057 !important; /* WARNA TEKS JELAS */
+            color: #495057;
             font-weight: 500;
-            text-align: left; /* Teks rata kiri di desktop */
+            text-align: left;
+            box-sizing: border-box; /* Pastikan padding termasuk dalam width */
         }
         
         /* Hover & Focus states */
@@ -2354,7 +2335,7 @@ function addRequestPageStyles() {
             white-space: nowrap;
         }
         
-        /* ===== RESPONSIVE ADJUSTMENTS UNTUK MOBILE ===== */
+        /* ===== RESPONSIVE ADJUSTMENTS UNTUK MOBILE/ANDROID ===== */
         @media (max-width: 768px) {
             .request-page {
                 padding: 10px;
@@ -2401,33 +2382,40 @@ function addRequestPageStyles() {
                 font-size: 1.1rem;
                 text-align: center;
                 width: 100%;
+                margin-bottom: 5px;
             }
             
-            /* HISTORY CONTROLS DI MOBILE - TEKS PERIODE TENGAH */
+            /* HISTORY CONTROLS DI ANDROID - FIX KELUAR CONTAINER */
             .kasir-history-section .history-controls {
                 display: flex;
                 align-items: center;
-                justify-content: center;
-                gap: 10px;
+                justify-content: center; /* TENGAH HORIZONTAL */
+                gap: 8px; /* KECILKAN GAP */
                 width: 100%;
+                max-width: 100%; /* PASTIKAN TIDAK MELEBIHI CONTAINER */
+                flex-wrap: nowrap;
+                overflow: hidden; /* HINDARI OVERFLOW */
+                box-sizing: border-box;
+                padding: 0 5px; /* TAMBAH PADDING SAMPING */
             }
             
-            /* FILTER PERIODE DI MOBILE - TEKS RATA TENGAH */
+            /* FILTER PERIODE DI MOBILE */
             #filterDateKasir, #filterDateOwner {
-                min-width: 140px !important;
-                max-width: 160px !important;
+                min-width: 130px !important; /* LEBIH KECIL */
+                max-width: 140px !important; /* BATASI MAKSIMAL */
                 height: 36px;
-                font-size: 14px;
-                text-align: center !important; /* TEKS TENGAH DI MOBILE */
-                padding: 8px 30px 8px 10px; /* Padding kiri lebih kecil */
-                color: #495057 !important;
+                font-size: 13px;
+                text-align: center;
+                padding: 8px 28px 8px 8px; /* Padding lebih kecil */
+                color: #495057;
                 font-weight: 500;
+                flex-shrink: 1; /* BOLEH MENYUSUT */
             }
             
             /* Option di mobile */
             .date-select option {
                 font-size: 13px;
-                text-align: center; /* Option juga rata tengah */
+                text-align: center;
             }
             
             .request-history-section .section-header {
@@ -2459,53 +2447,66 @@ function addRequestPageStyles() {
                 min-width: 100% !important;
                 max-width: 100% !important;
                 height: 38px;
-                text-align: center; /* Rata tengah untuk semua filter di mobile */
+                text-align: center;
             }
         }
         
-        /* Untuk layar sangat kecil (mobile portrait) */
+        /* Untuk layar sangat kecil (mobile portrait/Android kecil) */
         @media (max-width: 480px) {
             .kasir-history-section .section-header {
-                gap: 12px;
+                gap: 10px;
             }
             
             .kasir-history-section .section-header h3 {
                 font-size: 1rem;
+                margin-bottom: 0;
             }
             
-            /* HISTORY CONTROLS DI MOBILE PORTRAIT */
+            /* HISTORY CONTROLS DI ANDROID KECIL - FIX KELUAR CONTAINER */
             .kasir-history-section .history-controls {
-                gap: 8px;
+                gap: 5px; /* GAP LEBIH KECIL */
+                padding: 0 2px; /* PADDING MINIMAL */
+                justify-content: space-between; /* SEBAR MERATA */
+                width: 100%;
             }
             
-            /* FILTER PERIODE DI MOBILE SANGAT KECIL */
+            /* FILTER PERIODE DI ANDROID KECIL */
             #filterDateKasir, #filterDateOwner {
-                min-width: 130px !important;
-                max-width: 150px !important;
-                font-size: 13px;
+                min-width: 110px !important; /* LEBIH KECIL LAGI */
+                max-width: 120px !important;
+                font-size: 12px;
                 height: 34px;
-                padding: 7px 28px 7px 8px;
+                padding: 6px 24px 6px 6px;
+                flex: 1; /* GUNAKAN FLEX UNTUK MENYESUAIKAN RUANG */
             }
             
             .btn-refresh-history-round {
-                width: 34px;
-                height: 34px;
+                width: 32px; /* LEBIH KECIL */
+                height: 32px;
+                flex-shrink: 0; /* TIDAK BOLEH MENYUSUT */
+            }
+            
+            .btn-refresh-history-round i {
+                font-size: 12px;
             }
         }
         
-        /* Untuk desktop - VISIBILITAS TEKS */
+        /* Untuk desktop - FIX TEKS TERPOTONG */
         @media (min-width: 769px) {
             .date-select {
-                line-height: 1.5; /* Line height normal untuk teks jelas */
-                color: #495057 !important; /* Pastikan warna teks gelap */
-                background-color: white !important; /* Pastikan background putih */
+                white-space: nowrap; /* KEMBALIKAN nowrap UNTUK DESKTOP */
+                overflow: hidden; /* SEMBUNYIKAN OVERFLOW */
+                text-overflow: ellipsis; /* PAKAI ELLIPSIS JIKA TERLALU PANJANG */
+                line-height: 1.2; /* LINE HEIGHT OPTIMAL */
+                padding-top: 9px; /* PADDING ATAS OPTIMAL */
+                padding-bottom: 9px; /* PADDING BAWAH OPTIMAL */
             }
             
-            /* Pastikan teks selected visible */
-            .date-select option:checked,
-            .date-select option[selected] {
-                color: #495057;
-                background-color: #f8f9fa;
+            /* Option styling untuk desktop */
+            .date-select option {
+                font-size: 14px;
+                padding: 8px 12px;
+                line-height: 1.5;
             }
         }
         
