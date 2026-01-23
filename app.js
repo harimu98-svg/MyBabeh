@@ -9225,6 +9225,10 @@ async function finalizeMonthlyData() {
         const { data: { user } } = await supabase.auth.getUser();
         const executedBy = user?.user_metadata?.nama_karyawan || 'owner_manual';
         
+        // ========== PERBAIKAN DI SINI ==========
+        // Gunakan supabaseUrl yang sudah didefinisikan di app.js
+        // supabaseUrl sudah tersedia secara global dari app.js
+        
         // Siapkan payload untuk edge function
         const payload = {
             month: bulan,
@@ -9237,13 +9241,21 @@ async function finalizeMonthlyData() {
         
         console.log('Calling edge function with payload:', payload);
         
-        // Panggil edge function
+        // PERBAIKAN: Gunakan access token dari session
+        const { data: { session } } = await supabase.auth.getSession();
+        const accessToken = session?.access_token;
+        
+        if (!accessToken) {
+            throw new Error('Tidak ada session yang aktif. Silakan login ulang.');
+        }
+        
+        // Panggil edge function dengan access token
         const response = await fetch(
             `${supabaseUrl}/functions/v1/finalize-penghasilan-monthly`,
             {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${supabaseAnonKey}`,
+                    'Authorization': `Bearer ${accessToken}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(payload)
