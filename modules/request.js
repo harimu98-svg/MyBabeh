@@ -1968,7 +1968,7 @@ function formatRupiah(amount) {
     return 'Rp ' + amount.toLocaleString('id-ID');
 }
 
-// [38] Tambahkan CSS untuk styling - PERBAIKAN FINAL
+// [38] Tambahkan CSS untuk styling - PERBAIKAN FINAL UNTUK VISIBILITAS
 function addRequestPageStyles() {
     const styleId = 'request-page-styles';
     
@@ -2193,19 +2193,19 @@ function addRequestPageStyles() {
         /* ===== STYLING UNTUK FILTER PERIODE - FIX UNTUK DESKTOP ===== */
         /* Untuk semua filter date */
         .date-select {
-            padding: 8px 32px 8px 12px; /* Padding normal dengan ruang untuk arrow */
+            padding: 0 32px 0 12px; /* Padding untuk arrow, TANPA PADDING ATAS-BAWAH */
             border: 1px solid #ced4da;
             border-radius: 4px;
             background: white;
             font-size: 14px;
             min-width: 150px;
             max-width: 180px;
-            height: 36px;
+            height: 36px; /* FIXED HEIGHT */
             flex-shrink: 0;
-            line-height: 1.4; /* Line height normal untuk teks lengkap */
-            overflow: visible; /* Pastikan teks tidak terpotong */
-            white-space: normal; /* Biarkan teks wrap jika perlu */
-            text-overflow: unset; /* HAPUS text-overflow */
+            line-height: 36px; /* LINE HEIGHT SAMA DENGAN HEIGHT */
+            overflow: hidden; /* SEMBUNYIKAN OVERFLOW */
+            white-space: nowrap; /* TEKS SATU BARIS */
+            text-overflow: ellipsis; /* TAMBAHKAN ... JIKA PANJANG */
             appearance: none;
             -webkit-appearance: none;
             -moz-appearance: none;
@@ -2215,10 +2215,19 @@ function addRequestPageStyles() {
             background-repeat: no-repeat;
             background-position: right 12px center;
             background-size: 12px;
-            color: #495057;
+            color: #495057 !important; /* WARNA TEKS JELAS */
             font-weight: 500;
             text-align: left;
-            box-sizing: border-box; /* Pastikan padding termasuk dalam width */
+            box-sizing: border-box;
+            display: block; /* PASTIKAN DISPLAY BLOCK */
+            visibility: visible !important; /* PASTIKAN TERLIHAT */
+            opacity: 1 !important;
+        }
+        
+        /* Style untuk teks dalam select - FIX VISIBILITY */
+        .date-select::-ms-value {
+            color: #495057;
+            background: white;
         }
         
         /* Hover & Focus states */
@@ -2238,6 +2247,8 @@ function addRequestPageStyles() {
             font-size: 14px;
             color: #495057;
             background-color: white;
+            line-height: 1.5;
+            height: 36px;
         }
         
         /* Khusus untuk kasir */
@@ -2360,10 +2371,19 @@ function addRequestPageStyles() {
                 font-size: 11px;
             }
             
-            /* TOMBOL REFRESH DI MOBILE */
+            /* TOMBOL REFRESH DI MOBILE - FIX VISIBILITY */
             .btn-refresh-history-round {
                 width: 36px;
                 height: 36px;
+                display: flex !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                position: relative;
+                z-index: 10;
+            }
+            
+            .btn-refresh-history-round i {
+                font-size: 14px;
             }
             
             .request-header .refresh-btn {
@@ -2376,6 +2396,7 @@ function addRequestPageStyles() {
                 flex-direction: column;
                 align-items: stretch;
                 gap: 15px;
+                position: relative;
             }
             
             .kasir-history-section .section-header h3 {
@@ -2385,31 +2406,37 @@ function addRequestPageStyles() {
                 margin-bottom: 5px;
             }
             
-            /* HISTORY CONTROLS DI ANDROID - FIX KELUAR CONTAINER */
+            /* HISTORY CONTROLS DI ANDROID - FIX TOMBOL TIDAK ADA */
             .kasir-history-section .history-controls {
-                display: flex;
+                display: flex !important; /* FORCE DISPLAY */
+                visibility: visible !important;
                 align-items: center;
-                justify-content: center; /* TENGAH HORIZONTAL */
-                gap: 8px; /* KECILKAN GAP */
+                justify-content: center;
+                gap: 10px;
                 width: 100%;
-                max-width: 100%; /* PASTIKAN TIDAK MELEBIHI CONTAINER */
+                max-width: 100%;
                 flex-wrap: nowrap;
-                overflow: hidden; /* HINDARI OVERFLOW */
+                overflow: visible;
                 box-sizing: border-box;
-                padding: 0 5px; /* TAMBAH PADDING SAMPING */
+                padding: 0 10px;
+                position: relative;
+                z-index: 5;
             }
             
             /* FILTER PERIODE DI MOBILE */
             #filterDateKasir, #filterDateOwner {
-                min-width: 130px !important; /* LEBIH KECIL */
-                max-width: 140px !important; /* BATASI MAKSIMAL */
+                min-width: 140px !important;
+                max-width: 160px !important;
                 height: 36px;
-                font-size: 13px;
+                font-size: 14px;
                 text-align: center;
-                padding: 8px 28px 8px 8px; /* Padding lebih kecil */
-                color: #495057;
+                padding: 0 28px 0 10px; /* PADDING ATAS-BAWAH 0 */
+                line-height: 36px; /* LINE HEIGHT SAMA DENGAN HEIGHT */
+                color: #495057 !important;
                 font-weight: 500;
-                flex-shrink: 1; /* BOLEH MENYUSUT */
+                flex-shrink: 1;
+                display: block !important; /* FORCE DISPLAY */
+                visibility: visible !important;
             }
             
             /* Option di mobile */
@@ -2448,13 +2475,14 @@ function addRequestPageStyles() {
                 max-width: 100% !important;
                 height: 38px;
                 text-align: center;
+                line-height: 38px;
             }
         }
         
         /* Untuk layar sangat kecil (mobile portrait/Android kecil) */
         @media (max-width: 480px) {
             .kasir-history-section .section-header {
-                gap: 10px;
+                gap: 12px;
             }
             
             .kasir-history-section .section-header h3 {
@@ -2462,50 +2490,55 @@ function addRequestPageStyles() {
                 margin-bottom: 0;
             }
             
-            /* HISTORY CONTROLS DI ANDROID KECIL - FIX KELUAR CONTAINER */
+            /* HISTORY CONTROLS DI ANDROID KECIL */
             .kasir-history-section .history-controls {
-                gap: 5px; /* GAP LEBIH KECIL */
-                padding: 0 2px; /* PADDING MINIMAL */
-                justify-content: space-between; /* SEBAR MERATA */
+                gap: 8px;
+                padding: 0 5px;
+                justify-content: center;
                 width: 100%;
             }
             
             /* FILTER PERIODE DI ANDROID KECIL */
             #filterDateKasir, #filterDateOwner {
-                min-width: 110px !important; /* LEBIH KECIL LAGI */
-                max-width: 120px !important;
-                font-size: 12px;
+                min-width: 120px !important;
+                max-width: 140px !important;
+                font-size: 13px;
                 height: 34px;
-                padding: 6px 24px 6px 6px;
-                flex: 1; /* GUNAKAN FLEX UNTUK MENYESUAIKAN RUANG */
+                line-height: 34px;
+                padding: 0 24px 0 8px;
             }
             
             .btn-refresh-history-round {
-                width: 32px; /* LEBIH KECIL */
-                height: 32px;
-                flex-shrink: 0; /* TIDAK BOLEH MENYUSUT */
+                width: 34px;
+                height: 34px;
+                flex-shrink: 0;
             }
             
             .btn-refresh-history-round i {
-                font-size: 12px;
+                font-size: 13px;
             }
         }
         
         /* Untuk desktop - FIX TEKS TERPOTONG */
         @media (min-width: 769px) {
             .date-select {
-                white-space: nowrap; /* KEMBALIKAN nowrap UNTUK DESKTOP */
-                overflow: hidden; /* SEMBUNYIKAN OVERFLOW */
-                text-overflow: ellipsis; /* PAKAI ELLIPSIS JIKA TERLALU PANJANG */
-                line-height: 1.2; /* LINE HEIGHT OPTIMAL */
-                padding-top: 9px; /* PADDING ATAS OPTIMAL */
-                padding-bottom: 9px; /* PADDING BAWAH OPTIMAL */
+                line-height: 36px; /* PASTIKAN LINE HEIGHT SAMA DENGAN HEIGHT */
+                padding-top: 0;
+                padding-bottom: 0;
+                color: #495057 !important;
+                background-color: white !important;
             }
             
-            /* Option styling untuk desktop */
+            /* Pastikan teks terlihat di semua browser */
+            .date-select,
+            .date-select:focus,
+            .date-select:hover {
+                color: #495057 !important;
+            }
+            
             .date-select option {
                 font-size: 14px;
-                padding: 8px 12px;
+                padding: 10px 12px;
                 line-height: 1.5;
             }
         }
