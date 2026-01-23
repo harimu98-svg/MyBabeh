@@ -1968,7 +1968,7 @@ function formatRupiah(amount) {
     return 'Rp ' + amount.toLocaleString('id-ID');
 }
 
-// [38] Tambahkan CSS untuk styling
+/* [38] Tambahkan CSS untuk styling - DIPERBAIKI UNTUK RESPONSIF */
 function addRequestPageStyles() {
     const styleId = 'request-page-styles';
     
@@ -2209,11 +2209,45 @@ function addRequestPageStyles() {
             flex-shrink: 0; /* Tambahkan agar tidak mengecil */
         }
         
-        /* Untuk filter date kasir */
-        #filterDateKasir {
-            min-width: 150px; /* Pastikan lebar minimum */
+        /* ===== STYLING UNTUK FILTER PERIODE (DESKTOP & MOBILE) ===== */
+        /* Untuk semua filter date */
+        .date-select {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            background: white;
+            font-size: 14px;
+            min-width: 150px;
+            max-width: 180px; /* Batasi maksimum lebar */
             height: 36px; /* Sama dengan tinggi tombol refresh */
             flex-shrink: 0;
+            line-height: 1.4; /* Perbaiki line-height untuk teks panjang */
+            overflow: visible; /* Pastikan teks tidak terpotong */
+            white-space: nowrap; /* Jangan wrap teks */
+            text-overflow: ellipsis; /* Tambahkan ellipsis jika terlalu panjang */
+        }
+        
+        /* Khusus untuk kasir */
+        #filterDateKasir {
+            min-width: 150px;
+            max-width: 180px;
+            height: 36px;
+        }
+        
+        /* Khusus untuk owner */
+        #filterDateOwner {
+            min-width: 140px;
+            max-width: 160px;
+        }
+        
+        /* Style untuk option dalam select */
+        .date-select option {
+            padding: 8px 12px;
+            line-height: 1.5;
+            font-size: 13px;
+            white-space: normal; /* Biarkan wrap di dalam option */
+            word-wrap: break-word;
+            max-width: 180px;
         }
         
         /* Untuk owner section */
@@ -2299,15 +2333,6 @@ function addRequestPageStyles() {
             white-space: nowrap;
         }
         
-        .date-select {
-            padding: 8px 12px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            background: white;
-            font-size: 14px;
-            min-width: 150px;
-        }
-        
         /* ===== RESPONSIVE ADJUSTMENTS UNTUK MOBILE ===== */
         @media (max-width: 768px) {
             .request-page {
@@ -2371,10 +2396,20 @@ function addRequestPageStyles() {
                 flex-shrink: 0;
             }
             
-            #filterDateKasir {
-                min-width: 130px;
+            /* FILTER PERIODE DI MOBILE - PERBAIKAN */
+            #filterDateKasir, #filterDateOwner {
+                min-width: 130px !important;
+                max-width: 150px !important; /* Batasi maksimum di mobile */
                 height: 36px;
                 font-size: 13px;
+                padding: 8px 10px;
+            }
+            
+            /* Option di mobile */
+            .date-select option {
+                font-size: 12px;
+                padding: 6px 8px;
+                max-width: 150px;
             }
             
             .request-history-section .section-header {
@@ -2390,6 +2425,25 @@ function addRequestPageStyles() {
             .pending-requests-section .section-header {
                 flex-direction: row;
                 align-items: center;
+            }
+            
+            /* Filter owner di mobile */
+            .owner-filter-section .filter-row {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+            
+            .owner-filter-section .filter-group {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .owner-filter-section .date-select,
+            .owner-filter-section .outlet-select,
+            .owner-filter-section .status-select {
+                min-width: 100% !important;
+                max-width: 100% !important;
             }
         }
         
@@ -2411,8 +2465,10 @@ function addRequestPageStyles() {
                 width: 100%;
             }
             
-            #filterDateKasir {
-                min-width: 120px;
+            /* FILTER PERIODE DI MOBILE SANGAT KECIL */
+            #filterDateKasir, #filterDateOwner {
+                min-width: 120px !important;
+                max-width: 140px !important;
                 font-size: 12px;
             }
             
@@ -2430,6 +2486,25 @@ function addRequestPageStyles() {
             .request-history-section .section-header h3 {
                 text-align: center;
             }
+            
+            /* Owner filter di mobile sangat kecil */
+            .owner-filter-section .btn-apply-filter {
+                width: 100%;
+                margin-top: 10px;
+            }
+        }
+        
+        /* Untuk desktop - pastikan teks tidak terpotong */
+        @media (min-width: 769px) {
+            .date-select {
+                padding: 10px 12px; /* Tambah padding atas-bawah di desktop */
+                line-height: 1.2; /* Line height yang lebih baik */
+            }
+            
+            .date-select option {
+                padding: 10px 12px;
+                line-height: 1.6; /* Lebih longgar di desktop */
+            }
         }
         
         /* Animation untuk status */
@@ -2445,6 +2520,7 @@ function addRequestPageStyles() {
     
     document.head.appendChild(style);
 }
+
 
 // [39] Setup tombol refresh
 function setupRefreshButtons() {
