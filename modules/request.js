@@ -2139,6 +2139,7 @@ function addRequestPageStyles() {
             box-shadow: 0 2px 5px rgba(0, 123, 255, 0.3);
             position: relative;
             overflow: hidden;
+            flex-shrink: 0; /* Tambahkan ini agar tidak mengecil di mobile */
         }
         
         .btn-refresh-history-round:hover {
@@ -2185,18 +2186,34 @@ function addRequestPageStyles() {
             height: 100%;
         }
         
-        /* Untuk section header kasir */
+        /* ===== STYLING UNTUK KASIR HISTORY SECTION ===== */
         .kasir-history-section .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
+            flex-wrap: wrap; /* Tambahkan agar responsive */
+            gap: 10px; /* Tambahkan gap */
+        }
+        
+        .kasir-history-section .section-header h3 {
+            margin: 0;
+            flex: 1;
+            min-width: 250px; /* Tambahkan min-width agar tidak terlalu kecil */
         }
         
         .kasir-history-section .history-controls {
             display: flex;
             align-items: center;
             gap: 10px;
+            flex-shrink: 0; /* Tambahkan agar tidak mengecil */
+        }
+        
+        /* Untuk filter date kasir */
+        #filterDateKasir {
+            min-width: 150px; /* Pastikan lebar minimum */
+            height: 36px; /* Sama dengan tinggi tombol refresh */
+            flex-shrink: 0;
         }
         
         /* Untuk owner section */
@@ -2205,12 +2222,15 @@ function addRequestPageStyles() {
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         
         .pending-requests-section .request-stats {
             display: flex;
             align-items: center;
             gap: 15px;
+            flex-shrink: 0;
         }
         
         .request-history-section .section-header {
@@ -2218,6 +2238,13 @@ function addRequestPageStyles() {
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .request-history-section .section-header h3 {
+            flex: 1;
+            min-width: 250px;
         }
         
         /* Tombol refresh di header utama */
@@ -2233,6 +2260,7 @@ function addRequestPageStyles() {
             align-items: center;
             justify-content: center;
             transition: all 0.3s ease;
+            flex-shrink: 0;
         }
         
         .request-header .refresh-btn:hover {
@@ -2280,7 +2308,7 @@ function addRequestPageStyles() {
             min-width: 150px;
         }
         
-        /* ===== RESPONSIVE ADJUSTMENTS ===== */
+        /* ===== RESPONSIVE ADJUSTMENTS UNTUK MOBILE ===== */
         @media (max-width: 768px) {
             .request-page {
                 padding: 10px;
@@ -2305,18 +2333,102 @@ function addRequestPageStyles() {
                 font-size: 11px;
             }
             
+            /* TOMBOL REFRESH DI MOBILE - PERBAIKAN */
             .btn-refresh-history-round {
-                width: 32px;
-                height: 32px;
+                width: 36px;
+                height: 36px;
+                display: flex !important; /* Force display */
+                visibility: visible !important; /* Force visibility */
+                opacity: 1 !important;
             }
             
             .btn-refresh-history-round i {
-                font-size: 12px;
+                font-size: 14px;
             }
             
             .request-header .refresh-btn {
-                width: 32px;
-                height: 32px;
+                width: 36px;
+                height: 36px;
+            }
+            
+            /* SECTION HEADER DI MOBILE */
+            .kasir-history-section .section-header {
+                flex-direction: row; /* Tetap row, bukan column */
+                align-items: center;
+                justify-content: space-between;
+            }
+            
+            .kasir-history-section .section-header h3 {
+                font-size: 1.1rem;
+                min-width: auto;
+                flex: 1;
+            }
+            
+            .kasir-history-section .history-controls {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-shrink: 0;
+            }
+            
+            #filterDateKasir {
+                min-width: 130px;
+                height: 36px;
+                font-size: 13px;
+            }
+            
+            .request-history-section .section-header {
+                flex-direction: row;
+                align-items: center;
+            }
+            
+            .request-history-section .section-header h3 {
+                font-size: 1.1rem;
+                min-width: auto;
+            }
+            
+            .pending-requests-section .section-header {
+                flex-direction: row;
+                align-items: center;
+            }
+        }
+        
+        /* Untuk layar sangat kecil (mobile portrait) */
+        @media (max-width: 480px) {
+            .kasir-history-section .section-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            
+            .kasir-history-section .section-header h3 {
+                text-align: center;
+                font-size: 1rem;
+            }
+            
+            .kasir-history-section .history-controls {
+                justify-content: center;
+                width: 100%;
+            }
+            
+            #filterDateKasir {
+                min-width: 120px;
+                font-size: 12px;
+            }
+            
+            .btn-refresh-history-round {
+                width: 34px;
+                height: 34px;
+            }
+            
+            .request-history-section .section-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            
+            .request-history-section .section-header h3 {
+                text-align: center;
             }
         }
         
