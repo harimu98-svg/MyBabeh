@@ -515,6 +515,14 @@ function setupKasirRequestEvents() {
     if (clearAllBtn) {
         clearAllBtn.addEventListener('click', clearAllSelectedItems);
     }
+    
+    // TAMBAHKAN: Auto-refresh saat filter periode berubah
+    const filterDateKasir = document.getElementById('filterDateKasir');
+    if (filterDateKasir) {
+        filterDateKasir.addEventListener('change', async () => {
+            await loadKasirHistory();
+        });
+    }
 }
 
 // [5] Setup events untuk OWNER
