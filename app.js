@@ -7307,12 +7307,29 @@ async function loadFinalSlipData(namaKaryawan, bulan, tahun) {
 async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
     console.log('Calculating real-time slip for:', { namaKaryawan, outlet, bulan, tahun });
     
+    // ========== PERBAIKAN DI SINI ==========
+    // Fungsi helper untuk mendapatkan hari terakhir bulan
+    function getLastDayOfMonth(year, month) {
+        // month: 1 = Januari, 12 = Desember
+        // Return 0 day dari month berikutnya = last day bulan ini
+        return new Date(year, month, 0).getDate();
+    }
+    
     const monthStr = bulan.toString().padStart(2, '0');
     const yearStr = tahun.toString();
     
-    // Untuk kolom DATE, gunakan range query (gte/lte)
+    // PERBAIKAN: Hitung hari terakhir bulan dengan benar
+    const lastDay = getLastDayOfMonth(tahun, bulan);
     const startDate = `${yearStr}-${monthStr}-01`;
-    const endDate = `${yearStr}-${monthStr}-31`;
+    const endDate = `${yearStr}-${monthStr}-${lastDay.toString().padStart(2, '0')}`;
+    
+    console.log('✅ Correct date range:', { 
+        startDate, 
+        endDate,
+        bulan,
+        tahun,
+        lastDay 
+    });
     
     // Query semua data secara paralel
     const [
