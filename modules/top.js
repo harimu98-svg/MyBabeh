@@ -1354,7 +1354,7 @@ function createOwnerTOPContent() {
                             overflow: hidden;
                             display: none;
                             font-size: 0.85rem;
-                            table-layout: fixed;
+                            table-layout: auto;
                         ">
                             <thead>
                                 <tr>
