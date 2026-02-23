@@ -2749,7 +2749,7 @@ function displayTodayAbsensi(absensiData, date, jadwal) {
     content.style.display = 'block';
 }
 
-// [11] Fungsi untuk tampilkan absensi 7 hari
+// [11] Fungsi untuk tampilkan absensi 7 hari - VERSI DENGAN STATUS MULTILINE
 function displayWeeklyAbsensi(weeklyData) {
     const tbody = document.getElementById('weeklyAbsensiBody');
     tbody.innerHTML = '';
@@ -2758,6 +2758,22 @@ function displayWeeklyAbsensi(weeklyData) {
     
     weeklyData.forEach(item => {
         const row = document.createElement('tr');
+        
+        // Format status khusus untuk menampilkan detail
+        let statusDisplay = item.status_kehadiran || '-';
+        
+        // Jika status mengandung informasi menit, tampilkan dalam format yang lebih baik
+        if (statusDisplay.includes('Terlambat') || statusDisplay.includes('Pulang Cepat')) {
+            // Pisahkan dengan line break jika ada dua status
+            if (statusDisplay.includes('+')) {
+                const parts = statusDisplay.split('+');
+                statusDisplay = `
+                    <span class="status-line">${parts[0].trim()}</span>
+                    <span class="status-line" style="display: block; margin-top: 4px;">+ ${parts[1].trim()}</span>
+                `;
+            }
+        }
+        
         row.innerHTML = `
             <td>${item.tanggal_display}</td>
             <td>${item.outlet || '-'}</td>
@@ -2769,7 +2785,7 @@ function displayWeeklyAbsensi(weeklyData) {
             <td>${item.jamkerja || '-'}</td>
             <td class="status-cell">
                 <span class="status-pill ${getStatusClass(item.status_kehadiran)}">
-                    ${item.status_kehadiran || '-'}
+                    ${statusDisplay}
                 </span>
             </td>
         `;
