@@ -7574,4 +7574,149 @@ tr.stock-out .product-cell {
     }
 }
 
+/* ===== PERBAIKAN TABEL ABSENSI ===== */
 
+/* Container tabel dengan overflow horizontal */
+.weekly-absensi-table-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* Tabel dengan lebar tetap */
+.weekly-absensi-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    min-width: 1200px; /* Lebar minimal agar semua kolom muat */
+}
+
+/* Atur lebar kolom secara proporsional */
+.weekly-absensi-table th,
+.weekly-absensi-table td {
+    padding: 12px 10px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+    white-space: nowrap; /* Mencegah teks wrap ke bawah */
+}
+
+/* Kolom Tanggal - lebar sedang */
+.weekly-absensi-table th:nth-child(1),
+.weekly-absensi-table td:nth-child(1) {
+    min-width: 120px;
+}
+
+/* Kolom Outlet - lebar sedang */
+.weekly-absensi-table th:nth-child(2),
+.weekly-absensi-table td:nth-child(2) {
+    min-width: 100px;
+}
+
+/* Kolom Karyawan - lebar sedang */
+.weekly-absensi-table th:nth-child(3),
+.weekly-absensi-table td:nth-child(3) {
+    min-width: 120px;
+}
+
+/* Kolom Jadwal Masuk/Pulang - lebar kecil */
+.weekly-absensi-table th:nth-child(4),
+.weekly-absensi-table td:nth-child(4),
+.weekly-absensi-table th:nth-child(5),
+.weekly-absensi-table td:nth-child(5) {
+    min-width: 70px;
+    text-align: center;
+}
+
+/* Kolom Clock In/Out - lebar kecil */
+.weekly-absensi-table th:nth-child(6),
+.weekly-absensi-table td:nth-child(6),
+.weekly-absensi-table th:nth-child(7),
+.weekly-absensi-table td:nth-child(7) {
+    min-width: 70px;
+    text-align: center;
+}
+
+/* Kolom Jam Kerja - lebar kecil */
+.weekly-absensi-table th:nth-child(8),
+.weekly-absensi-table td:nth-child(8) {
+    min-width: 60px;
+    text-align: center;
+}
+
+/* Kolom STATUS KEHADIRAN - DIPERLEBAR */
+.weekly-absensi-table th:nth-child(9),
+.weekly-absensi-table td:nth-child(9) {
+    min-width: 280px; /* Diperlebar untuk menampung teks panjang */
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+/* Status pill tetap rapi */
+.status-pill {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-align: center;
+    white-space: normal; /* Allow text to wrap */
+    word-break: break-word; /* Break long words */
+    max-width: 260px;
+    line-height: 1.4;
+}
+
+/* Warna status */
+.status-pill.tepat-waktu {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-pill.terlambat {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.status-pill.pulang-cepat {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.status-pill.masih-bekerja {
+    background: #e3f2fd;
+    color: #0d47a1;
+}
+
+.status-pill.tidak-absen {
+    background: #f5f5f5;
+    color: #757575;
+}
+
+.status-pill.libur {
+    background: #ede7f6;
+    color: #5e35b1;
+}
+
+/* Sticky header untuk scroll horizontal */
+.weekly-absensi-table thead th {
+    background: #f8f9fa;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Responsive untuk mobile */
+@media (max-width: 768px) {
+    .weekly-absensi-table {
+        min-width: 1000px; /* Adjust for mobile */
+    }
+    
+    .weekly-absensi-table th:nth-child(9),
+    .weekly-absensi-table td:nth-child(9) {
+        min-width: 240px; /* Sedikit lebih kecil di mobile */
+    }
+}
