@@ -1295,7 +1295,6 @@ let currentUserOutlet = null;
 
 // Helper WIB date
 function getWIBDateString(date = new Date()) {
-    // Format tanggal menjadi YYYY-MM-DD dalam waktu WIB
     const dateWIB = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
     return dateWIB.toISOString().split('T')[0];
 }
@@ -1303,7 +1302,6 @@ function getWIBDateString(date = new Date()) {
 // [4.1] Fungsi untuk tampilkan halaman komisi
 async function showKomisiPage() {
     try {
-        // Ambil data user
         const { data: { user } } = await supabase.auth.getUser();
         const namaKaryawan = user?.user_metadata?.nama_karyawan;
         
@@ -1312,7 +1310,6 @@ async function showKomisiPage() {
             return;
         }
         
-        // Ambil data karyawan lengkap (untuk outlet dan role)
         const { data: karyawanData } = await supabase
             .from('karyawan')
             .select('role, outlet')
@@ -1333,13 +1330,10 @@ async function showKomisiPage() {
         currentUserOutlet = karyawanData.outlet;
         isOwner = karyawanData.role === 'owner';
         
-        // Sembunyikan main app, tampilkan halaman komisi
         document.getElementById('appScreen').style.display = 'none';
         
-        // Buat container halaman komisi
         createKomisiPage();
         
-        // Load data komisi
         await loadKomisiData();
         
     } catch (error) {
@@ -1350,13 +1344,11 @@ async function showKomisiPage() {
 
 // [4.2] Fungsi untuk buat halaman komisi
 function createKomisiPage() {
-    // Hapus halaman komisi sebelumnya jika ada
     const existingPage = document.getElementById('komisiPage');
     if (existingPage) {
         existingPage.remove();
     }
     
-    // Buat container halaman komisi
     const komisiPage = document.createElement('div');
     komisiPage.id = 'komisiPage';
     komisiPage.className = 'komisi-page';
@@ -1387,10 +1379,8 @@ function createKomisiPage() {
                 <div class="filter-group">
                     <label for="dateRange">Periode:</label>
                     <select id="dateRange" class="date-select">
-                        <option value="today">Hari Ini</option>
-                        <option value="week">7 Hari Terakhir</option>
+                        <option value="week" selected>7 Hari Terakhir</option>
                         <option value="month">Bulan Ini</option>
-                        <option value="custom">Custom</option>
                     </select>
                 </div>
             </div>
@@ -1417,16 +1407,16 @@ function createKomisiPage() {
             </div>
         </section>
         
-        <!-- Komisi 7 Hari Terakhir -->
+        <!-- Riwayat Komisi -->
         <section class="weekly-komisi-section">
             <div class="section-header">
-                <h3><i class="fas fa-chart-line"></i> Komisi 7 Hari Terakhir</h3>
+                <h3><i class="fas fa-chart-line"></i> Riwayat Komisi</h3>
                 <div class="total-summary">
-                    <span>Total 7 Hari: <strong id="total7Hari">Rp 0</strong></span>
+                    <span>Total Periode: <strong id="totalPeriode">Rp 0</strong></span>
                 </div>
             </div>
             <div class="weekly-komisi-table-container">
-                <div class="loading" id="loadingWeekly">Loading data 7 hari...</div>
+                <div class="loading" id="loadingWeekly">Loading data...</div>
                 <table class="weekly-komisi-table" id="weeklyKomisiTable" style="display: none;">
                     <thead>
                         <tr>
@@ -1457,46 +1447,34 @@ function createKomisiPage() {
     
     document.body.appendChild(komisiPage);
     
-    // Setup event listeners
     setupKomisiPageEvents();
 }
 
 // [4.3] Setup event listeners untuk halaman komisi
 function setupKomisiPageEvents() {
-    // Tombol kembali
     document.getElementById('backToMain').addEventListener('click', () => {
         document.getElementById('komisiPage').remove();
         document.getElementById('appScreen').style.display = 'block';
     });
     
-    // Tombol refresh
     document.getElementById('refreshKomisi').addEventListener('click', async () => {
         await loadKomisiData();
     });
     
-    // Filter untuk owner
     if (isOwner) {
-        // Load dropdown outlet
         loadOutletDropdown();
         
-        // Event listener untuk outlet change
         document.getElementById('selectOutlet').addEventListener('change', async () => {
-            await loadKaryawanDropdown(); // Reload karyawan berdasarkan outlet
+            await loadKaryawanDropdown();
             await loadKomisiData();
         });
         
-        // Event listener untuk karyawan change
         document.getElementById('selectKaryawan').addEventListener('change', async () => {
             await loadKomisiData();
         });
         
-        // Event listener untuk date range
-        document.getElementById('dateRange').addEventListener('change', async (e) => {
-            if (e.target.value === 'custom') {
-                showCustomDatePicker();
-            } else {
-                await loadKomisiData();
-            }
+        document.getElementById('dateRange').addEventListener('change', async () => {
+            await loadKomisiData();
         });
     }
 }
@@ -1506,23 +1484,18 @@ async function loadKomisiData() {
     try {
         console.log('=== START LOADING KOMISI DATA ===');
         
-        // Tampilkan loading
         document.getElementById('loadingToday').style.display = 'block';
         document.getElementById('todayKomisiContent').style.display = 'none';
         document.getElementById('loadingWeekly').style.display = 'block';
         document.getElementById('weeklyKomisiTable').style.display = 'none';
         
-        // Tentukan parameter filter
         const filterParams = getFilterParams();
         console.log('Filter params:', filterParams);
         
-        // Load data hari ini
         await loadTodayKomisi(filterParams);
         
-        // Load data 7 hari
-        await loadWeeklyKomisi(filterParams);
+        await loadRiwayatKomisi(filterParams);
         
-        // Update waktu terakhir update
         const updateTime = new Date().toLocaleTimeString('id-ID');
         document.getElementById('lastUpdateTime').textContent = updateTime;
         
@@ -1530,38 +1503,7 @@ async function loadKomisiData() {
         
     } catch (error) {
         console.error('Error loading komisi data:', error);
-        
-        // Tampilkan error message ke user
-        const todayContent = document.getElementById('todayKomisiContent');
-        const weeklyTable = document.getElementById('weeklyKomisiTable');
-        
-        document.getElementById('loadingToday').style.display = 'none';
-        document.getElementById('loadingWeekly').style.display = 'none';
-        
-        if (todayContent) {
-            todayContent.innerHTML = `
-                <div style="text-align: center; padding: 20px; color: #ff4757;">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 10px;"></i>
-                    <p>Gagal memuat data komisi</p>
-                    <p style="font-size: 0.9rem; opacity: 0.7;">${error.message || 'Unknown error'}</p>
-                </div>
-            `;
-            todayContent.style.display = 'block';
-        }
-        
-        if (weeklyTable) {
-            weeklyTable.style.display = 'table';
-            const tbody = document.getElementById('weeklyKomisiBody');
-            if (tbody) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="10" style="text-align: center; padding: 20px; color: #ff4757;">
-                            Gagal memuat data
-                        </td>
-                    </tr>
-                `;
-            }
-        }
+        handleKomisiError(error);
     }
 }
 
@@ -1570,7 +1512,7 @@ function getFilterParams() {
     const params = {
         namaKaryawan: currentKaryawan?.nama_karyawan,
         role: currentKaryawan?.role,
-        outlet: currentUserOutlet, // OUTLET DARI TABEL KARYAWAN
+        outlet: currentUserOutlet,
         isOwner: isOwner
     };
     
@@ -1579,11 +1521,10 @@ function getFilterParams() {
         const selectKaryawan = document.getElementById('selectKaryawan');
         const dateRange = document.getElementById('dateRange');
         
-        // Untuk owner: gunakan filter dari dropdown
         if (selectOutlet && selectOutlet.value !== 'all') {
             params.outlet = selectOutlet.value;
         } else {
-            params.outlet = null; // Semua outlet
+            params.outlet = null;
         }
         
         if (selectKaryawan && selectKaryawan.value) {
@@ -1598,18 +1539,17 @@ function getFilterParams() {
             params.dateRange = dateRange.value;
         }
     } else {
-        // Untuk non-owner: selalu filter berdasarkan nama sendiri
         params.filterByKaryawan = true;
-        // Outlet tetap dari karyawan.outlet
+        params.dateRange = 'week';
     }
     
     console.log('Filter params refined:', params);
     return params;
 }
 
-// [4.6] Fungsi untuk load komisi hari ini - DARI TABEL KOMISI
+// [4.6] Fungsi untuk load komisi hari ini
 async function loadTodayKomisi(filterParams) {
-   const today = getWIBDateString(); // Ganti toISOString()
+    const today = getWIBDateString();
     
     console.log('Loading today komisi from komisi table for:', {
         tanggal: today,
@@ -1617,19 +1557,16 @@ async function loadTodayKomisi(filterParams) {
         outlet: filterParams.outlet
     });
     
-    // Query langsung dari tabel komisi
     let query = supabase
         .from('komisi')
         .select('*')
         .eq('tanggal', today);
     
-    // Filter berdasarkan serve_by
     if (filterParams.filterByKaryawan && filterParams.namaKaryawan) {
         query = query.eq('serve_by', filterParams.namaKaryawan);
         console.log('Filter by serve_by:', filterParams.namaKaryawan);
     }
     
-    // Filter berdasarkan outlet (jika bukan semua outlet)
     if (filterParams.outlet) {
         query = query.eq('outlet', filterParams.outlet);
         console.log('Filter by outlet:', filterParams.outlet);
@@ -1644,7 +1581,6 @@ async function loadTodayKomisi(filterParams) {
     
     console.log('Komisi data found:', komisiData?.length || 0, 'records');
     
-    // Jika tidak ada data di komisi, ambil info karyawan untuk outlet
     if (!komisiData || komisiData.length === 0) {
         const outletInfo = await getOutletInfo(filterParams.namaKaryawan || currentKaryawan.nama_karyawan);
         
@@ -1663,35 +1599,36 @@ async function loadTodayKomisi(filterParams) {
         return;
     }
     
-    // Untuk non-owner: tampilkan data pertama (seharusnya cuma 1)
-    // Untuk owner: mungkin banyak data, tampilkan summary
     if (isOwner && !filterParams.filterByKaryawan) {
-        // Owner melihat semua karyawan: hitung total
         const summary = calculateSummary(komisiData);
         displayTodayKomisi(summary, new Date());
     } else {
-        // Non-owner atau owner pilih karyawan tertentu
         const data = komisiData[0];
         displayTodayKomisi(data, new Date());
     }
 }
 
-// [4.7] Fungsi untuk load komisi 7 hari terakhir - DARI TABEL KOMISI
-async function loadWeeklyKomisi(filterParams) {
-    console.log('=== LOAD WEEKLY KOMISI FROM KOMISI TABLE ===');
+// [4.7] Fungsi untuk load riwayat komisi berdasarkan periode yang dipilih
+async function loadRiwayatKomisi(filterParams) {
+    console.log('=== LOAD RIWAYAT KOMISI ===');
     
-    // Tanggal range: 7 hari sebelum hari ini
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() - 1); // sampai kemarin
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 7); // 7 hari sebelum
+    let startDate, endDate;
+    const today = new Date();
     
-   const startStr = getWIBDateString(startDate); // Ganti toISOString()
-const endStr = getWIBDateString(endDate); // Ganti toISOString()
+    if (filterParams.dateRange === 'month') {
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        endDate = new Date(today);
+    } else {
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() - 6);
+        endDate = new Date(today);
+    }
+    
+    const startStr = getWIBDateString(startDate);
+    const endStr = getWIBDateString(endDate);
     
     console.log('Date range:', startStr, 'to', endStr);
     
-    // Query dari tabel komisi
     let query = supabase
         .from('komisi')
         .select('*')
@@ -1699,12 +1636,10 @@ const endStr = getWIBDateString(endDate); // Ganti toISOString()
         .lte('tanggal', endStr)
         .order('tanggal', { ascending: false });
     
-    // Filter berdasarkan serve_by
     if (filterParams.filterByKaryawan && filterParams.namaKaryawan) {
         query = query.eq('serve_by', filterParams.namaKaryawan);
     }
     
-    // Filter berdasarkan outlet
     if (filterParams.outlet) {
         query = query.eq('outlet', filterParams.outlet);
     }
@@ -1712,15 +1647,13 @@ const endStr = getWIBDateString(endDate); // Ganti toISOString()
     const { data: komisiData, error } = await query;
     
     if (error) {
-        console.error('Error loading weekly komisi:', error);
+        console.error('Error loading riwayat komisi:', error);
         throw error;
     }
     
-    console.log('Weekly komisi found:', komisiData?.length || 0, 'records');
+    console.log('Riwayat komisi found:', komisiData?.length || 0, 'records');
     
-    // Group by tanggal untuk tampilan
     const groupedByDate = {};
-    
     if (komisiData && komisiData.length > 0) {
         komisiData.forEach(item => {
             const date = item.tanggal;
@@ -1731,45 +1664,41 @@ const endStr = getWIBDateString(endDate); // Ganti toISOString()
         });
     }
     
-    // Buat array untuk 7 hari
-    const dailyResults = [];
-    let total7Hari = 0;
+    const dateRange = [];
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+        dateRange.push(getWIBDateString(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
     
-    // Untuk owner melihat semua: hitung per hari (bukan per karyawan)
+    const dailyResults = [];
+    let totalPeriode = 0;
+    
     if (isOwner && !filterParams.filterByKaryawan) {
-        // Loop 7 hari terakhir
-        for (let i = 1; i <= 7; i++) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            const dateStr = date.toISOString().split('T')[0];
-            
+        dateRange.forEach(dateStr => {
             const dayData = groupedByDate[dateStr] || [];
             const summary = calculateSummary(dayData);
             
+            const [year, month, day] = dateStr.split('-');
+            const displayDate = new Date(year, month - 1, day);
+            
             summary.date = dateStr;
-            summary.dateFormatted = formatDateLocal(date);
+            summary.dateFormatted = formatDateLocal(displayDate);
             dailyResults.push(summary);
             
-            total7Hari += summary.total_transaksi || 0;
-        }
+            totalPeriode += summary.total_transaksi || 0;
+        });
     } else {
-        // Non-owner atau owner pilih karyawan tertentu
-        for (let i = 1; i <= 7; i++) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            const dateStr = date.toISOString().split('T')[0];
-            
+        for (const dateStr of dateRange) {
             const dayData = groupedByDate[dateStr] || [];
             
-            // Ambil data untuk karyawan tertentu
             let karyawanData = null;
             if (filterParams.namaKaryawan) {
                 karyawanData = dayData.find(item => item.serve_by === filterParams.namaKaryawan);
             } else if (dayData.length > 0) {
-                karyawanData = dayData[0]; // Ambil pertama jika tidak filter
+                karyawanData = dayData[0];
             }
             
-            // Jika tidak ada data di komisi, ambil info outlet dari karyawan
             if (!karyawanData) {
                 const outletInfo = await getOutletInfo(filterParams.namaKaryawan || currentKaryawan.nama_karyawan);
                 
@@ -1782,23 +1711,25 @@ const endStr = getWIBDateString(endDate); // Ganti toISOString()
                     komisi: 0,
                     uop: 0,
                     tips_qris: 0,
-                    alasan_nouop: 'Belum ada transaksi',
+                    alasan_nouop: 'Tidak ada transaksi',
                     total_transaksi: 0
                 };
             }
             
+            const [year, month, day] = dateStr.split('-');
+            const displayDate = new Date(year, month - 1, day);
+            
             karyawanData.date = dateStr;
-            karyawanData.dateFormatted = formatDateLocal(date);
+            karyawanData.dateFormatted = formatDateLocal(displayDate);
             dailyResults.push(karyawanData);
             
-            total7Hari += karyawanData.total_transaksi || 0;
+            totalPeriode += karyawanData.total_transaksi || 0;
         }
     }
     
     console.log('Daily results prepared:', dailyResults.length);
     
-    // Tampilkan di UI
-    displayWeeklyKomisi(dailyResults, total7Hari);
+    displayRiwayatKomisi(dailyResults, totalPeriode);
 }
 
 // [4.8] Fungsi helper: get outlet info dari tabel karyawan
@@ -1869,14 +1800,13 @@ async function loadOutletDropdown() {
     
     try {
         const { data: outlets, error } = await supabase
-            .from('karyawan')  // AMBIL DARI KARYAWAN, BUKAN TRANSAKSI
+            .from('karyawan')
             .select('outlet')
             .not('outlet', 'is', null)
             .order('outlet');
         
         if (error) throw error;
         
-        // Get unique outlets
         const uniqueOutlets = [...new Set(outlets.map(o => o.outlet))].filter(Boolean);
         
         select.innerHTML = `
@@ -1886,12 +1816,10 @@ async function loadOutletDropdown() {
             ).join('')}
         `;
         
-        // Set outlet user saat ini sebagai default jika bukan owner semua outlet
         if (currentUserOutlet && uniqueOutlets.includes(currentUserOutlet)) {
             select.value = currentUserOutlet;
         }
         
-        // Setelah outlet di-load, load karyawan dropdown
         await loadKaryawanDropdown();
         
     } catch (error) {
@@ -1912,7 +1840,6 @@ async function loadKaryawanDropdown() {
             .select('nama_karyawan, role')
             .order('nama_karyawan');
         
-        // Filter berdasarkan outlet jika dipilih
         if (selectedOutlet && selectedOutlet !== 'all') {
             query = query.eq('outlet', selectedOutlet);
         }
@@ -1928,7 +1855,6 @@ async function loadKaryawanDropdown() {
             ).join('')}
         `;
         
-        // Auto-select karyawan saat ini jika bukan owner mode all
         if (!isOwner && currentKaryawan) {
             select.value = currentKaryawan.nama_karyawan;
         }
@@ -2013,13 +1939,12 @@ function displayTodayKomisi(data, date) {
         ` : ''}
     `;
     
-    // Sembunyikan loading, tampilkan content
     document.getElementById('loadingToday').style.display = 'none';
     content.style.display = 'block';
 }
 
-// [4.13] Fungsi untuk tampilkan komisi 7 hari
-function displayWeeklyKomisi(dailyResults, total7Hari) {
+// [4.13] Fungsi untuk tampilkan riwayat komisi
+function displayRiwayatKomisi(dailyResults, totalPeriode) {
     const tbody = document.getElementById('weeklyKomisiBody');
     tbody.innerHTML = '';
     
@@ -2042,7 +1967,6 @@ function displayWeeklyKomisi(dailyResults, total7Hari) {
         `;
         tbody.appendChild(row);
         
-        // Tambahkan row info alasan jika UOP = 0
         if (hasUopReason) {
             const reasonRow = document.createElement('tr');
             reasonRow.className = 'uop-reason-row';
@@ -2058,45 +1982,47 @@ function displayWeeklyKomisi(dailyResults, total7Hari) {
         }
     });
     
-    // Update total 7 hari
-    document.getElementById('total7Hari').textContent = formatRupiah(total7Hari);
+    document.getElementById('totalPeriode').textContent = formatRupiah(totalPeriode);
     
-    // Sembunyikan loading, tampilkan table
     document.getElementById('loadingWeekly').style.display = 'none';
     document.getElementById('weeklyKomisiTable').style.display = 'table';
 }
 
-// [4.13] Fungsi untuk tampilkan komisi 7 hari
-function displayWeeklyKomisi(dailyResults, total7Hari) {
-    const tbody = document.getElementById('weeklyKomisiBody');
-    tbody.innerHTML = '';
+// [4.14] Fungsi untuk handle error
+function handleKomisiError(error) {
+    const todayContent = document.getElementById('todayKomisiContent');
+    const weeklyTable = document.getElementById('weeklyKomisiTable');
     
-    dailyResults.forEach(result => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${result.dateFormatted}</td>
-            <td>${result.outlet || currentUserOutlet || '-'}</td>
-            <td>${result.serve_by || currentKaryawan?.nama_karyawan || '-'}</td>
-            <td>${result.kasir || '-'}</td>
-            <td>${result.jumlah_transaksi || 0}</td>
-            <td>${formatRupiah(result.komisi || 0)}</td>
-            <td>${formatRupiah(result.uop || 0)}</td>
-            <td>${formatRupiah(result.tips_qris || 0)}</td>
-            <td class="alasan-column">${result.alasan_nouop || '-'}</td>
-            <td class="total-column">${formatRupiah((result.komisi || 0) + (result.uop || 0) + (result.tips_qris || 0))}</td>
+    document.getElementById('loadingToday').style.display = 'none';
+    document.getElementById('loadingWeekly').style.display = 'none';
+    
+    if (todayContent) {
+        todayContent.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #ff4757;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                <p>Gagal memuat data komisi</p>
+                <p style="font-size: 0.9rem; opacity: 0.7;">${error.message || 'Unknown error'}</p>
+            </div>
         `;
-        tbody.appendChild(row);
-    });
+        todayContent.style.display = 'block';
+    }
     
-    // Update total 7 hari
-    document.getElementById('total7Hari').textContent = formatRupiah(total7Hari);
-    
-    // Sembunyikan loading, tampilkan table
-    document.getElementById('loadingWeekly').style.display = 'none';
-    document.getElementById('weeklyKomisiTable').style.display = 'table';
+    if (weeklyTable) {
+        weeklyTable.style.display = 'table';
+        const tbody = document.getElementById('weeklyKomisiBody');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="10" style="text-align: center; padding: 20px; color: #ff4757;">
+                        Gagal memuat data
+                    </td>
+                </tr>
+            `;
+        }
+    }
 }
 
-// [4.14] Helper functions
+// [4.15] Helper functions
 function formatRupiah(amount) {
     if (amount === 0 || !amount) return 'Rp 0';
     return 'Rp ' + amount.toLocaleString('id-ID');
@@ -2109,11 +2035,6 @@ function formatDateLocal(date) {
         month: 'long', 
         day: 'numeric' 
     });
-}
-
-function showCustomDatePicker() {
-    alert('Fitur custom date picker akan diimplementasikan nanti.');
-    document.getElementById('dateRange').value = 'week';
 }
 
 // ========== FUNGSI MENU KOMPONEN - ABSENSI ==========
@@ -2211,8 +2132,7 @@ function createAbsensiPage() {
                 <div class="filter-group">
                     <label for="dateRangeAbsensi">Periode:</label>
                     <select id="dateRangeAbsensi" class="date-select">
-                        <option value="today">Hari Ini</option>
-                        <option value="week">7 Hari Terakhir</option>
+                        <option value="week" selected>7 Hari Terakhir</option>
                         <option value="month">Bulan Ini</option>
                     </select>
                 </div>
@@ -2240,16 +2160,16 @@ function createAbsensiPage() {
             </div>
         </section>
         
-        <!-- Absensi 7 Hari Terakhir -->
+        <!-- Riwayat Absensi -->
         <section class="weekly-absensi-section">
             <div class="section-header">
-                <h3><i class="fas fa-history"></i> Absensi 7 Hari Terakhir</h3>
+                <h3><i class="fas fa-history"></i> Riwayat Absensi</h3>
                 <div class="total-summary">
-                    <span>Total Hari: <strong id="totalHariAbsensi">7</strong> hari</span>
+                    <span>Total Data: <strong id="totalDataAbsensi">0</strong> data</span>
                 </div>
             </div>
             <div class="weekly-absensi-table-container">
-                <div class="loading" id="loadingWeeklyAbsensi">Loading data 7 hari...</div>
+                <div class="loading" id="loadingWeeklyAbsensi">Loading data...</div>
                 <table class="weekly-absensi-table" id="weeklyAbsensiTable" style="display: none;">
                     <thead>
                         <tr>
@@ -2334,8 +2254,8 @@ async function loadAbsensiData() {
         // Load data hari ini
         await loadTodayAbsensi(filterParams);
         
-        // Load data 7 hari
-        await loadWeeklyAbsensi(filterParams);
+        // Load data riwayat
+        await loadRiwayatAbsensi(filterParams);
         
         // Update waktu terakhir update
         const updateTime = new Date().toLocaleTimeString('id-ID');
@@ -2343,38 +2263,7 @@ async function loadAbsensiData() {
         
     } catch (error) {
         console.error('Error loading absensi data:', error);
-        
-        // Tampilkan error message ke user
-        const todayContent = document.getElementById('todayAbsensiContent');
-        const weeklyTable = document.getElementById('weeklyAbsensiTable');
-        
-        document.getElementById('loadingTodayAbsensi').style.display = 'none';
-        document.getElementById('loadingWeeklyAbsensi').style.display = 'none';
-        
-        if (todayContent) {
-            todayContent.innerHTML = `
-                <div style="text-align: center; padding: 20px; color: #ff4757;">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 10px;"></i>
-                    <p>Gagal memuat data absensi</p>
-                    <p style="font-size: 0.9rem; opacity: 0.7;">${error.message || 'Unknown error'}</p>
-                </div>
-            `;
-            todayContent.style.display = 'block';
-        }
-        
-        if (weeklyTable) {
-            weeklyTable.style.display = 'table';
-            const tbody = document.getElementById('weeklyAbsensiBody');
-            if (tbody) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="8" style="text-align: center; padding: 20px; color: #ff4757;">
-                            Gagal memuat data
-                        </td>
-                    </tr>
-                `;
-            }
-        }
+        handleAbsensiError(error);
     }
 }
 
@@ -2413,6 +2302,7 @@ function getAbsensiFilterParams() {
     } else {
         // Untuk non-owner: selalu filter berdasarkan nama sendiri
         params.filterByKaryawan = true;
+        params.dateRange = 'week'; // default
     }
     
     return params;
@@ -2444,7 +2334,6 @@ async function loadTodayAbsensi(filterParams) {
     
     if (error) {
         console.error('Error loading today absensi:', error);
-        // Tampilkan data kosong dengan jadwal default
         const jadwal = await getJadwalKaryawan(filterParams.namaKaryawan);
         displayTodayAbsensi(null, today, jadwal);
         return;
@@ -2453,10 +2342,8 @@ async function loadTodayAbsensi(filterParams) {
     // Untuk owner melihat semua: ambil data pertama atau summary
     let displayData = null;
     if (isOwnerAbsensi && !filterParams.filterByKaryawan && absensiData && absensiData.length > 0) {
-        // Owner melihat semua: ambil data pertama untuk preview
         displayData = absensiData[0];
     } else {
-        // Non-owner atau owner pilih karyawan tertentu
         displayData = absensiData?.[0] || null;
     }
     
@@ -2469,23 +2356,36 @@ async function loadTodayAbsensi(filterParams) {
     displayTodayAbsensi(displayData, today, jadwal);
 }
 
-// [7] Fungsi untuk load absensi 7 hari terakhir
-async function loadWeeklyAbsensi(filterParams) {
-    // Tanggal range: 7 hari sebelum hari ini
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() - 1); // sampai kemarin
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 7); // 7 hari sebelum
+// [7] Fungsi untuk load riwayat absensi berdasarkan periode yang dipilih
+async function loadRiwayatAbsensi(filterParams) {
+    console.log('Loading riwayat absensi with params:', filterParams);
     
-    // Format ke array DD/MM/YYYY
-    const dateRange = [];
-    for (let i = 1; i <= 7; i++) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        dateRange.push(formatDateDDMMYYYY(date));
+    // Tentukan range tanggal berdasarkan periode yang dipilih
+    let startDate, endDate;
+    const today = new Date();
+    
+    if (filterParams.dateRange === 'month') {
+        // Bulan Ini: dari tanggal 1 sampai hari ini
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        endDate = new Date(today);
+    } else {
+        // Default: 7 hari terakhir (termasuk hari ini)
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() - 6); // 7 hari termasuk hari ini
+        endDate = new Date(today);
     }
     
-    // Query untuk 7 hari terakhir
+    // Generate semua tanggal dalam range
+    const dateRange = [];
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+        dateRange.push(formatDateDDMMYYYY(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    console.log('Date range for riwayat:', dateRange);
+    
+    // Query untuk range tanggal
     let query = supabase
         .from('absen')
         .select('*')
@@ -2506,8 +2406,8 @@ async function loadWeeklyAbsensi(filterParams) {
     const { data: absensiData, error } = await query;
     
     if (error) {
-        console.error('Error loading weekly absensi:', error);
-        displayWeeklyAbsensi([], filterParams.namaKaryawan);
+        console.error('Error loading riwayat absensi:', error);
+        displayRiwayatAbsensi([], filterParams.namaKaryawan);
         return;
     }
     
@@ -2520,29 +2420,28 @@ async function loadWeeklyAbsensi(filterParams) {
     let displayData = [];
     if (isOwnerAbsensi && !filterParams.filterByKaryawan) {
         // Owner melihat semua: ambil semua data dan group by tanggal
-        displayData = processOwnerWeeklyData(absensiData, dateRange, jadwal);
+        displayData = processOwnerRiwayatData(absensiData, dateRange, jadwal);
     } else {
         // Non-owner atau owner pilih karyawan tertentu
-        displayData = processKaryawanWeeklyData(absensiData, dateRange, filterParams.namaKaryawan, jadwal);
+        displayData = processKaryawanRiwayatData(absensiData, dateRange, filterParams.namaKaryawan, jadwal);
     }
     
     // Tampilkan data
-    displayWeeklyAbsensi(displayData);
+    displayRiwayatAbsensi(displayData);
 }
 
 // [8] Helper: Process data untuk owner (semua karyawan)
-function processOwnerWeeklyData(absensiData, dateRange, jadwalDefault) {
+function processOwnerRiwayatData(absensiData, dateRange, jadwalDefault) {
     const result = [];
     
     dateRange.forEach(dateStr => {
         const dataForDate = absensiData?.filter(item => item.tanggal === dateStr) || [];
         
         if (dataForDate.length > 0) {
-            // Untuk owner: tampilkan summary atau data pertama
             const firstData = dataForDate[0];
             result.push({
                 tanggal: dateStr,
-                tanggal_display: formatAbsensiDateDisplay(dateStr),  // GANTI DI SINI
+                tanggal_display: formatAbsensiDateDisplay(dateStr),
                 outlet: 'Multiple',
                 nama: `${dataForDate.length} Karyawan`,
                 jadwal_masuk: jadwalDefault?.jadwal_masuk || '09:00',
@@ -2553,10 +2452,9 @@ function processOwnerWeeklyData(absensiData, dateRange, jadwalDefault) {
                 status_kehadiran: 'Multiple'
             });
         } else {
-            // Tidak ada data untuk tanggal ini
             result.push({
                 tanggal: dateStr,
-                tanggal_display: formatAbsensiDateDisplay(dateStr),  // GANTI DI SINI
+                tanggal_display: formatAbsensiDateDisplay(dateStr),
                 outlet: '-',
                 nama: '-',
                 jadwal_masuk: jadwalDefault?.jadwal_masuk || '09:00',
@@ -2573,7 +2471,7 @@ function processOwnerWeeklyData(absensiData, dateRange, jadwalDefault) {
 }
 
 // [9] Helper: Process data untuk karyawan tertentu
-function processKaryawanWeeklyData(absensiData, dateRange, namaKaryawan, jadwal) {
+function processKaryawanRiwayatData(absensiData, dateRange, namaKaryawan, jadwal) {
     const result = [];
     
     dateRange.forEach(dateStr => {
@@ -2585,7 +2483,7 @@ function processKaryawanWeeklyData(absensiData, dateRange, namaKaryawan, jadwal)
         if (dataForKaryawan) {
             result.push({
                 tanggal: dateStr,
-                tanggal_display: formatAbsensiDateDisplay(dateStr),  // GANTI DI SINI
+                tanggal_display: formatAbsensiDateDisplay(dateStr),
                 outlet: dataForKaryawan.outlet || '-',
                 nama: dataForKaryawan.nama || '-',
                 jadwal_masuk: jadwal?.jadwal_masuk || '09:00',
@@ -2596,10 +2494,9 @@ function processKaryawanWeeklyData(absensiData, dateRange, namaKaryawan, jadwal)
                 status_kehadiran: dataForKaryawan.status_kehadiran || '-'
             });
         } else {
-            // Tidak ada data untuk tanggal ini
             result.push({
                 tanggal: dateStr,
-                tanggal_display: formatAbsensiDateDisplay(dateStr),  // GANTI DI SINI
+                tanggal_display: formatAbsensiDateDisplay(dateStr),
                 outlet: '-',
                 nama: namaKaryawan || '-',
                 jadwal_masuk: jadwal?.jadwal_masuk || '09:00',
@@ -2635,7 +2532,6 @@ function displayTodayAbsensi(absensiData, date, jadwal) {
                 <p style="font-size: 0.9rem; color: #888;">Nama: ${currentKaryawanAbsensi?.nama_karyawan || '-'}</p>
             </div>
             
-            <!-- Tampilkan Jadwal meski tidak ada absensi -->
             <div class="today-schedule-info">
                 <h4><i class="fas fa-calendar-check"></i> Jadwal Hari Ini</h4>
                 <div class="schedule-grid">
@@ -2662,7 +2558,6 @@ function displayTodayAbsensi(absensiData, date, jadwal) {
         return;
     }
     
-    // AMBIL DATA LANGSUNG DARI DATABASE + TAMPILKAN JADWAL
     content.innerHTML = `
         <div class="today-header">
             <div class="date-display">
@@ -2671,7 +2566,6 @@ function displayTodayAbsensi(absensiData, date, jadwal) {
             </div>
         </div>
         
-        <!-- Info Dasar -->
         <div class="today-basic-info">
             <div class="basic-info-item">
                 <div class="basic-label">Outlet</div>
@@ -2683,11 +2577,9 @@ function displayTodayAbsensi(absensiData, date, jadwal) {
             </div>
         </div>
         
-        <!-- Jadwal & Absensi - 2 Kolom -->
         <div class="today-schedule-section">
             <h4><i class="fas fa-calendar-check"></i> Jadwal & Absensi</h4>
             <div class="schedule-grid">
-                <!-- Kolom Kiri: Jadwal -->
                 <div class="schedule-column left-column">
                     <div class="schedule-item">
                         <div class="schedule-label">Jadwal Masuk</div>
@@ -2705,7 +2597,6 @@ function displayTodayAbsensi(absensiData, date, jadwal) {
                     </div>
                 </div>
                 
-                <!-- Kolom Kanan: Actual Absensi -->
                 <div class="schedule-column right-column">
                     <div class="schedule-item">
                         <div class="schedule-label">Clock In</div>
@@ -2725,7 +2616,6 @@ function displayTodayAbsensi(absensiData, date, jadwal) {
             </div>
         </div>
         
-        <!-- Data dari Database -->
         <div class="today-data-section">
             <h4><i class="fas fa-chart-bar"></i> Data Absensi</h4>
             <div class="data-grid">
@@ -2749,22 +2639,17 @@ function displayTodayAbsensi(absensiData, date, jadwal) {
     content.style.display = 'block';
 }
 
-// [11] Fungsi untuk tampilkan absensi 7 hari - VERSI DENGAN STATUS MULTILINE
-function displayWeeklyAbsensi(weeklyData) {
+// [11] Fungsi untuk tampilkan riwayat absensi
+function displayRiwayatAbsensi(riwayatData) {
     const tbody = document.getElementById('weeklyAbsensiBody');
     tbody.innerHTML = '';
     
-    let foundCount = 0;
-    
-    weeklyData.forEach(item => {
+    riwayatData.forEach(item => {
         const row = document.createElement('tr');
         
-        // Format status khusus untuk menampilkan detail
         let statusDisplay = item.status_kehadiran || '-';
         
-        // Jika status mengandung informasi menit, tampilkan dalam format yang lebih baik
         if (statusDisplay.includes('Terlambat') || statusDisplay.includes('Pulang Cepat')) {
-            // Pisahkan dengan line break jika ada dua status
             if (statusDisplay.includes('+')) {
                 const parts = statusDisplay.split('+');
                 statusDisplay = `
@@ -2790,21 +2675,51 @@ function displayWeeklyAbsensi(weeklyData) {
             </td>
         `;
         tbody.appendChild(row);
-        
-        if (item.status_kehadiran && item.status_kehadiran !== 'Tidak ada data') {
-            foundCount++;
-        }
     });
     
-    // Update total hari dengan data
-    document.getElementById('totalHariAbsensi').textContent = foundCount;
+    // Update total data
+    document.getElementById('totalDataAbsensi').textContent = riwayatData.length;
     
     // Sembunyikan loading, tampilkan table
     document.getElementById('loadingWeeklyAbsensi').style.display = 'none';
     document.getElementById('weeklyAbsensiTable').style.display = 'table';
 }
 
-// [12] Fungsi untuk load dropdown outlet (owner only)
+// [12] Fungsi untuk handle error
+function handleAbsensiError(error) {
+    const todayContent = document.getElementById('todayAbsensiContent');
+    const weeklyTable = document.getElementById('weeklyAbsensiTable');
+    
+    document.getElementById('loadingTodayAbsensi').style.display = 'none';
+    document.getElementById('loadingWeeklyAbsensi').style.display = 'none';
+    
+    if (todayContent) {
+        todayContent.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #ff4757;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                <p>Gagal memuat data absensi</p>
+                <p style="font-size: 0.9rem; opacity: 0.7;">${error.message || 'Unknown error'}</p>
+            </div>
+        `;
+        todayContent.style.display = 'block';
+    }
+    
+    if (weeklyTable) {
+        weeklyTable.style.display = 'table';
+        const tbody = document.getElementById('weeklyAbsensiBody');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" style="text-align: center; padding: 20px; color: #ff4757;">
+                        Gagal memuat data
+                    </td>
+                </tr>
+            `;
+        }
+    }
+}
+
+// [13] Fungsi untuk load dropdown outlet (owner only)
 async function loadOutletDropdownAbsensi() {
     const select = document.getElementById('selectOutletAbsensi');
     
@@ -2817,7 +2732,6 @@ async function loadOutletDropdownAbsensi() {
         
         if (error) throw error;
         
-        // Get unique outlets
         const uniqueOutlets = [...new Set(outlets.map(o => o.outlet))].filter(Boolean);
         
         select.innerHTML = `
@@ -2827,12 +2741,10 @@ async function loadOutletDropdownAbsensi() {
             ).join('')}
         `;
         
-        // Set outlet user saat ini sebagai default
         if (currentUserOutletAbsensi && uniqueOutlets.includes(currentUserOutletAbsensi)) {
             select.value = currentUserOutletAbsensi;
         }
         
-        // Setelah outlet di-load, load karyawan dropdown
         await loadKaryawanDropdownAbsensi();
         
     } catch (error) {
@@ -2841,7 +2753,7 @@ async function loadOutletDropdownAbsensi() {
     }
 }
 
-// [13] Fungsi untuk load dropdown karyawan berdasarkan outlet (owner only)
+// [14] Fungsi untuk load dropdown karyawan berdasarkan outlet (owner only)
 async function loadKaryawanDropdownAbsensi() {
     const select = document.getElementById('selectKaryawanAbsensi');
     const outletSelect = document.getElementById('selectOutletAbsensi');
@@ -2853,7 +2765,6 @@ async function loadKaryawanDropdownAbsensi() {
             .select('nama_karyawan, role')
             .order('nama_karyawan');
         
-        // Filter berdasarkan outlet jika dipilih
         if (selectedOutlet && selectedOutlet !== 'all') {
             query = query.eq('outlet', selectedOutlet);
         }
@@ -2869,7 +2780,6 @@ async function loadKaryawanDropdownAbsensi() {
             ).join('')}
         `;
         
-        // Auto-select karyawan saat ini jika bukan owner mode all
         if (!isOwnerAbsensi && currentKaryawanAbsensi) {
             select.value = currentKaryawanAbsensi.nama_karyawan;
         }
@@ -2883,7 +2793,7 @@ async function loadKaryawanDropdownAbsensi() {
     }
 }
 
-// [14] Fungsi untuk ambil jadwal dari tabel karyawan
+// [15] Fungsi untuk ambil jadwal dari tabel karyawan
 async function getJadwalKaryawan(namaKaryawan) {
     if (!namaKaryawan) {
         return { jadwal_masuk: '09:00', jadwal_pulang: '21:00' };
@@ -2912,7 +2822,7 @@ async function getJadwalKaryawan(namaKaryawan) {
     }
 }
 
-// [15] Helper: Format tanggal DD/MM/YYYY
+// [16] Helper: Format tanggal DD/MM/YYYY
 function formatDateDDMMYYYY(date) {
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -2922,11 +2832,9 @@ function formatDateDDMMYYYY(date) {
 
 // ========== HELPER FUNCTIONS KHUSUS ABSENSI ==========
 
-// Format tanggal untuk display (khusus absensi)
 function formatAbsensiDateDisplay(dateStr) {
     if (!dateStr) return '-';
     
-    // Jika sudah format DD/MM/YYYY, tampilkan dengan format yang lebih baik
     if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
         const [day, month, year] = dateStr.split('/');
         
@@ -2944,15 +2852,12 @@ function formatAbsensiDateDisplay(dateStr) {
             console.warn('Error formatting date:', e);
         }
         
-        // Fallback: tampilkan format asli
         return dateStr;
     }
     
-    // Jika bukan format yang diharapkan, return as-is
     return dateStr;
 }
 
-// Format tanggal untuk display (dalam halaman absensi)
 function formatDateLocal(date) {
     return date.toLocaleDateString('id-ID', { 
         weekday: 'long', 
@@ -2962,14 +2867,11 @@ function formatDateLocal(date) {
     });
 }
 
-// Format waktu simple
 function formatWaktuSimple(waktu) {
     if (!waktu) return null;
-    // Jika sudah format HH:MM, return langsung
     if (typeof waktu === 'string' && waktu.match(/^\d{1,2}:\d{2}$/)) {
         return waktu;
     }
-    // Jika timestamp atau ISO, parse
     try {
         const date = new Date(waktu);
         if (!isNaN(date.getTime())) {
@@ -2983,7 +2885,6 @@ function formatWaktuSimple(waktu) {
     return waktu;
 }
 
-// Helper untuk class CSS berdasarkan status
 function getStatusClass(status) {
     if (!status) return 'tidak-absen';
     
