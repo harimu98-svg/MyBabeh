@@ -1381,6 +1381,7 @@ function createKomisiPage() {
                     <select id="dateRange" class="date-select">
                         <option value="week" selected>7 Hari Terakhir</option>
                         <option value="month">Bulan Ini</option>
+                        <option value="lastMonth">Bulan Lalu</option>
                     </select>
                 </div>
             </div>
@@ -1616,9 +1617,17 @@ async function loadRiwayatKomisi(filterParams) {
     const today = new Date();
     
     if (filterParams.dateRange === 'month') {
+        // Bulan Ini: dari tanggal 1 sampai hari ini
         startDate = new Date(today.getFullYear(), today.getMonth(), 1);
         endDate = new Date(today);
+    } else if (filterParams.dateRange === 'lastMonth') {
+        // Bulan Lalu: dari tanggal 1 bulan lalu sampai akhir bulan lalu
+        const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lastDayLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+        startDate = firstDayLastMonth;
+        endDate = lastDayLastMonth;
     } else {
+        // Default: 7 hari terakhir (termasuk hari ini)
         startDate = new Date();
         startDate.setDate(startDate.getDate() - 6);
         endDate = new Date(today);
@@ -2134,6 +2143,7 @@ function createAbsensiPage() {
                     <select id="dateRangeAbsensi" class="date-select">
                         <option value="week" selected>7 Hari Terakhir</option>
                         <option value="month">Bulan Ini</option>
+                        <option value="lastMonth">Bulan Lalu</option>
                     </select>
                 </div>
             </div>
@@ -2368,6 +2378,12 @@ async function loadRiwayatAbsensi(filterParams) {
         // Bulan Ini: dari tanggal 1 sampai hari ini
         startDate = new Date(today.getFullYear(), today.getMonth(), 1);
         endDate = new Date(today);
+    } else if (filterParams.dateRange === 'lastMonth') {
+        // Bulan Lalu: dari tanggal 1 bulan lalu sampai akhir bulan lalu
+        const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lastDayLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+        startDate = firstDayLastMonth;
+        endDate = lastDayLastMonth;
     } else {
         // Default: 7 hari terakhir (termasuk hari ini)
         startDate = new Date();
