@@ -1366,18 +1366,15 @@ function createKomisiPage() {
             </div>
         </header>
         
-        <!-- Filter Periode untuk Semua User -->
-<div class="periode-filter-section">
-    <!-- Menggunakan struktur yang sama dengan filter owner -->
-    <div class="filter-row first-row" style="margin-bottom: 0;">
-        <div class="filter-group" style="width: 100%;">
-            <label for="dateRangeKomisiAll">Periode:</label>
-            <select id="dateRangeKomisiAll" class="outlet-select" style="width: 100%;">
-                <option value="week" selected>7 Hari Terakhir</option>
-                <option value="month">Bulan Ini</option>
-                <option value="lastMonth">Bulan Lalu</option>
-            </select>
-        </div>
+      <!-- Filter Periode untuk Semua User - DIPERBAIKI -->
+<div style="padding: 10px 15px; background-color: #f8f9fa; border-bottom: 1px solid #e0e0e0;">
+    <div style="display: flex; flex-direction: column; gap: 5px;">
+        <label for="dateRangeKomisiAll" style="font-weight: 500; color: #555; font-size: 13px;">Periode:</label>
+        <select id="dateRangeKomisiAll" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background-color: white; font-size: 14px;">
+            <option value="week" selected>7 Hari Terakhir</option>
+            <option value="month">Bulan Ini</option>
+            <option value="lastMonth">Bulan Lalu</option>
+        </select>
     </div>
 </div>
         
