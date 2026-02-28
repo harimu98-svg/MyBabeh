@@ -2147,28 +2147,28 @@ function createAbsensiPage() {
     </div>
 </div>
         
-        <!-- Filter untuk Owner (Outlet dan Karyawan) -->
-        <div id="ownerAbsensiFilterSection" class="owner-filter" style="display: ${isOwnerAbsensi ? 'block' : 'none'};">
-            <!-- BARIS PERTAMA: Outlet -->
-            <div class="filter-row">
-                <div class="filter-group full-width">
-                    <label for="selectOutletAbsensi">Outlet:</label>
-                    <select id="selectOutletAbsensi" class="outlet-select">
-                        <option value="all">Semua Outlet</option>
-                    </select>
-                </div>
-            </div>
-            
-            <!-- BARIS KEDUA: Pilih Karyawan -->
-            <div class="filter-row">
-                <div class="filter-group full-width">
-                    <label for="selectKaryawanAbsensi">Pilih Karyawan:</label>
-                    <select id="selectKaryawanAbsensi" class="karyawan-select">
-                        <option value="">Semua Karyawan</option>
-                    </select>
-                </div>
-            </div>
+        <!-- Filter untuk Owner (Outlet dan Karyawan) - DIPERBAIKI -->
+<div id="ownerAbsensiFilterSection" style="display: ${isOwnerAbsensi ? 'block' : 'none'}; padding: 0 15px 10px 15px; background-color: #f8f9fa; border-bottom: 1px solid #e0e0e0;">
+    <!-- Outlet -->
+    <div style="margin-bottom: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label for="selectOutletAbsensi" style="font-weight: 500; color: #555; font-size: 13px;">Outlet:</label>
+            <select id="selectOutletAbsensi" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background-color: white; font-size: 14px;">
+                <option value="all">Semua Outlet</option>
+            </select>
         </div>
+    </div>
+    
+    <!-- Pilih Karyawan -->
+    <div style="margin-bottom: 5px;">
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label for="selectKaryawanAbsensi" style="font-weight: 500; color: #555; font-size: 13px;">Pilih Karyawan:</label>
+            <select id="selectKaryawanAbsensi" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background-color: white; font-size: 14px;">
+                <option value="">Semua Karyawan</option>
+            </select>
+        </div>
+    </div>
+</div>
         
         <!-- Absensi Hari Ini -->
         <section class="today-absensi-section">
