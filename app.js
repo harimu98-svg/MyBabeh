@@ -1367,18 +1367,19 @@ function createKomisiPage() {
         </header>
         
         <!-- Filter Periode untuk Semua User -->
-        <div class="periode-filter-section">
-            <div class="filter-row">
-                <div class="filter-group full-width">
-                    <label for="dateRangeKomisiAll">Periode:</label>
-                    <select id="dateRangeKomisiAll" class="date-select">
-                        <option value="week" selected>7 Hari Terakhir</option>
-                        <option value="month">Bulan Ini</option>
-                        <option value="lastMonth">Bulan Lalu</option>
-                    </select>
-                </div>
-            </div>
+<div class="periode-filter-section">
+    <!-- Menggunakan struktur yang sama dengan filter owner -->
+    <div class="filter-row first-row" style="margin-bottom: 0;">
+        <div class="filter-group" style="width: 100%;">
+            <label for="dateRangeKomisiAll">Periode:</label>
+            <select id="dateRangeKomisiAll" class="outlet-select" style="width: 100%;">
+                <option value="week" selected>7 Hari Terakhir</option>
+                <option value="month">Bulan Ini</option>
+                <option value="lastMonth">Bulan Lalu</option>
+            </select>
         </div>
+    </div>
+</div>
         
         <!-- Filter untuk Owner (Outlet dan Karyawan) -->
         <div id="ownerFilterSection" class="owner-filter" style="display: ${isOwner ? 'block' : 'none'};">
@@ -2138,18 +2139,19 @@ function createAbsensiPage() {
         </header>
         
         <!-- Filter Periode untuk Semua User -->
-        <div class="periode-filter-section">
-            <div class="filter-row">
-                <div class="filter-group full-width">
-                    <label for="dateRangeAbsensiAll">Periode:</label>
-                    <select id="dateRangeAbsensiAll" class="date-select">
-                        <option value="week" selected>7 Hari Terakhir</option>
-                        <option value="month">Bulan Ini</option>
-                        <option value="lastMonth">Bulan Lalu</option>
-                    </select>
-                </div>
-            </div>
+<div class="periode-filter-section">
+    <!-- Menggunakan struktur yang sama dengan filter owner -->
+    <div class="filter-row first-row" style="margin-bottom: 0;">
+        <div class="filter-group" style="width: 100%;">
+            <label for="dateRangeAbsensiAll">Periode:</label>
+            <select id="dateRangeAbsensiAll" class="outlet-select" style="width: 100%;">
+                <option value="week" selected>7 Hari Terakhir</option>
+                <option value="month">Bulan Ini</option>
+                <option value="lastMonth">Bulan Lalu</option>
+            </select>
         </div>
+    </div>
+</div>
         
         <!-- Filter untuk Owner (Outlet dan Karyawan) -->
         <div id="ownerAbsensiFilterSection" class="owner-filter" style="display: ${isOwnerAbsensi ? 'block' : 'none'};">
