@@ -1366,28 +1366,34 @@ function createKomisiPage() {
             </div>
         </header>
         
-        <!-- Filter untuk Owner -->
-        <div id="ownerFilterSection" class="owner-filter" style="display: ${isOwner ? 'block' : 'none'};">
-            <!-- BARIS PERTAMA: Outlet dan Periode -->
-            <div class="filter-row first-row">
-                <div class="filter-group">
-                    <label for="selectOutlet">Outlet:</label>
-                    <select id="selectOutlet" class="outlet-select">
-                        <option value="all">Semua Outlet</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="dateRange">Periode:</label>
-                    <select id="dateRange" class="date-select">
+        <!-- Filter Periode untuk Semua User -->
+        <div class="periode-filter-section">
+            <div class="filter-row">
+                <div class="filter-group full-width">
+                    <label for="dateRangeKomisiAll">Periode:</label>
+                    <select id="dateRangeKomisiAll" class="date-select">
                         <option value="week" selected>7 Hari Terakhir</option>
                         <option value="month">Bulan Ini</option>
                         <option value="lastMonth">Bulan Lalu</option>
                     </select>
                 </div>
             </div>
+        </div>
+        
+        <!-- Filter untuk Owner (Outlet dan Karyawan) -->
+        <div id="ownerFilterSection" class="owner-filter" style="display: ${isOwner ? 'block' : 'none'};">
+            <!-- BARIS PERTAMA: Outlet -->
+            <div class="filter-row">
+                <div class="filter-group full-width">
+                    <label for="selectOutlet">Outlet:</label>
+                    <select id="selectOutlet" class="outlet-select">
+                        <option value="all">Semua Outlet</option>
+                    </select>
+                </div>
+            </div>
             
-            <!-- BARIS KEDUA: Pilih Karyawan saja -->
-            <div class="filter-row second-row">
+            <!-- BARIS KEDUA: Pilih Karyawan -->
+            <div class="filter-row">
                 <div class="filter-group full-width">
                     <label for="selectKaryawan">Pilih Karyawan:</label>
                     <select id="selectKaryawan" class="karyawan-select">
@@ -1462,6 +1468,11 @@ function setupKomisiPageEvents() {
         await loadKomisiData();
     });
     
+    // Filter periode untuk semua user
+    document.getElementById('dateRangeKomisiAll').addEventListener('change', async () => {
+        await loadKomisiData();
+    });
+    
     if (isOwner) {
         loadOutletDropdown();
         
@@ -1471,10 +1482,6 @@ function setupKomisiPageEvents() {
         });
         
         document.getElementById('selectKaryawan').addEventListener('change', async () => {
-            await loadKomisiData();
-        });
-        
-        document.getElementById('dateRange').addEventListener('change', async () => {
             await loadKomisiData();
         });
     }
@@ -1517,10 +1524,17 @@ function getFilterParams() {
         isOwner: isOwner
     };
     
+    // Ambil periode dari filter yang tersedia untuk semua user
+    const dateRangeAll = document.getElementById('dateRangeKomisiAll');
+    if (dateRangeAll) {
+        params.dateRange = dateRangeAll.value;
+    } else {
+        params.dateRange = 'week'; // default
+    }
+    
     if (isOwner) {
         const selectOutlet = document.getElementById('selectOutlet');
         const selectKaryawan = document.getElementById('selectKaryawan');
-        const dateRange = document.getElementById('dateRange');
         
         if (selectOutlet && selectOutlet.value !== 'all') {
             params.outlet = selectOutlet.value;
@@ -1535,13 +1549,8 @@ function getFilterParams() {
             params.namaKaryawan = null;
             params.filterByKaryawan = false;
         }
-        
-        if (dateRange) {
-            params.dateRange = dateRange.value;
-        }
     } else {
         params.filterByKaryawan = true;
-        params.dateRange = 'week';
     }
     
     console.log('Filter params refined:', params);
@@ -2128,28 +2137,34 @@ function createAbsensiPage() {
             </div>
         </header>
         
-        <!-- Filter untuk Owner -->
-        <div id="ownerAbsensiFilterSection" class="owner-filter" style="display: ${isOwnerAbsensi ? 'block' : 'none'};">
-            <!-- BARIS PERTAMA: Outlet dan Periode -->
-            <div class="filter-row first-row">
-                <div class="filter-group">
-                    <label for="selectOutletAbsensi">Outlet:</label>
-                    <select id="selectOutletAbsensi" class="outlet-select">
-                        <option value="all">Semua Outlet</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="dateRangeAbsensi">Periode:</label>
-                    <select id="dateRangeAbsensi" class="date-select">
+        <!-- Filter Periode untuk Semua User -->
+        <div class="periode-filter-section">
+            <div class="filter-row">
+                <div class="filter-group full-width">
+                    <label for="dateRangeAbsensiAll">Periode:</label>
+                    <select id="dateRangeAbsensiAll" class="date-select">
                         <option value="week" selected>7 Hari Terakhir</option>
                         <option value="month">Bulan Ini</option>
                         <option value="lastMonth">Bulan Lalu</option>
                     </select>
                 </div>
             </div>
+        </div>
+        
+        <!-- Filter untuk Owner (Outlet dan Karyawan) -->
+        <div id="ownerAbsensiFilterSection" class="owner-filter" style="display: ${isOwnerAbsensi ? 'block' : 'none'};">
+            <!-- BARIS PERTAMA: Outlet -->
+            <div class="filter-row">
+                <div class="filter-group full-width">
+                    <label for="selectOutletAbsensi">Outlet:</label>
+                    <select id="selectOutletAbsensi" class="outlet-select">
+                        <option value="all">Semua Outlet</option>
+                    </select>
+                </div>
+            </div>
             
-            <!-- BARIS KEDUA: Pilih Karyawan saja -->
-            <div class="filter-row second-row">
+            <!-- BARIS KEDUA: Pilih Karyawan -->
+            <div class="filter-row">
                 <div class="filter-group full-width">
                     <label for="selectKaryawanAbsensi">Pilih Karyawan:</label>
                     <select id="selectKaryawanAbsensi" class="karyawan-select">
@@ -2226,6 +2241,11 @@ function setupAbsensiPageEvents() {
         await loadAbsensiData();
     });
     
+    // Filter periode untuk semua user
+    document.getElementById('dateRangeAbsensiAll').addEventListener('change', async () => {
+        await loadAbsensiData();
+    });
+    
     // Filter untuk owner
     if (isOwnerAbsensi) {
         // Load dropdown outlet
@@ -2239,11 +2259,6 @@ function setupAbsensiPageEvents() {
         
         // Event listener untuk karyawan change
         document.getElementById('selectKaryawanAbsensi').addEventListener('change', async () => {
-            await loadAbsensiData();
-        });
-        
-        // Event listener untuk date range
-        document.getElementById('dateRangeAbsensi').addEventListener('change', async () => {
             await loadAbsensiData();
         });
     }
@@ -2286,12 +2301,19 @@ function getAbsensiFilterParams() {
         isOwner: isOwnerAbsensi
     };
     
+    // Ambil periode dari filter yang tersedia untuk semua user
+    const dateRangeAll = document.getElementById('dateRangeAbsensiAll');
+    if (dateRangeAll) {
+        params.dateRange = dateRangeAll.value;
+    } else {
+        params.dateRange = 'week'; // default
+    }
+    
     if (isOwnerAbsensi) {
         const selectOutlet = document.getElementById('selectOutletAbsensi');
         const selectKaryawan = document.getElementById('selectKaryawanAbsensi');
-        const dateRange = document.getElementById('dateRangeAbsensi');
         
-        // Untuk owner: gunakan filter dari dropdown
+        // Untuk owner: gunakan filter outlet dan karyawan dari dropdown
         if (selectOutlet && selectOutlet.value !== 'all') {
             params.outlet = selectOutlet.value;
         } else {
@@ -2305,14 +2327,10 @@ function getAbsensiFilterParams() {
             params.namaKaryawan = null;
             params.filterByKaryawan = false;
         }
-        
-        if (dateRange) {
-            params.dateRange = dateRange.value;
-        }
     } else {
         // Untuk non-owner: selalu filter berdasarkan nama sendiri
         params.filterByKaryawan = true;
-        params.dateRange = 'week'; // default
+        // Outlet tetap dari karyawan.outlet
     }
     
     return params;
