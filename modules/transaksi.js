@@ -313,7 +313,7 @@ async function loadInitialData() {
     }
 }
 
-// [5] Fungsi untuk load dropdown outlet dari tabel OUTLET (VERSION SEDERHANA)
+// [5] Fungsi untuk load dropdown outlet dari tabel OUTLET (PERBAIKAN - tanpa filter status)
 async function loadOutletDropdownTransaksi() {
     const select = document.getElementById('filterOutlet');
     if (!select) return;
@@ -321,11 +321,10 @@ async function loadOutletDropdownTransaksi() {
     try {
         console.log('Loading outlets from tabel outlet...');
         
-        // Ambil data dari tabel outlet - kolomnya adalah 'outlet'
+        // Ambil data dari tabel outlet - tanpa filter status dulu
         const { data: outlets, error } = await supabase
             .from('outlet')
             .select('outlet')
-            .eq('status', 'active')
             .order('outlet');
         
         if (error) {
@@ -359,6 +358,9 @@ async function loadOutletDropdownTransaksi() {
     } catch (error) {
         console.error('Error loading outlets:', error);
         select.innerHTML = '<option value="all">Semua Outlet</option>';
+        
+        // Fallback: ambil dari tabel karyawan
+        await loadOutletFromKaryawan(select);
     }
 }
 
