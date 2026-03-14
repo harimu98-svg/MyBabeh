@@ -455,6 +455,9 @@ function handleMenuClick(menuId) {
        case 'stok':  // <-- TAMBAHKAN INI
             showStokPage();
             break;
+            case 'transaksi':
+    showTransaksiPage();
+    break;
         case 'request':
             showRequestPage(); // <-- TAMBAHKAN INI
             break;
