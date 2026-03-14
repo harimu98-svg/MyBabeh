@@ -12,16 +12,18 @@ var supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 const menuItems = {
     kasir: [
         { id: 'komisi', title: 'Komisi', icon: 'fa-money-bill-wave', colorClass: 'menu-komisi' },
+        { id: 'transaksi', title: 'Transaksi', icon: 'fa-receipt', colorClass: 'menu-transaksi' }, // <-- TAMBAHKAN INI
         { id: 'slip', title: 'Slip Penghasilan', icon: 'fa-file-invoice-dollar', colorClass: 'menu-slip' },
         { id: 'libur', title: 'Libur & Izin', icon: 'fa-calendar-day', colorClass: 'menu-libur' },
         { id: 'absensi', title: 'Absensi', icon: 'fa-fingerprint', colorClass: 'menu-absensi' },
         { id: 'kas', title: 'Kas & Setoran', icon: 'fa-cash-register', colorClass: 'menu-kas' },
         { id: 'request', title: 'Request', icon: 'fa-comment-dots', colorClass: 'menu-request' },
         { id: 'stok', title: 'Tambah Stok', icon: 'fa-boxes', colorClass: 'menu-stok' },
-        { id: 'top', title: 'TOP', icon: 'fa-tools', colorClass: 'menu-top' } // <-- TAMBAHKAN INI
+        { id: 'top', title: 'TOP', icon: 'fa-tools', colorClass: 'menu-top' }
     ],
     barberman: [
         { id: 'komisi', title: 'Komisi', icon: 'fa-money-bill-wave', colorClass: 'menu-komisi' },
+        { id: 'transaksi', title: 'Transaksi', icon: 'fa-receipt', colorClass: 'menu-transaksi' }, // <-- TAMBAHKAN INI
         { id: 'slip', title: 'Slip Penghasilan', icon: 'fa-file-invoice-dollar', colorClass: 'menu-slip' },
         { id: 'libur', title: 'Libur & Izin', icon: 'fa-calendar-day', colorClass: 'menu-libur' },
         { id: 'absensi', title: 'Absensi', icon: 'fa-fingerprint', colorClass: 'menu-absensi' },
@@ -30,13 +32,14 @@ const menuItems = {
     ],
     owner: [
         { id: 'komisi', title: 'Komisi', icon: 'fa-money-bill-wave', colorClass: 'menu-komisi' },
+        { id: 'transaksi', title: 'Transaksi', icon: 'fa-receipt', colorClass: 'menu-transaksi' }, // <-- TAMBAHKAN INI
         { id: 'slip', title: 'Slip Penghasilan', icon: 'fa-file-invoice-dollar', colorClass: 'menu-slip' },
         { id: 'libur', title: 'Libur & Izin', icon: 'fa-calendar-day', colorClass: 'menu-libur' },
         { id: 'absensi', title: 'Absensi', icon: 'fa-fingerprint', colorClass: 'menu-absensi' },
         { id: 'kas', title: 'Kas & Setoran', icon: 'fa-cash-register', colorClass: 'menu-kas' },
-        { id: 'top', title: 'TOP', icon: 'fa-tools', colorClass: 'menu-top' },
         { id: 'request', title: 'Request', icon: 'fa-comment-dots', colorClass: 'menu-request' },
         { id: 'stok', title: 'Tambah Stok', icon: 'fa-boxes', colorClass: 'menu-stok' },
+        { id: 'top', title: 'TOP', icon: 'fa-tools', colorClass: 'menu-top' },
         { id: 'sertifikasi', title: 'Sertifikasi', icon: 'fa-certificate', colorClass: 'menu-sertifikasi' }
     ]
 };
