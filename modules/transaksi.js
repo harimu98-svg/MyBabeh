@@ -1,14 +1,22 @@
 // ========== FUNGSI MENU KOMPONEN - TRANSAKSI ==========
-// =====================================================
+// ====================================================
 
 // Variabel global
 let currentKaryawanTransaksi = null;
 let currentUserOutletTransaksi = null;
 let isOwnerTransaksi = false;
+let realtimeSubscription = null;
+let lastUpdateTime = null;
 
 // [1] Fungsi utama untuk tampilkan halaman transaksi
 async function showTransaksiPage() {
     try {
+        // Bersihkan subscription lama jika ada
+        if (realtimeSubscription) {
+            supabase.removeChannel(realtimeSubscription);
+            realtimeSubscription = null;
+        }
+        
         // Ambil data user
         const { data: { user } } = await supabase.auth.getUser();
         const namaKaryawan = user?.user_metadata?.nama_karyawan;
@@ -45,8 +53,11 @@ async function showTransaksiPage() {
         // Buat container halaman transaksi
         createTransaksiPage();
         
-        // Load data transaksi
-        await loadTransaksiData();
+        // Load data awal
+        await loadInitialData();
+        
+        // Setup realtime subscription untuk update otomatis
+        setupRealtimeSubscription();
         
     } catch (error) {
         console.error('Error in showTransaksiPage:', error);
@@ -78,7 +89,10 @@ function createTransaksiPage() {
             </button>
             <h2><i class="fas fa-receipt"></i> Transaksi</h2>
             <div class="header-actions">
-                <button class="refresh-btn" id="refreshTransaksi">
+                <span class="realtime-badge" id="realtimeBadge">
+                    <i class="fas fa-circle"></i> Live
+                </span>
+                <button class="refresh-btn" id="refreshTransaksi" title="Refresh Manual">
                     <i class="fas fa-sync-alt"></i>
                 </button>
             </div>
@@ -116,7 +130,7 @@ function createTransaksiPage() {
         <!-- Filter Section -->
         <div class="transaksi-filter-section">
             <div class="filter-row">
-                <!-- Filter untuk Owner -->
+                <!-- Filter Outlet (untuk Owner) - dari tabel outlet -->
                 ${isOwnerTransaksi ? `
                 <div class="filter-group">
                     <label for="filterOutlet"><i class="fas fa-store"></i> Outlet:</label>
@@ -126,21 +140,18 @@ function createTransaksiPage() {
                 </div>
                 ` : ''}
                 
+                <!-- Filter Karyawan / Serve By -->
+                <div class="filter-group">
+                    <label for="filterKaryawan"><i class="fas fa-user-tie"></i> Karyawan:</label>
+                    <select id="filterKaryawan" class="karyawan-select">
+                        <option value="all">Semua Karyawan</option>
+                    </select>
+                </div>
+                
                 <!-- Filter Tanggal dengan Date Picker -->
                 <div class="filter-group date-filter-group">
                     <label for="filterDate"><i class="fas fa-calendar-alt"></i> Tanggal:</label>
                     <input type="date" id="filterDate" class="date-picker" value="${todayFormatted}" max="${todayFormatted}">
-                </div>
-                
-                <!-- Filter Status -->
-                <div class="filter-group">
-                    <label for="filterStatus"><i class="fas fa-filter"></i> Status:</label>
-                    <select id="filterStatus" class="status-select">
-                        <option value="all">Semua Status</option>
-                        <option value="completed">Completed</option>
-                        <option value="pending">Pending</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
                 </div>
                 
                 <!-- Tombol Terapkan Filter -->
@@ -150,50 +161,25 @@ function createTransaksiPage() {
             </div>
         </div>
         
-        <!-- Summary Cards -->
-        <div class="transaksi-summary">
-            <div class="summary-card">
-                <div class="summary-icon bg-primary">
-                    <i class="fas fa-shopping-cart"></i>
-                </div>
-                <div class="summary-content">
-                    <div class="summary-label">Total Transaksi</div>
-                    <div class="summary-value" id="totalTransaksi">0</div>
-                </div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-icon bg-success">
-                    <i class="fas fa-box"></i>
-                </div>
-                <div class="summary-content">
-                    <div class="summary-label">Total Item</div>
-                    <div class="summary-value" id="totalItem">0</div>
-                </div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-icon bg-warning">
-                    <i class="fas fa-money-bill-wave"></i>
-                </div>
-                <div class="summary-content">
-                    <div class="summary-label">Total Amount</div>
-                    <div class="summary-value" id="totalAmount">Rp 0</div>
-                </div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-icon bg-info">
-                    <i class="fas fa-hand-holding-usd"></i>
-                </div>
-                <div class="summary-content">
-                    <div class="summary-label">Total Komisi</div>
-                    <div class="summary-value" id="totalCommission">Rp 0</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Tabel Transaksi -->
-        <section class="transaksi-table-section">
+        <!-- TRANSaksi Terakhir (1 transaksi terbaru) -->
+        <section class="transaksi-terakhir-section">
             <div class="section-header">
-                <h3><i class="fas fa-list"></i> Detail Transaksi</h3>
+                <h3><i class="fas fa-clock"></i> Transaksi Terakhir</h3>
+                <span class="update-indicator" id="updateIndicator">Memperbarui otomatis...</span>
+            </div>
+            
+            <div class="transaksi-terakhir-card" id="transaksiTerakhirCard">
+                <div class="loading-small" id="loadingTerakhir">Memuat transaksi terakhir...</div>
+                <div class="terakhir-content" id="terakhirContent" style="display: none;">
+                    <!-- Konten akan diisi oleh JavaScript -->
+                </div>
+            </div>
+        </section>
+        
+        <!-- Transaksi Harian -->
+        <section class="transaksi-harian-section">
+            <div class="section-header">
+                <h3><i class="fas fa-calendar-day"></i> Transaksi Harian</h3>
                 <div class="table-info" id="tableInfo">Memuat data...</div>
             </div>
             
@@ -205,14 +191,12 @@ function createTransaksiPage() {
                         <thead>
                             <tr>
                                 <th>No. Order</th>
-                                <th>Tanggal</th>
                                 <th>Jam</th>
                                 <th>Outlet</th>
                                 <th>Serve By</th>
                                 <th>Kasir</th>
                                 <th>Customer</th>
                                 <th>Item</th>
-                                <th>Group</th>
                                 <th>Qty</th>
                                 <th>Amount</th>
                                 <th>Komisi</th>
@@ -253,37 +237,348 @@ function createTransaksiPage() {
 function setupTransaksiPageEvents() {
     // Tombol kembali
     document.getElementById('backToMainFromTransaksi').addEventListener('click', () => {
+        // Bersihkan subscription
+        if (realtimeSubscription) {
+            supabase.removeChannel(realtimeSubscription);
+            realtimeSubscription = null;
+        }
         document.getElementById('transaksiPage').remove();
         document.getElementById('appScreen').style.display = 'block';
     });
     
-    // Tombol refresh
+    // Tombol refresh manual
     document.getElementById('refreshTransaksi').addEventListener('click', async () => {
+        const btn = document.getElementById('refreshTransaksi');
+        btn.classList.add('loading');
         await loadTransaksiData();
+        await loadTransaksiTerakhir();
+        btn.classList.remove('loading');
     });
     
     // Tombol apply filter
     document.getElementById('applyTransaksiFilter').addEventListener('click', async () => {
         await loadTransaksiData();
+        await loadTransaksiTerakhir();
     });
     
     // Enter key pada date picker
     document.getElementById('filterDate').addEventListener('keypress', async (e) => {
         if (e.key === 'Enter') {
             await loadTransaksiData();
+            await loadTransaksiTerakhir();
         }
     });
     
-    // Jika owner, load dropdown outlet
+    // Filter karyawan berubah
+    document.getElementById('filterKaryawan').addEventListener('change', async () => {
+        await loadTransaksiData();
+        await loadTransaksiTerakhir();
+    });
+    
+    // Jika owner, setup filter outlet
     if (isOwnerTransaksi) {
-        loadOutletDropdownTransaksi();
+        const filterOutlet = document.getElementById('filterOutlet');
+        if (filterOutlet) {
+            filterOutlet.addEventListener('change', async () => {
+                // Ketika outlet berubah, reload dropdown karyawan
+                await loadKaryawanDropdownTransaksi();
+                await loadTransaksiData();
+                await loadTransaksiTerakhir();
+            });
+        }
     }
 }
 
-// [4] Fungsi untuk load data transaksi
+// [4] Fungsi untuk load initial data
+async function loadInitialData() {
+    try {
+        // Load dropdown outlet (dari tabel outlet)
+        if (isOwnerTransaksi) {
+            await loadOutletDropdownTransaksi();
+        }
+        
+        // Load dropdown karyawan
+        await loadKaryawanDropdownTransaksi();
+        
+        // Load transaksi terakhir
+        await loadTransaksiTerakhir();
+        
+        // Load transaksi harian
+        await loadTransaksiData();
+        
+    } catch (error) {
+        console.error('Error loading initial data:', error);
+    }
+}
+
+// [5] Fungsi untuk load dropdown outlet dari tabel OUTLET
+async function loadOutletDropdownTransaksi() {
+    const select = document.getElementById('filterOutlet');
+    if (!select) return;
+    
+    try {
+        // Ambil data dari tabel outlet
+        const { data: outlets, error } = await supabase
+            .from('outlet')
+            .select('nama_outlet')
+            .eq('status', 'active')
+            .order('nama_outlet');
+        
+        if (error) throw error;
+        
+        select.innerHTML = `
+            <option value="all">Semua Outlet</option>
+            ${outlets.map(outlet => 
+                `<option value="${outlet.nama_outlet}">${outlet.nama_outlet}</option>`
+            ).join('')}
+        `;
+        
+        // Set default ke outlet user saat ini jika ada
+        if (currentUserOutletTransaksi) {
+            const matchingOutlet = outlets.find(o => o.nama_outlet === currentUserOutletTransaksi);
+            if (matchingOutlet) {
+                select.value = currentUserOutletTransaksi;
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error loading outlets:', error);
+        select.innerHTML = '<option value="all">Semua Outlet</option>';
+    }
+}
+
+// [6] Fungsi untuk load dropdown karyawan berdasarkan outlet yang dipilih
+async function loadKaryawanDropdownTransaksi() {
+    const select = document.getElementById('filterKaryawan');
+    if (!select) return;
+    
+    try {
+        let query = supabase
+            .from('karyawan')
+            .select('nama_karyawan, role')
+            .eq('status', 'active')
+            .order('nama_karyawan');
+        
+        // Jika owner dan ada filter outlet, filter karyawan berdasarkan outlet
+        if (isOwnerTransaksi) {
+            const outletFilter = document.getElementById('filterOutlet')?.value;
+            if (outletFilter && outletFilter !== 'all') {
+                query = query.eq('outlet', outletFilter);
+            }
+        } else {
+            // Untuk kasir/barberman: hanya tampilkan dirinya sendiri
+            query = query.eq('nama_karyawan', currentKaryawanTransaksi.nama_karyawan);
+        }
+        
+        const { data: karyawan, error } = await query;
+        
+        if (error) throw error;
+        
+        if (isOwnerTransaksi) {
+            // Owner: tampilkan semua karyawan yang sesuai filter
+            select.innerHTML = `
+                <option value="all">Semua Karyawan</option>
+                ${karyawan.map(k => 
+                    `<option value="${k.nama_karyawan}">${k.nama_karyawan} (${k.role})</option>`
+                ).join('')}
+            `;
+        } else {
+            // Kasir/Barberman: hanya dirinya sendiri, otomatis terpilih
+            select.innerHTML = `
+                <option value="${currentKaryawanTransaksi.nama_karyawan}">
+                    ${currentKaryawanTransaksi.nama_karyawan} (${currentKaryawanTransaksi.role})
+                </option>
+            `;
+            select.disabled = true; // Disable karena hanya 1 pilihan
+        }
+        
+    } catch (error) {
+        console.error('Error loading karyawan:', error);
+        select.innerHTML = '<option value="all">Error loading data</option>';
+    }
+}
+
+// [7] Fungsi untuk load transaksi terakhir (1 transaksi terbaru)
+async function loadTransaksiTerakhir() {
+    try {
+        const loadingEl = document.getElementById('loadingTerakhir');
+        const contentEl = document.getElementById('terakhirContent');
+        
+        if (!loadingEl || !contentEl) return;
+        
+        loadingEl.style.display = 'block';
+        contentEl.style.display = 'none';
+        
+        // Dapatkan filter
+        const selectedDate = document.getElementById('filterDate').value;
+        const karyawanFilter = document.getElementById('filterKaryawan').value;
+        
+        // Bangun query
+        let query = supabase
+            .from('transaksi_detail')
+            .select('*')
+            .order('order_date', { ascending: false })
+            .order('order_time', { ascending: false })
+            .limit(1); // Ambil 1 transaksi terbaru
+        
+        // Filter tanggal (opsional)
+        if (selectedDate) {
+            query = query.eq('order_date', selectedDate);
+        }
+        
+        // Filter outlet untuk owner
+        if (isOwnerTransaksi) {
+            const outletFilter = document.getElementById('filterOutlet')?.value;
+            if (outletFilter && outletFilter !== 'all') {
+                query = query.eq('outlet', outletFilter);
+            }
+        } else {
+            // Non-owner: filter outlet karyawan
+            query = query.eq('outlet', currentUserOutletTransaksi);
+        }
+        
+        // Filter karyawan
+        if (karyawanFilter && karyawanFilter !== 'all') {
+            query = query.eq('serve_by', karyawanFilter);
+        }
+        
+        const { data: transaksi, error } = await query;
+        
+        if (error) throw error;
+        
+        // Tampilkan data
+        displayTransaksiTerakhir(transaksi && transaksi.length > 0 ? transaksi[0] : null);
+        
+    } catch (error) {
+        console.error('Error loading transaksi terakhir:', error);
+        const contentEl = document.getElementById('terakhirContent');
+        if (contentEl) {
+            contentEl.innerHTML = `
+                <div class="error-message-small">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Gagal memuat transaksi terakhir
+                </div>
+            `;
+            contentEl.style.display = 'block';
+        }
+    } finally {
+        const loadingEl = document.getElementById('loadingTerakhir');
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+}
+
+// [8] Fungsi untuk display transaksi terakhir dalam bentuk kartu
+function displayTransaksiTerakhir(transaksi) {
+    const contentEl = document.getElementById('terakhirContent');
+    if (!contentEl) return;
+    
+    if (!transaksi) {
+        contentEl.innerHTML = `
+            <div class="empty-state-small">
+                <i class="fas fa-receipt"></i>
+                <p>Belum ada transaksi</p>
+            </div>
+        `;
+        contentEl.style.display = 'block';
+        return;
+    }
+    
+    // Format tanggal dan waktu
+    const orderDate = transaksi.order_date ? new Date(transaksi.order_date + 'T00:00:00') : null;
+    const formattedDate = orderDate ? orderDate.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    }) : '-';
+    
+    // Status badge
+    let statusBadge = '';
+    if (transaksi.status === 'completed') {
+        statusBadge = '<span class="status-badge-small status-completed">Completed</span>';
+    } else if (transaksi.status === 'pending') {
+        statusBadge = '<span class="status-badge-small status-pending">Pending</span>';
+    } else if (transaksi.status === 'cancelled') {
+        statusBadge = '<span class="status-badge-small status-cancelled">Cancelled</span>';
+    } else {
+        statusBadge = `<span class="status-badge-small">${transaksi.status || '-'}</span>`;
+    }
+    
+    // Payment badge
+    let paymentBadge = '';
+    if (transaksi.payment_type === 'cash') {
+        paymentBadge = '<span class="payment-badge-small payment-cash">Cash</span>';
+    } else if (transaksi.payment_type === 'qris') {
+        paymentBadge = '<span class="payment-badge-small payment-qris">QRIS</span>';
+    } else if (transaksi.payment_type === 'transfer') {
+        paymentBadge = '<span class="payment-badge-small payment-transfer">Transfer</span>';
+    } else {
+        paymentBadge = transaksi.payment_type || '-';
+    }
+    
+    contentEl.innerHTML = `
+        <div class="terakhir-grid">
+            <div class="terakhir-item">
+                <div class="terakhir-label">No. Order</div>
+                <div class="terakhir-value">${transaksi.order_no || '-'}</div>
+            </div>
+            <div class="terakhir-item">
+                <div class="terakhir-label">Tanggal</div>
+                <div class="terakhir-value">${formattedDate}</div>
+            </div>
+            <div class="terakhir-item">
+                <div class="terakhir-label">Jam</div>
+                <div class="terakhir-value">${transaksi.order_time || '-'}</div>
+            </div>
+            <div class="terakhir-item">
+                <div class="terakhir-label">Outlet</div>
+                <div class="terakhir-value">${transaksi.outlet || '-'}</div>
+            </div>
+            <div class="terakhir-item">
+                <div class="terakhir-label">Serve By</div>
+                <div class="terakhir-value">${transaksi.serve_by || '-'}</div>
+            </div>
+            <div class="terakhir-item">
+                <div class="terakhir-label">Kasir</div>
+                <div class="terakhir-value">${transaksi.kasir || '-'}</div>
+            </div>
+            <div class="terakhir-item">
+                <div class="terakhir-label">Customer</div>
+                <div class="terakhir-value">${transaksi.customer_name || 'Umum'}</div>
+            </div>
+            <div class="terakhir-item">
+                <div class="terakhir-label">Item</div>
+                <div class="terakhir-value">${transaksi.item_name || '-'}</div>
+            </div>
+            <div class="terakhir-item">
+                <div class="terakhir-label">Qty</div>
+                <div class="terakhir-value">${transaksi.qty || 0}</div>
+            </div>
+            <div class="terakhir-item">
+                <div class="terakhir-label">Amount</div>
+                <div class="terakhir-value amount">${formatRupiah(transaksi.amount || 0)}</div>
+            </div>
+            <div class="terakhir-item">
+                <div class="terakhir-label">Komisi</div>
+                <div class="terakhir-value commission">${formatRupiah(transaksi.comission || 0)}</div>
+            </div>
+            <div class="terakhir-item">
+                <div class="terakhir-label">Payment</div>
+                <div class="terakhir-value">${paymentBadge}</div>
+            </div>
+            <div class="terakhir-item">
+                <div class="terakhir-label">Status</div>
+                <div class="terakhir-value">${statusBadge}</div>
+            </div>
+        </div>
+    `;
+    
+    contentEl.style.display = 'block';
+}
+
+// [9] Fungsi untuk load transaksi harian
 async function loadTransaksiData() {
     try {
-        console.log('=== LOADING TRANSAKSI DATA ===');
+        console.log('=== LOADING TRANSAKSI HARIAN ===');
         
         // Tampilkan loading
         document.getElementById('loadingTransaksi').style.display = 'block';
@@ -291,15 +586,9 @@ async function loadTransaksiData() {
         document.getElementById('noTransaksiData').style.display = 'none';
         document.getElementById('tableInfo').textContent = 'Memuat data...';
         
-        // Reset summary
-        document.getElementById('totalTransaksi').textContent = '0';
-        document.getElementById('totalItem').textContent = '0';
-        document.getElementById('totalAmount').textContent = 'Rp 0';
-        document.getElementById('totalCommission').textContent = 'Rp 0';
-        
         // Dapatkan filter
         const selectedDate = document.getElementById('filterDate').value;
-        const statusFilter = document.getElementById('filterStatus').value;
+        const karyawanFilter = document.getElementById('filterKaryawan').value;
         
         if (!selectedDate) {
             alert('Pilih tanggal terlebih dahulu!');
@@ -307,7 +596,11 @@ async function loadTransaksiData() {
             return;
         }
         
-        console.log('Filter:', { tanggal: selectedDate, status: statusFilter });
+        console.log('Filter:', { 
+            tanggal: selectedDate, 
+            karyawan: karyawanFilter,
+            isOwner: isOwnerTransaksi
+        });
         
         // Bangun query
         let query = supabase
@@ -315,20 +608,20 @@ async function loadTransaksiData() {
             .select('*')
             .eq('order_date', selectedDate);
         
-        // Filter berdasarkan outlet (untuk owner)
+        // Filter outlet
         if (isOwnerTransaksi) {
-            const outletFilter = document.getElementById('filterOutlet').value;
-            if (outletFilter !== 'all') {
+            const outletFilter = document.getElementById('filterOutlet')?.value;
+            if (outletFilter && outletFilter !== 'all') {
                 query = query.eq('outlet', outletFilter);
             }
         } else {
-            // Untuk non-owner, filter berdasarkan outlet karyawan
+            // Non-owner: filter outlet karyawan
             query = query.eq('outlet', currentUserOutletTransaksi);
         }
         
-        // Filter berdasarkan status
-        if (statusFilter !== 'all') {
-            query = query.eq('status', statusFilter);
+        // Filter karyawan (serve_by)
+        if (karyawanFilter && karyawanFilter !== 'all') {
+            query = query.eq('serve_by', karyawanFilter);
         }
         
         // Urutkan berdasarkan waktu
@@ -340,18 +633,17 @@ async function loadTransaksiData() {
         
         console.log(`Ditemukan ${transaksi?.length || 0} record transaksi`);
         
-        // Hitung summary
-        calculateAndDisplaySummary(transaksi || []);
-        
         // Tampilkan data di tabel
-        displayTransaksiTable(transaksi || []);
+        displayTransaksiHarian(transaksi || []);
         
-        // Update waktu terakhir update
-        const updateTime = new Date().toLocaleTimeString('id-ID');
-        document.getElementById('lastUpdateTime').textContent = updateTime;
+        // Update table info
         document.getElementById('tableInfo').textContent = `${transaksi?.length || 0} record ditemukan`;
         
-        console.log('=== FINISHED LOADING TRANSAKSI ===');
+        // Update waktu terakhir update
+        lastUpdateTime = new Date();
+        document.getElementById('lastUpdateTime').textContent = lastUpdateTime.toLocaleTimeString('id-ID');
+        
+        console.log('=== FINISHED LOADING TRANSAKSI HARIAN ===');
         
     } catch (error) {
         console.error('Error loading transaksi:', error);
@@ -371,39 +663,8 @@ async function loadTransaksiData() {
     }
 }
 
-// [5] Fungsi untuk hitung dan tampilkan summary
-function calculateAndDisplaySummary(transaksi) {
-    if (!transaksi || transaksi.length === 0) {
-        document.getElementById('totalTransaksi').textContent = '0';
-        document.getElementById('totalItem').textContent = '0';
-        document.getElementById('totalAmount').textContent = 'Rp 0';
-        document.getElementById('totalCommission').textContent = 'Rp 0';
-        return;
-    }
-    
-    // Hitung unique order numbers
-    const uniqueOrders = new Set(transaksi.map(t => t.order_no)).size;
-    
-    // Hitung total qty, amount, commission
-    let totalQty = 0;
-    let totalAmount = 0;
-    let totalCommission = 0;
-    
-    transaksi.forEach(t => {
-        totalQty += t.qty || 0;
-        totalAmount += t.amount || 0;
-        totalCommission += t.comission || 0; // Perhatikan ejaan: comission (dari tabel)
-    });
-    
-    // Update UI
-    document.getElementById('totalTransaksi').textContent = uniqueOrders;
-    document.getElementById('totalItem').textContent = totalQty;
-    document.getElementById('totalAmount').textContent = formatRupiah(totalAmount);
-    document.getElementById('totalCommission').textContent = formatRupiah(totalCommission);
-}
-
-// [6] Fungsi untuk tampilkan tabel transaksi
-function displayTransaksiTable(transaksi) {
+// [10] Fungsi untuk tampilkan transaksi harian
+function displayTransaksiHarian(transaksi) {
     const tbody = document.getElementById('transaksiBody');
     const tableEl = document.getElementById('transaksiTable');
     const noDataEl = document.getElementById('noTransaksiData');
@@ -422,138 +683,140 @@ function displayTransaksiTable(transaksi) {
     tableEl.style.display = 'table';
     noDataEl.style.display = 'none';
     
-    // Kelompokkan berdasarkan order_no untuk tampilan yang lebih rapi
-    const groupedByOrder = {};
-    transaksi.forEach(item => {
-        if (!groupedByOrder[item.order_no]) {
-            groupedByOrder[item.order_no] = [];
-        }
-        groupedByOrder[item.order_no].push(item);
-    });
-    
     let html = '';
-    let rowNumber = 0;
     
-    // Loop melalui setiap order
-    Object.keys(groupedByOrder).forEach(orderNo => {
-        const items = groupedByOrder[orderNo];
-        const firstItem = items[0]; // Ambil data umum dari item pertama
+    transaksi.forEach((item, index) => {
+        // Status badge
+        let statusBadge = '';
+        if (item.status === 'completed') {
+            statusBadge = '<span class="status-badge status-completed">Completed</span>';
+        } else if (item.status === 'pending') {
+            statusBadge = '<span class="status-badge status-pending">Pending</span>';
+        } else if (item.status === 'cancelled') {
+            statusBadge = '<span class="status-badge status-cancelled">Cancelled</span>';
+        } else {
+            statusBadge = `<span class="status-badge">${item.status || '-'}</span>`;
+        }
         
-        // Tampilkan setiap item dalam order
-        items.forEach((item, index) => {
-            const isFirstItem = index === 0;
-            
-            // Format tanggal dan waktu
-            const orderDate = item.order_date ? new Date(item.order_date + 'T00:00:00') : null;
-            const formattedDate = orderDate ? orderDate.toLocaleDateString('id-ID') : '-';
-            
-            // Status badge
-            let statusBadge = '';
-            if (item.status === 'completed') {
-                statusBadge = '<span class="status-badge status-completed">Completed</span>';
-            } else if (item.status === 'pending') {
-                statusBadge = '<span class="status-badge status-pending">Pending</span>';
-            } else if (item.status === 'cancelled') {
-                statusBadge = '<span class="status-badge status-cancelled">Cancelled</span>';
-            } else {
-                statusBadge = `<span class="status-badge">${item.status || '-'}</span>`;
-            }
-            
-            // Payment type badge
-            let paymentBadge = '';
-            if (item.payment_type === 'cash') {
-                paymentBadge = '<span class="payment-badge payment-cash">Cash</span>';
-            } else if (item.payment_type === 'qris') {
-                paymentBadge = '<span class="payment-badge payment-qris">QRIS</span>';
-            } else if (item.payment_type === 'transfer') {
-                paymentBadge = '<span class="payment-badge payment-transfer">Transfer</span>';
-            } else {
-                paymentBadge = item.payment_type || '-';
-            }
-            
-            html += `
-                <tr class="${isFirstItem ? 'first-item-row' : ''}">
-                    <td>
-                        <div class="order-no">${item.order_no || '-'}</div>
-                        ${isFirstItem ? `<div class="order-detail-badge">${items.length} item</div>` : ''}
-                    </td>
-                    <td>${formattedDate}</td>
-                    <td>${item.order_time || '-'}</td>
-                    <td>${item.outlet || '-'}</td>
-                    <td>${item.serve_by || '-'}</td>
-                    <td>${item.kasir || '-'}</td>
-                    <td>
-                        <div class="customer-info">
-                            <div>${item.customer_name || 'Umum'}</div>
-                            ${item.customer_id ? `<small>ID: ${item.customer_id}</small>` : ''}
-                        </div>
-                    </td>
-                    <td>
-                        <div class="item-name">${item.item_name || '-'}</div>
-                        <small class="item-group">${item.item_group || ''}</small>
-                    </td>
-                    <td>${item.item_group || '-'}</td>
-                    <td class="text-center">${item.qty || 0}</td>
-                    <td class="text-right">${formatRupiah(item.amount || 0)}</td>
-                    <td class="text-right commission-col">${formatRupiah(item.comission || 0)}</td>
-                    <td class="text-center">${paymentBadge}</td>
-                    <td class="text-center">${statusBadge}</td>
-                </tr>
-            `;
-            
-            rowNumber++;
-        });
+        // Payment badge
+        let paymentBadge = '';
+        if (item.payment_type === 'cash') {
+            paymentBadge = '<span class="payment-badge payment-cash">Cash</span>';
+        } else if (item.payment_type === 'qris') {
+            paymentBadge = '<span class="payment-badge payment-qris">QRIS</span>';
+        } else if (item.payment_type === 'transfer') {
+            paymentBadge = '<span class="payment-badge payment-transfer">Transfer</span>';
+        } else {
+            paymentBadge = item.payment_type || '-';
+        }
         
-        // Tambahkan separator antar order
-        html += `<tr class="order-separator"><td colspan="14"></td></tr>`;
+        html += `
+            <tr>
+                <td>
+                    <div class="order-no">${item.order_no || '-'}</div>
+                </td>
+                <td>${item.order_time || '-'}</td>
+                <td>${item.outlet || '-'}</td>
+                <td>${item.serve_by || '-'}</td>
+                <td>${item.kasir || '-'}</td>
+                <td>
+                    <div class="customer-info">
+                        <div>${item.customer_name || 'Umum'}</div>
+                        ${item.customer_id ? `<small>ID: ${item.customer_id}</small>` : ''}
+                    </div>
+                </td>
+                <td>
+                    <div class="item-name">${item.item_name || '-'}</div>
+                    <small class="item-group">${item.item_group || ''}</small>
+                </td>
+                <td class="text-center">${item.qty || 0}</td>
+                <td class="text-right">${formatRupiah(item.amount || 0)}</td>
+                <td class="text-right commission-col">${formatRupiah(item.comission || 0)}</td>
+                <td class="text-center">${paymentBadge}</td>
+                <td class="text-center">${statusBadge}</td>
+            </tr>
+        `;
     });
     
     tbody.innerHTML = html;
 }
 
-// [7] Fungsi untuk load dropdown outlet (owner only)
-async function loadOutletDropdownTransaksi() {
-    const select = document.getElementById('filterOutlet');
-    if (!select) return;
-    
+// [11] Setup realtime subscription untuk update otomatis
+function setupRealtimeSubscription() {
     try {
-        // Ambil daftar outlet unik dari tabel transaksi_detail
-        const { data: outlets, error } = await supabase
-            .from('transaksi_detail')
-            .select('outlet')
-            .not('outlet', 'is', null)
-            .order('outlet');
+        // Tentukan channel name
+        const channelName = `transaksi-realtime-${Date.now()}`;
         
-        if (error) throw error;
-        
-        // Get unique outlets
-        const uniqueOutlets = [...new Set(outlets.map(o => o.outlet))].filter(Boolean);
-        
-        select.innerHTML = `
-            <option value="all">Semua Outlet</option>
-            ${uniqueOutlets.map(outlet => 
-                `<option value="${outlet}">${outlet}</option>`
-            ).join('')}
-        `;
-        
-        // Set default ke outlet user saat ini jika ada
-        if (currentUserOutletTransaksi && uniqueOutlets.includes(currentUserOutletTransaksi)) {
-            select.value = currentUserOutletTransaksi;
-        }
-        
+        // Buat subscription
+        realtimeSubscription = supabase
+            .channel(channelName)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'transaksi_detail'
+                },
+                async (payload) => {
+                    console.log('Transaksi baru detected:', payload);
+                    
+                    // Update indikator
+                    const indicator = document.getElementById('updateIndicator');
+                    if (indicator) {
+                        indicator.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Update detected...';
+                    }
+                    
+                    // Reload transaksi terakhir
+                    await loadTransaksiTerakhir();
+                    
+                    // Reload transaksi harian jika tanggal sesuai filter
+                    const selectedDate = document.getElementById('filterDate').value;
+                    const newTransaksiDate = payload.new.order_date;
+                    
+                    if (newTransaksiDate === selectedDate) {
+                        await loadTransaksiData();
+                    }
+                    
+                    // Update indikator
+                    if (indicator) {
+                        indicator.innerHTML = '<i class="fas fa-check-circle"></i> Updated just now';
+                        setTimeout(() => {
+                            indicator.innerHTML = 'Memperbarui otomatis...';
+                        }, 3000);
+                    }
+                    
+                    // Update last update time
+                    lastUpdateTime = new Date();
+                    document.getElementById('lastUpdateTime').textContent = lastUpdateTime.toLocaleTimeString('id-ID');
+                }
+            )
+            .subscribe((status) => {
+                console.log('Realtime subscription status:', status);
+                
+                const badge = document.getElementById('realtimeBadge');
+                if (badge) {
+                    if (status === 'SUBSCRIBED') {
+                        badge.className = 'realtime-badge connected';
+                        badge.innerHTML = '<i class="fas fa-circle"></i> Live';
+                    } else {
+                        badge.className = 'realtime-badge disconnected';
+                        badge.innerHTML = '<i class="fas fa-circle"></i> Disconnected';
+                    }
+                }
+            });
+            
     } catch (error) {
-        console.error('Error loading outlets:', error);
-        select.innerHTML = '<option value="all">Semua Outlet</option>';
+        console.error('Error setting up realtime:', error);
     }
 }
 
-// [8] Helper function: format rupiah
+// [12] Helper function: format rupiah
 function formatRupiah(amount) {
     if (amount === 0 || !amount) return 'Rp 0';
     return 'Rp ' + amount.toLocaleString('id-ID');
 }
 
-// [9] Tambahkan CSS styling
+// [13] Tambahkan CSS styling
 function addTransaksiPageStyles() {
     const styleId = 'transaksi-page-styles';
     
@@ -625,11 +888,51 @@ function addTransaksiPageStyles() {
             align-items: center;
             justify-content: center;
             transition: all 0.3s;
+            margin-left: 10px;
         }
         
         .refresh-btn:hover {
             background: linear-gradient(135deg, #495057 0%, #343a40 100%);
             transform: rotate(90deg);
+        }
+        
+        .refresh-btn.loading i {
+            animation: spin 1s linear infinite;
+        }
+        
+        .realtime-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .realtime-badge.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .realtime-badge.connected i {
+            color: #28a745;
+            font-size: 8px;
+        }
+        
+        .realtime-badge.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .realtime-badge.disconnected i {
+            color: #dc3545;
+            font-size: 8px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         
         /* Info Header */
@@ -700,29 +1003,19 @@ function addTransaksiPageStyles() {
             min-width: 180px;
         }
         
-        .date-picker {
+        .date-picker, .outlet-select, .karyawan-select {
             padding: 8px 12px;
             border: 1px solid #ced4da;
             border-radius: 6px;
             font-size: 14px;
-            font-family: inherit;
             background: white;
             cursor: pointer;
         }
         
-        .date-picker:focus {
+        .date-picker:focus, .outlet-select:focus, .karyawan-select:focus {
             outline: none;
             border-color: #007bff;
             box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
-        }
-        
-        .outlet-select, .status-select {
-            padding: 8px 12px;
-            border: 1px solid #ced4da;
-            border-radius: 6px;
-            font-size: 14px;
-            background: white;
-            cursor: pointer;
         }
         
         .btn-apply-filter {
@@ -748,76 +1041,20 @@ function addTransaksiPageStyles() {
             box-shadow: 0 4px 8px rgba(0,123,255,0.3);
         }
         
-        /* Summary Cards */
-        .transaksi-summary {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-        
-        .summary-card {
-            background: white;
-            border-radius: 10px;
-            padding: 15px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            transition: transform 0.3s;
-        }
-        
-        .summary-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .summary-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            color: white;
-        }
-        
-        .summary-icon.bg-primary { background: linear-gradient(135deg, #007bff, #0056b3); }
-        .summary-icon.bg-success { background: linear-gradient(135deg, #28a745, #20c997); }
-        .summary-icon.bg-warning { background: linear-gradient(135deg, #ffc107, #fd7e14); }
-        .summary-icon.bg-info { background: linear-gradient(135deg, #17a2b8, #138496); }
-        
-        .summary-content {
-            flex: 1;
-        }
-        
-        .summary-label {
-            font-size: 12px;
-            color: #6c757d;
-            margin-bottom: 3px;
-        }
-        
-        .summary-value {
-            font-size: 20px;
-            font-weight: 700;
-            color: #2c3e50;
-        }
-        
-        /* Table Section */
-        .transaksi-table-section {
+        /* Transaksi Terakhir Section */
+        .transaksi-terakhir-section {
             background: white;
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
         
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         
         .section-header h3 {
@@ -827,6 +1064,119 @@ function addTransaksiPageStyles() {
             display: flex;
             align-items: center;
             gap: 8px;
+        }
+        
+        .update-indicator {
+            font-size: 12px;
+            color: #28a745;
+            font-style: italic;
+        }
+        
+        .update-indicator i {
+            margin-right: 5px;
+        }
+        
+        .transaksi-terakhir-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+        
+        .loading-small {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .loading-small:after {
+            content: '';
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin-left: 10px;
+            border: 2px solid #007bff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            vertical-align: middle;
+        }
+        
+        .empty-state-small {
+            text-align: center;
+            padding: 30px;
+            color: #6c757d;
+        }
+        
+        .empty-state-small i {
+            font-size: 36px;
+            margin-bottom: 10px;
+            color: #adb5bd;
+        }
+        
+        .error-message-small {
+            text-align: center;
+            padding: 20px;
+            color: #ff4757;
+        }
+        
+        .terakhir-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .terakhir-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .terakhir-label {
+            font-size: 11px;
+            color: #6c757d;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .terakhir-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .terakhir-value.amount {
+            color: #007bff;
+        }
+        
+        .terakhir-value.commission {
+            color: #28a745;
+        }
+        
+        .status-badge-small {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        .payment-badge-small {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        /* Transaksi Harian Section */
+        .transaksi-harian-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
         }
         
         .table-info {
@@ -873,19 +1223,10 @@ function addTransaksiPageStyles() {
             background: #f8f9fa;
         }
         
-        .first-item-row {
-            background: #f8f9fa;
-        }
-        
         .order-no {
             font-weight: 600;
             color: #007bff;
-        }
-        
-        .order-detail-badge {
-            font-size: 11px;
-            color: #6c757d;
-            margin-top: 3px;
+            font-size: 12px;
         }
         
         .customer-info {
@@ -900,6 +1241,7 @@ function addTransaksiPageStyles() {
         
         .item-name {
             font-weight: 500;
+            font-size: 13px;
         }
         
         .item-group {
@@ -976,13 +1318,6 @@ function addTransaksiPageStyles() {
             border: 1px solid #bee5eb;
         }
         
-        /* Order Separator */
-        .order-separator td {
-            padding: 5px 0;
-            background: transparent;
-            border-bottom: none;
-        }
-        
         /* Loading & No Data */
         .loading {
             text-align: center;
@@ -1002,11 +1337,6 @@ function addTransaksiPageStyles() {
             border-radius: 50%;
             animation: spin 1s linear infinite;
             vertical-align: middle;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
         
         .no-data {
@@ -1059,22 +1389,8 @@ function addTransaksiPageStyles() {
                 justify-content: center;
             }
             
-            .transaksi-summary {
+            .terakhir-grid {
                 grid-template-columns: 1fr 1fr;
-            }
-            
-            .summary-card {
-                padding: 10px;
-            }
-            
-            .summary-icon {
-                width: 40px;
-                height: 40px;
-                font-size: 18px;
-            }
-            
-            .summary-value {
-                font-size: 16px;
             }
             
             .info-row {
@@ -1087,10 +1403,15 @@ function addTransaksiPageStyles() {
                 align-items: flex-start;
                 gap: 10px;
             }
+            
+            .realtime-badge {
+                font-size: 11px;
+                padding: 4px 8px;
+            }
         }
         
         @media (max-width: 480px) {
-            .transaksi-summary {
+            .terakhir-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -1102,5 +1423,6 @@ function addTransaksiPageStyles() {
 // Export functions ke global scope
 window.showTransaksiPage = showTransaksiPage;
 window.loadTransaksiData = loadTransaksiData;
+window.loadTransaksiTerakhir = loadTransaksiTerakhir;
 
 // ========== END OF FILE ==========
