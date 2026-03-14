@@ -313,18 +313,20 @@ async function loadInitialData() {
     }
 }
 
-// [5] Fungsi untuk load dropdown outlet dari tabel OUTLET
+// [5] Fungsi untuk load dropdown outlet dari tabel OUTLET (VERSION SEDERHANA)
 async function loadOutletDropdownTransaksi() {
     const select = document.getElementById('filterOutlet');
     if (!select) return;
     
     try {
-        // Ambil data dari tabel outlet
+        console.log('Loading outlets from tabel outlet...');
+        
+        // Ambil data dari tabel outlet - kolomnya adalah 'outlet'
         const { data: outlets, error } = await supabase
             .from('outlet')
-            .select('nama_outlet')
+            .select('outlet')
             .eq('status', 'active')
-            .order('nama_outlet');
+            .order('outlet');
         
         if (error) {
             console.error('Error query outlet:', error);
@@ -334,20 +336,21 @@ async function loadOutletDropdownTransaksi() {
         console.log('Outlets found:', outlets);
         
         if (!outlets || outlets.length === 0) {
-            select.innerHTML = '<option value="all">Semua Outlet</option><option value="" disabled>Tidak ada outlet</option>';
+            select.innerHTML = '<option value="all">Semua Outlet</option>';
             return;
         }
         
-        select.innerHTML = `
-            <option value="all">Semua Outlet</option>
-            ${outlets.map(outlet => 
-                `<option value="${outlet.nama_outlet}">${outlet.nama_outlet}</option>`
-            ).join('')}
-        `;
+        let options = '<option value="all">Semua Outlet</option>';
+        
+        outlets.forEach(outlet => {
+            options += `<option value="${outlet.outlet}">${outlet.outlet}</option>`;
+        });
+        
+        select.innerHTML = options;
         
         // Set default ke outlet user saat ini jika ada
         if (currentUserOutletTransaksi) {
-            const matchingOutlet = outlets.find(o => o.nama_outlet === currentUserOutletTransaksi);
+            const matchingOutlet = outlets.find(o => o.outlet === currentUserOutletTransaksi);
             if (matchingOutlet) {
                 select.value = currentUserOutletTransaksi;
             }
