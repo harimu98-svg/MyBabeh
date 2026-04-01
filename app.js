@@ -6626,7 +6626,7 @@ async function showSlipPage() {
     }
 }
 
-// [2] Fungsi untuk buat halaman slip
+// ========== FUNGSI createSlipPage ==========
 function createSlipPage() {
     // Hapus halaman slip sebelumnya jika ada
     const existingPage = document.getElementById('slipPage');
@@ -6671,28 +6671,28 @@ function createSlipPage() {
         <section class="slip-filter-section">
             <div class="filter-container">
                 <!-- Untuk Owner: Filter Outlet & Karyawan -->
-              <div id="ownerSlipFilterSection" class="owner-filter" style="display: ${isOwnerSlip ? 'flex' : 'none'}; flex-direction: column; gap: 10px; margin-bottom: 15px; background: #f8f9ff; padding: 12px; border-radius: 8px;">
-    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-        <div class="filter-group" style="flex: 1; min-width: 200px;">
-            <label for="selectOutletSlip" style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 0.9rem;">
-                <i class="fas fa-store"></i> Outlet:
-            </label>
-            <select id="selectOutletSlip" class="outlet-select" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
-                <option value="all">Semua Outlet</option>
-            </select>
-        </div>
-    </div>
-    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-        <div class="filter-group" style="flex: 1; min-width: 200px;">
-            <label for="selectKaryawanSlip" style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 0.9rem;">
-                <i class="fas fa-user"></i> Karyawan:
-            </label>
-            <select id="selectKaryawanSlip" class="karyawan-select" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
-                <option value="">Pilih Karyawan</option>
-            </select>
-        </div>
-    </div>
-</div>
+                <div id="ownerSlipFilterSection" class="owner-filter" style="display: ${isOwnerSlip ? 'flex' : 'none'}; flex-direction: column; gap: 10px; margin-bottom: 15px; background: #f8f9ff; padding: 12px; border-radius: 8px;">
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <div class="filter-group" style="flex: 1; min-width: 200px;">
+                            <label for="selectOutletSlip" style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 0.9rem;">
+                                <i class="fas fa-store"></i> Outlet:
+                            </label>
+                            <select id="selectOutletSlip" class="outlet-select" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+                                <option value="all">Semua Outlet</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <div class="filter-group" style="flex: 1; min-width: 200px;">
+                            <label for="selectKaryawanSlip" style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 0.9rem;">
+                                <i class="fas fa-user"></i> Karyawan:
+                            </label>
+                            <select id="selectKaryawanSlip" class="karyawan-select" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+                                <option value="">Pilih Karyawan</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
                 <!-- Periode Selection -->
                 <div class="periode-selection">
                     <div class="filter-group">
@@ -6747,16 +6747,16 @@ function createSlipPage() {
         </main>
         
         <!-- Footer -->
-<div class="slip-footer">
-    <p class="footer-note">
-        <i class="fas fa-info-circle"></i> 
-        Data slip akan difinalkan setiap tanggal 1 jam 12:00
-    </p>
-</div>
-     `;
+        <div class="slip-footer">
+            <p class="footer-note">
+                <i class="fas fa-info-circle"></i> 
+                Data slip akan difinalkan setiap tanggal 1 jam 12:00
+            </p>
+        </div>
+    `;
     document.body.appendChild(slipPage);
     
-    // Tambah styling untuk tombol Finalize
+    // ========== TAMBAHKAN CSS UNTUK SCROLL DETAIL HARIAN ==========
     const style = document.createElement('style');
     style.textContent = `
         .periode-inputs {
@@ -6916,6 +6916,385 @@ function createSlipPage() {
         .status-skipped {
             color: #FF9800;
             font-weight: 600;
+        }
+        
+        /* ========== PERBAIKAN: Detail Harian Scroll ========== */
+        .detail-section {
+            margin: 20px 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .detail-header {
+            background: #f8f9ff;
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .detail-header:hover {
+            background: #e8eaf6;
+        }
+        
+        .detail-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+            background: white;
+        }
+        
+        .detail-content.expanded {
+            max-height: 600px;
+            overflow-y: auto;
+            transition: max-height 0.5s ease-in;
+        }
+        
+        .detail-table-container {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: visible;
+        }
+        
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            min-width: 800px;
+        }
+        
+        .detail-table th {
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            background: #4CAF50;
+            color: white;
+            z-index: 10;
+        }
+        
+        .detail-table td {
+            padding: 8px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .detail-table tr:hover {
+            background: #f9f9f9;
+        }
+        
+        /* Scrollbar styling */
+        .detail-content.expanded::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .detail-content.expanded::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .detail-content.expanded::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        .detail-content.expanded::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Responsif untuk mobile */
+        @media (max-width: 768px) {
+            .detail-content.expanded {
+                max-height: 400px;
+            }
+            
+            .detail-table {
+                font-size: 0.7rem;
+                min-width: 700px;
+            }
+            
+            .detail-table th,
+            .detail-table td {
+                padding: 6px 4px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .detail-content.expanded {
+                max-height: 300px;
+            }
+            
+            .detail-table {
+                min-width: 600px;
+            }
+        }
+        
+        .scroll-hint {
+            text-align: center;
+            padding: 8px;
+            background: #f9f9f9;
+            font-size: 0.7rem;
+            color: #666;
+            border-top: 1px solid #eee;
+        }
+        
+        .badge-scroll {
+            background: #FF9800;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin-left: 8px;
+        }
+        
+        .text-xs {
+            font-size: 0.7rem;
+        }
+        
+        .text-small {
+            font-size: 0.8rem;
+        }
+        
+        .text-success {
+            color: #4CAF50;
+        }
+        
+        .text-danger {
+            color: #f44336;
+        }
+        
+        .highlight {
+            color: #FF9800;
+            font-weight: 600;
+        }
+        
+        .summary-total-row {
+            background: #f8f9ff;
+            font-weight: 600;
+        }
+        
+        .status-achieved {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+        
+        .status-good {
+            color: #8BC34A;
+        }
+        
+        .status-warning {
+            color: #FFC107;
+        }
+        
+        .status-failed {
+            color: #f44336;
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .status-final {
+            background: #e8f5e9;
+            color: #2E7D32;
+        }
+        
+        .status-realtime {
+            background: #fff3e0;
+            color: #F57C00;
+        }
+        
+        .final-banner {
+            background: #e8f5e9;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: #2E7D32;
+        }
+        
+        .slip-header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .header-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .detail-item {
+            display: flex;
+            gap: 5px;
+            font-size: 0.85rem;
+        }
+        
+        .detail-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .section-title {
+            margin: 0 0 15px 0;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #333;
+        }
+        
+        .summary-table-container,
+        .target-table-container {
+            overflow-x: auto;
+        }
+        
+        .summary-table,
+        .target-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        
+        .summary-table td,
+        .target-table td,
+        .target-table th {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .summary-value-cell {
+            font-weight: 500;
+            text-align: right;
+        }
+        
+        .target-table th {
+            text-align: left;
+            background: #f5f5f5;
+        }
+        
+        .adjustment-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        
+        .adjustment-table th,
+        .adjustment-table td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+        
+        .no-adjustment {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+        }
+        
+        .total-compact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            background: linear-gradient(135deg, #f8f9ff, #f0f2ff);
+            padding: 20px;
+            border-radius: 12px;
+        }
+        
+        .total-item-compact {
+            text-align: center;
+        }
+        
+        .total-label {
+            display: block;
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .total-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .grand-total {
+            background: #4CAF50;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .grand-total .total-label {
+            color: white;
+        }
+        
+        .grand-total .total-value {
+            color: white;
+            font-size: 1.3rem;
+        }
+        
+        .save-section {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .btn-save {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+        }
+        
+        .error-state {
+            text-align: center;
+            padding: 40px;
+            color: #f44336;
+        }
+        
+        .error-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        
+        .btn-retry {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
         }
     `;
     document.head.appendChild(style);
@@ -8124,9 +8503,688 @@ function formatDateTime(datetimeStr) {
     }
 }
 
-// [18] Render slip untuk KASIR - DIPERBAIKI untuk perubahan bonus
+// ========== FUNGSI createSlipPage ==========
+function createSlipPage() {
+    // Hapus halaman slip sebelumnya jika ada
+    const existingPage = document.getElementById('slipPage');
+    if (existingPage) {
+        existingPage.remove();
+    }
+    
+    // Buat dropdown bulan dan tahun
+    const bulanSekarang = new Date().getMonth() + 1;
+    const tahunSekarang = new Date().getFullYear();
+    
+    const bulanOptions = Array.from({length: 12}, (_, i) => {
+        const bulan = i + 1;
+        const namaBulan = new Date(2024, i, 1).toLocaleDateString('id-ID', { month: 'long' });
+        return `<option value="${bulan}" ${bulan === bulanSekarang ? 'selected' : ''}>${namaBulan}</option>`;
+    }).join('');
+    
+    const tahunOptions = Array.from({length: 5}, (_, i) => {
+        const tahun = tahunSekarang - 2 + i;
+        return `<option value="${tahun}" ${tahun === tahunSekarang ? 'selected' : ''}>${tahun}</option>`;
+    }).join('');
+    
+    // Buat container halaman slip
+    const slipPage = document.createElement('div');
+    slipPage.id = 'slipPage';
+    slipPage.className = 'slip-page';
+    slipPage.innerHTML = `
+        <!-- Header Navigation -->
+        <header class="slip-header">
+            <button class="back-btn" id="backToMainFromSlip">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2><i class="fas fa-file-invoice-dollar"></i> Slip Penghasilan</h2>
+            <div class="header-actions">
+                <button class="refresh-btn" id="refreshSlip">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </header>
+        
+        <!-- Filter Section -->
+        <section class="slip-filter-section">
+            <div class="filter-container">
+                <!-- Untuk Owner: Filter Outlet & Karyawan -->
+                <div id="ownerSlipFilterSection" class="owner-filter" style="display: ${isOwnerSlip ? 'flex' : 'none'}; flex-direction: column; gap: 10px; margin-bottom: 15px; background: #f8f9ff; padding: 12px; border-radius: 8px;">
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <div class="filter-group" style="flex: 1; min-width: 200px;">
+                            <label for="selectOutletSlip" style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 0.9rem;">
+                                <i class="fas fa-store"></i> Outlet:
+                            </label>
+                            <select id="selectOutletSlip" class="outlet-select" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+                                <option value="all">Semua Outlet</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <div class="filter-group" style="flex: 1; min-width: 200px;">
+                            <label for="selectKaryawanSlip" style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 0.9rem;">
+                                <i class="fas fa-user"></i> Karyawan:
+                            </label>
+                            <select id="selectKaryawanSlip" class="karyawan-select" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+                                <option value="">Pilih Karyawan</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <!-- Periode Selection -->
+                <div class="periode-selection">
+                    <div class="filter-group">
+                        <label for="selectBulan"><i class="fas fa-calendar-alt"></i> Periode:</label>
+                        <div class="periode-inputs">
+                            <select id="selectBulan" class="bulan-select">
+                                ${bulanOptions}
+                            </select>
+                            <select id="selectTahun" class="tahun-select">
+                                ${tahunOptions}
+                            </select>
+                            <button class="btn-load" id="loadSlipData">
+                                <i class="fas fa-search"></i> Tampilkan
+                            </button>
+                            ${isOwnerSlip ? `
+                            <button class="btn-finalize" id="finalizeSlipData" title="Finalize data untuk periode ini">
+                                <i class="fas fa-lock"></i> Finalize
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="data-source-badge" id="dataSourceBadge">
+                        <i class="fas fa-database"></i>
+                        <span id="sourceText">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Main Content -->
+        <main class="slip-main-content">
+            <!-- Loading State -->
+            <div class="loading-section" id="loadingSlip">
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </div>
+                <p>Memuat data slip gaji...</p>
+            </div>
+            
+            <!-- Content -->
+            <div id="slipContent" style="display: none;">
+                <!-- Konten akan diisi oleh JavaScript -->
+            </div>
+            
+            <!-- Empty State -->
+            <div class="empty-state" id="emptySlip" style="display: none;">
+                <i class="fas fa-file-invoice"></i>
+                <h3>Data tidak ditemukan</h3>
+                <p>Tidak ada data slip gaji untuk periode yang dipilih.</p>
+            </div>
+        </main>
+        
+        <!-- Footer -->
+        <div class="slip-footer">
+            <p class="footer-note">
+                <i class="fas fa-info-circle"></i> 
+                Data slip akan difinalkan setiap tanggal 1 jam 12:00
+            </p>
+        </div>
+    `;
+    document.body.appendChild(slipPage);
+    
+    // ========== TAMBAHKAN CSS UNTUK SCROLL DETAIL HARIAN ==========
+    const style = document.createElement('style');
+    style.textContent = `
+        .periode-inputs {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .bulan-select, .tahun-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            min-width: 120px;
+        }
+        
+        .btn-load {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .btn-finalize {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .btn-finalize:hover {
+            background: linear-gradient(135deg, #8E24AA, #6A1B9A);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+        }
+        
+        .btn-finalize:active {
+            transform: translateY(0);
+        }
+        
+        .btn-finalize:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-finalize i {
+            font-size: 0.9rem;
+        }
+        
+        /* Modal Finalize */
+        .finalize-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .finalize-modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .loading-spinner-large {
+            font-size: 3rem;
+            color: #4CAF50;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+        
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+        
+        .result-table th, .result-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .result-table th {
+            background: #f8f9ff;
+            font-weight: 600;
+        }
+        
+        .status-success {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+        
+        .status-failed {
+            color: #f44336;
+            font-weight: 600;
+        }
+        
+        .status-skipped {
+            color: #FF9800;
+            font-weight: 600;
+        }
+        
+        /* ========== PERBAIKAN: Detail Harian Scroll ========== */
+        .detail-section {
+            margin: 20px 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .detail-header {
+            background: #f8f9ff;
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .detail-header:hover {
+            background: #e8eaf6;
+        }
+        
+        .detail-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+            background: white;
+        }
+        
+        .detail-content.expanded {
+            max-height: 600px;
+            overflow-y: auto;
+            transition: max-height 0.5s ease-in;
+        }
+        
+        .detail-table-container {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: visible;
+        }
+        
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            min-width: 800px;
+        }
+        
+        .detail-table th {
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            background: #4CAF50;
+            color: white;
+            z-index: 10;
+        }
+        
+        .detail-table td {
+            padding: 8px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .detail-table tr:hover {
+            background: #f9f9f9;
+        }
+        
+        /* Scrollbar styling */
+        .detail-content.expanded::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .detail-content.expanded::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .detail-content.expanded::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        .detail-content.expanded::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Responsif untuk mobile */
+        @media (max-width: 768px) {
+            .detail-content.expanded {
+                max-height: 400px;
+            }
+            
+            .detail-table {
+                font-size: 0.7rem;
+                min-width: 700px;
+            }
+            
+            .detail-table th,
+            .detail-table td {
+                padding: 6px 4px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .detail-content.expanded {
+                max-height: 300px;
+            }
+            
+            .detail-table {
+                min-width: 600px;
+            }
+        }
+        
+        .scroll-hint {
+            text-align: center;
+            padding: 8px;
+            background: #f9f9f9;
+            font-size: 0.7rem;
+            color: #666;
+            border-top: 1px solid #eee;
+        }
+        
+        .badge-scroll {
+            background: #FF9800;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin-left: 8px;
+        }
+        
+        .text-xs {
+            font-size: 0.7rem;
+        }
+        
+        .text-small {
+            font-size: 0.8rem;
+        }
+        
+        .text-success {
+            color: #4CAF50;
+        }
+        
+        .text-danger {
+            color: #f44336;
+        }
+        
+        .highlight {
+            color: #FF9800;
+            font-weight: 600;
+        }
+        
+        .summary-total-row {
+            background: #f8f9ff;
+            font-weight: 600;
+        }
+        
+        .status-achieved {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+        
+        .status-good {
+            color: #8BC34A;
+        }
+        
+        .status-warning {
+            color: #FFC107;
+        }
+        
+        .status-failed {
+            color: #f44336;
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .status-final {
+            background: #e8f5e9;
+            color: #2E7D32;
+        }
+        
+        .status-realtime {
+            background: #fff3e0;
+            color: #F57C00;
+        }
+        
+        .final-banner {
+            background: #e8f5e9;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: #2E7D32;
+        }
+        
+        .slip-header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .header-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .detail-item {
+            display: flex;
+            gap: 5px;
+            font-size: 0.85rem;
+        }
+        
+        .detail-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .section-title {
+            margin: 0 0 15px 0;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #333;
+        }
+        
+        .summary-table-container,
+        .target-table-container {
+            overflow-x: auto;
+        }
+        
+        .summary-table,
+        .target-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        
+        .summary-table td,
+        .target-table td,
+        .target-table th {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .summary-value-cell {
+            font-weight: 500;
+            text-align: right;
+        }
+        
+        .target-table th {
+            text-align: left;
+            background: #f5f5f5;
+        }
+        
+        .adjustment-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        
+        .adjustment-table th,
+        .adjustment-table td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+        
+        .no-adjustment {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+        }
+        
+        .total-compact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            background: linear-gradient(135deg, #f8f9ff, #f0f2ff);
+            padding: 20px;
+            border-radius: 12px;
+        }
+        
+        .total-item-compact {
+            text-align: center;
+        }
+        
+        .total-label {
+            display: block;
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .total-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .grand-total {
+            background: #4CAF50;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .grand-total .total-label {
+            color: white;
+        }
+        
+        .grand-total .total-value {
+            color: white;
+            font-size: 1.3rem;
+        }
+        
+        .save-section {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .btn-save {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+        }
+        
+        .error-state {
+            text-align: center;
+            padding: 40px;
+            color: #f44336;
+        }
+        
+        .error-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        
+        .btn-retry {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Setup event listeners
+    setupSlipPageEvents();
+}
+
+// ========== FUNGSI renderKasirSlip ==========
 function renderKasirSlip(data, dataSource) {
     const isFinal = dataSource === 'final';
+    const totalDays = data.detail_harian?.length || 0;
+    const isManyDays = totalDays > 20;
     
     return `
         <div class="slip-container">
@@ -8161,68 +9219,55 @@ function renderKasirSlip(data, dataSource) {
                 </div>
             </div>
             
-           <!-- Summary Table -->
+            <!-- Summary Table -->
             <section class="summary-table-section">
                 <h4 class="section-title">
                     <i class="fas fa-calculator"></i> SUMMARY PENGHASILAN
                 </h4>
                 <div class="summary-table-container">
                     <table class="summary-table">
-                       <tbody>
-    <!-- BARIS 1: Kiri=Hari Kerja, Kanan=Penjualan Produk -->
-    <tr>
-        <td>Hari Kerja</td>
-        <td class="summary-value-cell">${data.hari_kerja} Hari</td>
-        <td>Penjualan Produk</td>
-        <td class="summary-value-cell">${data.penjualan_produk} pcs</td>
-    </tr>
-    
-    <!-- BARIS 2: Kiri=Gaji per Hari, Kanan=Komisi Produk -->
-    <tr>
-        <td>Gaji per Hari</td>
-        <td class="summary-value-cell">${formatRupiah(data.gaji_per_hari)}</td>
-        <td>Komisi Produk</td>
-        <td class="summary-value-cell highlight">${formatRupiah(data.komisi_produk)}</td>
-    </tr>
-    
-    <!-- BARIS 3: Kiri=Total Gaji, Kanan=Membercard Created -->
-    <tr>
-        <td>Total Gaji</td>
-        <td class="summary-value-cell">${formatRupiah(data.total_gaji)}</td>
-        <td>Membercard Created</td>
-        <td class="summary-value-cell">${data.membercard_created} card</td>
-    </tr>
-    
-    <!-- BARIS 4: Kiri=Over Time (menit), Kanan=Komisi Membercard -->
-    <tr>
-        <td>Over Time (menit)</td>
-        <td class="summary-value-cell">${data.overtime_menit} menit</td>
-        <td>Komisi Membercard</td>
-        <td class="summary-value-cell">${formatRupiah(data.komisi_membercard)}</td>
-    </tr>
-    
-    <!-- BARIS 5: Kiri=Over Time Rupiah, Kanan=Fee Transfer -->
-    <tr>
-        <td>Over Time Rupiah</td>
-        <td class="summary-value-cell">${formatRupiah(data.overtime_rupiah)}</td>
-        <td>Fee Transfer</td>
-        <td class="summary-value-cell">${formatRupiah(data.fee_transfer)}</td>
-    </tr>
-    
-    <!-- BARIS 6: Kiri=UOP, Kanan=Tips QRIS -->
-    <tr>
-        <td>UOP</td>
-        <td class="summary-value-cell">${formatRupiah(data.uop)}</td>
-        <td>Tips QRIS</td>
-        <td class="summary-value-cell">${formatRupiah(data.tips_qris)}</td>
-    </tr>
-    
-    <!-- BARIS 7: Sub Total (full width) -->
-    <tr class="summary-total-row">
-        <td colspan="3"><strong>Sub Total Penghasilan</strong></td>
-        <td class="summary-value-cell"><strong>${formatRupiah(data.sub_total_penghasilan)}</strong></td>
-    </tr>
-</tbody>
+                        <tbody>
+                            <tr>
+                                <td>Hari Kerja</td>
+                                <td class="summary-value-cell">${data.hari_kerja} Hari</td>
+                                <td>Penjualan Produk</td>
+                                <td class="summary-value-cell">${data.penjualan_produk} pcs</td>
+                            </tr>
+                            <tr>
+                                <td>Gaji per Hari</td>
+                                <td class="summary-value-cell">${formatRupiah(data.gaji_per_hari)}</td>
+                                <td>Komisi Produk</td>
+                                <td class="summary-value-cell highlight">${formatRupiah(data.komisi_produk)}</td>
+                            </tr>
+                            <tr>
+                                <td>Total Gaji</td>
+                                <td class="summary-value-cell">${formatRupiah(data.total_gaji)}</td>
+                                <td>Membercard Created</td>
+                                <td class="summary-value-cell">${data.membercard_created} card</td>
+                            </tr>
+                            <tr>
+                                <td>Over Time (menit)</td>
+                                <td class="summary-value-cell">${data.overtime_menit} menit</td>
+                                <td>Komisi Membercard</td>
+                                <td class="summary-value-cell">${formatRupiah(data.komisi_membercard)}</td>
+                            </tr>
+                            <tr>
+                                <td>Over Time Rupiah</td>
+                                <td class="summary-value-cell">${formatRupiah(data.overtime_rupiah)}</td>
+                                <td>Fee Transfer</td>
+                                <td class="summary-value-cell">${formatRupiah(data.fee_transfer)}</td>
+                            </tr>
+                            <tr>
+                                <td>UOP</td>
+                                <td class="summary-value-cell">${formatRupiah(data.uop)}</td>
+                                <td>Tips QRIS</td>
+                                <td class="summary-value-cell">${formatRupiah(data.tips_qris)}</td>
+                            </tr>
+                            <tr class="summary-total-row">
+                                <td colspan="3"><strong>Sub Total Penghasilan</strong></td>
+                                <td class="summary-value-cell"><strong>${formatRupiah(data.sub_total_penghasilan)}</strong></td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
             </section>
@@ -8367,38 +9412,43 @@ function renderKasirSlip(data, dataSource) {
                 </div>
             </section>
             
-            <!-- Detail Harian (Toggle) -->
+            <!-- Detail Harian dengan Scroll -->
             <section class="detail-section" id="detailSection">
                 <div class="detail-header" id="toggleDetail">
                     <h4>
                         <i class="fas fa-calendar-alt"></i> DETAIL HARIAN
                         <span class="badge-count" style="background: #4CAF50; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; margin-left: 8px;">
-                            ${data.detail_harian?.length || 0} hari
+                            ${totalDays} hari
                         </span>
+                        ${isManyDays ? `
+                        <span class="badge-scroll">
+                            <i class="fas fa-arrows-alt-v"></i> Scroll
+                        </span>
+                        ` : ''}
                     </h4>
                     <span class="detail-toggle">
                         <i class="fas fa-chevron-down"></i>
-                        <span class="toggle-text" style="font-size: 0.8rem; color: #666;">Klik untuk lihat</span>
+                        <span class="toggle-text" style="font-size: 0.8rem; color: #666;">Klik untuk lihat (${totalDays} hari)</span>
                     </span>
                 </div>
                 <div class="detail-content" id="detailContent">
                     ${data.detail_harian && data.detail_harian.length > 0 ? `
                     <div class="detail-table-container">
-                <table class="detail-table">
-                <thead>
-               <tr>
-                <th>Tanggal</th>
-                <th>Hari</th>
-                <th>Gaji</th>
-                <th>UoP</th>
-                <th>Komisi</th>
-                <th>Member</th>
-                <th>O/T</th>
-                <th>Fee</th>
-                <th>Tips</th>
-                <th>Total</th>
-            </tr>
-        </thead>
+                        <table class="detail-table">
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Hari</th>
+                                    <th>Gaji</th>
+                                    <th>UoP</th>
+                                    <th>Komisi</th>
+                                    <th>Member</th>
+                                    <th>O/T</th>
+                                    <th>Fee</th>
+                                    <th>Tips</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
                             <tbody>
                                 ${data.detail_harian.map(day => `
                                 <tr>
@@ -8418,7 +9468,7 @@ function renderKasirSlip(data, dataSource) {
                                 `).join('')}
                             </tbody>
                             <tfoot>
-                                <tr style="background: #f8f9ff;">
+                                <tr style="background: #f8f9ff; position: sticky; bottom: 0;">
                                     <td colspan="9" class="text-right text-small" style="font-weight: 600;">
                                         Total Harian:
                                     </td>
@@ -8429,6 +9479,11 @@ function renderKasirSlip(data, dataSource) {
                             </tfoot>
                         </table>
                     </div>
+                    ${isManyDays ? `
+                    <div class="scroll-hint">
+                        <i class="fas fa-arrow-down"></i> Scroll untuk melihat semua ${totalDays} hari <i class="fas fa-arrow-down"></i>
+                    </div>
+                    ` : ''}
                     ` : `
                     <div class="no-data" style="text-align: center; padding: 20px; color: #999; background: #f9f9f9; border-radius: 8px;">
                         <i class="fas fa-calendar-times" style="font-size: 2rem; margin-bottom: 10px;"></i>
@@ -8446,6 +9501,303 @@ function renderKasirSlip(data, dataSource) {
             </div>
         </div>
     `;
+}
+
+// ========== FUNGSI setupSlipUIEvents ==========
+function setupSlipUIEvents(dataSource) {
+    console.log('setupSlipUIEvents called with dataSource:', dataSource);
+    
+    // Toggle Detail Harian dengan scroll
+    const toggleDetail = document.getElementById('toggleDetail');
+    const detailContent = document.getElementById('detailContent');
+    
+    if (toggleDetail && detailContent) {
+        // Reset state setiap render
+        detailContent.classList.remove('expanded');
+        const toggleIcon = toggleDetail.querySelector('.detail-toggle i');
+        const toggleText = toggleDetail.querySelector('.toggle-text');
+        
+        if (toggleIcon) toggleIcon.className = 'fas fa-chevron-down';
+        
+        // Hitung jumlah baris untuk memberi tahu user
+        const totalRows = detailContent.querySelectorAll('tbody tr').length;
+        
+        if (toggleText) {
+            if (totalRows > 20) {
+                toggleText.textContent = `Klik untuk lihat (${totalRows} hari, scroll untuk lihat semua)`;
+            } else {
+                toggleText.textContent = `Klik untuk lihat (${totalRows} hari)`;
+            }
+        }
+        
+        // Hapus event listener lama dengan clone node
+        const newToggleDetail = toggleDetail.cloneNode(true);
+        toggleDetail.parentNode.replaceChild(newToggleDetail, toggleDetail);
+        
+        // Gunakan toggleDetail yang baru
+        const finalToggleDetail = document.getElementById('toggleDetail');
+        const finalDetailContent = document.getElementById('detailContent');
+        
+        if (finalToggleDetail && finalDetailContent) {
+            finalToggleDetail.addEventListener('click', () => {
+                const isExpanded = finalDetailContent.classList.contains('expanded');
+                const finalToggleIcon = finalToggleDetail.querySelector('.detail-toggle i');
+                const finalToggleText = finalToggleDetail.querySelector('.toggle-text');
+                
+                if (isExpanded) {
+                    // Collapse
+                    finalDetailContent.classList.remove('expanded');
+                    if (finalToggleIcon) finalToggleIcon.className = 'fas fa-chevron-down';
+                    if (finalToggleText) {
+                        if (totalRows > 20) {
+                            finalToggleText.textContent = `Klik untuk lihat (${totalRows} hari)`;
+                        } else {
+                            finalToggleText.textContent = `Klik untuk lihat (${totalRows} hari)`;
+                        }
+                    }
+                    
+                    // Scroll ke section detail
+                    finalToggleDetail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    // Expand
+                    finalDetailContent.classList.add('expanded');
+                    if (finalToggleIcon) finalToggleIcon.className = 'fas fa-chevron-up';
+                    if (finalToggleText) {
+                        if (totalRows > 20) {
+                            finalToggleText.textContent = `Sembunyikan (${totalRows} hari)`;
+                        } else {
+                            finalToggleText.textContent = 'Klik untuk sembunyikan';
+                        }
+                    }
+                    
+                    // Scroll ke awal tabel setelah expand
+                    setTimeout(() => {
+                        const tableContainer = finalDetailContent.querySelector('.detail-table-container');
+                        if (tableContainer && totalRows > 20) {
+                            tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        } else if (finalDetailContent) {
+                            finalDetailContent.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                    }, 100);
+                }
+            });
+            
+            // Hover effect
+            finalToggleDetail.addEventListener('mouseenter', () => {
+                finalToggleDetail.style.background = '#e8f5e9';
+            });
+            
+            finalToggleDetail.addEventListener('mouseleave', () => {
+                if (!finalDetailContent.classList.contains('expanded')) {
+                    finalToggleDetail.style.background = '#f5f5f5';
+                }
+            });
+        }
+    }
+    
+    // Save Screen Capture
+    const saveBtn = document.getElementById('saveSlipBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveSlipCapture);
+    }
+    
+    // Setup adjustment buttons jika ada
+    const isFinal = dataSource === 'final';
+    const slipContainer = document.querySelector('.slip-container');
+    
+    if (slipContainer) {
+        const hasFinalClass = slipContainer.classList.contains('final-slip');
+        const shouldShowAdjustment = !isFinal && !hasFinalClass;
+        
+        if (window.isOwnerSlip && shouldShowAdjustment) {
+            console.log('Setting up adjustment buttons for owner');
+            setupAdjustmentButtons();
+        }
+    }
+    
+    // Setup event delegation untuk dynamic buttons
+    setupEventDelegation();
+}
+
+// ========== FUNGSI PENDUKUNG ==========
+
+// Setup adjustment buttons
+function setupAdjustmentButtons() {
+    console.log('setupAdjustmentButtons called');
+    
+    // 1. TOMBOL TAMBAH ADJUSTMENT
+    const addBtn = document.getElementById('addAdjustmentBtn');
+    if (addBtn) {
+        console.log('Found add adjustment button, setting up...');
+        
+        const newBtn = addBtn.cloneNode(true);
+        addBtn.parentNode.replaceChild(newBtn, addBtn);
+        
+        const freshBtn = document.getElementById('addAdjustmentBtn');
+        
+        freshBtn.setAttribute('onclick', `
+            event.preventDefault();
+            event.stopPropagation();
+            if (typeof showAddAdjustmentModal === 'function') {
+                showAddAdjustmentModal();
+            } else if (typeof window.showAddAdjustmentModal === 'function') {
+                window.showAddAdjustmentModal();
+            } else {
+                console.error('showAddAdjustmentModal function not found!');
+                alert('Error: Fungsi modal tidak ditemukan');
+            }
+            return false;
+        `);
+        
+        freshBtn.addEventListener('click', function(e) {
+            console.log('Add adjustment button clicked (addEventListener)');
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        }, true);
+        
+        freshBtn.style.cursor = 'pointer';
+        freshBtn.title = 'Klik untuk menambah adjustment';
+        
+        console.log('✅ Add adjustment button setup complete');
+    } else {
+        console.warn('Add adjustment button not found in setupAdjustmentButtons');
+    }
+    
+    // 2. TOMBOL EDIT ADJUSTMENT
+    const editBtns = document.querySelectorAll('.btn-edit-adj');
+    console.log(`Found ${editBtns.length} edit buttons`);
+    
+    editBtns.forEach((btn, index) => {
+        const dataIndex = btn.dataset.index;
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        
+        newBtn.setAttribute('onclick', `
+            event.preventDefault();
+            event.stopPropagation();
+            if (typeof showEditAdjustmentModal === 'function') {
+                showEditAdjustmentModal(${dataIndex});
+            }
+            return false;
+        `);
+    });
+    
+    // 3. TOMBOL DELETE ADJUSTMENT
+    const deleteBtns = document.querySelectorAll('.btn-delete-adj');
+    console.log(`Found ${deleteBtns.length} delete buttons`);
+    
+    deleteBtns.forEach((btn, index) => {
+        const dataIndex = btn.dataset.index;
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        
+        newBtn.setAttribute('onclick', `
+            event.preventDefault();
+            event.stopPropagation();
+            if (confirm('Hapus adjustment ini?')) {
+                if (typeof deleteAdjustment === 'function') {
+                    deleteAdjustment(${dataIndex});
+                }
+            }
+            return false;
+        `);
+    });
+    
+    console.log('✅ All adjustment buttons setup complete');
+}
+
+// Setup event delegation untuk dynamic buttons
+function setupEventDelegation() {
+    if (window._slipEventDelegationHandler) {
+        document.removeEventListener('click', window._slipEventDelegationHandler);
+    }
+    
+    const clickHandler = function(e) {
+        if (e.target.id === 'addAdjustmentBtn' || e.target.closest('#addAdjustmentBtn')) {
+            console.log('Event delegation: Add adjustment button clicked');
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof showAddAdjustmentModal === 'function') {
+                showAddAdjustmentModal();
+            }
+            return false;
+        }
+        
+        if (e.target.classList.contains('btn-edit-adj') || e.target.closest('.btn-edit-adj')) {
+            const btn = e.target.closest('.btn-edit-adj');
+            const index = btn?.dataset?.index;
+            if (index !== undefined && typeof showEditAdjustmentModal === 'function') {
+                e.preventDefault();
+                e.stopPropagation();
+                showEditAdjustmentModal(parseInt(index));
+                return false;
+            }
+        }
+        
+        if (e.target.classList.contains('btn-delete-adj') || e.target.closest('.btn-delete-adj')) {
+            const btn = e.target.closest('.btn-delete-adj');
+            const index = btn?.dataset?.index;
+            if (index !== undefined && typeof deleteAdjustment === 'function') {
+                e.preventDefault();
+                e.stopPropagation();
+                if (confirm('Hapus adjustment ini?')) {
+                    deleteAdjustment(parseInt(index));
+                }
+                return false;
+            }
+        }
+        
+        if (e.target.id === 'retrySlip' || e.target.closest('#retrySlip')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const bulan = parseInt(document.getElementById('selectBulan').value);
+            const tahun = parseInt(document.getElementById('selectTahun').value);
+            if (typeof loadSlipData === 'function') {
+                loadSlipData(bulan, tahun);
+            }
+            return false;
+        }
+    };
+    
+    window._slipEventDelegationHandler = clickHandler;
+    document.addEventListener('click', clickHandler, true);
+}
+
+// Helper function untuk format Rupiah
+function formatRupiah(amount) {
+    if (amount === 0 || !amount) return 'Rp 0';
+    return 'Rp ' + amount.toLocaleString('id-ID');
+}
+
+function formatRupiahShort(amount) {
+    if (amount === 0 || !amount) return 'Rp 0';
+    
+    if (Math.abs(amount) < 1000000) {
+        return 'Rp ' + amount.toLocaleString('id-ID');
+    }
+    
+    if (Math.abs(amount) >= 1000000000) {
+        return 'Rp ' + (amount / 1000000000).toFixed(1).replace('.', ',') + 'M';
+    }
+    
+    if (Math.abs(amount) >= 1000000) {
+        return 'Rp ' + (amount / 1000000).toFixed(1).replace('.', ',') + 'jt';
+    }
+    
+    return 'Rp ' + amount.toLocaleString('id-ID');
+}
+
+function getStatusColor(percentage) {
+    if (percentage >= 100) return 'status-achieved';
+    if (percentage >= 80) return 'status-good';
+    if (percentage >= 60) return 'status-warning';
+    return 'status-failed';
+}
+
+function saveSlipCapture() {
+    // Implementasi save slip capture (dari kode existing)
+    console.log('Save slip capture called');
+    // ... kode existing untuk save capture ...
 }
 
 // [19] Render slip untuk BARBERMAN - DIPERBAIKI untuk item detail
@@ -8637,11 +9989,1011 @@ function renderBarbermanSlip(data, dataSource) {
     `;
 }
 
-// [20] Setup UI events - DIPERBAIKI
+// ========== FUNGSI createSlipPage ==========
+function createSlipPage() {
+    // Hapus halaman slip sebelumnya jika ada
+    const existingPage = document.getElementById('slipPage');
+    if (existingPage) {
+        existingPage.remove();
+    }
+    
+    // Buat dropdown bulan dan tahun
+    const bulanSekarang = new Date().getMonth() + 1;
+    const tahunSekarang = new Date().getFullYear();
+    
+    const bulanOptions = Array.from({length: 12}, (_, i) => {
+        const bulan = i + 1;
+        const namaBulan = new Date(2024, i, 1).toLocaleDateString('id-ID', { month: 'long' });
+        return `<option value="${bulan}" ${bulan === bulanSekarang ? 'selected' : ''}>${namaBulan}</option>`;
+    }).join('');
+    
+    const tahunOptions = Array.from({length: 5}, (_, i) => {
+        const tahun = tahunSekarang - 2 + i;
+        return `<option value="${tahun}" ${tahun === tahunSekarang ? 'selected' : ''}>${tahun}</option>`;
+    }).join('');
+    
+    // Buat container halaman slip
+    const slipPage = document.createElement('div');
+    slipPage.id = 'slipPage';
+    slipPage.className = 'slip-page';
+    slipPage.innerHTML = `
+        <!-- Header Navigation -->
+        <header class="slip-header">
+            <button class="back-btn" id="backToMainFromSlip">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2><i class="fas fa-file-invoice-dollar"></i> Slip Penghasilan</h2>
+            <div class="header-actions">
+                <button class="refresh-btn" id="refreshSlip">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </header>
+        
+        <!-- Filter Section -->
+        <section class="slip-filter-section">
+            <div class="filter-container">
+                <!-- Untuk Owner: Filter Outlet & Karyawan -->
+                <div id="ownerSlipFilterSection" class="owner-filter" style="display: ${isOwnerSlip ? 'flex' : 'none'}; flex-direction: column; gap: 10px; margin-bottom: 15px; background: #f8f9ff; padding: 12px; border-radius: 8px;">
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <div class="filter-group" style="flex: 1; min-width: 200px;">
+                            <label for="selectOutletSlip" style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 0.9rem;">
+                                <i class="fas fa-store"></i> Outlet:
+                            </label>
+                            <select id="selectOutletSlip" class="outlet-select" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+                                <option value="all">Semua Outlet</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <div class="filter-group" style="flex: 1; min-width: 200px;">
+                            <label for="selectKaryawanSlip" style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 0.9rem;">
+                                <i class="fas fa-user"></i> Karyawan:
+                            </label>
+                            <select id="selectKaryawanSlip" class="karyawan-select" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+                                <option value="">Pilih Karyawan</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <!-- Periode Selection -->
+                <div class="periode-selection">
+                    <div class="filter-group">
+                        <label for="selectBulan"><i class="fas fa-calendar-alt"></i> Periode:</label>
+                        <div class="periode-inputs">
+                            <select id="selectBulan" class="bulan-select">
+                                ${bulanOptions}
+                            </select>
+                            <select id="selectTahun" class="tahun-select">
+                                ${tahunOptions}
+                            </select>
+                            <button class="btn-load" id="loadSlipData">
+                                <i class="fas fa-search"></i> Tampilkan
+                            </button>
+                            ${isOwnerSlip ? `
+                            <button class="btn-finalize" id="finalizeSlipData" title="Finalize data untuk periode ini">
+                                <i class="fas fa-lock"></i> Finalize
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="data-source-badge" id="dataSourceBadge">
+                        <i class="fas fa-database"></i>
+                        <span id="sourceText">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Main Content -->
+        <main class="slip-main-content">
+            <!-- Loading State -->
+            <div class="loading-section" id="loadingSlip">
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </div>
+                <p>Memuat data slip gaji...</p>
+            </div>
+            
+            <!-- Content -->
+            <div id="slipContent" style="display: none;">
+                <!-- Konten akan diisi oleh JavaScript -->
+            </div>
+            
+            <!-- Empty State -->
+            <div class="empty-state" id="emptySlip" style="display: none;">
+                <i class="fas fa-file-invoice"></i>
+                <h3>Data tidak ditemukan</h3>
+                <p>Tidak ada data slip gaji untuk periode yang dipilih.</p>
+            </div>
+        </main>
+        
+        <!-- Footer -->
+        <div class="slip-footer">
+            <p class="footer-note">
+                <i class="fas fa-info-circle"></i> 
+                Data slip akan difinalkan setiap tanggal 1 jam 12:00
+            </p>
+        </div>
+    `;
+    document.body.appendChild(slipPage);
+    
+    // ========== TAMBAHKAN CSS UNTUK SCROLL DETAIL HARIAN ==========
+    const style = document.createElement('style');
+    style.textContent = `
+        .periode-inputs {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .bulan-select, .tahun-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            min-width: 120px;
+        }
+        
+        .btn-load {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .btn-finalize {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .btn-finalize:hover {
+            background: linear-gradient(135deg, #8E24AA, #6A1B9A);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+        }
+        
+        .btn-finalize:active {
+            transform: translateY(0);
+        }
+        
+        .btn-finalize:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-finalize i {
+            font-size: 0.9rem;
+        }
+        
+        /* Modal Finalize */
+        .finalize-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .finalize-modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .loading-spinner-large {
+            font-size: 3rem;
+            color: #4CAF50;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+        
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+        
+        .result-table th, .result-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .result-table th {
+            background: #f8f9ff;
+            font-weight: 600;
+        }
+        
+        .status-success {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+        
+        .status-failed {
+            color: #f44336;
+            font-weight: 600;
+        }
+        
+        .status-skipped {
+            color: #FF9800;
+            font-weight: 600;
+        }
+        
+        /* ========== PERBAIKAN: Detail Harian Scroll ========== */
+        .detail-section {
+            margin: 20px 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .detail-header {
+            background: #f8f9ff;
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .detail-header:hover {
+            background: #e8eaf6;
+        }
+        
+        .detail-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+            background: white;
+        }
+        
+        .detail-content.expanded {
+            max-height: 600px;
+            overflow-y: auto;
+            transition: max-height 0.5s ease-in;
+        }
+        
+        .detail-table-container {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: visible;
+        }
+        
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            min-width: 800px;
+        }
+        
+        .detail-table th {
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            background: #4CAF50;
+            color: white;
+            z-index: 10;
+        }
+        
+        .detail-table td {
+            padding: 8px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .detail-table tr:hover {
+            background: #f9f9f9;
+        }
+        
+        /* Scrollbar styling */
+        .detail-content.expanded::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .detail-content.expanded::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .detail-content.expanded::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        .detail-content.expanded::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Responsif untuk mobile */
+        @media (max-width: 768px) {
+            .detail-content.expanded {
+                max-height: 400px;
+            }
+            
+            .detail-table {
+                font-size: 0.7rem;
+                min-width: 700px;
+            }
+            
+            .detail-table th,
+            .detail-table td {
+                padding: 6px 4px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .detail-content.expanded {
+                max-height: 300px;
+            }
+            
+            .detail-table {
+                min-width: 600px;
+            }
+        }
+        
+        .scroll-hint {
+            text-align: center;
+            padding: 8px;
+            background: #f9f9f9;
+            font-size: 0.7rem;
+            color: #666;
+            border-top: 1px solid #eee;
+        }
+        
+        .badge-scroll {
+            background: #FF9800;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin-left: 8px;
+        }
+        
+        .text-xs {
+            font-size: 0.7rem;
+        }
+        
+        .text-small {
+            font-size: 0.8rem;
+        }
+        
+        .text-success {
+            color: #4CAF50;
+        }
+        
+        .text-danger {
+            color: #f44336;
+        }
+        
+        .highlight {
+            color: #FF9800;
+            font-weight: 600;
+        }
+        
+        .summary-total-row {
+            background: #f8f9ff;
+            font-weight: 600;
+        }
+        
+        .status-achieved {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+        
+        .status-good {
+            color: #8BC34A;
+        }
+        
+        .status-warning {
+            color: #FFC107;
+        }
+        
+        .status-failed {
+            color: #f44336;
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .status-final {
+            background: #e8f5e9;
+            color: #2E7D32;
+        }
+        
+        .status-realtime {
+            background: #fff3e0;
+            color: #F57C00;
+        }
+        
+        .final-banner {
+            background: #e8f5e9;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: #2E7D32;
+        }
+        
+        .slip-header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .header-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .detail-item {
+            display: flex;
+            gap: 5px;
+            font-size: 0.85rem;
+        }
+        
+        .detail-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .section-title {
+            margin: 0 0 15px 0;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #333;
+        }
+        
+        .summary-table-container,
+        .target-table-container {
+            overflow-x: auto;
+        }
+        
+        .summary-table,
+        .target-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        
+        .summary-table td,
+        .target-table td,
+        .target-table th {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .summary-value-cell {
+            font-weight: 500;
+            text-align: right;
+        }
+        
+        .target-table th {
+            text-align: left;
+            background: #f5f5f5;
+        }
+        
+        .adjustment-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        
+        .adjustment-table th,
+        .adjustment-table td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+        
+        .no-adjustment {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+        }
+        
+        .total-compact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            background: linear-gradient(135deg, #f8f9ff, #f0f2ff);
+            padding: 20px;
+            border-radius: 12px;
+        }
+        
+        .total-item-compact {
+            text-align: center;
+        }
+        
+        .total-label {
+            display: block;
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .total-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .grand-total {
+            background: #4CAF50;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .grand-total .total-label {
+            color: white;
+        }
+        
+        .grand-total .total-value {
+            color: white;
+            font-size: 1.3rem;
+        }
+        
+        .save-section {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .btn-save {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+        }
+        
+        .error-state {
+            text-align: center;
+            padding: 40px;
+            color: #f44336;
+        }
+        
+        .error-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        
+        .btn-retry {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Setup event listeners
+    setupSlipPageEvents();
+}
+
+// ========== FUNGSI renderKasirSlip ==========
+function renderKasirSlip(data, dataSource) {
+    const isFinal = dataSource === 'final';
+    const totalDays = data.detail_harian?.length || 0;
+    const isManyDays = totalDays > 20;
+    
+    return `
+        <div class="slip-container">
+            <!-- Header Info -->
+            <div class="slip-header-info">
+                <div class="header-left">
+                    <h3 class="margin-tight">SLIP PENGHASILAN</h3>
+                    <div class="header-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Nama:</span>
+                            <span class="detail-value text-small">${data.nama_karyawan}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Posisi:</span>
+                            <span class="detail-value text-small">${data.posisi}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Outlet:</span>
+                            <span class="detail-value text-small">${data.outlet}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Periode:</span>
+                            <span class="detail-value text-small">${data.periode}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="status-badge ${isFinal ? 'status-final' : 'status-realtime'}">
+                        <i class="fas ${isFinal ? 'fa-lock' : 'fa-sync-alt'}"></i>
+                        ${isFinal ? 'Final' : 'Real-time'}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Summary Table -->
+            <section class="summary-table-section">
+                <h4 class="section-title">
+                    <i class="fas fa-calculator"></i> SUMMARY PENGHASILAN
+                </h4>
+                <div class="summary-table-container">
+                    <table class="summary-table">
+                        <tbody>
+                            <tr>
+                                <td>Hari Kerja</td>
+                                <td class="summary-value-cell">${data.hari_kerja} Hari</td>
+                                <td>Penjualan Produk</td>
+                                <td class="summary-value-cell">${data.penjualan_produk} pcs</td>
+                            </tr>
+                            <tr>
+                                <td>Gaji per Hari</td>
+                                <td class="summary-value-cell">${formatRupiah(data.gaji_per_hari)}</td>
+                                <td>Komisi Produk</td>
+                                <td class="summary-value-cell highlight">${formatRupiah(data.komisi_produk)}</td>
+                            </tr>
+                            <tr>
+                                <td>Total Gaji</td>
+                                <td class="summary-value-cell">${formatRupiah(data.total_gaji)}</td>
+                                <td>Membercard Created</td>
+                                <td class="summary-value-cell">${data.membercard_created} card</td>
+                            </tr>
+                            <tr>
+                                <td>Over Time (menit)</td>
+                                <td class="summary-value-cell">${data.overtime_menit} menit</td>
+                                <td>Komisi Membercard</td>
+                                <td class="summary-value-cell">${formatRupiah(data.komisi_membercard)}</td>
+                            </tr>
+                            <tr>
+                                <td>Over Time Rupiah</td>
+                                <td class="summary-value-cell">${formatRupiah(data.overtime_rupiah)}</td>
+                                <td>Fee Transfer</td>
+                                <td class="summary-value-cell">${formatRupiah(data.fee_transfer)}</td>
+                            </tr>
+                            <tr>
+                                <td>UOP</td>
+                                <td class="summary-value-cell">${formatRupiah(data.uop)}</td>
+                                <td>Tips QRIS</td>
+                                <td class="summary-value-cell">${formatRupiah(data.tips_qris)}</td>
+                            </tr>
+                            <tr class="summary-total-row">
+                                <td colspan="3"><strong>Sub Total Penghasilan</strong></td>
+                                <td class="summary-value-cell"><strong>${formatRupiah(data.sub_total_penghasilan)}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+            <!-- Target & Achievement -->
+            <section class="target-section">
+                <h4 class="section-title">
+                    <i class="fas fa-bullseye"></i> TARGET & ACHIEVEMENT
+                </h4>
+                <div class="target-table-container">
+                    <table class="target-table">
+                        <thead>
+                            <tr>
+                                <th>KPI</th>
+                                <th>Target</th>
+                                <th>Actual</th>
+                                <th>Status</th>
+                                <th>Bonus</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-small">Membercard</td>
+                                <td class="text-small">${data.target_membercard?.toFixed(1) || 0}</td>
+                                <td class="text-small">${data.achievement_membercard || 0}</td>
+                                <td class="status-cell ${getStatusColor(data.status_membercard || 0)} text-xs">
+                                    ${(data.status_membercard || 0).toFixed(1)}%
+                                </td>
+                                <td class="text-small">
+                                    ${data.bonus_membercard || '-'}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-small">Produk</td>
+                                <td class="text-small">${data.target_produk?.toFixed(1) || 0}</td>
+                                <td class="text-small">${data.achievement_produk || 0}</td>
+                                <td class="status-cell ${getStatusColor(data.status_produk || 0)} text-xs">
+                                    ${(data.status_produk || 0).toFixed(1)}%
+                                </td>
+                                <td class="text-small">
+                                    ${data.bonus_produk || '-'}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-small">Omset</td>
+                                <td class="text-small">${formatRupiahShort(data.target_omset || 0)}</td>
+                                <td class="text-small">${formatRupiahShort(data.achievement_omset || 0)}</td>
+                                <td class="status-cell ${getStatusColor(data.status_omset || 0)} text-xs">
+                                    ${(data.status_omset || 0).toFixed(1)}%
+                                </td>
+                                <td class="text-small">${formatRupiahShort(data.bonus_omset || 0)}</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="summary-total-row">
+                                <td colspan="4" class="text-right text-small"><strong>Sub Total Bonus:</strong></td>
+                                <td class="text-small"><strong>${formatRupiahShort(data.bonus_omset || 0)}</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </section>
+            
+            <!-- Adjustment -->
+            <section class="adjustment-section">
+                <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4 class="section-title" style="margin: 0;">
+                        <i class="fas fa-adjust"></i> ADJUSTMENT
+                    </h4>
+                    ${isOwnerSlip && !isFinal ? `
+                    <button class="btn-add-adjustment" id="addAdjustmentBtn">
+                        <i class="fas fa-plus"></i> Tambah
+                    </button>
+                    ` : ''}
+                </div>
+                
+                <div class="adjustment-container">
+                    ${data.adjustments && data.adjustments.length > 0 ? `
+                    <table class="adjustment-table">
+                        <thead>
+                            <tr>
+                                <th>Jenis</th>
+                                <th>Amount</th>
+                                ${isOwnerSlip && !isFinal ? '<th style="width: 70px;">Aksi</th>' : ''}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.adjustments.map((adj, index) => `
+                            <tr data-index="${index}">
+                                <td class="text-small">${adj.type || '-'}</td>
+                                <td class="text-small ${adj.amount < 0 ? 'text-danger' : 'text-success'}">
+                                    ${formatRupiahShort(adj.amount || 0)}
+                                </td>
+                                ${isOwnerSlip && !isFinal ? `
+                                <td>
+                                    <button class="btn-edit-adj" data-index="${index}" title="Edit" style="padding: 4px; font-size: 0.8rem;">
+                                        <i class="fas fa-edit fa-sm"></i>
+                                    </button>
+                                    <button class="btn-delete-adj" data-index="${index}" title="Hapus" style="padding: 4px; font-size: 0.8rem;">
+                                        <i class="fas fa-trash fa-sm"></i>
+                                    </button>
+                                </td>
+                                ` : ''}
+                            </tr>
+                            `).join('')}
+                        </tbody>
+                        <tfoot>
+                            <tr class="summary-total-row">
+                                <td class="text-small"><strong>Total Adjustment:</strong></td>
+                                <td colspan="${isOwnerSlip && !isFinal ? '2' : '1'}" class="text-small">
+                                    <strong class="${data.total_adjustment < 0 ? 'text-danger' : 'text-success'}">
+                                        ${formatRupiahShort(data.total_adjustment || 0)}
+                                    </strong>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    ` : `
+                    <div class="no-adjustment">
+                        <i class="fas fa-info-circle"></i>
+                        <p class="text-small">Tidak ada adjustment</p>
+                    </div>
+                    `}
+                </div>
+            </section>
+            
+            <!-- Total Penghasilan -->
+            <section class="total-section">
+                <div class="total-compact-grid">
+                    <div class="total-item-compact">
+                        <span class="total-label">Total Penghasilan</span>
+                        <span class="total-value highlight">${formatRupiah(data.total_penghasilan || 0)}</span>
+                    </div>
+                    <div class="total-item-compact">
+                        <span class="total-label">Penghasilan Diambil</span>
+                        <span class="total-value text-danger">${formatRupiah(data.penghasilan_diambil || 0)}</span>
+                    </div>
+                    <div class="total-item-compact grand-total">
+                        <span class="total-label">TAKE HOME PAY</span>
+                        <span class="total-value">${formatRupiah(data.take_home_pay || 0)}</span>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Detail Harian dengan Scroll -->
+            <section class="detail-section" id="detailSection">
+                <div class="detail-header" id="toggleDetail">
+                    <h4>
+                        <i class="fas fa-calendar-alt"></i> DETAIL HARIAN
+                        <span class="badge-count" style="background: #4CAF50; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; margin-left: 8px;">
+                            ${totalDays} hari
+                        </span>
+                        ${isManyDays ? `
+                        <span class="badge-scroll">
+                            <i class="fas fa-arrows-alt-v"></i> Scroll
+                        </span>
+                        ` : ''}
+                    </h4>
+                    <span class="detail-toggle">
+                        <i class="fas fa-chevron-down"></i>
+                        <span class="toggle-text" style="font-size: 0.8rem; color: #666;">Klik untuk lihat (${totalDays} hari)</span>
+                    </span>
+                </div>
+                <div class="detail-content" id="detailContent">
+                    ${data.detail_harian && data.detail_harian.length > 0 ? `
+                    <div class="detail-table-container">
+                        <table class="detail-table">
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Hari</th>
+                                    <th>Gaji</th>
+                                    <th>UoP</th>
+                                    <th>Komisi</th>
+                                    <th>Member</th>
+                                    <th>O/T</th>
+                                    <th>Fee</th>
+                                    <th>Tips</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.detail_harian.map(day => `
+                                <tr>
+                                    <td class="text-xs">${day.tanggal || '-'}</td>
+                                    <td class="text-xs">${day.hari?.substring(0, 3) || '-'}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.gaji || 0)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.uop || 0)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.komisi_produk || 0)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.komisi_membercard || 0)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.overtime || 0)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.fee_trf || 0)}</td>
+                                    <td class="text-xs">${formatRupiahShort(day.tips_qris || 0)}</td>
+                                    <td class="text-xs" style="font-weight: 600; color: #4CAF50;">
+                                        ${formatRupiahShort(day.total || 0)}
+                                    </td>
+                                </tr>
+                                `).join('')}
+                            </tbody>
+                            <tfoot>
+                                <tr style="background: #f8f9ff; position: sticky; bottom: 0;">
+                                    <td colspan="9" class="text-right text-small" style="font-weight: 600;">
+                                        Total Harian:
+                                    </td>
+                                    <td class="text-xs" style="font-weight: 700; color: #2E7D32;">
+                                        ${formatRupiahShort(data.detail_harian.reduce((sum, day) => sum + (day.total || 0), 0))}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    ${isManyDays ? `
+                    <div class="scroll-hint">
+                        <i class="fas fa-arrow-down"></i> Scroll untuk melihat semua ${totalDays} hari <i class="fas fa-arrow-down"></i>
+                    </div>
+                    ` : ''}
+                    ` : `
+                    <div class="no-data" style="text-align: center; padding: 20px; color: #999; background: #f9f9f9; border-radius: 8px;">
+                        <i class="fas fa-calendar-times" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                        <p style="font-size: 0.9rem;">Tidak ada data harian untuk periode ini</p>
+                    </div>
+                    `}
+                </div>
+            </section>
+            
+            <!-- Save Button -->
+            <div class="save-section">
+                <button class="btn-save" id="saveSlipBtn">
+                    <i class="fas fa-camera"></i> Save Screen Capture
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// ========== FUNGSI setupSlipUIEvents ==========
 function setupSlipUIEvents(dataSource) {
     console.log('setupSlipUIEvents called with dataSource:', dataSource);
     
-    // Toggle Detail Harian
+    // Toggle Detail Harian dengan scroll
     const toggleDetail = document.getElementById('toggleDetail');
     const detailContent = document.getElementById('detailContent');
     
@@ -8652,58 +11004,286 @@ function setupSlipUIEvents(dataSource) {
         const toggleText = toggleDetail.querySelector('.toggle-text');
         
         if (toggleIcon) toggleIcon.className = 'fas fa-chevron-down';
-        if (toggleText) toggleText.textContent = 'Klik untuk lihat';
         
-        toggleDetail.addEventListener('click', () => {
-            const isExpanded = detailContent.classList.contains('expanded');
-            
-            if (isExpanded) {
-                // Collapse
-                detailContent.classList.remove('expanded');
-                toggleDetail.querySelector('.detail-toggle').classList.remove('rotated');
-                
-                if (toggleIcon) {
-                    toggleIcon.className = 'fas fa-chevron-down';
-                }
-                if (toggleText) {
-                    toggleText.textContent = 'Klik untuk lihat';
-                    toggleText.style.color = '#666';
-                }
-                
-                // Scroll ke section detail
-                toggleDetail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // Hitung jumlah baris untuk memberi tahu user
+        const totalRows = detailContent.querySelectorAll('tbody tr').length;
+        
+        if (toggleText) {
+            if (totalRows > 20) {
+                toggleText.textContent = `Klik untuk lihat (${totalRows} hari, scroll untuk lihat semua)`;
             } else {
-                // Expand
-                detailContent.classList.add('expanded');
-                toggleDetail.querySelector('.detail-toggle').classList.add('rotated');
-                
-                if (toggleIcon) {
-                    toggleIcon.className = 'fas fa-chevron-up';
-                }
-                if (toggleText) {
-                    toggleText.textContent = 'Klik untuk sembunyikan';
-                    toggleText.style.color = '#4CAF50';
-                }
-                
-                // Scroll ke tabel
-                setTimeout(() => {
-                    detailContent.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }, 300);
+                toggleText.textContent = `Klik untuk lihat (${totalRows} hari)`;
             }
-        });
+        }
         
-        // Tambah hover effect
-        toggleDetail.addEventListener('mouseenter', () => {
-            toggleDetail.style.background = '#e8f5e9';
-        });
+        // Hapus event listener lama dengan clone node
+        const newToggleDetail = toggleDetail.cloneNode(true);
+        toggleDetail.parentNode.replaceChild(newToggleDetail, toggleDetail);
         
-        toggleDetail.addEventListener('mouseleave', () => {
-            if (!detailContent.classList.contains('expanded')) {
-                toggleDetail.style.background = '#f5f5f5';
-            }
-        });
+        // Gunakan toggleDetail yang baru
+        const finalToggleDetail = document.getElementById('toggleDetail');
+        const finalDetailContent = document.getElementById('detailContent');
+        
+        if (finalToggleDetail && finalDetailContent) {
+            finalToggleDetail.addEventListener('click', () => {
+                const isExpanded = finalDetailContent.classList.contains('expanded');
+                const finalToggleIcon = finalToggleDetail.querySelector('.detail-toggle i');
+                const finalToggleText = finalToggleDetail.querySelector('.toggle-text');
+                
+                if (isExpanded) {
+                    // Collapse
+                    finalDetailContent.classList.remove('expanded');
+                    if (finalToggleIcon) finalToggleIcon.className = 'fas fa-chevron-down';
+                    if (finalToggleText) {
+                        if (totalRows > 20) {
+                            finalToggleText.textContent = `Klik untuk lihat (${totalRows} hari)`;
+                        } else {
+                            finalToggleText.textContent = `Klik untuk lihat (${totalRows} hari)`;
+                        }
+                    }
+                    
+                    // Scroll ke section detail
+                    finalToggleDetail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    // Expand
+                    finalDetailContent.classList.add('expanded');
+                    if (finalToggleIcon) finalToggleIcon.className = 'fas fa-chevron-up';
+                    if (finalToggleText) {
+                        if (totalRows > 20) {
+                            finalToggleText.textContent = `Sembunyikan (${totalRows} hari)`;
+                        } else {
+                            finalToggleText.textContent = 'Klik untuk sembunyikan';
+                        }
+                    }
+                    
+                    // Scroll ke awal tabel setelah expand
+                    setTimeout(() => {
+                        const tableContainer = finalDetailContent.querySelector('.detail-table-container');
+                        if (tableContainer && totalRows > 20) {
+                            tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        } else if (finalDetailContent) {
+                            finalDetailContent.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                    }, 100);
+                }
+            });
+            
+            // Hover effect
+            finalToggleDetail.addEventListener('mouseenter', () => {
+                finalToggleDetail.style.background = '#e8f5e9';
+            });
+            
+            finalToggleDetail.addEventListener('mouseleave', () => {
+                if (!finalDetailContent.classList.contains('expanded')) {
+                    finalToggleDetail.style.background = '#f5f5f5';
+                }
+            });
+        }
     }
     
+    // Save Screen Capture
+    const saveBtn = document.getElementById('saveSlipBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveSlipCapture);
+    }
+    
+    // Setup adjustment buttons jika ada
+    const isFinal = dataSource === 'final';
+    const slipContainer = document.querySelector('.slip-container');
+    
+    if (slipContainer) {
+        const hasFinalClass = slipContainer.classList.contains('final-slip');
+        const shouldShowAdjustment = !isFinal && !hasFinalClass;
+        
+        if (window.isOwnerSlip && shouldShowAdjustment) {
+            console.log('Setting up adjustment buttons for owner');
+            setupAdjustmentButtons();
+        }
+    }
+    
+    // Setup event delegation untuk dynamic buttons
+    setupEventDelegation();
+}
+
+// ========== FUNGSI PENDUKUNG ==========
+
+// Setup adjustment buttons
+function setupAdjustmentButtons() {
+    console.log('setupAdjustmentButtons called');
+    
+    // 1. TOMBOL TAMBAH ADJUSTMENT
+    const addBtn = document.getElementById('addAdjustmentBtn');
+    if (addBtn) {
+        console.log('Found add adjustment button, setting up...');
+        
+        const newBtn = addBtn.cloneNode(true);
+        addBtn.parentNode.replaceChild(newBtn, addBtn);
+        
+        const freshBtn = document.getElementById('addAdjustmentBtn');
+        
+        freshBtn.setAttribute('onclick', `
+            event.preventDefault();
+            event.stopPropagation();
+            if (typeof showAddAdjustmentModal === 'function') {
+                showAddAdjustmentModal();
+            } else if (typeof window.showAddAdjustmentModal === 'function') {
+                window.showAddAdjustmentModal();
+            } else {
+                console.error('showAddAdjustmentModal function not found!');
+                alert('Error: Fungsi modal tidak ditemukan');
+            }
+            return false;
+        `);
+        
+        freshBtn.addEventListener('click', function(e) {
+            console.log('Add adjustment button clicked (addEventListener)');
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        }, true);
+        
+        freshBtn.style.cursor = 'pointer';
+        freshBtn.title = 'Klik untuk menambah adjustment';
+        
+        console.log('✅ Add adjustment button setup complete');
+    } else {
+        console.warn('Add adjustment button not found in setupAdjustmentButtons');
+    }
+    
+    // 2. TOMBOL EDIT ADJUSTMENT
+    const editBtns = document.querySelectorAll('.btn-edit-adj');
+    console.log(`Found ${editBtns.length} edit buttons`);
+    
+    editBtns.forEach((btn, index) => {
+        const dataIndex = btn.dataset.index;
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        
+        newBtn.setAttribute('onclick', `
+            event.preventDefault();
+            event.stopPropagation();
+            if (typeof showEditAdjustmentModal === 'function') {
+                showEditAdjustmentModal(${dataIndex});
+            }
+            return false;
+        `);
+    });
+    
+    // 3. TOMBOL DELETE ADJUSTMENT
+    const deleteBtns = document.querySelectorAll('.btn-delete-adj');
+    console.log(`Found ${deleteBtns.length} delete buttons`);
+    
+    deleteBtns.forEach((btn, index) => {
+        const dataIndex = btn.dataset.index;
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        
+        newBtn.setAttribute('onclick', `
+            event.preventDefault();
+            event.stopPropagation();
+            if (confirm('Hapus adjustment ini?')) {
+                if (typeof deleteAdjustment === 'function') {
+                    deleteAdjustment(${dataIndex});
+                }
+            }
+            return false;
+        `);
+    });
+    
+    console.log('✅ All adjustment buttons setup complete');
+}
+
+// Setup event delegation untuk dynamic buttons
+function setupEventDelegation() {
+    if (window._slipEventDelegationHandler) {
+        document.removeEventListener('click', window._slipEventDelegationHandler);
+    }
+    
+    const clickHandler = function(e) {
+        if (e.target.id === 'addAdjustmentBtn' || e.target.closest('#addAdjustmentBtn')) {
+            console.log('Event delegation: Add adjustment button clicked');
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof showAddAdjustmentModal === 'function') {
+                showAddAdjustmentModal();
+            }
+            return false;
+        }
+        
+        if (e.target.classList.contains('btn-edit-adj') || e.target.closest('.btn-edit-adj')) {
+            const btn = e.target.closest('.btn-edit-adj');
+            const index = btn?.dataset?.index;
+            if (index !== undefined && typeof showEditAdjustmentModal === 'function') {
+                e.preventDefault();
+                e.stopPropagation();
+                showEditAdjustmentModal(parseInt(index));
+                return false;
+            }
+        }
+        
+        if (e.target.classList.contains('btn-delete-adj') || e.target.closest('.btn-delete-adj')) {
+            const btn = e.target.closest('.btn-delete-adj');
+            const index = btn?.dataset?.index;
+            if (index !== undefined && typeof deleteAdjustment === 'function') {
+                e.preventDefault();
+                e.stopPropagation();
+                if (confirm('Hapus adjustment ini?')) {
+                    deleteAdjustment(parseInt(index));
+                }
+                return false;
+            }
+        }
+        
+        if (e.target.id === 'retrySlip' || e.target.closest('#retrySlip')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const bulan = parseInt(document.getElementById('selectBulan').value);
+            const tahun = parseInt(document.getElementById('selectTahun').value);
+            if (typeof loadSlipData === 'function') {
+                loadSlipData(bulan, tahun);
+            }
+            return false;
+        }
+    };
+    
+    window._slipEventDelegationHandler = clickHandler;
+    document.addEventListener('click', clickHandler, true);
+}
+
+// Helper function untuk format Rupiah
+function formatRupiah(amount) {
+    if (amount === 0 || !amount) return 'Rp 0';
+    return 'Rp ' + amount.toLocaleString('id-ID');
+}
+
+function formatRupiahShort(amount) {
+    if (amount === 0 || !amount) return 'Rp 0';
+    
+    if (Math.abs(amount) < 1000000) {
+        return 'Rp ' + amount.toLocaleString('id-ID');
+    }
+    
+    if (Math.abs(amount) >= 1000000000) {
+        return 'Rp ' + (amount / 1000000000).toFixed(1).replace('.', ',') + 'M';
+    }
+    
+    if (Math.abs(amount) >= 1000000) {
+        return 'Rp ' + (amount / 1000000).toFixed(1).replace('.', ',') + 'jt';
+    }
+    
+    return 'Rp ' + amount.toLocaleString('id-ID');
+}
+
+function getStatusColor(percentage) {
+    if (percentage >= 100) return 'status-achieved';
+    if (percentage >= 80) return 'status-good';
+    if (percentage >= 60) return 'status-warning';
+    return 'status-failed';
+}
+
+function saveSlipCapture() {
+    // Implementasi save slip capture (dari kode existing)
+    console.log('Save slip capture called');
+
     // Save Screen Capture
     const saveBtn = document.getElementById('saveSlipBtn');
     if (saveBtn) {
