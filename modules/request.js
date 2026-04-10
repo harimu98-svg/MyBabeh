@@ -1734,32 +1734,52 @@ function displayRequestHistory(requests) {
     historyTable.style.display = 'table';
 }
 
-// [26] Load outlet dropdown for owner
+// [26] Load outlet dropdown for owner - AMBIL DARI TABEL OUTLET
 async function loadOutletDropdownForOwner() {
     const select = document.getElementById('filterOutletOwner');
     if (!select) return;
     
     try {
+        // Ambil data dari tabel outlet
         const { data: outletsData, error } = await supabase
-            .from('request_barang')
+            .from('outlet')
             .select('outlet')
-            .not('outlet', 'is', null);
+            .order('outlet', { ascending: true }); // Urutkan A-Z
         
-        if (error) {
-            console.error('Error loading outlets:', error);
+        if (error) throw error;
+        
+        if (!outletsData || outletsData.length === 0) {
+            // Fallback jika tabel outlet kosong
+            select.innerHTML = `
+                <option value="all">Semua Outlet</option>
+                <option value="${currentUserOutletRequest}">${currentUserOutletRequest}</option>
+            `;
             return;
         }
         
-        // Get unique outlets
-        const outlets = [...new Set(outletsData.map(r => r.outlet).filter(Boolean))];
+        // Ambil unique outlet (seharusnya sudah unique dari tabel outlet)
+        const outlets = outletsData.map(item => item.outlet).filter(Boolean);
         
-        select.innerHTML = `
-            <option value="all">Semua Outlet</option>
-            ${outlets.map(outlet => `<option value="${outlet}">${outlet}</option>`).join('')}
-        `;
+        // Buat options
+        let options = '<option value="all">Semua Outlet</option>';
+        outlets.forEach(outlet => {
+            options += `<option value="${outlet}">${outlet}</option>`;
+        });
+        
+        select.innerHTML = options;
+        
+        // Optional: Set default value ke outlet user jika ada
+        if (currentUserOutletRequest && outlets.includes(currentUserOutletRequest)) {
+            select.value = currentUserOutletRequest;
+        }
         
     } catch (error) {
-        console.error('Error loading outlets:', error);
+        console.error('Error loading outlets from outlet table:', error);
+        // Fallback: gunakan outlet dari user yang login
+        select.innerHTML = `
+            <option value="all">Semua Outlet</option>
+            <option value="${currentUserOutletRequest}">${currentUserOutletRequest}</option>
+        `;
     }
 }
 
