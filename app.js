@@ -7739,13 +7739,42 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
             .like('tanggal', `%/${monthStr}/${yearStr}`),
         
         // 9. Data omset
-        supabase
+      // 9. Data omset - DENGAN PAGINATION UNTUK AMBIL SEMUA DATA
+(async () => {
+    let allData = [];
+    let from = 0;
+    const to = 999;
+    let hasMore = true;
+    
+    while (hasMore) {
+        const { data, error } = await supabase
             .from('transaksi_order')
             .select('total_amount, harga_beli, status')
             .eq('outlet', outlet)
             .eq('status', 'completed')
             .gte('order_date', startDate)
-            .lte('order_date', endDate),
+            .lte('order_date', endDate)
+            .range(from, from + to);
+        
+        if (error) {
+            console.error('Error fetching omset with pagination:', error);
+            break;
+        }
+        
+        if (data && data.length > 0) {
+            allData = [...allData, ...data];
+            from += data.length;
+            if (data.length <= to) {
+                hasMore = false;
+            }
+        } else {
+            hasMore = false;
+        }
+    }
+    
+    console.log(`✅ Total omset data fetched: ${allData.length}`);
+    return { data: allData, error: null };
+})(),
         
         // 10. Data produk untuk validasi komisi >= 5000 (KASIR ONLY)
         supabase
