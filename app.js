@@ -7729,15 +7729,14 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
             .eq('nama_karyawan', namaKaryawan)
             .single(),
         
-        // 8. Data semua kasir di outlet (HANYA KASIR)
-        supabase
-        .from('absen')
-        .select('nama, tanggal, role')  // ← Tambah role di select
-        .eq('outlet', outlet)
-        .eq('role', 'kasir')            // ← TAMBAHKAN filter hanya kasir
-        .not('status_kehadiran', 'is', null)
-        .not('status_kehadiran', 'eq', '')
-        .like('tanggal', `%/${monthStr}/${yearStr}`),
+        // 8. Data semua karyawan yang absen di outlet (ambil semua)
+    supabase
+    .from('absen')
+    .select('nama, tanggal')
+    .eq('outlet', outlet)
+    .not('status_kehadiran', 'is', null)
+    .not('status_kehadiran', 'eq', '')
+    .like('tanggal', `%/${monthStr}/${yearStr}`),
         
         // 9. Data omset
       // 9. Data omset - DENGAN PAGINATION UNTUK AMBIL SEMUA DATA
@@ -8195,7 +8194,7 @@ async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun,
     
     // 4. TARGET OMSET - DIPERBAIKI
     try {
-        // ========== PERBAIKAN 1: Hitung omset bersih dengan aman ==========
+        // Hitung omset bersih
         let totalOmsetKotor = 0;
         let totalHargaBeli = 0;
         
@@ -8209,31 +8208,21 @@ async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun,
         result.status_omset = result.target_omset > 0 ? 
             (result.achievement_omset / result.target_omset) * 100 : 0;
         
-        // ========== PERBAIKAN 2: Hitung proporsi hanya untuk kasir ==========
-        // Filter hanya role kasir (bukan owner, barberman, atau lainnya)
-        const kasirOnlyList = (semuaKasirList || []).filter(a => {
-            // Jika data memiliki field role, filter berdasarkan role
-            if (a.role) {
-                return a.role === 'kasir';
-            }
-            // Jika tidak ada field role, asumsikan semua adalah kasir
-            return true;
-        });
-        
-        // Hitung unique hari kerja untuk semua kasir
+        // ========== PERBAIKAN: Hitung proporsi (tanpa filter role) ==========
+        // Langsung gunakan semuaKasirList apa adanya (tanpa filter role)
+        // karena data dari query absen sudah benar
         const uniqueKasirDays = new Set(
-            kasirOnlyList.map(a => `${a.nama}-${a.tanggal}`)
+            semuaKasirList.map(a => `${a.nama}-${a.tanggal}`)
         ).size;
         
         // Hitung proporsi
         result.proporsi_kasir = uniqueKasirDays > 0 ? 
             hariKerjaKasir / uniqueKasirDays : 0;
         
-        // ========== PERBAIKAN 3: Debug log untuk verifikasi ==========
+        // Debug log untuk verifikasi
         console.log('📊 PROPORSI KASIR DETAIL:', {
             hariKerjaKasir: hariKerjaKasir,
             totalDataAbsen: semuaKasirList?.length || 0,
-            dataKasirOnly: kasirOnlyList.length,
             uniqueKasirDays: uniqueKasirDays,
             proporsiPersen: (result.proporsi_kasir * 100).toFixed(1) + '%'
         });
@@ -8252,6 +8241,7 @@ async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun,
                 target: formatRupiah(result.target_omset),
                 actual: formatRupiah(result.achievement_omset)
             });
+            result.bonus_omset = 0;
         }
         
     } catch (error) {
