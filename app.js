@@ -8139,7 +8139,7 @@ async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun,
         proporsi_kasir: 0
     };
     
-    // 1. ANALISA HARI KERJA AKTUAL untuk hitung target
+    // 1. ANALISA HARI KERJA AKTUAL untuk hitung target (sama seperti sebelumnya)
     const hariKerjaAktual = [];
     
     absenList.forEach(absen => {
@@ -8148,7 +8148,6 @@ async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun,
         const statusLower = absen.status_kehadiran.toLowerCase().trim();
         if (['', 'belum absen', 'izin', 'libur'].includes(statusLower)) return;
         
-        // Parse tanggal dari format DD/MM/YYYY
         const [day, month, year] = absen.tanggal.split('/').map(Number);
         if (month === bulan && year === tahun) {
             const date = new Date(year, month - 1, day);
@@ -8162,7 +8161,7 @@ async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun,
         }
     });
     
-    // 2. TARGET PRODUK (hanya hari yang ada absennya)
+    // 2. TARGET PRODUK
     let totalTargetProduk = 0;
     
     hariKerjaAktual.forEach(hari => {
@@ -8177,22 +8176,20 @@ async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun,
     result.status_produk = result.target_produk > 0 ? 
         (result.achievement_produk / result.target_produk) * 100 : 0;
     
-    // Bonus produk: "Hadiah Menarik" jika mencapai target (tanpa nilai)
     if (result.status_produk >= 100) {
         result.bonus_produk = 'Hadiah Menarik';
     }
     
-    // 3. TARGET MEMBERCARD (2x target produk)
+    // 3. TARGET MEMBERCARD
     result.target_membercard = result.target_produk * 2;
     result.status_membercard = result.target_membercard > 0 ? 
         (result.achievement_membercard / result.target_membercard) * 100 : 0;
     
-    // Bonus membercard: "Hadiah Menarik" jika mencapai target (tanpa nilai)
     if (result.status_membercard >= 100) {
         result.bonus_membercard = 'Hadiah Menarik';
     }
     
-    // 4. TARGET OMSET - DIPERBAIKI
+    // 4. TARGET OMSET
     try {
         // Hitung omset bersih
         let totalOmsetKotor = 0;
@@ -8204,30 +8201,48 @@ async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun,
         }
         
         result.achievement_omset = totalOmsetKotor - totalHargaBeli;
-        
         result.status_omset = result.target_omset > 0 ? 
             (result.achievement_omset / result.target_omset) * 100 : 0;
         
-        // ========== PERBAIKAN: Hitung proporsi (tanpa filter role) ==========
-        // Langsung gunakan semuaKasirList apa adanya (tanpa filter role)
-        // karena data dari query absen sudah benar
+        // ========== PERBAIKAN: Filter HANYA KASIR dari tabel karyawan ==========
+        // Ambil daftar nama kasir dari tabel karyawan untuk outlet ini
+        const { data: daftarKasir, error: kasirError } = await supabase
+            .from('karyawan')
+            .select('nama_karyawan')
+            .eq('outlet', outlet)
+            .eq('role', 'kasir');
+        
+        if (kasirError) {
+            console.error('Error fetching kasir list:', kasirError);
+        }
+        
+        const namaKasirSet = new Set(daftarKasir?.map(k => k.nama_karyawan) || []);
+        
+        // Filter semuaKasirList hanya untuk nama yang ada di daftar kasir
+        const kasirOnlyList = (semuaKasirList || []).filter(a => 
+            namaKasirSet.has(a.nama)
+        );
+        
+        // Hitung unique hari kerja hanya untuk kasir
         const uniqueKasirDays = new Set(
-            semuaKasirList.map(a => `${a.nama}-${a.tanggal}`)
+            kasirOnlyList.map(a => `${a.nama}-${a.tanggal}`)
         ).size;
         
         // Hitung proporsi
         result.proporsi_kasir = uniqueKasirDays > 0 ? 
             hariKerjaKasir / uniqueKasirDays : 0;
         
-        // Debug log untuk verifikasi
+        // Debug log
         console.log('📊 PROPORSI KASIR DETAIL:', {
             hariKerjaKasir: hariKerjaKasir,
             totalDataAbsen: semuaKasirList?.length || 0,
+            dataKasirOnly: kasirOnlyList.length,
             uniqueKasirDays: uniqueKasirDays,
-            proporsiPersen: (result.proporsi_kasir * 100).toFixed(1) + '%'
+            proporsiPersen: (result.proporsi_kasir * 100).toFixed(1) + '%',
+            daftarKasir: Array.from(namaKasirSet)
         });
         
-        // Bonus omset 1% dari omset bersih * proporsi
+        // Bonus omset
         if (result.status_omset >= 100) {
             result.bonus_omset = result.achievement_omset * 0.01 * result.proporsi_kasir;
             console.log('🎉 BONUS OMSET:', {
