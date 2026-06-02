@@ -8244,7 +8244,7 @@ async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun,
         
         // Bonus omset
         if (result.status_omset >= 100) {
-            result.bonus_omset = result.achievement_omset * 0.01 * result.proporsi_kasir;
+            result.bonus_omset = result.achievement_omset * 0.005 * result.proporsi_kasir;
             console.log('🎉 BONUS OMSET:', {
                 omsetBersih: formatRupiah(result.achievement_omset),
                 proporsi: (result.proporsi_kasir * 100).toFixed(1) + '%',
