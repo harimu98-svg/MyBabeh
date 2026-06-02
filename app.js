@@ -7729,14 +7729,15 @@ async function calculateRealTimeSlip(namaKaryawan, outlet, bulan, tahun) {
             .eq('nama_karyawan', namaKaryawan)
             .single(),
         
-        // 8. Data semua kasir di outlet (tanggal: TEXT)
+        // 8. Data semua kasir di outlet (HANYA KASIR)
         supabase
-            .from('absen')
-            .select('nama, tanggal')
-            .eq('outlet', outlet)
-            .not('status_kehadiran', 'is', null)
-            .not('status_kehadiran', 'eq', '')
-            .like('tanggal', `%/${monthStr}/${yearStr}`),
+        .from('absen')
+        .select('nama, tanggal, role')  // ← Tambah role di select
+        .eq('outlet', outlet)
+        .eq('role', 'kasir')            // ← TAMBAHKAN filter hanya kasir
+        .not('status_kehadiran', 'is', null)
+        .not('status_kehadiran', 'eq', '')
+        .like('tanggal', `%/${monthStr}/${yearStr}`),
         
         // 9. Data omset
       // 9. Data omset - DENGAN PAGINATION UNTUK AMBIL SEMUA DATA
@@ -8192,30 +8193,73 @@ async function calculateTargetAchievement(namaKaryawan, outlet, bulan, tahun,
         result.bonus_membercard = 'Hadiah Menarik';
     }
     
-    // 4. TARGET OMSET
+    // 4. TARGET OMSET - DIPERBAIKI
     try {
-        // Hitung omset bersih
-        const totalOmsetKotor = omsetList.reduce((sum, o) => sum + (o.total_amount || 0), 0);
-        const totalHargaBeli = omsetList.reduce((sum, o) => sum + (o.harga_beli || 0), 0);
+        // ========== PERBAIKAN 1: Hitung omset bersih dengan aman ==========
+        let totalOmsetKotor = 0;
+        let totalHargaBeli = 0;
+        
+        if (omsetList && omsetList.length > 0) {
+            totalOmsetKotor = omsetList.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+            totalHargaBeli = omsetList.reduce((sum, o) => sum + (o.harga_beli || 0), 0);
+        }
+        
         result.achievement_omset = totalOmsetKotor - totalHargaBeli;
         
         result.status_omset = result.target_omset > 0 ? 
             (result.achievement_omset / result.target_omset) * 100 : 0;
         
-        // Hitung proporsi hari kerja kasir
+        // ========== PERBAIKAN 2: Hitung proporsi hanya untuk kasir ==========
+        // Filter hanya role kasir (bukan owner, barberman, atau lainnya)
+        const kasirOnlyList = (semuaKasirList || []).filter(a => {
+            // Jika data memiliki field role, filter berdasarkan role
+            if (a.role) {
+                return a.role === 'kasir';
+            }
+            // Jika tidak ada field role, asumsikan semua adalah kasir
+            return true;
+        });
+        
+        // Hitung unique hari kerja untuk semua kasir
         const uniqueKasirDays = new Set(
-            semuaKasirList.map(a => `${a.nama}-${a.tanggal}`)
+            kasirOnlyList.map(a => `${a.nama}-${a.tanggal}`)
         ).size;
         
+        // Hitung proporsi
         result.proporsi_kasir = uniqueKasirDays > 0 ? 
             hariKerjaKasir / uniqueKasirDays : 0;
+        
+        // ========== PERBAIKAN 3: Debug log untuk verifikasi ==========
+        console.log('📊 PROPORSI KASIR DETAIL:', {
+            hariKerjaKasir: hariKerjaKasir,
+            totalDataAbsen: semuaKasirList?.length || 0,
+            dataKasirOnly: kasirOnlyList.length,
+            uniqueKasirDays: uniqueKasirDays,
+            proporsiPersen: (result.proporsi_kasir * 100).toFixed(1) + '%'
+        });
         
         // Bonus omset 1% dari omset bersih * proporsi
         if (result.status_omset >= 100) {
             result.bonus_omset = result.achievement_omset * 0.01 * result.proporsi_kasir;
+            console.log('🎉 BONUS OMSET:', {
+                omsetBersih: formatRupiah(result.achievement_omset),
+                proporsi: (result.proporsi_kasir * 100).toFixed(1) + '%',
+                bonus: formatRupiah(result.bonus_omset)
+            });
+        } else {
+            console.log('⚠️ Target omset tidak tercapai:', {
+                status: result.status_omset.toFixed(1) + '%',
+                target: formatRupiah(result.target_omset),
+                actual: formatRupiah(result.achievement_omset)
+            });
         }
+        
     } catch (error) {
         console.error('Error calculating omset target:', error);
+        result.achievement_omset = 0;
+        result.status_omset = 0;
+        result.bonus_omset = 0;
+        result.proporsi_kasir = 0;
     }
     
     return result;
