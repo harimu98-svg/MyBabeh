@@ -937,7 +937,12 @@ async function sendWhatsAppNotificationClock(data) {
             }
         }
         
-        // Kirim via WhatsApp API
+        // ⭐ HARDCODE SESSION: 'Session1'
+        const session = 'Session1';
+        
+        console.log('🔑 Menggunakan session:', session);
+        
+        // Kirim via WhatsApp API dengan session hardcode
         const response = await fetch(waConfig.apiUrl, {
             method: 'POST',
             headers: {
@@ -945,6 +950,7 @@ async function sendWhatsAppNotificationClock(data) {
                 'X-Api-Key': waConfig.apiKey
             },
             body: JSON.stringify({
+                session: session,        // ⭐ Hardcode: 'Session1'
                 chatId: formattedPhone,
                 text: message
             })
@@ -966,7 +972,7 @@ async function sendWhatsAppNotificationClock(data) {
                                 `⏰ Jam: ${jam}\n` +
                                 `📍 Lokasi: ${data.location.lat?.toFixed(6) || '-'}, ${data.location.lng?.toFixed(6) || '-'}`;
             
-            // Kirim ke group/owner
+            // Kirim ke group/owner dengan session yang sama
             await fetch(waConfig.apiUrl, {
                 method: 'POST',
                 headers: {
@@ -974,6 +980,7 @@ async function sendWhatsAppNotificationClock(data) {
                     'X-Api-Key': waConfig.apiKey
                 },
                 body: JSON.stringify({
+                    session: session,    // ⭐ Hardcode: 'Session1'
                     chatId: waConfig.chatId,
                     text: groupMessage
                 })
