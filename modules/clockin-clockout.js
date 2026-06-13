@@ -841,24 +841,19 @@ async function saveAttendanceClock(karyawan, absenType, action, location) {
     }
 }
 
-// Helper function untuk mendapatkan WA config dari global scope
-function getWAConfig() {
-    return {
-        apiUrl: typeof WA_API_URL !== 'undefined' ? WA_API_URL : window.WA_API_URL,
-        apiKey: typeof WA_API_KEY !== 'undefined' ? WA_API_KEY : window.WA_API_KEY,
-        chatId: typeof WA_CHAT_ID !== 'undefined' ? WA_CHAT_ID : window.WA_CHAT_ID,
-        ownerPhone: typeof WA_OWNER_PHONE !== 'undefined' ? WA_OWNER_PHONE : window.WA_OWNER_PHONE
-    };
-}
     
 // [13] Send WhatsApp notification
 async function sendWhatsAppNotificationClock(data) {
     try {
-        // Ambil konfigurasi WA
-        const waConfig = getWAConfig();
+        // Ambil konfigurasi WA dari global scope (sama seperti absensi_dengan_PIN.js)
+        const whatsappConfig = {
+            wahaUrl: typeof WA_API_URL !== 'undefined' ? WA_API_URL : window.WA_API_URL,
+            wahaXApiKey: typeof WA_API_KEY !== 'undefined' ? WA_API_KEY : window.WA_API_KEY,
+            wahaSession: 'Session1'  // Hardcode session
+        };
         
         // Validasi konfigurasi
-        if (!waConfig.apiUrl || !waConfig.apiKey) {
+        if (!whatsappConfig.wahaUrl || !whatsappConfig.wahaXApiKey) {
             console.warn('⚠️ WhatsApp config not available');
             return;
         }
@@ -869,125 +864,61 @@ async function sendWhatsAppNotificationClock(data) {
         const jam = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         
         let message = '';
-        let targetNumber = '';
         
-        // Tentukan nomor tujuan berdasarkan tipe absen
-        if (data.absenType === 'Clock In') {
-            // Clock In: kirim ke karyawan bersangkutan
-            targetNumber = data.karyawan.nomor_wa;
-        } else {
-            // Clock Out: kirim ke group atau owner
-            targetNumber = waConfig.chatId || waConfig.ownerPhone;
-        }
-        
-        // Format nomor telepon
-        let formattedPhone = targetNumber?.replace(/^0/, '62') || '';
-        
-        if (!formattedPhone) {
-            formattedPhone = waConfig.ownerPhone?.replace(/^0/, '62') || '';
-        }
-        
-        // Tambahkan suffix jika belum ada
-        if (formattedPhone && !formattedPhone.includes('@c.us') && !formattedPhone.includes('@g.us')) {
-            formattedPhone += waConfig.chatId?.includes('@g.us') ? '@g.us' : '@c.us';
+        // Format nomor telepon (sama seperti absensi_dengan_PIN.js)
+        let formattedPhone = data.karyawan.nomor_wa.replace(/^0/, '62');
+        if (!formattedPhone.includes('@c.us')) {
+            formattedPhone += '@c.us';
         }
         
         console.log('📤 Mengirim WA ke:', formattedPhone);
         
-        // Construct message
+        // Construct message (sama seperti absensi_dengan_PIN.js)
         if (data.isValid) {
             if (data.absenType === 'Clock In') {
-                message = `✅ *ABSEN CLOCK IN BERHASIL* ✅\n\n` +
-                         `Halo *${data.karyawan.nama_karyawan}*,\n\n` +
-                         `📅 Tanggal: ${tanggal}\n` +
-                         `🕌 Hari: ${hari}\n` +
-                         `⌚ Jam Clock In: ${jam}\n` +
-                         `📍 Lokasi: ${data.location.lat?.toFixed(6) || '-'}, ${data.location.lng?.toFixed(6) || '-'}\n` +
-                         `🏪 Outlet: ${currentUserOutletClock || '-'}\n\n` +
-                         `Selamat bekerja! 💈✂️\n` +
-                         `Barokalloh 🙏`;
+                message = `Terima Kasih, Anda Telah Berhasil Melakukan Absen Clock In\n` +
+                         `🕌 Hari : ${hari}\n` +
+                         `📅 Tanggal : ${tanggal}\n` +
+                         `⌚ Jam : ${jam}\n` +
+                         `Selamat Bekerja. Barokalloh`;
             } else {
-                message = `✅ *ABSEN CLOCK OUT BERHASIL* ✅\n\n` +
-                         `Halo *${data.karyawan.nama_karyawan}*,\n\n` +
-                         `📅 Tanggal: ${tanggal}\n` +
-                         `🕌 Hari: ${hari}\n` +
-                         `⌚ Jam Clock Out: ${jam}\n` +
-                         `📍 Lokasi: ${data.location.lat?.toFixed(6) || '-'}, ${data.location.lng?.toFixed(6) || '-'}\n` +
-                         `🏪 Outlet: ${currentUserOutletClock || '-'}\n\n` +
-                         `Terima kasih, hati-hati di jalan! 🏠\n` +
-                         `Barokalloh 🙏`;
+                message = `Terima Kasih, Anda Telah Berhasil Melakukan Absen Clock Out\n` +
+                         `🕌 Hari : ${hari}\n` +
+                         `📅 Tanggal : ${tanggal}\n` +
+                         `⌚ Jam : ${jam}\n` +
+                         `Hati-hati di jalan. Barokalloh`;
             }
         } else {
             if (data.absenType === 'Clock In') {
-                message = `⚠️ *GAGAL CLOCK IN* ⚠️\n\n` +
-                         `Halo *${data.karyawan.nama_karyawan}*,\n\n` +
-                         `📅 Tanggal: ${tanggal}\n` +
-                         `⌚ Waktu: ${jam}\n` +
-                         `❌ *${data.errorMessage || 'Tidak dapat melakukan Clock In'}*\n\n` +
-                         `Silakan hubungi admin jika ada kendala.\n` +
-                         `📞 Kontak: ${waConfig.ownerPhone || 'Admin'}`;
+                message = `Anda Sudah Clockin Hari Ini\n` +
+                         `🏆 Hari : ${hari}\n` +
+                         `📅 Tanggal : ${tanggal}\n` +
+                         `⌚ Jam : ${data.existingData?.clockin || jam}\n` +
+                         `Clockin Hanya 1X setiap Hari`;
             } else {
-                message = `⚠️ *GAGAL CLOCK OUT* ⚠️\n\n` +
-                         `Halo *${data.karyawan.nama_karyawan}*,\n\n` +
-                         `📅 Tanggal: ${tanggal}\n` +
-                         `⌚ Waktu: ${jam}\n` +
-                         `❌ *${data.errorMessage || 'Tidak dapat melakukan Clock Out'}*\n\n` +
-                         `Silakan hubungi admin jika ada kendala.\n` +
-                         `📞 Kontak: ${waConfig.ownerPhone || 'Admin'}`;
+                message = `Anda Belum Melakukan ClockIn, Silahkan ClockIn Terlebih Dahulu Sebelum Clockout`;
             }
         }
         
-        // ⭐ HARDCODE SESSION: 'Session1'
-        const session = 'Session1';
-        
-        console.log('🔑 Menggunakan session:', session);
-        
-        // Kirim via WhatsApp API dengan session hardcode
-        const response = await fetch(waConfig.apiUrl, {
+        // Kirim via WhatsApp API (sama persis dengan absensi_dengan_PIN.js)
+        const response = await fetch(whatsappConfig.wahaUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Api-Key': waConfig.apiKey
+                'X-Api-Key': whatsappConfig.wahaXApiKey
             },
             body: JSON.stringify({
-                session: session,        // ⭐ Hardcode: 'Session1'
+                session: whatsappConfig.wahaSession,
                 chatId: formattedPhone,
                 text: message
             })
         });
         
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`WhatsApp API error: ${response.status} - ${errorText}`);
+            throw new Error(`WhatsApp API error: ${response.status}`);
         }
         
-        console.log('✅ WhatsApp notification sent successfully');
-        
-        // Jika Clock Out berhasil, kirim juga notifikasi ke owner/group
-        if (data.absenType === 'Clock Out' && data.isValid && waConfig.chatId) {
-            const groupMessage = `📢 *NOTIFIKASI CLOCK OUT* 📢\n\n` +
-                                `👤 Karyawan: ${data.karyawan.nama_karyawan}\n` +
-                                `🏪 Outlet: ${currentUserOutletClock || '-'}\n` +
-                                `📅 Tanggal: ${tanggal}\n` +
-                                `⏰ Jam: ${jam}\n` +
-                                `📍 Lokasi: ${data.location.lat?.toFixed(6) || '-'}, ${data.location.lng?.toFixed(6) || '-'}`;
-            
-            // Kirim ke group/owner dengan session yang sama
-            await fetch(waConfig.apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Api-Key': waConfig.apiKey
-                },
-                body: JSON.stringify({
-                    session: session,    // ⭐ Hardcode: 'Session1'
-                    chatId: waConfig.chatId,
-                    text: groupMessage
-                })
-            });
-            
-            console.log('✅ Group notification sent');
-        }
+        console.log('✅ WhatsApp notification sent to:', data.karyawan.nomor_wa);
         
     } catch (error) {
         console.error('❌ WhatsApp notification error:', error);
