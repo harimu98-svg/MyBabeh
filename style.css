@@ -7574,4 +7574,13 @@ tr.stock-out .product-cell {
         width: 100%;
     }
 }
+/* Warna untuk menu Clock In/Out */
+.menu-clock {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+}
 
+.menu-clock:hover {
+    background: linear-gradient(135deg, #218838, #1ba87e);
+    transform: translateY(-5px);
+}
