@@ -12,6 +12,7 @@ var supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 const menuItems = {
     kasir: [
         { id: 'komisi', title: 'Komisi', icon: 'fa-money-bill-wave', colorClass: 'menu-komisi' },
+         { id: 'clock', title: 'Clock In/Out', icon: 'fa-clock', colorClass: 'menu-clock' },
         { id: 'transaksi', title: 'Transaksi', icon: 'fa-receipt', colorClass: 'menu-transaksi' }, // <-- TAMBAHKAN INI
         { id: 'slip', title: 'Slip Penghasilan', icon: 'fa-file-invoice-dollar', colorClass: 'menu-slip' },
         { id: 'libur', title: 'Libur & Izin', icon: 'fa-calendar-day', colorClass: 'menu-libur' },
@@ -19,10 +20,12 @@ const menuItems = {
         { id: 'kas', title: 'Kas & Setoran', icon: 'fa-cash-register', colorClass: 'menu-kas' },
         { id: 'request', title: 'Request', icon: 'fa-comment-dots', colorClass: 'menu-request' },
         { id: 'stok', title: 'Tambah Stok', icon: 'fa-boxes', colorClass: 'menu-stok' },
+       
         { id: 'top', title: 'TOP', icon: 'fa-tools', colorClass: 'menu-top' }
     ],
     barberman: [
         { id: 'komisi', title: 'Komisi', icon: 'fa-money-bill-wave', colorClass: 'menu-komisi' },
+         { id: 'clock', title: 'Clock In/Out', icon: 'fa-clock', colorClass: 'menu-clock' },
         { id: 'transaksi', title: 'Transaksi', icon: 'fa-receipt', colorClass: 'menu-transaksi' }, // <-- TAMBAHKAN INI
         { id: 'slip', title: 'Slip Penghasilan', icon: 'fa-file-invoice-dollar', colorClass: 'menu-slip' },
         { id: 'libur', title: 'Libur & Izin', icon: 'fa-calendar-day', colorClass: 'menu-libur' },
@@ -32,6 +35,7 @@ const menuItems = {
     ],
     owner: [
         { id: 'komisi', title: 'Komisi', icon: 'fa-money-bill-wave', colorClass: 'menu-komisi' },
+        { id: 'clock', title: 'Clock In/Out', icon: 'fa-clock', colorClass: 'menu-clock' },
         { id: 'transaksi', title: 'Transaksi', icon: 'fa-receipt', colorClass: 'menu-transaksi' }, // <-- TAMBAHKAN INI
         { id: 'slip', title: 'Slip Penghasilan', icon: 'fa-file-invoice-dollar', colorClass: 'menu-slip' },
         { id: 'libur', title: 'Libur & Izin', icon: 'fa-calendar-day', colorClass: 'menu-libur' },
@@ -473,6 +477,9 @@ function handleMenuClick(menuId) {
         case 'sertifikasi':
           showCertificationPage();
             break;
+        case 'clock':  
+      showClockPage();
+              break;
         default:
             console.log('Menu tidak dikenali:', menuId);
     }
