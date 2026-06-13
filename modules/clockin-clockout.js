@@ -850,19 +850,33 @@ async function sendWhatsAppNotificationClock(data) {
         const jam = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         
         let message = '';
+        let targetNumber = '';
         
-        // Format phone number
-        let formattedPhone = data.karyawan.nomor_wa?.replace(/^0/, '62') || '';
-        if (!formattedPhone.includes('@c.us') && formattedPhone) {
+        // Tentukan nomor tujuan
+        if (data.absenType === 'Clock In') {
+            // Untuk Clock In, kirim ke karyawan yang bersangkutan
+            targetNumber = data.karyawan.nomor_wa;
+        } else {
+            // Untuk Clock Out, kirim ke GROUP WA (owner dan semua karyawan)
+            targetNumber = WA_GROUP_ID;
+        }
+        
+        // Format nomor telepon (hapus 0 di depan, ganti dengan 62)
+        let formattedPhone = targetNumber?.replace(/^0/, '62') || '';
+        
+        // Jika nomor kosong, gunakan nomor owner
+        if (!formattedPhone) {
+            formattedPhone = WA_OWNER_PHONE.replace(/^0/, '62');
+        }
+        
+        // Tambahkan @c.us jika belum ada (untuk personal chat)
+        if (!formattedPhone.includes('@c.us') && !formattedPhone.includes('@g.us')) {
             formattedPhone += '@c.us';
         }
         
-        if (!formattedPhone) {
-            console.warn('No WhatsApp number available');
-            return;
-        }
+        console.log('📤 Mengirim WA ke:', formattedPhone);
         
-        // Construct message
+        // Construct message berdasarkan hasil
         if (data.isValid) {
             if (data.absenType === 'Clock In') {
                 message = `✅ *ABSEN CLOCK IN BERHASIL* ✅\n\n` +
@@ -870,7 +884,8 @@ async function sendWhatsAppNotificationClock(data) {
                          `📅 Tanggal: ${tanggal}\n` +
                          `🕌 Hari: ${hari}\n` +
                          `⌚ Jam Clock In: ${jam}\n` +
-                         `📍 Lokasi: ${data.location.lat?.toFixed(6) || '-'}, ${data.location.lng?.toFixed(6) || '-'}\n\n` +
+                         `📍 Lokasi: ${data.location.lat?.toFixed(6) || '-'}, ${data.location.lng?.toFixed(6) || '-'}\n` +
+                         `🏪 Outlet: ${currentUserOutletClock || '-'}\n\n` +
                          `Selamat bekerja! 💈✂️\n` +
                          `Barokalloh 🙏`;
             } else {
@@ -879,7 +894,8 @@ async function sendWhatsAppNotificationClock(data) {
                          `📅 Tanggal: ${tanggal}\n` +
                          `🕌 Hari: ${hari}\n` +
                          `⌚ Jam Clock Out: ${jam}\n` +
-                         `📍 Lokasi: ${data.location.lat?.toFixed(6) || '-'}, ${data.location.lng?.toFixed(6) || '-'}\n\n` +
+                         `📍 Lokasi: ${data.location.lat?.toFixed(6) || '-'}, ${data.location.lng?.toFixed(6) || '-'}\n` +
+                         `🏪 Outlet: ${currentUserOutletClock || '-'}\n\n` +
                          `Terima kasih, hati-hati di jalan! 🏠\n` +
                          `Barokalloh 🙏`;
             }
@@ -888,60 +904,70 @@ async function sendWhatsAppNotificationClock(data) {
                 message = `⚠️ *GAGAL CLOCK IN* ⚠️\n\n` +
                          `Halo *${data.karyawan.nama_karyawan}*,\n\n` +
                          `📅 Tanggal: ${tanggal}\n` +
-                         `⌚ Waktu: ${jam}\n\n` +
+                         `⌚ Waktu: ${jam}\n` +
                          `❌ *${data.errorMessage || 'Tidak dapat melakukan Clock In'}*\n\n` +
-                         `Silakan hubungi admin jika ada kendala.`;
+                         `Silakan hubungi admin jika ada kendala.\n` +
+                         `📞 Kontak: ${WA_OWNER_PHONE}`;
             } else {
                 message = `⚠️ *GAGAL CLOCK OUT* ⚠️\n\n` +
                          `Halo *${data.karyawan.nama_karyawan}*,\n\n` +
                          `📅 Tanggal: ${tanggal}\n` +
-                         `⌚ Waktu: ${jam}\n\n` +
+                         `⌚ Waktu: ${jam}\n` +
                          `❌ *${data.errorMessage || 'Tidak dapat melakukan Clock Out'}*\n\n` +
-                         `Silakan hubungi admin jika ada kendala.`;
+                         `Silakan hubungi admin jika ada kendala.\n` +
+                         `📞 Kontak: ${WA_OWNER_PHONE}`;
             }
         }
         
-        // Ambil konfigurasi WhatsApp dari localStorage atau window
-        let whatsappConfig = window.appConfig || null;
-        if (!whatsappConfig) {
-            try {
-                const configStr = localStorage.getItem('whatsappConfig');
-                if (configStr) {
-                    whatsappConfig = JSON.parse(configStr);
-                }
-            } catch (e) {
-                console.warn('Failed to parse WhatsApp config');
-            }
-        }
-        
-        if (!whatsappConfig || !whatsappConfig.wahaUrl || !whatsappConfig.wahaXApiKey) {
-            console.warn('WhatsApp config not available, skipping notification');
-            return;
-        }
-        
-        // Send via WhatsApp API
-        const response = await fetch(whatsappConfig.wahaUrl, {
+        // Kirim via WhatsApp API
+        const response = await fetch(WA_API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Api-Key': whatsappConfig.wahaXApiKey
+                'X-Api-Key': WA_API_KEY
             },
             body: JSON.stringify({
-                session: whatsappConfig.wahaSession || 'default',
                 chatId: formattedPhone,
                 text: message
             })
         });
         
         if (!response.ok) {
-            throw new Error(`WhatsApp API error: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`WhatsApp API error: ${response.status} - ${errorText}`);
         }
         
-        console.log('✅ WhatsApp notification sent to:', data.karyawan.nomor_wa);
+        console.log('✅ WhatsApp notification sent to:', targetNumber);
+        
+        // Jika Clock Out, kirim juga notifikasi ke owner (personal chat)
+        if (data.absenType === 'Clock Out' && data.isValid) {
+            const ownerPhone = WA_OWNER_PHONE.replace(/^0/, '62') + '@c.us';
+            
+            const ownerMessage = `📢 *NOTIFIKASI CLOCK OUT*\n\n` +
+                                `Karyawan: ${data.karyawan.nama_karyawan}\n` +
+                                `Outlet: ${currentUserOutletClock || '-'}\n` +
+                                `Tanggal: ${tanggal}\n` +
+                                `Jam: ${jam}\n` +
+                                `Lokasi: ${data.location.lat?.toFixed(6) || '-'}, ${data.location.lng?.toFixed(6) || '-'}`;
+            
+            await fetch(WA_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Api-Key': WA_API_KEY
+                },
+                body: JSON.stringify({
+                    chatId: ownerPhone,
+                    text: ownerMessage
+                })
+            });
+            
+            console.log('✅ Notification also sent to owner:', WA_OWNER_PHONE);
+        }
         
     } catch (error) {
         console.error('❌ WhatsApp notification error:', error);
-        // Don't show error to user
+        // Jangan tampilkan error ke user, cukup log
     }
 }
 
