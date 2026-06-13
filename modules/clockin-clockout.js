@@ -1028,35 +1028,136 @@ function addClockPageStyles() {
             color: #333;
         }
         
-        /* Header */
+        /* Header - Warna sama dengan menu clock (gradient hijau) */
         .clock-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: white;
+            background: linear-gradient(135deg, #28a745, #20c997);
             padding: 15px 20px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.08);
             margin-bottom: 20px;
+            color: white;
         }
         
         .clock-header h2 {
             margin: 0;
-            color: #2c3e50;
+            color: white;
             font-size: 1.5rem;
             display: flex;
             align-items: center;
             gap: 10px;
         }
         
-        /* Info Header */
+        .clock-header h2 i {
+            color: white;
+        }
+        
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateX(-3px);
+        }
+        
+        .refresh-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            margin-left: 10px;
+        }
+        
+        .refresh-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: rotate(90deg);
+        }
+        
+        .refresh-btn.loading i {
+            animation: spin 1s linear infinite;
+        }
+        
+        .realtime-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        
+        .realtime-badge.connected {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .realtime-badge.connected i {
+            color: #fff;
+            font-size: 8px;
+        }
+        
+        .realtime-badge.disconnected {
+            background: rgba(255,255,255,0.2);
+            color: #ffcccc;
+        }
+        
+        .realtime-badge.disconnected i {
+            color: #ff6666;
+            font-size: 8px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Info Header - Warna hijau lebih terang */
         .clock-info-header {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            background: linear-gradient(135deg, #34ce57, #2ee0a6);
             color: white;
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 20px;
             box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
         }
         
         /* DateTime Grid */
@@ -1131,6 +1232,11 @@ function addClockPageStyles() {
             outline: none;
             border-color: #28a745;
             box-shadow: 0 0 0 3px rgba(40,167,69,0.1);
+        }
+        
+        .clock-select:disabled {
+            background: #e9ecef;
+            cursor: not-allowed;
         }
         
         /* Info Grid */
@@ -1277,6 +1383,7 @@ function addClockPageStyles() {
         .clock-submit-btn:disabled {
             opacity: 0.7;
             transform: none;
+            cursor: not-allowed;
         }
         
         /* Status Message */
@@ -1343,77 +1450,15 @@ function addClockPageStyles() {
             padding: 10px;
         }
         
-        /* Refresh Button */
-        .refresh-btn {
-            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-            color: white;
-            border: none;
-            width: 40px;
-            height: 40px;
+        /* Loading Animation */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
             border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-            margin-left: 10px;
-        }
-        
-        .refresh-btn:hover {
-            transform: rotate(90deg);
-        }
-        
-        .refresh-btn.loading i {
             animation: spin 1s linear infinite;
-        }
-        
-        .realtime-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        
-        .realtime-badge.connected {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .realtime-badge.connected i {
-            color: #28a745;
-            font-size: 8px;
-        }
-        
-        .realtime-badge.disconnected {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        .back-btn {
-            background: #6c757d;
-            color: white;
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-        
-        .back-btn:hover {
-            background: #5a6268;
-            transform: translateX(-3px);
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
         
         /* Responsive */
@@ -1436,6 +1481,33 @@ function addClockPageStyles() {
             
             .datetime-value {
                 font-size: 12px;
+            }
+            
+            .info-row {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .clock-header h2 {
+                font-size: 1.2rem;
+            }
+            
+            .back-btn, .refresh-btn {
+                width: 35px;
+                height: 35px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .clock-pin-input {
+                font-size: 16px;
+                letter-spacing: 4px;
+                padding: 10px;
+            }
+            
+            .clock-submit-btn {
+                padding: 12px;
+                font-size: 14px;
             }
         }
     `;
