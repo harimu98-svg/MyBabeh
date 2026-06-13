@@ -845,11 +845,11 @@ async function saveAttendanceClock(karyawan, absenType, action, location) {
 // [13] Send WhatsApp notification
 async function sendWhatsAppNotificationClock(data) {
     try {
-        // Ambil konfigurasi WA dari global scope (sama seperti absensi_dengan_PIN.js)
+        // Ambil konfigurasi WA
         const whatsappConfig = {
             wahaUrl: typeof WA_API_URL !== 'undefined' ? WA_API_URL : window.WA_API_URL,
             wahaXApiKey: typeof WA_API_KEY !== 'undefined' ? WA_API_KEY : window.WA_API_KEY,
-            wahaSession: 'Session1'  // Hardcode session
+            wahaSession: 'Session1'
         };
         
         // Validasi konfigurasi
@@ -865,15 +865,16 @@ async function sendWhatsAppNotificationClock(data) {
         
         let message = '';
         
-        // Format nomor telepon (sama seperti absensi_dengan_PIN.js)
+        // Format nomor telepon
         let formattedPhone = data.karyawan.nomor_wa.replace(/^0/, '62');
         if (!formattedPhone.includes('@c.us')) {
             formattedPhone += '@c.us';
         }
         
         console.log('📤 Mengirim WA ke:', formattedPhone);
+        console.log('📤 Nomor asli:', data.karyawan.nomor_wa);
         
-        // Construct message (sama seperti absensi_dengan_PIN.js)
+        // Construct message
         if (data.isValid) {
             if (data.absenType === 'Clock In') {
                 message = `Terima Kasih, Anda Telah Berhasil Melakukan Absen Clock In\n` +
@@ -900,7 +901,9 @@ async function sendWhatsAppNotificationClock(data) {
             }
         }
         
-        // Kirim via WhatsApp API (sama persis dengan absensi_dengan_PIN.js)
+        console.log('📝 Pesan:', message);
+        
+        // Kirim via WhatsApp API
         const response = await fetch(whatsappConfig.wahaUrl, {
             method: 'POST',
             headers: {
@@ -914,15 +917,19 @@ async function sendWhatsAppNotificationClock(data) {
             })
         });
         
+        // ⭐ Ambil response detail
+        const responseData = await response.json();
+        console.log('📨 Response status:', response.status);
+        console.log('📨 Response data:', responseData);
+        
         if (!response.ok) {
-            throw new Error(`WhatsApp API error: ${response.status}`);
+            throw new Error(`WhatsApp API error: ${response.status} - ${JSON.stringify(responseData)}`);
         }
         
         console.log('✅ WhatsApp notification sent to:', data.karyawan.nomor_wa);
         
     } catch (error) {
         console.error('❌ WhatsApp notification error:', error);
-        // Jangan tampilkan error ke user, cukup log
     }
 }
 // [14] Show status message
