@@ -872,30 +872,35 @@ function addTransaksiPageStyles() {
             color: #333;
         }
         
-        /* Header */
+        /* Header - Warna sama dengan menu transaksi (biru gradient) */
         .transaksi-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
+            background: linear-gradient(135deg, #007bff, #0056b3) !important;
+            padding: 15px 20px !important;
+            border-radius: 10px !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08) !important;
+            margin-bottom: 20px !important;
+            color: white !important;
         }
         
         .transaksi-header h2 {
             margin: 0;
-            color: #2c3e50;
+            color: white;
             font-size: 1.5rem;
             display: flex;
             align-items: center;
             gap: 10px;
         }
         
-        .back-btn {
-            background: #6c757d;
+        .transaksi-header h2 i {
             color: white;
+        }
+        
+        .back-btn {
+            background: rgba(255,255,255,0.2) !important;
+            color: white !important;
             border: none;
             width: 40px;
             height: 40px;
@@ -908,13 +913,13 @@ function addTransaksiPageStyles() {
         }
         
         .back-btn:hover {
-            background: #5a6268;
+            background: rgba(255,255,255,0.3);
             transform: translateX(-3px);
         }
         
         .refresh-btn {
-            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-            color: white;
+            background: rgba(255,255,255,0.2) !important;
+            color: white !important;
             border: none;
             width: 40px;
             height: 40px;
@@ -928,7 +933,7 @@ function addTransaksiPageStyles() {
         }
         
         .refresh-btn:hover {
-            background: linear-gradient(135deg, #495057 0%, #343a40 100%);
+            background: rgba(255,255,255,0.3);
             transform: rotate(90deg);
         }
         
@@ -944,25 +949,26 @@ function addTransaksiPageStyles() {
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
+            background: rgba(255,255,255,0.2);
+            color: white;
         }
         
         .realtime-badge.connected {
-            background: #d4edda;
-            color: #155724;
+            background: rgba(255,255,255,0.3);
         }
         
         .realtime-badge.connected i {
-            color: #28a745;
+            color: #fff;
             font-size: 8px;
         }
         
         .realtime-badge.disconnected {
-            background: #f8d7da;
-            color: #721c24;
+            background: rgba(255,255,255,0.2);
+            color: #ffcccc;
         }
         
         .realtime-badge.disconnected i {
-            color: #dc3545;
+            color: #ff6666;
             font-size: 8px;
         }
         
@@ -971,14 +977,14 @@ function addTransaksiPageStyles() {
             100% { transform: rotate(360deg); }
         }
         
-        /* Info Header */
+        /* Info Header - Warna biru lebih terang */
         .transaksi-info-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #3395ff, #0066cc) !important;
             color: white;
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
         }
         
         .info-row {
@@ -1065,7 +1071,7 @@ function addTransaksiPageStyles() {
         
         .btn-apply-filter {
             padding: 8px 20px;
-            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            background: linear-gradient(135deg, #007bff, #0056b3) !important;
             color: white;
             border: none;
             border-radius: 6px;
@@ -1081,7 +1087,7 @@ function addTransaksiPageStyles() {
         }
         
         .btn-apply-filter:hover {
-            background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+            background: linear-gradient(135deg, #0056b3, #004085);
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,123,255,0.3);
         }
@@ -1119,10 +1125,6 @@ function addTransaksiPageStyles() {
             font-style: italic;
         }
         
-        .update-indicator i {
-            margin-right: 5px;
-        }
-        
         .transaksi-terakhir-card {
             border: 1px solid #e9ecef;
             border-radius: 8px;
@@ -1135,19 +1137,6 @@ function addTransaksiPageStyles() {
             padding: 20px;
             color: #6c757d;
             font-style: italic;
-        }
-        
-        .loading-small:after {
-            content: '';
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            margin-left: 10px;
-            border: 2px solid #007bff;
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            vertical-align: middle;
         }
         
         .empty-state-small {
@@ -1352,7 +1341,6 @@ function addTransaksiPageStyles() {
             font-weight: 600;
         }
         
-        /* Status Badges untuk tabel */
         .status-badge {
             padding: 4px 8px;
             border-radius: 12px;
@@ -1371,25 +1359,11 @@ function addTransaksiPageStyles() {
             white-space: nowrap;
         }
         
-        /* Loading & No Data */
         .loading {
             text-align: center;
             padding: 40px;
             color: #6c757d;
             font-style: italic;
-        }
-        
-        .loading:after {
-            content: '';
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            margin-left: 10px;
-            border: 2px solid #007bff;
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            vertical-align: middle;
         }
         
         .no-data {
@@ -1414,7 +1388,6 @@ function addTransaksiPageStyles() {
             color: #adb5bd;
         }
         
-        /* Footer */
         .transaksi-footer {
             text-align: center;
             color: #6c757d;
@@ -1467,6 +1440,15 @@ function addTransaksiPageStyles() {
                 font-size: 11px;
                 padding: 4px 8px;
             }
+            
+            .transaksi-header h2 {
+                font-size: 1.2rem;
+            }
+            
+            .back-btn, .refresh-btn {
+                width: 35px;
+                height: 35px;
+            }
         }
         
         @media (max-width: 480px) {
@@ -1477,6 +1459,8 @@ function addTransaksiPageStyles() {
     `;
     
     document.head.appendChild(style);
+    
+    console.log('✅ Transaksi page styles added/updated');
 }
 
 // Export functions ke global scope
