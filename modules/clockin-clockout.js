@@ -1,18 +1,23 @@
-// ========== CLOCK IN & CLOCK OUT MODULE ==========
-// ==================================================
+// ========== CLOCK IN & CLOCK OUT MODULE WITH LOCATION VALIDATION ==========
+// ==========================================================================
 
 // Variabel global
 let currentKaryawanClock = null;
 let currentUserOutletClock = null;
 let isOwnerClock = false;
 let realtimeSubscriptionClock = null;
-let currentPosition = { lat: null, lng: null };
+let currentPosition = { lat: null, lng: null, distance: null };
 let karyawanListClock = [];
+let outletLocation = { lat: null, lng: null, name: null };
 
-// [1] Fungsi utama untuk tampilkan halaman Clock In/Out
+// ========== KONFIGURASI ==========
+const MAX_DISTANCE_METERS = 30; // Maksimal jarak 30 meter
+
+// ========== FUNGSI UTAMA ==========
+
 async function showClockPage() {
     try {
-        // Bersihkan subscription lama jika ada
+        // Bersihkan subscription lama
         if (realtimeSubscriptionClock) {
             supabase.removeChannel(realtimeSubscriptionClock);
             realtimeSubscriptionClock = null;
@@ -51,6 +56,9 @@ async function showClockPage() {
         currentUserOutletClock = karyawanData.outlet;
         isOwnerClock = karyawanData.role === 'owner';
         
+        // Ambil lokasi outlet
+        await loadOutletLocation(currentUserOutletClock);
+        
         // Sembunyikan main app, tampilkan halaman clock
         document.getElementById('appScreen').style.display = 'none';
         
@@ -60,7 +68,7 @@ async function showClockPage() {
         // Load data awal
         await loadInitialDataClock();
         
-        // Setup realtime subscription untuk update otomatis
+        // Setup realtime subscription
         setupRealtimeSubscriptionClock();
         
         // Mulai update GPS
@@ -72,20 +80,17 @@ async function showClockPage() {
     }
 }
 
-// [2] Fungsi untuk buat halaman clock
+// [2] Buat halaman clock
 function createClockPage() {
-    // Hapus halaman sebelumnya jika ada
     const existingPage = document.getElementById('clockPage');
     if (existingPage) {
         existingPage.remove();
     }
     
-    // Buat container halaman clock
     const clockPage = document.createElement('div');
     clockPage.id = 'clockPage';
     clockPage.className = 'clock-page';
     clockPage.innerHTML = `
-        <!-- Header -->
         <header class="clock-header">
             <button class="back-btn" id="backToMainFromClock">
                 <i class="fas fa-arrow-left"></i>
@@ -101,7 +106,6 @@ function createClockPage() {
             </div>
         </header>
         
-        <!-- Info Header -->
         <div class="clock-info-header">
             <div class="info-row">
                 <div class="info-item">
@@ -125,7 +129,6 @@ function createClockPage() {
             </div>
         </div>
         
-        <!-- Date Time Display - 3 kolom seperti absensi -->
         <div class="clock-datetime-grid">
             <div class="datetime-card">
                 <div class="datetime-label">Hari</div>
@@ -141,9 +144,7 @@ function createClockPage() {
             </div>
         </div>
         
-        <!-- Main Form Area - Mirip absensi_GPS -->
         <div class="clock-form-container">
-            <!-- Outlet Select (hanya untuk Owner) -->
             ${isOwnerClock ? `
             <div class="form-group">
                 <label><i class="fas fa-store"></i> Outlet</label>
@@ -153,7 +154,6 @@ function createClockPage() {
             </div>
             ` : ''}
             
-            <!-- Karyawan Select -->
             <div class="form-group">
                 <label><i class="fas fa-user"></i> Nama Karyawan</label>
                 <select id="clockKaryawanSelect" class="clock-select">
@@ -161,7 +161,6 @@ function createClockPage() {
                 </select>
             </div>
             
-            <!-- Tipe Absen -->
             <div class="form-group">
                 <label><i class="fas fa-exchange-alt"></i> Tipe Absen</label>
                 <select id="clockTipeAbsen" class="clock-select">
@@ -171,7 +170,6 @@ function createClockPage() {
                 </select>
             </div>
             
-            <!-- Info Posisi & Foto - 2 kolom -->
             <div class="clock-info-grid">
                 <div class="clock-info-card">
                     <div class="info-card-label"><i class="fas fa-briefcase"></i> Posisi</div>
@@ -185,7 +183,6 @@ function createClockPage() {
                 </div>
             </div>
             
-            <!-- GPS Status & Location -->
             <div class="clock-gps-grid">
                 <div class="gps-card">
                     <div class="gps-label"><i class="fas fa-satellite-dish"></i> Status GPS</div>
@@ -194,12 +191,11 @@ function createClockPage() {
                     </div>
                 </div>
                 <div class="gps-card">
-                    <div class="gps-label"><i class="fas fa-map-marker-alt"></i> Latitude / Longitude</div>
-                    <div id="clockLatLong" class="gps-value">-</div>
+                    <div class="gps-label"><i class="fas fa-map-marker-alt"></i> Jarak dari Outlet</div>
+                    <div id="clockDistance" class="gps-value">-</div>
                 </div>
             </div>
             
-            <!-- PIN Input -->
             <div class="form-group pin-group">
                 <label><i class="fas fa-key"></i> PIN 4 Digit</label>
                 <input type="password" 
@@ -213,29 +209,26 @@ function createClockPage() {
                 <div class="pin-hint">Masukkan PIN 4 digit karyawan</div>
             </div>
             
-            <!-- Submit Button -->
             <button id="clockSubmitBtn" class="clock-submit-btn">
                 <i class="fas fa-check-circle"></i> SUBMIT ABSENSI
             </button>
             
-            <!-- Status Message -->
             <div id="clockStatusMsg" class="clock-status-msg"></div>
         </div>
         
-        <!-- Petunjuk -->
         <div class="clock-instructions">
             <h4><i class="fas fa-info-circle"></i> Petunjuk:</h4>
             <ul>
                 <li>Pilih karyawan yang akan absen</li>
                 <li>Pilih tipe absen (Clock In/Out)</li>
                 <li>Pastikan GPS aktif untuk validasi lokasi</li>
+                <li>Pastikan Anda berada dalam radius 30 meter dari outlet</li>
                 <li>Masukkan PIN 4 digit karyawan</li>
                 <li>Klik SUBMIT ABSENSI untuk proses</li>
-                <li>Notifikasi akan dikirim ke WhatsApp</li>
+                <li>Notifikasi WhatsApp hanya untuk absen berhasil</li>
             </ul>
         </div>
         
-        <!-- Footer -->
         <div class="clock-footer">
             <p>Data diperbarui: <span id="lastUpdateTimeClock">-</span></p>
         </div>
@@ -243,19 +236,13 @@ function createClockPage() {
     
     document.body.appendChild(clockPage);
     
-    // Setup event listeners
     setupClockPageEvents();
-    
-    // Mulai update jam realtime
     startClockUpdate();
-    
-    // Tambahkan CSS styling
     addClockPageStyles();
 }
 
 // [3] Setup event listeners
 function setupClockPageEvents() {
-    // Tombol kembali
     const backBtn = document.getElementById('backToMainFromClock');
     if (backBtn) {
         backBtn.addEventListener('click', () => {
@@ -268,7 +255,6 @@ function setupClockPageEvents() {
         });
     }
     
-    // Tombol refresh
     const refreshBtn = document.getElementById('refreshClock');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', async () => {
@@ -279,15 +265,17 @@ function setupClockPageEvents() {
         });
     }
     
-    // Outlet change (untuk owner)
     const outletSelect = document.getElementById('clockOutletSelect');
     if (outletSelect) {
         outletSelect.addEventListener('change', () => {
+            const selectedOutlet = outletSelect.value;
+            if (selectedOutlet) {
+                loadOutletLocation(selectedOutlet);
+            }
             loadKaryawanDropdownClock();
         });
     }
     
-    // Karyawan select change
     const karyawanSelect = document.getElementById('clockKaryawanSelect');
     if (karyawanSelect) {
         karyawanSelect.addEventListener('change', (e) => {
@@ -303,7 +291,6 @@ function setupClockPageEvents() {
                 document.getElementById('clockTipeDisplay').textContent = 
                     document.getElementById('clockTipeAbsen').value || '-';
                 
-                // Focus ke PIN input
                 const tipeAbsen = document.getElementById('clockTipeAbsen').value;
                 if (tipeAbsen) {
                     document.getElementById('clockPinInput').focus();
@@ -316,7 +303,6 @@ function setupClockPageEvents() {
         });
     }
     
-    // Tipe absen change
     const tipeAbsen = document.getElementById('clockTipeAbsen');
     if (tipeAbsen) {
         tipeAbsen.addEventListener('change', (e) => {
@@ -325,7 +311,6 @@ function setupClockPageEvents() {
                 tipeDisplay.textContent = e.target.value || '-';
             }
             
-            // Focus ke PIN jika karyawan sudah dipilih
             const karyawanSelect = document.getElementById('clockKaryawanSelect');
             if (karyawanSelect && karyawanSelect.value && e.target.value) {
                 document.getElementById('clockPinInput').focus();
@@ -333,26 +318,10 @@ function setupClockPageEvents() {
         });
     }
     
-    // PIN input - hanya angka
     const pinInput = document.getElementById('clockPinInput');
     if (pinInput) {
         pinInput.addEventListener('input', (e) => {
             e.target.value = e.target.value.replace(/\D/g, '');
-        });
-        
-        pinInput.addEventListener('keydown', (e) => {
-            if ([46, 8, 9, 27, 13].includes(e.keyCode) ||
-                (e.keyCode === 65 && e.ctrlKey === true) ||
-                (e.keyCode === 67 && e.ctrlKey === true) ||
-                (e.keyCode === 86 && e.ctrlKey === true) ||
-                (e.keyCode === 88 && e.ctrlKey === true) ||
-                (e.keyCode >= 35 && e.keyCode <= 39)) {
-                return;
-            }
-            if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && 
-                (e.keyCode < 96 || e.keyCode > 105)) {
-                e.preventDefault();
-            }
         });
         
         pinInput.addEventListener('keypress', (e) => {
@@ -363,7 +332,6 @@ function setupClockPageEvents() {
         });
     }
     
-    // Submit button
     const submitBtn = document.getElementById('clockSubmitBtn');
     if (submitBtn) {
         submitBtn.addEventListener('click', () => submitClockAttendance());
@@ -395,24 +363,24 @@ function updateClockDateTime() {
 // [5] Start GPS update
 function startGPSUpdate() {
     updateGPSLocation();
-    setInterval(updateGPSLocation, 30000); // Update setiap 30 detik
+    setInterval(updateGPSLocation, 30000);
 }
 
 function updateGPSLocation() {
     const statusEl = document.getElementById('clockStatusGPS');
-    const latLongEl = document.getElementById('clockLatLong');
+    const distanceEl = document.getElementById('clockDistance');
     
     if (!navigator.geolocation) {
         if (statusEl) {
             statusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> GPS Tidak Tersedia';
             statusEl.className = 'gps-value status-error';
         }
-        if (latLongEl) latLongEl.textContent = 'Tidak didukung';
+        if (distanceEl) distanceEl.textContent = 'Tidak didukung';
         return;
     }
     
     navigator.geolocation.getCurrentPosition(
-        (position) => {
+        async (position) => {
             currentPosition.lat = position.coords.latitude;
             currentPosition.lng = position.coords.longitude;
             
@@ -420,8 +388,21 @@ function updateGPSLocation() {
                 statusEl.innerHTML = '<i class="fas fa-check-circle"></i> GPS Aktif';
                 statusEl.className = 'gps-value status-active';
             }
-            if (latLongEl) {
-                latLongEl.textContent = `${currentPosition.lat.toFixed(6)} / ${currentPosition.lng.toFixed(6)}`;
+            
+            // Hitung jarak dari outlet jika outlet location tersedia
+            if (outletLocation.lat && outletLocation.lng) {
+                const distance = calculateDistance(
+                    currentPosition.lat, currentPosition.lng,
+                    outletLocation.lat, outletLocation.lng
+                );
+                currentPosition.distance = distance;
+                if (distanceEl) {
+                    const isWithinRange = distance <= MAX_DISTANCE_METERS;
+                    distanceEl.innerHTML = `${distance.toFixed(1)} meter ${isWithinRange ? '✅' : '❌'}`;
+                    distanceEl.style.color = isWithinRange ? '#28a745' : '#dc3545';
+                }
+            } else {
+                if (distanceEl) distanceEl.textContent = 'Outlet tidak ditemukan';
             }
         },
         (error) => {
@@ -430,21 +411,7 @@ function updateGPSLocation() {
                 statusEl.innerHTML = '<i class="fas fa-times-circle"></i> GPS Tidak Aktif';
                 statusEl.className = 'gps-value status-error';
             }
-            if (latLongEl) latLongEl.textContent = 'Aktifkan GPS';
-            
-            let errorMsg = '';
-            switch(error.code) {
-                case error.PERMISSION_DENIED:
-                    errorMsg = 'Izin lokasi ditolak';
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    errorMsg = 'Lokasi tidak tersedia';
-                    break;
-                case error.TIMEOUT:
-                    errorMsg = 'Timeout';
-                    break;
-            }
-            showClockStatus(`GPS: ${errorMsg}`, 'error');
+            if (distanceEl) distanceEl.textContent = 'Aktifkan GPS';
         },
         {
             enableHighAccuracy: true,
@@ -454,7 +421,487 @@ function updateGPSLocation() {
     );
 }
 
-// [6] Load initial data
+// [6] Load outlet location
+async function loadOutletLocation(outletName) {
+    try {
+        const { data, error } = await supabase
+            .from('outlet')
+            .select('outlet, outlet_lat, outlet_long')
+            .eq('outlet', outletName)
+            .single();
+        
+        if (error) throw error;
+        
+        if (data && data.outlet_lat && data.outlet_long) {
+            outletLocation = {
+                name: data.outlet,
+                lat: parseFloat(data.outlet_lat),
+                lng: parseFloat(data.outlet_long)
+            };
+            console.log('📍 Outlet location loaded:', outletLocation);
+            
+            // Update tampilan jarak
+            const distanceEl = document.getElementById('clockDistance');
+            if (distanceEl && currentPosition.lat && currentPosition.lng) {
+                const distance = calculateDistance(
+                    currentPosition.lat, currentPosition.lng,
+                    outletLocation.lat, outletLocation.lng
+                );
+                currentPosition.distance = distance;
+                const isWithinRange = distance <= MAX_DISTANCE_METERS;
+                distanceEl.innerHTML = `${distance.toFixed(1)} meter ${isWithinRange ? '✅' : '❌'}`;
+                distanceEl.style.color = isWithinRange ? '#28a745' : '#dc3545';
+            }
+        } else {
+            console.warn('Outlet location not available for:', outletName);
+        }
+    } catch (error) {
+        console.error('Error loading outlet location:', error);
+    }
+}
+
+// [7] Hitung jarak dalam meter
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+// [8] Validasi lokasi
+async function validateLocation() {
+    if (!outletLocation.lat || !outletLocation.lng) {
+        return { valid: false, distance: null, message: 'Lokasi outlet tidak tersedia' };
+    }
+    
+    if (!currentPosition.lat || !currentPosition.lng) {
+        return { valid: false, distance: null, message: 'GPS tidak aktif. Silakan aktifkan GPS.' };
+    }
+    
+    const distance = calculateDistance(
+        currentPosition.lat, currentPosition.lng,
+        outletLocation.lat, outletLocation.lng
+    );
+    
+    currentPosition.distance = distance;
+    const isValid = distance <= MAX_DISTANCE_METERS;
+    
+    return {
+        valid: isValid,
+        distance: distance,
+        message: isValid 
+            ? `Jarak ${distance.toFixed(1)} meter (maks ${MAX_DISTANCE_METERS} m) ✅`
+            : `Jarak ${distance.toFixed(1)} meter (maks ${MAX_DISTANCE_METERS} m) ❌`
+    };
+}
+
+// [9] Format tanggal untuk id_uniq (DD/MM/YYYY)
+function formatDateForId(date) {
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+}
+
+function getDayNameClock(dayIndex) {
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    return days[dayIndex] || 'Minggu';
+}
+
+// [10] Cek status absensi hari ini
+async function checkAttendanceStatusClock(nomorWA, tanggal) {
+    try {
+        const id_uniq = `${nomorWA}%${tanggal}`;
+        
+        const { data, error } = await supabase
+            .from('absen')
+            .select('clockin, clockout, id_uniq')
+            .eq('id_uniq', id_uniq)
+            .maybeSingle();
+        
+        if (error && error.code !== 'PGRST116') {
+            console.error('Error checking attendance:', error);
+            return null;
+        }
+        
+        return data || null;
+        
+    } catch (error) {
+        console.error('Error checking attendance:', error);
+        return null;
+    }
+}
+
+// [11] Verify PIN
+async function verifyPINClock(karyawanNama, enteredPIN) {
+    try {
+        const { data, error } = await supabase
+            .from('karyawan')
+            .select('pin')
+            .eq('nama_karyawan', karyawanNama)
+            .single();
+        
+        if (error) {
+            console.error('Error fetching PIN:', error);
+            return false;
+        }
+        
+        const storedPIN = data?.pin?.toString() || '';
+        const inputPIN = enteredPIN.toString();
+        
+        return storedPIN === inputPIN;
+        
+    } catch (error) {
+        console.error('PIN verification error:', error);
+        return false;
+    }
+}
+
+// [12] Simpan absen ke database
+async function saveAttendanceClock(karyawan, absenType, locationData, distance) {
+    try {
+        const now = new Date();
+        const tanggal = formatDateForId(now);
+        const hari = getDayNameClock(now.getDay());
+        const waktu = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        const id_uniq = `${karyawan.nomor_wa}%${tanggal}`;
+        
+        let outlet = currentUserOutletClock;
+        if (isOwnerClock) {
+            const outletSelect = document.getElementById('clockOutletSelect');
+            if (outletSelect && outletSelect.value) {
+                outlet = outletSelect.value;
+            }
+        }
+        
+        const existingData = await checkAttendanceStatusClock(karyawan.nomor_wa, tanggal);
+        
+        if (absenType === 'Clock In') {
+            if (!existingData) {
+                const data = {
+                    tanggal: tanggal,
+                    hari: hari,
+                    nama: karyawan.nama_karyawan,
+                    id_uniq: id_uniq,
+                    nomor_wa: karyawan.nomor_wa,
+                    outlet: outlet,
+                    clockin: waktu,
+                    clockout: null,
+                    longitude: locationData.lng ? locationData.lng.toString() : null,
+                    latitude: locationData.lat ? locationData.lat.toString() : null,
+                    jarak: distance ? distance.toString() : null,
+                    token: null,
+                    token_expired: null,
+                    jamkerja: null,
+                    status_kehadiran: null,
+                    over_time: null,
+                    over_time_rp: null,
+                    gaji_pokok: null
+                };
+                
+                const { error } = await supabase.from('absen').insert([data]);
+                if (error) throw error;
+                console.log('✅ Clock In saved');
+                return true;
+                
+            } else if (existingData.clockin && !existingData.clockout) {
+                return { success: false, error: 'SUDAH_CLOCKIN', data: existingData };
+            } else if (existingData.clockin && existingData.clockout) {
+                return { success: false, error: 'SUDAH_CLOCKOUT', data: existingData };
+            }
+            
+        } else if (absenType === 'Clock Out') {
+            if (!existingData) {
+                return { success: false, error: 'BELUM_CLOCKIN', data: null };
+            } else if (existingData.clockin && !existingData.clockout) {
+                const { error } = await supabase
+                    .from('absen')
+                    .update({ 
+                        clockout: waktu,
+                        longitude: locationData.lng ? locationData.lng.toString() : null,
+                        latitude: locationData.lat ? locationData.lat.toString() : null,
+                        jarak: distance ? distance.toString() : null
+                    })
+                    .eq('id_uniq', id_uniq);
+                
+                if (error) throw error;
+                console.log('✅ Clock Out updated');
+                return true;
+                
+            } else if (existingData.clockin && existingData.clockout) {
+                return { success: false, error: 'SUDAH_CLOCKOUT', data: existingData };
+            }
+        }
+        
+        return false;
+        
+    } catch (error) {
+        console.error('Save attendance error:', error);
+        return false;
+    }
+}
+
+// [13] Kirim WhatsApp (HANYA saat berhasil)
+async function sendWhatsAppNotificationClock(karyawan, absenType, distance) {
+    try {
+        const now = new Date();
+        const tanggal = formatDateForId(now);
+        const hari = getDayNameClock(now.getDay());
+        const jam = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        
+        const whatsappConfig = {
+            wahaUrl: typeof WA_API_URL !== 'undefined' ? WA_API_URL : window.WA_API_URL,
+            wahaXApiKey: typeof WA_API_KEY !== 'undefined' ? WA_API_KEY : window.WA_API_KEY,
+            wahaSession: 'Session1'
+        };
+        
+        if (!whatsappConfig.wahaUrl || !whatsappConfig.wahaXApiKey) {
+            console.warn('WhatsApp config not available');
+            return;
+        }
+        
+        let formattedPhone = karyawan.nomor_wa.replace(/^0/, '62');
+        if (!formattedPhone.includes('@c.us')) {
+            formattedPhone += '@c.us';
+        }
+        
+        let message = '';
+        if (absenType === 'Clock In') {
+            message = `✅ *ABSEN CLOCK IN BERHASIL* ✅\n\n` +
+                     `Halo *${karyawan.nama_karyawan}*,\n\n` +
+                     `📅 Tanggal: ${tanggal}\n` +
+                     `🕌 Hari: ${hari}\n` +
+                     `⌚ Jam Clock In: ${jam}\n` +
+                     `📍 Jarak dari outlet: ${distance ? distance.toFixed(1) : '?'} meter\n` +
+                     `🏪 Outlet: ${currentUserOutletClock || '-'}\n\n` +
+                     `Selamat bekerja! 💈✂️\n` +
+                     `Barokalloh 🙏`;
+        } else {
+            message = `✅ *ABSEN CLOCK OUT BERHASIL* ✅\n\n` +
+                     `Halo *${karyawan.nama_karyawan}*,\n\n` +
+                     `📅 Tanggal: ${tanggal}\n` +
+                     `🕌 Hari: ${hari}\n` +
+                     `⌚ Jam Clock Out: ${jam}\n` +
+                     `📍 Jarak dari outlet: ${distance ? distance.toFixed(1) : '?'} meter\n` +
+                     `🏪 Outlet: ${currentUserOutletClock || '-'}\n\n` +
+                     `Terima kasih, hati-hati di jalan! 🏠\n` +
+                     `Barokalloh 🙏`;
+        }
+        
+        const response = await fetch(whatsappConfig.wahaUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Api-Key': whatsappConfig.wahaXApiKey
+            },
+            body: JSON.stringify({
+                session: whatsappConfig.wahaSession,
+                chatId: formattedPhone,
+                text: message
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`WhatsApp API error: ${response.status}`);
+        }
+        
+        console.log('✅ WhatsApp notification sent to:', karyawan.nomor_wa);
+        
+    } catch (error) {
+        console.error('WhatsApp notification error:', error);
+    }
+}
+
+// [14] Submit attendance
+async function submitClockAttendance() {
+    const submitBtn = document.getElementById('clockSubmitBtn');
+    const karyawanSelect = document.getElementById('clockKaryawanSelect');
+    const tipeAbsen = document.getElementById('clockTipeAbsen');
+    const pinInput = document.getElementById('clockPinInput');
+    
+    const karyawanNama = karyawanSelect?.value;
+    const absenType = tipeAbsen?.value;
+    const enteredPIN = pinInput?.value;
+    
+    // Validasi input
+    if (!karyawanNama) {
+        showClockStatus('Pilih karyawan terlebih dahulu', 'error');
+        return;
+    }
+    
+    if (!absenType) {
+        showClockStatus('Pilih tipe absen (Clock In/Out)', 'error');
+        return;
+    }
+    
+    if (!enteredPIN || enteredPIN.length !== 4 || !/^\d{4}$/.test(enteredPIN)) {
+        showClockStatus('PIN harus 4 digit angka', 'error');
+        pinInput?.focus();
+        return;
+    }
+    
+    if (!currentPosition.lat || !currentPosition.lng) {
+        showClockStatus('Aktifkan GPS untuk melanjutkan absensi', 'error');
+        updateGPSLocation();
+        return;
+    }
+    
+    if (!outletLocation.lat || !outletLocation.lng) {
+        showClockStatus('Lokasi outlet tidak tersedia. Hubungi admin.', 'error');
+        return;
+    }
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Memproses...';
+    
+    try {
+        const isPINValid = await verifyPINClock(karyawanNama, enteredPIN);
+        if (!isPINValid) {
+            showClockStatus('PIN salah! Silakan coba lagi.', 'error');
+            pinInput.value = '';
+            pinInput.focus();
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> SUBMIT ABSENSI';
+            return;
+        }
+        
+        const karyawan = karyawanListClock.find(k => k.nama_karyawan === karyawanNama);
+        if (!karyawan) {
+            showClockStatus('Data karyawan tidak ditemukan', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> SUBMIT ABSENSI';
+            return;
+        }
+        
+        // Validasi lokasi
+        const locationValidation = await validateLocation();
+        if (!locationValidation.valid) {
+            showClockStatus(`❌ Absen gagal! Jarak ${locationValidation.distance?.toFixed(1)} meter dari outlet. Maksimal ${MAX_DISTANCE_METERS} meter.`, 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> SUBMIT ABSENSI';
+            return;
+        }
+        
+        const now = new Date();
+        const tanggal = formatDateForId(now);
+        const existingData = await checkAttendanceStatusClock(karyawan.nomor_wa, tanggal);
+        
+        let isValid = false;
+        let errorMessage = null;
+        
+        if (absenType === 'Clock In') {
+            if (!existingData) {
+                isValid = true;
+            } else if (existingData.clockin && !existingData.clockout) {
+                isValid = false;
+                errorMessage = 'SUDAH_CLOCKIN';
+            } else if (existingData.clockin && existingData.clockout) {
+                isValid = false;
+                errorMessage = 'SUDAH_CLOCKOUT';
+            }
+        } else if (absenType === 'Clock Out') {
+            if (!existingData) {
+                isValid = false;
+                errorMessage = 'BELUM_CLOCKIN';
+            } else if (existingData.clockin && !existingData.clockout) {
+                isValid = true;
+            } else if (existingData.clockin && existingData.clockout) {
+                isValid = false;
+                errorMessage = 'SUDAH_CLOCKOUT';
+            }
+        }
+        
+        if (!isValid) {
+            const errorMessages = {
+                'SUDAH_CLOCKIN': '❌ Anda sudah melakukan Clock In hari ini!',
+                'SUDAH_CLOCKOUT': '❌ Anda sudah melakukan Clock Out hari ini!',
+                'BELUM_CLOCKIN': '❌ Anda belum melakukan Clock In hari ini!'
+            };
+            showClockStatus(errorMessages[errorMessage] || '❌ Absen tidak valid', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> SUBMIT ABSENSI';
+            return;
+        }
+        
+        // Validasi lokasi sekali lagi sebelum simpan
+        const finalLocationCheck = await validateLocation();
+        if (!finalLocationCheck.valid) {
+            showClockStatus(`❌ Absen gagal! Jarak ${finalLocationCheck.distance?.toFixed(1)} meter dari outlet.`, 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> SUBMIT ABSENSI';
+            return;
+        }
+        
+        // Simpan ke database
+        const saveResult = await saveAttendanceClock(
+            karyawan, absenType, currentPosition, finalLocationCheck.distance
+        );
+        
+        if (saveResult === true) {
+            // HANYA KIRIM WA SAAT BERHASIL
+            await sendWhatsAppNotificationClock(karyawan, absenType, finalLocationCheck.distance);
+            showClockStatus(`✅ Absen ${absenType} berhasil! Jarak: ${finalLocationCheck.distance?.toFixed(1)} meter dari outlet.`, 'success');
+            
+            setTimeout(() => {
+                if (!isOwnerClock) {
+                    if (tipeAbsen) tipeAbsen.value = '';
+                    if (pinInput) pinInput.value = '';
+                    if (document.getElementById('clockTipeDisplay')) {
+                        document.getElementById('clockTipeDisplay').textContent = '-';
+                    }
+                } else {
+                    if (karyawanSelect) karyawanSelect.value = '';
+                    if (tipeAbsen) tipeAbsen.value = '';
+                    if (pinInput) pinInput.value = '';
+                    if (document.getElementById('clockPosisi')) {
+                        document.getElementById('clockPosisi').textContent = '-';
+                    }
+                    if (document.getElementById('clockFoto')) {
+                        document.getElementById('clockFoto').src = 'assets/logo.jpg';
+                    }
+                    if (document.getElementById('clockTipeDisplay')) {
+                        document.getElementById('clockTipeDisplay').textContent = '-';
+                    }
+                }
+            }, 2000);
+            
+        } else if (saveResult === false) {
+            showClockStatus('Gagal menyimpan absensi ke database', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Submit error:', error);
+        showClockStatus('Terjadi kesalahan: ' + error.message, 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> SUBMIT ABSENSI';
+    }
+}
+
+// [15] Show status message di aplikasi
+function showClockStatus(message, type) {
+    const statusEl = document.getElementById('clockStatusMsg');
+    if (!statusEl) return;
+    
+    statusEl.innerHTML = `
+        <div class="status-${type}">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+            ${message}
+        </div>
+    `;
+    
+    setTimeout(() => {
+        if (statusEl.innerHTML.includes(message)) {
+            statusEl.innerHTML = '';
+        }
+    }, 5000);
+}
+
+// [16] Load initial data
 async function loadInitialDataClock() {
     try {
         if (isOwnerClock) {
@@ -466,7 +913,7 @@ async function loadInitialDataClock() {
     }
 }
 
-// [7] Load outlet dropdown
+// [17] Load outlet dropdown
 async function loadOutletDropdownClock() {
     const select = document.getElementById('clockOutletSelect');
     if (!select) return;
@@ -489,13 +936,14 @@ async function loadOutletDropdownClock() {
         
         if (currentUserOutletClock) {
             select.value = currentUserOutletClock;
+            await loadOutletLocation(currentUserOutletClock);
         }
     } catch (error) {
         console.error('Error loading outlets:', error);
     }
 }
 
-// [8] Load karyawan dropdown
+// [18] Load karyawan dropdown
 async function loadKaryawanDropdownClock() {
     const select = document.getElementById('clockKaryawanSelect');
     if (!select) return;
@@ -507,6 +955,7 @@ async function loadKaryawanDropdownClock() {
             const outletSelect = document.getElementById('clockOutletSelect');
             if (outletSelect && outletSelect.value) {
                 outletFilter = outletSelect.value;
+                await loadOutletLocation(outletFilter);
             }
         }
         
@@ -522,7 +971,6 @@ async function loadKaryawanDropdownClock() {
             .eq('status', 'active')
             .order('nama_karyawan');
         
-        // Jika bukan owner, hanya tampilkan dirinya sendiri
         if (!isOwnerClock) {
             query = query.eq('nama_karyawan', currentKaryawanClock.nama_karyawan);
         }
@@ -533,28 +981,20 @@ async function loadKaryawanDropdownClock() {
         
         karyawanListClock = karyawan || [];
         
-        if (karyawanListClock.length === 0) {
-            select.innerHTML = '<option value="">Tidak ada karyawan</option>';
-            return;
-        }
-        
         let options = '<option value="">Pilih karyawan...</option>';
         karyawanListClock.forEach(k => {
             options += `<option value="${k.nama_karyawan}" 
                                data-posisi="${k.posisi || '-'}"
                                data-nomor-wa="${k.nomor_wa || ''}"
-                               data-foto="${k.photo_url || 'assets/logo.jpg'}"
-                               data-pin="${k.pin || ''}">
+                               data-foto="${k.photo_url || 'assets/logo.jpg'}">
                             ${k.nama_karyawan} ${k.posisi ? `(${k.posisi})` : ''}
                         </option>`;
         });
         
         select.innerHTML = options;
         
-        // Jika bukan owner dan hanya 1 karyawan, auto select
         if (!isOwnerClock && karyawanListClock.length === 1) {
             select.value = karyawanListClock[0].nama_karyawan;
-            // Trigger change event
             const event = new Event('change');
             select.dispatchEvent(event);
         }
@@ -565,394 +1005,7 @@ async function loadKaryawanDropdownClock() {
     }
 }
 
-// [9] Verify PIN dari database
-async function verifyPINClock(karyawanNama, enteredPIN) {
-    try {
-        const karyawan = karyawanListClock.find(k => k.nama_karyawan === karyawanNama);
-        if (!karyawan) {
-            console.error('Karyawan not found');
-            return false;
-        }
-        
-        // Ambil PIN dari database langsung
-        const { data, error } = await supabase
-            .from('karyawan')
-            .select('pin')
-            .eq('nama_karyawan', karyawanNama)
-            .single();
-        
-        if (error) {
-            console.error('Error fetching PIN:', error);
-            return false;
-        }
-        
-        const storedPIN = data?.pin || '';
-        const isValid = storedPIN === enteredPIN;
-        console.log(`PIN validation: ${isValid ? 'Valid' : 'Invalid'}`);
-        
-        return isValid;
-        
-    } catch (error) {
-        console.error('PIN verification error:', error);
-        return false;
-    }
-}
-
-// [10] Cek status absensi hari ini
-async function checkAttendanceStatusClock(nomorWA) {
-    try {
-        const today = new Date();
-        const tanggal = formatDateClock(today);
-        const id_uniq = `${nomorWA}%${tanggal}`;
-        
-        const { data, error } = await supabase
-            .from('absen')
-            .select('clockin, clockout')
-            .eq('id_uniq', id_uniq)
-            .maybeSingle();
-        
-        if (error && error.code !== 'PGRST116') {
-            console.error('Error checking attendance:', error);
-            return null;
-        }
-        
-        return data || null;
-        
-    } catch (error) {
-        console.error('Error checking attendance:', error);
-        return null;
-    }
-}
-
-// [11] Submit attendance
-async function submitClockAttendance() {
-    const submitBtn = document.getElementById('clockSubmitBtn');
-    const karyawanSelect = document.getElementById('clockKaryawanSelect');
-    const tipeAbsen = document.getElementById('clockTipeAbsen');
-    const pinInput = document.getElementById('clockPinInput');
-    
-    const karyawanNama = karyawanSelect?.value;
-    const absenType = tipeAbsen?.value;
-    const enteredPIN = pinInput?.value;
-    
-    // Validasi
-    if (!karyawanNama) {
-        showClockStatus('Pilih karyawan terlebih dahulu', 'error');
-        karyawanSelect?.focus();
-        return;
-    }
-    
-    if (!absenType) {
-        showClockStatus('Pilih tipe absen (Clock In/Out)', 'error');
-        tipeAbsen?.focus();
-        return;
-    }
-    
-    if (!enteredPIN || enteredPIN.length !== 4 || !/^\d{4}$/.test(enteredPIN)) {
-        showClockStatus('PIN harus 4 digit angka', 'error');
-        pinInput?.focus();
-        return;
-    }
-    
-    // Cek GPS
-    if (!currentPosition.lat || !currentPosition.lng) {
-        showClockStatus('Aktifkan GPS untuk melanjutkan absensi', 'error');
-        updateGPSLocation();
-        return;
-    }
-    
-    // Disable submit button
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Memproses...';
-    
-    try {
-        // Verifikasi PIN
-        const isPINValid = await verifyPINClock(karyawanNama, enteredPIN);
-        if (!isPINValid) {
-            showClockStatus('PIN salah! Silakan coba lagi.', 'error');
-            pinInput.value = '';
-            pinInput.focus();
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> SUBMIT ABSENSI';
-            return;
-        }
-        
-        // Cari data karyawan lengkap
-        const karyawan = karyawanListClock.find(k => k.nama_karyawan === karyawanNama);
-        if (!karyawan) {
-            showClockStatus('Data karyawan tidak ditemukan', 'error');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> SUBMIT ABSENSI';
-            return;
-        }
-        
-        const nomorWA = karyawan.nomor_wa;
-        const todayData = await checkAttendanceStatusClock(nomorWA);
-        
-        // Validasi berdasarkan tipe absen
-        let isValid = false;
-        let action = null;
-        let errorMessage = null;
-        
-        if (absenType === 'Clock In') {
-            if (!todayData) {
-                isValid = true;
-                action = 'insert';
-            } else if (todayData.clockin && !todayData.clockout) {
-                isValid = false;
-                errorMessage = 'Karyawan sudah Clock In hari ini';
-            } else if (todayData.clockin && todayData.clockout) {
-                isValid = false;
-                errorMessage = 'Karyawan sudah Clock Out hari ini';
-            }
-        } else if (absenType === 'Clock Out') {
-            if (!todayData) {
-                isValid = false;
-                errorMessage = 'Karyawan belum Clock In hari ini';
-            } else if (todayData.clockin && !todayData.clockout) {
-                isValid = true;
-                action = 'update';
-            } else if (todayData.clockin && todayData.clockout) {
-                isValid = false;
-                errorMessage = 'Karyawan sudah Clock Out hari ini';
-            }
-        }
-        
-        // Kirim notifikasi WhatsApp (selalu kirim)
-        await sendWhatsAppNotificationClock({
-            karyawan: karyawan,
-            absenType: absenType,
-            isValid: isValid,
-            errorMessage: errorMessage,
-            existingData: todayData,
-            location: currentPosition
-        });
-        
-        // Jika valid, simpan ke database
-        if (isValid) {
-            const success = await saveAttendanceClock(karyawan, absenType, action, currentPosition);
-            if (success) {
-                showClockStatus(`✅ Absensi ${absenType} berhasil! Notifikasi telah dikirim ke WhatsApp.`, 'success');
-                
-                // Reset form setelah 2 detik
-                setTimeout(() => {
-                    if (!isOwnerClock) {
-                        // Reset tipe absen dan PIN saja
-                        if (tipeAbsen) tipeAbsen.value = '';
-                        if (pinInput) pinInput.value = '';
-                        if (document.getElementById('clockTipeDisplay')) {
-                            document.getElementById('clockTipeDisplay').textContent = '-';
-                        }
-                    } else {
-                        if (karyawanSelect) karyawanSelect.value = '';
-                        if (tipeAbsen) tipeAbsen.value = '';
-                        if (pinInput) pinInput.value = '';
-                        if (document.getElementById('clockPosisi')) {
-                            document.getElementById('clockPosisi').textContent = '-';
-                        }
-                        if (document.getElementById('clockFoto')) {
-                            document.getElementById('clockFoto').src = 'assets/logo.jpg';
-                        }
-                        if (document.getElementById('clockTipeDisplay')) {
-                            document.getElementById('clockTipeDisplay').textContent = '-';
-                        }
-                    }
-                }, 2000);
-            } else {
-                showClockStatus('Gagal menyimpan absensi ke database', 'error');
-            }
-        } else {
-            showClockStatus(errorMessage || 'Absensi tidak valid', 'error');
-        }
-        
-    } catch (error) {
-        console.error('Submit error:', error);
-        showClockStatus('Terjadi kesalahan: ' + error.message, 'error');
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> SUBMIT ABSENSI';
-    }
-}
-
-// [12] Save attendance to database
-async function saveAttendanceClock(karyawan, absenType, action, location) {
-    try {
-        const now = new Date();
-        const tanggal = formatDateClock(now);
-        const hari = getDayNameClock(now.getDay());
-        const waktu = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        
-        // Dapatkan outlet dari user yang login atau dari karyawan
-        let outlet = currentUserOutletClock;
-        if (isOwnerClock) {
-            const outletSelect = document.getElementById('clockOutletSelect');
-            if (outletSelect && outletSelect.value) {
-                outlet = outletSelect.value;
-            }
-        }
-        
-        const data = {
-            tanggal: tanggal,
-            hari: hari,
-            nama: karyawan.nama_karyawan,
-            id_uniq: `${karyawan.nomor_wa}%${tanggal}`,
-            nomor_wa: karyawan.nomor_wa,
-            outlet: outlet,
-            token: null,
-            token_expired: null,
-            longitude: location.lng ? location.lng.toString() : null,
-            latitude: location.lat ? location.lat.toString() : null,
-            jarak: null,
-            jamkerja: null,
-            status_kehadiran: null,
-            over_time: null,
-            over_time_rp: null,
-            gaji_pokok: null
-        };
-        
-        if (action === 'insert') {
-            // Clock In
-            data.clockin = waktu;
-            data.clockout = null;
-            
-            const { error } = await supabase
-                .from('absen')
-                .insert([data]);
-            
-            if (error) throw error;
-            console.log('✅ Clock In saved:', data);
-            
-        } else if (action === 'update') {
-            // Clock Out - update existing record
-            const { error } = await supabase
-                .from('absen')
-                .update({ clockout: waktu })
-                .eq('id_uniq', data.id_uniq);
-            
-            if (error) throw error;
-            console.log('✅ Clock Out updated:', data.id_uniq, waktu);
-        }
-        
-        return true;
-        
-    } catch (error) {
-        console.error('Save attendance error:', error);
-        return false;
-    }
-}
-
-    
-// [13] Send WhatsApp notification
-async function sendWhatsAppNotificationClock(data) {
-    try {
-        // Ambil konfigurasi WA
-        const whatsappConfig = {
-            wahaUrl: typeof WA_API_URL !== 'undefined' ? WA_API_URL : window.WA_API_URL,
-            wahaXApiKey: typeof WA_API_KEY !== 'undefined' ? WA_API_KEY : window.WA_API_KEY,
-            wahaSession: 'Session1'
-        };
-        
-        // Validasi konfigurasi
-        if (!whatsappConfig.wahaUrl || !whatsappConfig.wahaXApiKey) {
-            console.warn('⚠️ WhatsApp config not available');
-            return;
-        }
-        
-        const now = new Date();
-        const tanggal = formatDateClock(now);
-        const hari = getDayNameClock(now.getDay());
-        const jam = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        
-        let message = '';
-        
-        // Format nomor telepon
-        let formattedPhone = data.karyawan.nomor_wa.replace(/^0/, '62');
-        if (!formattedPhone.includes('@c.us')) {
-            formattedPhone += '@c.us';
-        }
-        
-        console.log('📤 Mengirim WA ke:', formattedPhone);
-        console.log('📤 Nomor asli:', data.karyawan.nomor_wa);
-        
-        // Construct message
-        if (data.isValid) {
-            if (data.absenType === 'Clock In') {
-                message = `Terima Kasih, Anda Telah Berhasil Melakukan Absen Clock In\n` +
-                         `🕌 Hari : ${hari}\n` +
-                         `📅 Tanggal : ${tanggal}\n` +
-                         `⌚ Jam : ${jam}\n` +
-                         `Selamat Bekerja. Barokalloh`;
-            } else {
-                message = `Terima Kasih, Anda Telah Berhasil Melakukan Absen Clock Out\n` +
-                         `🕌 Hari : ${hari}\n` +
-                         `📅 Tanggal : ${tanggal}\n` +
-                         `⌚ Jam : ${jam}\n` +
-                         `Hati-hati di jalan. Barokalloh`;
-            }
-        } else {
-            if (data.absenType === 'Clock In') {
-                message = `Anda Sudah Clockin Hari Ini\n` +
-                         `🏆 Hari : ${hari}\n` +
-                         `📅 Tanggal : ${tanggal}\n` +
-                         `⌚ Jam : ${data.existingData?.clockin || jam}\n` +
-                         `Clockin Hanya 1X setiap Hari`;
-            } else {
-                message = `Anda Belum Melakukan ClockIn, Silahkan ClockIn Terlebih Dahulu Sebelum Clockout`;
-            }
-        }
-        
-        console.log('📝 Pesan:', message);
-        
-        // Kirim via WhatsApp API
-        const response = await fetch(whatsappConfig.wahaUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Api-Key': whatsappConfig.wahaXApiKey
-            },
-            body: JSON.stringify({
-                session: whatsappConfig.wahaSession,
-                chatId: formattedPhone,
-                text: message
-            })
-        });
-        
-        // ⭐ Ambil response detail
-        const responseData = await response.json();
-        console.log('📨 Response status:', response.status);
-        console.log('📨 Response data:', responseData);
-        
-        if (!response.ok) {
-            throw new Error(`WhatsApp API error: ${response.status} - ${JSON.stringify(responseData)}`);
-        }
-        
-        console.log('✅ WhatsApp notification sent to:', data.karyawan.nomor_wa);
-        
-    } catch (error) {
-        console.error('❌ WhatsApp notification error:', error);
-    }
-}
-// [14] Show status message
-function showClockStatus(message, type) {
-    const statusEl = document.getElementById('clockStatusMsg');
-    if (!statusEl) return;
-    
-    statusEl.innerHTML = `
-        <div class="status-${type}">
-            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
-            ${message}
-        </div>
-    `;
-    
-    // Auto hide after 5 seconds
-    setTimeout(() => {
-        if (statusEl.innerHTML.includes(message)) {
-            statusEl.innerHTML = '';
-        }
-    }, 5000);
-}
-
-// [15] Setup realtime subscription
+// [19] Setup realtime subscription
 function setupRealtimeSubscriptionClock() {
     try {
         const channelName = `clock-realtime-${Date.now()}`;
@@ -968,7 +1021,6 @@ function setupRealtimeSubscriptionClock() {
                 },
                 async (payload) => {
                     console.log('New attendance detected:', payload);
-                    
                     const lastUpdate = document.getElementById('lastUpdateTimeClock');
                     if (lastUpdate) {
                         const now = new Date();
@@ -978,7 +1030,6 @@ function setupRealtimeSubscriptionClock() {
             )
             .subscribe((status) => {
                 console.log('Realtime subscription status:', status);
-                
                 const badge = document.getElementById('realtimeBadgeClock');
                 if (badge) {
                     if (status === 'SUBSCRIBED') {
@@ -996,20 +1047,7 @@ function setupRealtimeSubscriptionClock() {
     }
 }
 
-// [16] Helper functions
-function formatDateClock(date) {
-    const dd = String(date.getDate()).padStart(2, '0');
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const yyyy = date.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
-}
-
-function getDayNameClock(dayIndex) {
-    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    return days[dayIndex] || 'Minggu';
-}
-
-// [17] Add CSS styles (similar to transaksi.js style)
+// [20] Add CSS styles
 function addClockPageStyles() {
     const styleId = 'clock-page-styles';
     
@@ -1019,7 +1057,6 @@ function addClockPageStyles() {
     const style = document.createElement('style');
     style.id = styleId;
     style.textContent = `
-        /* ===== CLOCK PAGE STYLES ===== */
         .clock-page {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f5f7fa;
@@ -1028,17 +1065,15 @@ function addClockPageStyles() {
             color: #333;
         }
         
-        /* Header - Warna sama dengan menu clock (gradient hijau) */
         .clock-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: linear-gradient(135deg, #28a745, #20c997);
-            padding: 15px 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
-            color: white;
+            background: linear-gradient(135deg, #28a745, #20c997) !important;
+            padding: 15px 20px !important;
+            border-radius: 10px !important;
+            margin-bottom: 20px !important;
+            color: white !important;
         }
         
         .clock-header h2 {
@@ -1050,13 +1085,9 @@ function addClockPageStyles() {
             gap: 10px;
         }
         
-        .clock-header h2 i {
-            color: white;
-        }
-        
         .back-btn {
-            background: rgba(255,255,255,0.2);
-            color: white;
+            background: rgba(255,255,255,0.2) !important;
+            color: white !important;
             border: none;
             width: 40px;
             height: 40px;
@@ -1074,8 +1105,8 @@ function addClockPageStyles() {
         }
         
         .refresh-btn {
-            background: rgba(255,255,255,0.2);
-            color: white;
+            background: rgba(255,255,255,0.2) !important;
+            color: white !important;
             border: none;
             width: 40px;
             height: 40px;
@@ -1113,19 +1144,9 @@ function addClockPageStyles() {
             background: rgba(255,255,255,0.3);
         }
         
-        .realtime-badge.connected i {
-            color: #fff;
-            font-size: 8px;
-        }
-        
         .realtime-badge.disconnected {
             background: rgba(255,255,255,0.2);
             color: #ffcccc;
-        }
-        
-        .realtime-badge.disconnected i {
-            color: #ff6666;
-            font-size: 8px;
         }
         
         @keyframes spin {
@@ -1133,14 +1154,12 @@ function addClockPageStyles() {
             100% { transform: rotate(360deg); }
         }
         
-        /* Info Header - Warna hijau lebih terang */
         .clock-info-header {
-            background: linear-gradient(135deg, #34ce57, #2ee0a6);
+            background: linear-gradient(135deg, #34ce57, #2ee0a6) !important;
             color: white;
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
         }
         
         .info-row {
@@ -1160,7 +1179,6 @@ function addClockPageStyles() {
             font-size: 14px;
         }
         
-        /* DateTime Grid */
         .clock-datetime-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -1180,7 +1198,6 @@ function addClockPageStyles() {
             font-size: 11px;
             color: #6c757d;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
             margin-bottom: 5px;
         }
         
@@ -1190,7 +1207,6 @@ function addClockPageStyles() {
             color: #2c3e50;
         }
         
-        /* Form Container */
         .clock-form-container {
             background: white;
             border-radius: 10px;
@@ -1234,12 +1250,6 @@ function addClockPageStyles() {
             box-shadow: 0 0 0 3px rgba(40,167,69,0.1);
         }
         
-        .clock-select:disabled {
-            background: #e9ecef;
-            cursor: not-allowed;
-        }
-        
-        /* Info Grid */
         .clock-info-grid {
             display: grid;
             grid-template-columns: 1fr auto;
@@ -1286,7 +1296,6 @@ function addClockPageStyles() {
             text-align: center;
         }
         
-        /* GPS Grid */
         .clock-gps-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -1327,7 +1336,6 @@ function addClockPageStyles() {
             color: #ffc107;
         }
         
-        /* PIN Input */
         .pin-group {
             margin-bottom: 20px;
         }
@@ -1357,10 +1365,9 @@ function addClockPageStyles() {
             margin-top: 6px;
         }
         
-        /* Submit Button */
         .clock-submit-btn {
             width: 100%;
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            background: linear-gradient(135deg, #28a745, #20c997) !important;
             color: white;
             border: none;
             padding: 14px;
@@ -1383,10 +1390,8 @@ function addClockPageStyles() {
         .clock-submit-btn:disabled {
             opacity: 0.7;
             transform: none;
-            cursor: not-allowed;
         }
         
-        /* Status Message */
         .clock-status-msg {
             margin-top: 15px;
         }
@@ -1413,7 +1418,6 @@ function addClockPageStyles() {
             gap: 8px;
         }
         
-        /* Instructions */
         .clock-instructions {
             background: #fff3cd;
             border: 1px solid #ffeeba;
@@ -1442,7 +1446,6 @@ function addClockPageStyles() {
             margin-bottom: 4px;
         }
         
-        /* Footer */
         .clock-footer {
             text-align: center;
             color: #6c757d;
@@ -1450,64 +1453,29 @@ function addClockPageStyles() {
             padding: 10px;
         }
         
-        /* Loading Animation */
-        .loading-spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #fff;
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        /* Responsive */
         @media (max-width: 768px) {
             .clock-page {
                 padding: 10px;
             }
-            
             .clock-info-grid {
                 grid-template-columns: 1fr;
             }
-            
             .clock-gps-grid {
                 grid-template-columns: 1fr;
             }
-            
             .clock-datetime-grid {
                 gap: 8px;
             }
-            
-            .datetime-value {
-                font-size: 12px;
-            }
-            
             .info-row {
                 flex-direction: column;
                 gap: 8px;
             }
-            
             .clock-header h2 {
                 font-size: 1.2rem;
             }
-            
             .back-btn, .refresh-btn {
                 width: 35px;
                 height: 35px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .clock-pin-input {
-                font-size: 16px;
-                letter-spacing: 4px;
-                padding: 10px;
-            }
-            
-            .clock-submit-btn {
-                padding: 12px;
-                font-size: 14px;
             }
         }
     `;
@@ -1515,7 +1483,5 @@ function addClockPageStyles() {
     document.head.appendChild(style);
 }
 
-// Export functions ke global scope
+// Export ke global
 window.showClockPage = showClockPage;
-
-// ========== END OF FILE ==========
