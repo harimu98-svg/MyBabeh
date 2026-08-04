@@ -11,11 +11,17 @@ let reservasiData = [];
 let reservasiHistoryData = [];
 
 // ============================================
-// KONFIGURASI WHATSAPP API
+// HELPER FUNCTIONS - WA CONFIG
 // ============================================
 
-const WA_API_URL = 'https://waha-yetv8qi4e3zk.anakit.sumopod.my.id/api/sendText';
-const WA_API_KEY = 'sfcoGbpdLDkGZhKw2rx8sbb14vf4d8V6';
+function getWAConfig() {
+    return {
+        apiUrl: typeof WA_API_URL !== 'undefined' ? WA_API_URL : window.WA_API_URL,
+        apiKey: typeof WA_API_KEY !== 'undefined' ? WA_API_KEY : window.WA_API_KEY,
+        chatId: typeof WA_CHAT_ID !== 'undefined' ? WA_CHAT_ID : window.WA_CHAT_ID,
+        ownerPhone: typeof WA_OWNER_PHONE !== 'undefined' ? WA_OWNER_PHONE : window.WA_OWNER_PHONE
+    };
+}
 
 // ============================================
 // FUNGSI SEND WHATSAPP
@@ -28,6 +34,13 @@ async function sendWhatsAppNotification(phoneNumber, message) {
             return false;
         }
         
+        const waConfig = getWAConfig();
+        
+        if (!waConfig.apiUrl || !waConfig.apiKey) {
+            console.warn('⚠️ WhatsApp config not available');
+            return false;
+        }
+        
         let formattedPhone = phoneNumber.trim();
         
         if (!formattedPhone.includes('@c.us') && !formattedPhone.includes('@g.us')) {
@@ -37,11 +50,11 @@ async function sendWhatsAppNotification(phoneNumber, message) {
         
         console.log(`📱 Sending WA to: ${formattedPhone}`);
         
-        const response = await fetch(WA_API_URL, {
+        const response = await fetch(waConfig.apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Api-Key': WA_API_KEY
+                'X-Api-Key': waConfig.apiKey
             },
             body: JSON.stringify({
                 session: 'Session1',
