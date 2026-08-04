@@ -502,8 +502,13 @@ async function loadReservasiData() {
     }
 }
 
+// ========== MODUL RESERVASI ==========
+// ========================================
+
+// ... (kode sebelumnya tetap sama sampai displayPendingReservasi)
+
 // ============================================
-// DISPLAY PENDING RESERVASI
+// DISPLAY PENDING RESERVASI - COMPACT VERSION
 // ============================================
 
 function displayPendingReservasi(reservasiList) {
@@ -523,7 +528,7 @@ function displayPendingReservasi(reservasiList) {
     
     let html = '';
     
-    reservasiList.forEach((reservasi, index) => {
+    reservasiList.forEach((reservasi) => {
         const createdDate = new Date(reservasi.created_at);
         const formattedDate = createdDate.toLocaleDateString('id-ID', {
             day: 'numeric',
@@ -534,79 +539,825 @@ function displayPendingReservasi(reservasiList) {
         });
         
         html += `
-        <div class="reservasi-card" data-reservasi-id="${reservasi.id}">
-            <div class="reservasi-card-header">
-                <div class="reservasi-info">
-                    <div class="info-row">
-                        <div class="info-item">
-                            <i class="fas fa-user"></i>
-                            <strong>Customer:</strong> ${reservasi.nama_customer || '-'}
-                        </div>
-                        <div class="info-item">
-                            <i class="fab fa-whatsapp"></i>
-                            <strong>WA:</strong> ${reservasi.no_wa_customer || '-'}
-                        </div>
-                        <div class="info-item">
-                            <i class="fas fa-store"></i>
-                            <strong>Outlet:</strong> ${reservasi.outlet || '-'}
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-item">
-                            <i class="fas fa-cut"></i>
-                            <strong>Layanan:</strong> ${reservasi.layanan || '-'}
-                        </div>
-                        <div class="info-item">
-                            <i class="fas fa-user-tie"></i>
-                            <strong>Barberman:</strong> ${reservasi.barberman || '-'}
-                        </div>
-                        <div class="info-item">
-                            <i class="fas fa-calendar"></i>
-                            <strong>Tanggal:</strong> ${reservasi.tanggal || '-'} (${reservasi.hari || '-'})
-                        </div>
-                        <div class="info-item">
-                            <i class="fas fa-clock"></i>
-                            <strong>Jam:</strong> ${reservasi.jam || '-'}
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-item">
-                            <i class="fas fa-money-bill-wave"></i>
-                            <strong>Total:</strong> <span style="color: #28a745; font-weight: 700;">Rp ${(reservasi.harga || 0).toLocaleString()}</span>
-                        </div>
-                        <div class="info-item">
-                            <i class="fas fa-hashtag"></i>
-                            <strong>Kode:</strong> <code>${reservasi.kode_reservasi || '-'}</code>
-                        </div>
-                        <div class="info-item">
-                            <i class="fas fa-clock"></i>
-                            <strong>Diajukan:</strong> ${formattedDate}
-                        </div>
-                    </div>
-                    ${reservasi.catatan ? `
-                    <div class="info-row">
-                        <div class="info-item" style="width: 100%;">
-                            <i class="fas fa-sticky-note"></i>
-                            <strong>Catatan:</strong> ${reservasi.catatan}
-                        </div>
-                    </div>
-                    ` : ''}
+        <div class="reservasi-card-compact" data-reservasi-id="${reservasi.id}">
+            <div class="reservasi-grid-compact">
+                <div class="reservasi-field">
+                    <span class="field-label">Kode:</span>
+                    <span class="field-value"><code>${reservasi.kode_reservasi || '-'}</code></span>
                 </div>
-            </div>
-            
-            <div class="reservasi-card-actions">
-                <button class="btn-approve-payment" onclick="approvePayment('${reservasi.id}')">
-                    <i class="fas fa-check"></i> Pembayaran Diterima
-                </button>
-                <button class="btn-reject-payment" onclick="rejectPayment('${reservasi.id}')">
-                    <i class="fas fa-times"></i> Pembayaran Tidak Diterima
-                </button>
+                <div class="reservasi-field">
+                    <span class="field-label">Outlet:</span>
+                    <span class="field-value">${reservasi.outlet || '-'}</span>
+                </div>
+                <div class="reservasi-field">
+                    <span class="field-label">Barberman:</span>
+                    <span class="field-value">${reservasi.barberman || '-'}</span>
+                </div>
+                <div class="reservasi-field">
+                    <span class="field-label">Diajukan:</span>
+                    <span class="field-value">${formattedDate}</span>
+                </div>
+                <div class="reservasi-field">
+                    <span class="field-label">Customer:</span>
+                    <span class="field-value">${reservasi.nama_customer || '-'}</span>
+                </div>
+                <div class="reservasi-field">
+                    <span class="field-label">WA:</span>
+                    <span class="field-value">${reservasi.no_wa_customer || '-'}</span>
+                </div>
+                <div class="reservasi-field">
+                    <span class="field-label">Layanan:</span>
+                    <span class="field-value">${reservasi.layanan || '-'}</span>
+                </div>
+                <div class="reservasi-field">
+                    <span class="field-label">Tanggal:</span>
+                    <span class="field-value">${reservasi.tanggal || '-'} (${reservasi.hari || '-'})</span>
+                </div>
+                <div class="reservasi-field">
+                    <span class="field-label">Jam:</span>
+                    <span class="field-value">${reservasi.jam || '-'}</span>
+                </div>
+                <div class="reservasi-field">
+                    <span class="field-label">Total:</span>
+                    <span class="field-value" style="color: #28a745; font-weight: 700;">Rp ${(reservasi.harga || 0).toLocaleString()}</span>
+                </div>
+                ${reservasi.catatan ? `
+                <div class="reservasi-field" style="grid-column: 1 / -1;">
+                    <span class="field-label">Catatan:</span>
+                    <span class="field-value">${reservasi.catatan}</span>
+                </div>
+                ` : ''}
+                <div class="reservasi-actions" style="grid-column: 1 / -1; display: flex; gap: 10px; justify-content: center; padding-top: 10px; border-top: 1px solid #e9ecef; margin-top: 5px;">
+                    <button class="btn-approve-payment" onclick="approvePayment('${reservasi.id}')">
+                        <i class="fas fa-check"></i> Pembayaran Diterima
+                    </button>
+                    <button class="btn-reject-payment" onclick="rejectPayment('${reservasi.id}')">
+                        <i class="fas fa-times"></i> Pembayaran Tidak Diterima
+                    </button>
+                </div>
             </div>
         </div>
         `;
     });
     
     pendingGrid.innerHTML = html;
+}
+
+// ============================================
+// TAMBAHKAN CSS UNTUK STYLING - UPDATED
+// ============================================
+
+function addReservasiPageStyles() {
+    const styleId = 'reservasi-page-styles';
+    
+    const existingStyle = document.getElementById(styleId);
+    if (existingStyle) existingStyle.remove();
+    
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+        /* ===== RESET STYLING ===== */
+        .reservasi-page select {
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: inherit;
+            color: inherit;
+        }
+        
+        /* ===== STYLING UMUM ===== */
+        .reservasi-page {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        /* ===== HEADER / TOP BAR ===== */
+        .reservasi-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            padding: 15px 20px !important;
+            border-radius: 10px !important;
+            margin-bottom: 20px !important;
+            color: white !important;
+        }
+        
+        .reservasi-header h2 {
+            margin: 0;
+            color: white;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .reservasi-header .back-btn {
+            background: rgba(255,255,255,0.2) !important;
+            color: white !important;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .reservasi-header .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateX(-3px);
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .refresh-btn {
+            background: rgba(255,255,255,0.2) !important;
+            color: white !important;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .refresh-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: rotate(90deg);
+        }
+        
+        .refresh-btn.loading i {
+            animation: spin 1s linear infinite;
+        }
+        
+        .realtime-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        
+        .realtime-badge.connected {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .realtime-badge.disconnected {
+            background: rgba(255,255,255,0.2);
+            color: #ffcccc;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* ===== INFO HEADER ===== */
+        .reservasi-info-header {
+            background: linear-gradient(135deg, #7c6ff0 0%, #8a5ec7 100%) !important;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .reservasi-info-header .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .reservasi-info-header .info-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .reservasi-info-header .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        
+        /* ===== FILTER SECTION - RATA TENGAH ===== */
+        .filter-section-reservasi {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        
+        .filter-section-reservasi .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .filter-section-reservasi .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 0 1 auto;
+            min-width: 150px;
+            max-width: 200px;
+        }
+        
+        .filter-section-reservasi .filter-group label {
+            font-weight: 600;
+            font-size: 13px;
+            color: #495057;
+            text-align: center;
+        }
+        
+        .filter-section-reservasi .filter-group label i {
+            color: #667eea;
+        }
+        
+        .reservasi-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+        }
+        
+        .reservasi-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn-apply-filter {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-width: 120px;
+            margin-top: 5px;
+        }
+        
+        .btn-apply-filter:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        /* ===== SECTION HEADER ===== */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .section-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-header h3 i {
+            color: #667eea;
+        }
+        
+        .request-stats {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        
+        /* ===== PENDING SECTION ===== */
+        .pending-reservasi-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        
+        .pending-reservasi-container {
+            min-height: 100px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        
+        .loading i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .empty-state h4 {
+            margin: 0 0 5px 0;
+            color: #333;
+        }
+        
+        .empty-state p {
+            margin: 0;
+            color: #6c757d;
+        }
+        
+        /* ===== RESERVASI CARD COMPACT ===== */
+        .reservasi-card-compact {
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            background: #fafbfc;
+            transition: all 0.3s;
+        }
+        
+        .reservasi-card-compact:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-color: #667eea;
+        }
+        
+        .reservasi-grid-compact {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px 15px;
+            align-items: center;
+        }
+        
+        .reservasi-field {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+            padding: 2px 0;
+        }
+        
+        .reservasi-field .field-label {
+            color: #6c757d;
+            font-weight: 500;
+            white-space: nowrap;
+            min-width: 70px;
+        }
+        
+        .reservasi-field .field-value {
+            color: #2c3e50;
+            font-weight: 500;
+            word-break: break-word;
+        }
+        
+        .reservasi-field .field-value code {
+            background: #f1f3f5;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #495057;
+        }
+        
+        /* ===== ACTION BUTTONS ===== */
+        .btn-approve-payment {
+            padding: 8px 18px;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-approve-payment:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
+        
+        .btn-reject-payment {
+            padding: 8px 18px;
+            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-reject-payment:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+        }
+        
+        /* ===== BUTTON REFRESH ROUND ===== */
+        .btn-refresh-history-round {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+        
+        .btn-refresh-history-round:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-refresh-history-round i {
+            font-size: 14px;
+        }
+        
+        .btn-refresh-history-round.loading i {
+            animation: spin 1s linear infinite;
+        }
+        
+        /* ===== STATUS PILLS ===== */
+        .status-pill {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            text-transform: capitalize;
+            white-space: nowrap;
+        }
+        
+        .status-pill i {
+            font-size: 10px;
+        }
+        
+        .status-approved {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .status-rejected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status-active {
+            background-color: #cce5ff;
+            color: #004085;
+            border: 1px solid #b8daff;
+        }
+        
+        .status-cell {
+            min-width: 120px;
+        }
+        
+        /* ===== HISTORY SECTION ===== */
+        .history-reservasi-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        
+        .history-table-container {
+            overflow-x: auto;
+        }
+        
+        .table-wrapper {
+            overflow-x: auto;
+        }
+        
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        .history-table th {
+            background: #f8f9fa;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            white-space: nowrap;
+        }
+        
+        .history-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: middle;
+        }
+        
+        .history-table tr:hover td {
+            background: #f8f9fa;
+        }
+        
+        .history-table .empty-message {
+            text-align: center;
+            padding: 30px;
+            color: #6c757d;
+        }
+        
+        .history-table .empty-message i {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 10px;
+            color: #adb5bd;
+        }
+        
+        .history-table code {
+            background: #f1f3f5;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #495057;
+            white-space: nowrap;
+        }
+        
+        /* ===== FOOTER ===== */
+        .reservasi-footer {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        
+        .reservasi-footer i {
+            margin-right: 8px;
+            color: #667eea;
+        }
+        
+        /* ===== TOAST ===== */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            z-index: 9999;
+            opacity: 0;
+            transition: all 0.3s ease;
+            max-width: 90%;
+            min-width: 300px;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .toast-success {
+            border-left: 4px solid #28a745;
+        }
+        
+        .toast-error {
+            border-left: 4px solid #dc3545;
+        }
+        
+        .toast-warning {
+            border-left: 4px solid #ffc107;
+        }
+        
+        .toast-info {
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+        
+        .toast-content i {
+            font-size: 1.2rem;
+        }
+        
+        .toast-success .toast-content i {
+            color: #28a745;
+        }
+        
+        .toast-error .toast-content i {
+            color: #dc3545;
+        }
+        
+        .toast-warning .toast-content i {
+            color: #ffc107;
+        }
+        
+        .toast-info .toast-content i {
+            color: #17a2b8;
+        }
+        
+        .toast-close {
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0 5px;
+        }
+        
+        .toast-close:hover {
+            color: #333;
+        }
+        
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 992px) {
+            .reservasi-grid-compact {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .reservasi-page {
+                padding: 10px;
+            }
+            
+            .reservasi-info-header .info-row {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .filter-section-reservasi .filter-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            
+            .filter-section-reservasi .filter-group {
+                min-width: unset;
+                max-width: unset;
+                width: 100%;
+            }
+            
+            .filter-section-reservasi .filter-group label {
+                text-align: left;
+            }
+            
+            .btn-apply-filter {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .reservasi-grid-compact {
+                grid-template-columns: 1fr 1fr;
+                gap: 4px 10px;
+            }
+            
+            .reservasi-card-actions {
+                flex-direction: column;
+            }
+            
+            .btn-approve-payment,
+            .btn-reject-payment {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .history-table {
+                font-size: 12px;
+            }
+            
+            .history-table th,
+            .history-table td {
+                padding: 6px 8px;
+            }
+            
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .toast {
+                min-width: unset;
+                width: 90%;
+                bottom: 20px;
+                padding: 12px 18px;
+            }
+            
+            .toast-content {
+                font-size: 13px;
+            }
+            
+            .reservasi-header h2 {
+                font-size: 1.2rem;
+            }
+            
+            .back-btn, .refresh-btn {
+                width: 35px;
+                height: 35px;
+            }
+            
+            .reservasi-field {
+                font-size: 12px;
+            }
+            
+            .reservasi-field .field-label {
+                min-width: 55px;
+                font-size: 11px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .reservasi-grid-compact {
+                grid-template-columns: 1fr;
+                gap: 3px;
+            }
+            
+            .reservasi-card-compact {
+                padding: 10px 12px;
+            }
+            
+            .reservasi-field {
+                font-size: 12px;
+            }
+            
+            .reservasi-field .field-label {
+                min-width: 60px;
+            }
+        }
+    `;
+    
+    document.head.appendChild(style);
 }
 
 // ============================================
