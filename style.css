@@ -378,6 +378,7 @@ marquee {
 .menu-stok { background: linear-gradient(135deg, #FFA500, #FF8C00); }
 .menu-sertifikasi { background: linear-gradient(135deg, #4682B4, #5F9EA0); }
 .menu-transaksi { background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); }
+.menu-reservasi { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); } 
 
 /* ========== NOTIFICATION SECTION ========== */
 .notification-section {
