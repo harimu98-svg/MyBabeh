@@ -157,6 +157,9 @@ function createReservasiPage() {
             </button>
             <h2><i class="fas fa-calendar-check"></i> Reservasi</h2>
             <div class="header-actions">
+                <span class="realtime-badge" id="realtimeBadgeReservasi">
+                    <i class="fas fa-circle"></i> Live
+                </span>
                 <button class="refresh-btn" id="refreshReservasi" title="Refresh">
                     <i class="fas fa-sync-alt"></i>
                 </button>
@@ -197,7 +200,7 @@ function createReservasiPage() {
             <div class="filter-row">
                 <div class="filter-group">
                     <label for="filterStatusReservasi"><i class="fas fa-filter"></i> Status:</label>
-                    <select id="filterStatusReservasi" class="status-select">
+                    <select id="filterStatusReservasi" class="reservasi-select">
                         <option value="all">Semua Status</option>
                         <option value="menunggu_verifikasi">Menunggu Verifikasi</option>
                         <option value="pembayaran_berhasil">Pembayaran Berhasil</option>
@@ -209,7 +212,7 @@ function createReservasiPage() {
                 </div>
                 <div class="filter-group">
                     <label for="filterDateReservasi"><i class="fas fa-calendar"></i> Periode:</label>
-                    <select id="filterDateReservasi" class="date-select">
+                    <select id="filterDateReservasi" class="reservasi-select">
                         <option value="today">Hari Ini</option>
                         <option value="week">7 Hari Terakhir</option>
                         <option value="month">Bulan Ini</option>
@@ -228,6 +231,9 @@ function createReservasiPage() {
                 <h3><i class="fas fa-clock"></i> Menunggu Verifikasi Pembayaran</h3>
                 <div class="request-stats">
                     <span id="pendingCountReservasi">0 reservasi</span>
+                    <button class="btn-refresh-history-round" id="refreshPendingReservasi" title="Refresh Pending">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
                 </div>
             </div>
             <div class="pending-reservasi-container">
@@ -290,6 +296,9 @@ function createReservasiPage() {
     
     // Tambahkan CSS untuk styling
     addReservasiPageStyles();
+    
+    // Setup realtime subscription
+    setupRealtimeSubscriptionReservasi();
 }
 
 // ============================================
@@ -299,12 +308,24 @@ function createReservasiPage() {
 function setupReservasiPageEvents() {
     // Tombol kembali
     document.getElementById('backToMainFromReservasi').addEventListener('click', () => {
+        if (realtimeSubscriptionReservasi) {
+            supabase.removeChannel(realtimeSubscriptionReservasi);
+            realtimeSubscriptionReservasi = null;
+        }
         document.getElementById('reservasiPage').remove();
         document.getElementById('appScreen').style.display = 'block';
     });
     
     // Tombol refresh
     document.getElementById('refreshReservasi').addEventListener('click', async () => {
+        const btn = document.getElementById('refreshReservasi');
+        btn.classList.add('loading');
+        await loadReservasiData();
+        btn.classList.remove('loading');
+    });
+    
+    // Tombol refresh pending
+    document.getElementById('refreshPendingReservasi').addEventListener('click', async () => {
         await loadReservasiData();
     });
     
@@ -327,6 +348,62 @@ function setupReservasiPageEvents() {
     document.getElementById('refreshHistoryReservasi').addEventListener('click', async () => {
         await loadReservasiData();
     });
+}
+
+// ============================================
+// SETUP REALTIME SUBSCRIPTION
+// ============================================
+
+let realtimeSubscriptionReservasi = null;
+
+function setupRealtimeSubscriptionReservasi() {
+    try {
+        if (realtimeSubscriptionReservasi) {
+            supabase.removeChannel(realtimeSubscriptionReservasi);
+            realtimeSubscriptionReservasi = null;
+        }
+        
+        const channelName = `reservasi-realtime-${Date.now()}`;
+        
+        realtimeSubscriptionReservasi = supabase
+            .channel(channelName)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'reservasi'
+                },
+                async (payload) => {
+                    console.log('📋 Reservasi change detected:', payload);
+                    await loadReservasiData();
+                    
+                    const badge = document.getElementById('realtimeBadgeReservasi');
+                    if (badge) {
+                        badge.innerHTML = '<i class="fas fa-circle"></i> Updated';
+                        setTimeout(() => {
+                            badge.innerHTML = '<i class="fas fa-circle"></i> Live';
+                        }, 3000);
+                    }
+                }
+            )
+            .subscribe((status) => {
+                console.log('Realtime subscription status:', status);
+                const badge = document.getElementById('realtimeBadgeReservasi');
+                if (badge) {
+                    if (status === 'SUBSCRIBED') {
+                        badge.className = 'realtime-badge connected';
+                        badge.innerHTML = '<i class="fas fa-circle"></i> Live';
+                    } else {
+                        badge.className = 'realtime-badge disconnected';
+                        badge.innerHTML = '<i class="fas fa-circle"></i> Disconnected';
+                    }
+                }
+            });
+            
+    } catch (error) {
+        console.error('Error setting up realtime:', error);
+    }
 }
 
 // ============================================
@@ -400,6 +477,13 @@ async function loadReservasiData() {
         const pendingCountEl = document.getElementById('pendingCountReservasi');
         if (pendingCountEl) {
             pendingCountEl.textContent = `${pendingReservasi.length} reservasi`;
+        }
+        
+        // Update last update time
+        const lastUpdate = document.getElementById('lastUpdateTimeReservasi');
+        if (lastUpdate) {
+            const now = new Date();
+            lastUpdate.textContent = now.toLocaleTimeString('id-ID');
         }
         
     } catch (error) {
@@ -959,7 +1043,7 @@ function addReservasiPageStyles() {
     const style = document.createElement('style');
     style.id = styleId;
     style.textContent = `
-        /* ===== RESET STYLING UNTUK SELECT ===== */
+        /* ===== RESET STYLING ===== */
         .reservasi-page select {
             box-sizing: border-box;
             font-family: inherit;
@@ -976,30 +1060,30 @@ function addReservasiPageStyles() {
             color: #333;
         }
         
-        /* Header */
+        /* ===== HEADER / TOP BAR ===== */
         .reservasi-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            padding: 15px 20px !important;
+            border-radius: 10px !important;
+            margin-bottom: 20px !important;
+            color: white !important;
         }
         
         .reservasi-header h2 {
             margin: 0;
-            color: #2c3e50;
+            color: white;
             font-size: 1.5rem;
             display: flex;
             align-items: center;
             gap: 10px;
         }
         
-        .back-btn {
-            background: #6c757d;
-            color: white;
+        .reservasi-header .back-btn {
+            background: rgba(255,255,255,0.2) !important;
+            color: white !important;
             border: none;
             width: 40px;
             height: 40px;
@@ -1011,39 +1095,73 @@ function addReservasiPageStyles() {
             transition: all 0.3s;
         }
         
-        .back-btn:hover {
-            background: #5a6268;
+        .reservasi-header .back-btn:hover {
+            background: rgba(255,255,255,0.3);
             transform: translateX(-3px);
         }
         
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
         .refresh-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
+            background: rgba(255,255,255,0.2) !important;
+            color: white !important;
             border: none;
-            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
-            flex-shrink: 0;
+            transition: all 0.3s;
         }
         
         .refresh-btn:hover {
-            background: linear-gradient(135deg, #495057 0%, #343a40 100%);
-            transform: translateY(-2px);
+            background: rgba(255,255,255,0.3);
+            transform: rotate(90deg);
         }
         
-        /* Info Header */
+        .refresh-btn.loading i {
+            animation: spin 1s linear infinite;
+        }
+        
+        .realtime-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        
+        .realtime-badge.connected {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .realtime-badge.disconnected {
+            background: rgba(255,255,255,0.2);
+            color: #ffcccc;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* ===== INFO HEADER ===== */
         .reservasi-info-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #7c6ff0 0%, #8a5ec7 100%) !important;
             color: white;
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
         }
         
         .reservasi-info-header .info-row {
@@ -1063,7 +1181,7 @@ function addReservasiPageStyles() {
             font-size: 14px;
         }
         
-        /* Filter Section */
+        /* ===== FILTER SECTION ===== */
         .filter-section-reservasi {
             background: white;
             padding: 15px 20px;
@@ -1093,26 +1211,37 @@ function addReservasiPageStyles() {
             color: #495057;
         }
         
-        .filter-section-reservasi select {
-            padding: 8px 12px;
+        .filter-section-reservasi .filter-group label i {
+            color: #667eea;
+        }
+        
+        .reservasi-select {
+            width: 100%;
+            padding: 10px 12px;
             border: 1px solid #ced4da;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 14px;
             background: white;
             cursor: pointer;
         }
         
+        .reservasi-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
         .btn-apply-filter {
-            padding: 8px 20px;
+            padding: 10px 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
             font-size: 14px;
             transition: all 0.3s;
-            height: 40px;
+            height: 42px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -1123,7 +1252,7 @@ function addReservasiPageStyles() {
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
         
-        /* Section Header */
+        /* ===== SECTION HEADER ===== */
         .section-header {
             display: flex;
             justify-content: space-between;
@@ -1142,13 +1271,20 @@ function addReservasiPageStyles() {
             gap: 10px;
         }
         
+        .section-header h3 i {
+            color: #667eea;
+        }
+        
         .request-stats {
+            display: flex;
+            align-items: center;
+            gap: 12px;
             font-size: 14px;
             color: #6c757d;
             font-weight: 500;
         }
         
-        /* Pending Section */
+        /* ===== PENDING SECTION ===== */
         .pending-reservasi-section {
             background: white;
             padding: 20px;
@@ -1180,7 +1316,7 @@ function addReservasiPageStyles() {
         
         .empty-state i {
             font-size: 3rem;
-            color: #28a745;
+            color: #667eea;
             margin-bottom: 15px;
         }
         
@@ -1194,7 +1330,7 @@ function addReservasiPageStyles() {
             color: #6c757d;
         }
         
-        /* Reservasi Card */
+        /* ===== RESERVASI CARD ===== */
         .reservasi-card {
             border: 1px solid #e9ecef;
             border-radius: 10px;
@@ -1250,7 +1386,7 @@ function addReservasiPageStyles() {
             color: #495057;
         }
         
-        /* Action Buttons */
+        /* ===== ACTION BUTTONS ===== */
         .reservasi-card-actions {
             display: flex;
             gap: 12px;
@@ -1264,7 +1400,7 @@ function addReservasiPageStyles() {
             background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
             font-size: 14px;
@@ -1284,7 +1420,7 @@ function addReservasiPageStyles() {
             background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
             font-size: 14px;
@@ -1299,20 +1435,13 @@ function addReservasiPageStyles() {
             box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
         }
         
-        /* History Section */
-        .history-reservasi-section {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        }
-        
+        /* ===== BUTTON REFRESH ROUND ===== */
         .btn-refresh-history-round {
             width: 36px;
             height: 36px;
             border-radius: 50%;
             border: none;
-            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             cursor: pointer;
             display: flex;
@@ -1324,14 +1453,18 @@ function addReservasiPageStyles() {
         
         .btn-refresh-history-round:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
         }
         
         .btn-refresh-history-round i {
             font-size: 14px;
         }
         
-        /* Status Pills */
+        .btn-refresh-history-round.loading i {
+            animation: spin 1s linear infinite;
+        }
+        
+        /* ===== STATUS PILLS ===== */
         .status-pill {
             padding: 6px 12px;
             border-radius: 20px;
@@ -1377,24 +1510,14 @@ function addReservasiPageStyles() {
             min-width: 120px;
         }
         
-        /* Footer */
-        .reservasi-footer {
-            margin-top: 20px;
-            padding: 15px;
+        /* ===== HISTORY SECTION ===== */
+        .history-reservasi-section {
             background: white;
+            padding: 20px;
             border-radius: 10px;
-            text-align: center;
-            color: #6c757d;
-            font-size: 14px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.08);
         }
         
-        .reservasi-footer i {
-            margin-right: 8px;
-            color: #667eea;
-        }
-        
-        /* History Table */
         .history-table-container {
             overflow-x: auto;
         }
@@ -1451,7 +1574,24 @@ function addReservasiPageStyles() {
             white-space: nowrap;
         }
         
-        /* Toast */
+        /* ===== FOOTER ===== */
+        .reservasi-footer {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        
+        .reservasi-footer i {
+            margin-right: 8px;
+            color: #667eea;
+        }
+        
+        /* ===== TOAST ===== */
         .toast {
             position: fixed;
             bottom: 30px;
@@ -1592,6 +1732,15 @@ function addReservasiPageStyles() {
             
             .toast-content {
                 font-size: 13px;
+            }
+            
+            .reservasi-header h2 {
+                font-size: 1.2rem;
+            }
+            
+            .back-btn, .refresh-btn {
+                width: 35px;
+                height: 35px;
             }
         }
     `;
