@@ -604,6 +604,427 @@ function displayPendingReservasi(reservasiList) {
 }
 
 // ============================================
+// DISPLAY HISTORY RESERVASI
+// ============================================
+
+function displayHistoryReservasi(reservasiList) {
+    const tbody = document.getElementById('historyBodyReservasi');
+    const historyTable = document.getElementById('historyTableReservasi');
+    
+    if (!tbody || !historyTable) return;
+    
+    tbody.innerHTML = '';
+    
+    if (!reservasiList || reservasiList.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="12" class="empty-message">
+                    <i class="fas fa-history"></i>
+                    Tidak ada history reservasi
+                </td>
+            </tr>
+        `;
+        historyTable.style.display = 'table';
+        return;
+    }
+    
+    // Batasi maksimal 15 baris
+    const displayReservasi = reservasiList.slice(0, 15);
+    
+    displayReservasi.forEach(reservasi => {
+        const createdDate = new Date(reservasi.created_at);
+        const verifiedDate = reservasi.verified_at ? new Date(reservasi.verified_at) : null;
+        
+        // Status dengan icon
+        let statusHTML = '';
+        if (reservasi.status === 'pembayaran_berhasil') {
+            statusHTML = `
+                <span class="status-pill status-approved">
+                    <i class="fas fa-check-circle"></i> Pembayaran Berhasil
+                </span>
+            `;
+        } else if (reservasi.status === 'pembayaran_gagal') {
+            statusHTML = `
+                <span class="status-pill status-rejected">
+                    <i class="fas fa-times-circle"></i> Pembayaran Gagal
+                </span>
+            `;
+        } else if (reservasi.status === 'active') {
+            statusHTML = `
+                <span class="status-pill status-active">
+                    <i class="fas fa-check-circle"></i> Active
+                </span>
+            `;
+        } else if (reservasi.status === 'completed') {
+            statusHTML = `
+                <span class="status-pill status-approved">
+                    <i class="fas fa-check-double"></i> Completed
+                </span>
+            `;
+        } else if (reservasi.status === 'cancelled') {
+            statusHTML = `
+                <span class="status-pill status-rejected">
+                    <i class="fas fa-ban"></i> Cancelled
+                </span>
+            `;
+        } else {
+            statusHTML = `
+                <span class="status-pill status-pending">
+                    <i class="fas fa-clock"></i> ${reservasi.status || '-'}
+                </span>
+            `;
+        }
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${createdDate.toLocaleDateString('id-ID')}<br><small>${createdDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small></td>
+            <td><code>${reservasi.kode_reservasi || '-'}</code></td>
+            <td>${reservasi.nama_customer || '-'}</td>
+            <td>${reservasi.no_wa_customer || '-'}</td>
+            <td>${reservasi.outlet || '-'}</td>
+            <td>${reservasi.barberman || '-'}</td>
+            <td>${reservasi.layanan || '-'}</td>
+            <td>${reservasi.jam || '-'}</td>
+            <td><strong>Rp ${(reservasi.harga || 0).toLocaleString()}</strong></td>
+            <td class="status-cell">${statusHTML}</td>
+            <td>${reservasi.verified_by || '-'}</td>
+            <td>${verifiedDate ? verifiedDate.toLocaleDateString('id-ID') : '-'}</td>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    historyTable.style.display = 'table';
+}
+
+// ============================================
+// APPROVE PAYMENT
+// ============================================
+
+async function approvePayment(reservasiId) {
+    try {
+        if (!confirm('✅ Konfirmasi pembayaran diterima untuk reservasi ini?\n\nStatus akan diubah menjadi "Pembayaran Berhasil" dan notifikasi akan dikirim ke customer, barberman, dan group WA.')) {
+            return;
+        }
+        
+        // Ambil data reservasi
+        const { data: reservasi, error: fetchError } = await supabase
+            .from('reservasi')
+            .select('*')
+            .eq('id', reservasiId)
+            .single();
+        
+        if (fetchError) throw fetchError;
+        
+        // Update status reservasi
+        const { error: updateError } = await supabase
+            .from('reservasi')
+            .update({
+                status: 'pembayaran_berhasil',
+                verified_at: new Date().toISOString(),
+                verified_by: currentKaryawanReservasi.nama_karyawan
+            })
+            .eq('id', reservasiId);
+        
+        if (updateError) throw updateError;
+        
+        // Kirim WhatsApp notifications
+        await sendPaymentSuccessNotifications(reservasi);
+        
+        showToast('✅ Pembayaran berhasil diverifikasi! Notifikasi telah dikirim.', 'success');
+        
+        // Reload data
+        await loadReservasiData();
+        
+    } catch (error) {
+        console.error('Error approving payment:', error);
+        showToast(`❌ Gagal verifikasi pembayaran: ${error.message}`, 'error');
+    }
+}
+
+// ============================================
+// REJECT PAYMENT
+// ============================================
+
+async function rejectPayment(reservasiId) {
+    try {
+        const reason = prompt('Masukkan alasan penolakan pembayaran:');
+        if (reason === null) return;
+        
+        if (!reason.trim()) {
+            showToast('⚠️ Harap masukkan alasan penolakan', 'warning');
+            return;
+        }
+        
+        if (!confirm(`❌ Konfirmasi pembayaran TIDAK diterima untuk reservasi ini?\n\nAlasan: ${reason}\n\nStatus akan diubah menjadi "Pembayaran Gagal" dan notifikasi akan dikirim.`)) {
+            return;
+        }
+        
+        // Ambil data reservasi
+        const { data: reservasi, error: fetchError } = await supabase
+            .from('reservasi')
+            .select('*')
+            .eq('id', reservasiId)
+            .single();
+        
+        if (fetchError) throw fetchError;
+        
+        // Update status reservasi
+        const { error: updateError } = await supabase
+            .from('reservasi')
+            .update({
+                status: 'pembayaran_gagal',
+                verified_at: new Date().toISOString(),
+                verified_by: currentKaryawanReservasi.nama_karyawan,
+                catatan: reservasi.catatan ? `${reservasi.catatan}\n\nAlasan penolakan: ${reason}` : `Alasan penolakan: ${reason}`
+            })
+            .eq('id', reservasiId);
+        
+        if (updateError) throw updateError;
+        
+        // Kirim WhatsApp notifications
+        await sendPaymentRejectNotifications(reservasi, reason);
+        
+        showToast('❌ Pembayaran ditolak. Notifikasi telah dikirim.', 'success');
+        
+        // Reload data
+        await loadReservasiData();
+        
+    } catch (error) {
+        console.error('Error rejecting payment:', error);
+        showToast(`❌ Gagal menolak pembayaran: ${error.message}`, 'error');
+    }
+}
+
+// ============================================
+// SEND PAYMENT SUCCESS NOTIFICATIONS
+// ============================================
+
+async function sendPaymentSuccessNotifications(reservasi) {
+    try {
+        // Dapatkan nomor WA barberman
+        const { data: barberData } = await supabase
+            .from('karyawan')
+            .select('nomor_wa')
+            .eq('nama_karyawan', reservasi.barberman)
+            .single();
+        
+        // Dapatkan group WA outlet
+        const { data: outletData } = await supabase
+            .from('outlet')
+            .select('group_wa')
+            .eq('outlet', reservasi.outlet)
+            .single();
+        
+        const kodeReservasi = reservasi.kode_reservasi || 'BRB-' + Date.now();
+        
+        // ========== PESAN UNTUK CUSTOMER ==========
+        const customerMessage = `*✅ PEMBAYARAN BERHASIL DIVERIFIKASI!*
+
+Halo *${reservasi.nama_customer}*,
+
+Pembayaran Anda telah berhasil diverifikasi. Reservasi Anda sekarang *ACTIVE*!
+
+📋 *Kode Reservasi:* ${kodeReservasi}
+📅 *Tanggal:* ${reservasi.tanggal} (${reservasi.hari})
+🕐 *Jam:* ${reservasi.jam}
+✂️ *Layanan:* ${reservasi.layanan}
+💇 *Barberman:* ${reservasi.barberman}
+📍 *Outlet:* ${reservasi.outlet}
+💰 *Total:* Rp ${(reservasi.harga || 0).toLocaleString()}
+
+*⚠️ PENTING:*
+• Pastikan Anda standby 5 menit SEBELUM waktu reservasi
+• Jika lewat 15 menit belum hadir, reservasi akan otomatis dibatalkan
+• Bawa bukti pembayaran saat datang
+
+Terima kasih telah mempercayakan gaya rambut Anda kepada Babeh Barbershop! ✨
+
+_*Babeh Barbershop - Right Man On The Right Place*_`;
+
+        // ========== PESAN UNTUK BARBERMAN ==========
+        const barbermanMessage = `*📢 PEMBAYARAN RESERVASI BERHASIL DIVERIFIKASI!*
+
+Halo *${reservasi.barberman}*,
+
+Pembayaran customer telah diverifikasi. Reservasi sekarang *ACTIVE*:
+
+📋 *Kode:* ${kodeReservasi}
+👤 *Customer:* ${reservasi.nama_customer}
+📱 *WA Customer:* ${reservasi.no_wa_customer}
+📅 *Tanggal:* ${reservasi.tanggal} (${reservasi.hari})
+🕐 *Jam:* ${reservasi.jam}
+✂️ *Layanan:* ${reservasi.layanan}
+📍 *Outlet:* ${reservasi.outlet}
+💰 *Total:* Rp ${(reservasi.harga || 0).toLocaleString()}
+
+*⚠️ CATATAN UNTUK BARBERMAN:*
+• Pastikan Anda standby 5 menit SEBELUM waktu reservasi
+• Siapkan alat dan bahan yang diperlukan
+• Jika customer tidak hadir 15 menit, hubungi admin
+
+Terima kasih! 🙌`;
+
+        // ========== PESAN UNTUK GROUP WA ==========
+        const groupMessage = `*📢 PEMBAYARAN RESERVASI BERHASIL DIVERIFIKASI!*
+
+Reservasi sekarang *ACTIVE*:
+
+📋 *Kode:* ${kodeReservasi}
+👤 *Customer:* ${reservasi.nama_customer}
+📱 *WA Customer:* ${reservasi.no_wa_customer}
+💇 *Barberman:* ${reservasi.barberman}
+📅 *Tanggal:* ${reservasi.tanggal} (${reservasi.hari})
+🕐 *Jam:* ${reservasi.jam}
+✂️ *Layanan:* ${reservasi.layanan}
+📍 *Outlet:* ${reservasi.outlet}
+💰 *Total:* Rp ${(reservasi.harga || 0).toLocaleString()}
+
+Mohon koordinasi untuk persiapan. Terima kasih! 🙌`;
+
+        // Kirim ke Customer
+        if (reservasi.no_wa_customer) {
+            await sendWhatsAppNotification(reservasi.no_wa_customer, customerMessage);
+        }
+        
+        // Kirim ke Barberman
+        if (barberData?.nomor_wa) {
+            await sendWhatsAppNotification(barberData.nomor_wa, barbermanMessage);
+        }
+        
+        // Kirim ke Group WA
+        if (outletData?.group_wa) {
+            await sendWhatsAppNotification(outletData.group_wa, groupMessage);
+        }
+        
+        console.log('✅ Semua WhatsApp notifications terkirim!');
+        
+    } catch (error) {
+        console.error('❌ Error sending notifications:', error);
+        // Jangan throw error, biarkan proses utama tetap berjalan
+    }
+}
+
+// ============================================
+// SEND PAYMENT REJECT NOTIFICATIONS
+// ============================================
+
+async function sendPaymentRejectNotifications(reservasi, reason) {
+    try {
+        // Dapatkan group WA outlet
+        const { data: outletData } = await supabase
+            .from('outlet')
+            .select('group_wa')
+            .eq('outlet', reservasi.outlet)
+            .single();
+        
+        const kodeReservasi = reservasi.kode_reservasi || 'BRB-' + Date.now();
+        
+        // ========== PESAN UNTUK CUSTOMER ==========
+        const customerMessage = `*❌ PEMBAYARAN GAGAL DIVERIFIKASI!*
+
+Halo *${reservasi.nama_customer}*,
+
+Mohon maaf, pembayaran Anda tidak dapat diverifikasi.
+
+📋 *Kode Reservasi:* ${kodeReservasi}
+📅 *Tanggal:* ${reservasi.tanggal} (${reservasi.hari})
+🕐 *Jam:* ${reservasi.jam}
+✂️ *Layanan:* ${reservasi.layanan}
+💇 *Barberman:* ${reservasi.barberman}
+📍 *Outlet:* ${reservasi.outlet}
+💰 *Total:* Rp ${(reservasi.harga || 0).toLocaleString()}
+
+*📌 Alasan Penolakan:*
+${reason}
+
+Silakan hubungi admin untuk informasi lebih lanjut atau lakukan reservasi ulang.
+
+Terima kasih atas perhatiannya. 🙏
+
+_*Babeh Barbershop - Right Man On The Right Place*_`;
+
+        // ========== PESAN UNTUK GROUP WA ==========
+        const groupMessage = `*❌ PEMBAYARAN RESERVASI GAGAL DIVERIFIKASI!*
+
+Reservasi ditolak:
+
+📋 *Kode:* ${kodeReservasi}
+👤 *Customer:* ${reservasi.nama_customer}
+📱 *WA Customer:* ${reservasi.no_wa_customer}
+💇 *Barberman:* ${reservasi.barberman}
+📅 *Tanggal:* ${reservasi.tanggal} (${reservasi.hari})
+🕐 *Jam:* ${reservasi.jam}
+✂️ *Layanan:* ${reservasi.layanan}
+📍 *Outlet:* ${reservasi.outlet}
+💰 *Total:* Rp ${(reservasi.harga || 0).toLocaleString()}
+
+*📌 Alasan Penolakan:*
+${reason}
+
+Terima kasih. 🙌`;
+
+        // Kirim ke Customer
+        if (reservasi.no_wa_customer) {
+            await sendWhatsAppNotification(reservasi.no_wa_customer, customerMessage);
+        }
+        
+        // Kirim ke Group WA
+        if (outletData?.group_wa) {
+            await sendWhatsAppNotification(outletData.group_wa, groupMessage);
+        }
+        
+        console.log('✅ WhatsApp reject notifications terkirim!');
+        
+    } catch (error) {
+        console.error('❌ Error sending reject notifications:', error);
+        // Jangan throw error, biarkan proses utama tetap berjalan
+    }
+}
+
+// ============================================
+// TOAST NOTIFICATION
+// ============================================
+
+function showToast(message, type = 'info') {
+    const existingToast = document.getElementById('reservasiToast');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    const toast = document.createElement('div');
+    toast.id = 'reservasiToast';
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 
+                           type === 'error' ? 'fa-exclamation-circle' : 
+                           type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'}"></i>
+            <span>${message}</span>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 300);
+        }
+    }, 5000);
+}
+
+// ============================================
 // TAMBAHKAN CSS UNTUK STYLING - UPDATED
 // ============================================
 
@@ -1353,1145 +1774,6 @@ function addReservasiPageStyles() {
             
             .reservasi-field .field-label {
                 min-width: 60px;
-            }
-        }
-    `;
-    
-    document.head.appendChild(style);
-}
-
-// ============================================
-// DISPLAY HISTORY RESERVASI
-// ============================================
-
-function displayHistoryReservasi(reservasiList) {
-    const tbody = document.getElementById('historyBodyReservasi');
-    const historyTable = document.getElementById('historyTableReservasi');
-    
-    if (!tbody || !historyTable) return;
-    
-    tbody.innerHTML = '';
-    
-    if (!reservasiList || reservasiList.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="12" class="empty-message">
-                    <i class="fas fa-history"></i>
-                    Tidak ada history reservasi
-                </td>
-            </tr>
-        `;
-        historyTable.style.display = 'table';
-        return;
-    }
-    
-    // Batasi maksimal 15 baris
-    const displayReservasi = reservasiList.slice(0, 15);
-    
-    displayReservasi.forEach(reservasi => {
-        const createdDate = new Date(reservasi.created_at);
-        const verifiedDate = reservasi.verified_at ? new Date(reservasi.verified_at) : null;
-        
-        // Status dengan icon
-        let statusHTML = '';
-        if (reservasi.status === 'pembayaran_berhasil') {
-            statusHTML = `
-                <span class="status-pill status-approved">
-                    <i class="fas fa-check-circle"></i> Pembayaran Berhasil
-                </span>
-            `;
-        } else if (reservasi.status === 'pembayaran_gagal') {
-            statusHTML = `
-                <span class="status-pill status-rejected">
-                    <i class="fas fa-times-circle"></i> Pembayaran Gagal
-                </span>
-            `;
-        } else if (reservasi.status === 'active') {
-            statusHTML = `
-                <span class="status-pill status-active">
-                    <i class="fas fa-check-circle"></i> Active
-                </span>
-            `;
-        } else if (reservasi.status === 'completed') {
-            statusHTML = `
-                <span class="status-pill status-approved">
-                    <i class="fas fa-check-double"></i> Completed
-                </span>
-            `;
-        } else if (reservasi.status === 'cancelled') {
-            statusHTML = `
-                <span class="status-pill status-rejected">
-                    <i class="fas fa-ban"></i> Cancelled
-                </span>
-            `;
-        } else {
-            statusHTML = `
-                <span class="status-pill status-pending">
-                    <i class="fas fa-clock"></i> ${reservasi.status || '-'}
-                </span>
-            `;
-        }
-        
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${createdDate.toLocaleDateString('id-ID')}<br><small>${createdDate.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</small></td>
-            <td><code>${reservasi.kode_reservasi || '-'}</code></td>
-            <td>${reservasi.nama_customer || '-'}</td>
-            <td>${reservasi.no_wa_customer || '-'}</td>
-            <td>${reservasi.outlet || '-'}</td>
-            <td>${reservasi.barberman || '-'}</td>
-            <td>${reservasi.layanan || '-'}</td>
-            <td>${reservasi.jam || '-'}</td>
-            <td><strong>Rp ${(reservasi.harga || 0).toLocaleString()}</strong></td>
-            <td class="status-cell">${statusHTML}</td>
-            <td>${reservasi.verified_by || '-'}</td>
-            <td>${verifiedDate ? verifiedDate.toLocaleDateString('id-ID') : '-'}</td>
-        `;
-        tbody.appendChild(row);
-    });
-    
-    historyTable.style.display = 'table';
-}
-
-// ============================================
-// APPROVE PAYMENT
-// ============================================
-
-async function approvePayment(reservasiId) {
-    try {
-        if (!confirm('✅ Konfirmasi pembayaran diterima untuk reservasi ini?\n\nStatus akan diubah menjadi "Pembayaran Berhasil" dan notifikasi akan dikirim ke customer, barberman, dan group WA.')) {
-            return;
-        }
-        
-        // Ambil data reservasi
-        const { data: reservasi, error: fetchError } = await supabase
-            .from('reservasi')
-            .select('*')
-            .eq('id', reservasiId)
-            .single();
-        
-        if (fetchError) throw fetchError;
-        
-        // Update status reservasi
-        const { error: updateError } = await supabase
-            .from('reservasi')
-            .update({
-                status: 'pembayaran_berhasil',
-                verified_at: new Date().toISOString(),
-                verified_by: currentKaryawanReservasi.nama_karyawan
-            })
-            .eq('id', reservasiId);
-        
-        if (updateError) throw updateError;
-        
-        // Kirim WhatsApp notifications
-        await sendPaymentSuccessNotifications(reservasi);
-        
-        showToast('✅ Pembayaran berhasil diverifikasi! Notifikasi telah dikirim.', 'success');
-        
-        // Reload data
-        await loadReservasiData();
-        
-    } catch (error) {
-        console.error('Error approving payment:', error);
-        showToast(`❌ Gagal verifikasi pembayaran: ${error.message}`, 'error');
-    }
-}
-
-// ============================================
-// REJECT PAYMENT
-// ============================================
-
-async function rejectPayment(reservasiId) {
-    try {
-        const reason = prompt('Masukkan alasan penolakan pembayaran:');
-        if (reason === null) return;
-        
-        if (!reason.trim()) {
-            showToast('⚠️ Harap masukkan alasan penolakan', 'warning');
-            return;
-        }
-        
-        if (!confirm(`❌ Konfirmasi pembayaran TIDAK diterima untuk reservasi ini?\n\nAlasan: ${reason}\n\nStatus akan diubah menjadi "Pembayaran Gagal" dan notifikasi akan dikirim.`)) {
-            return;
-        }
-        
-        // Ambil data reservasi
-        const { data: reservasi, error: fetchError } = await supabase
-            .from('reservasi')
-            .select('*')
-            .eq('id', reservasiId)
-            .single();
-        
-        if (fetchError) throw fetchError;
-        
-        // Update status reservasi
-        const { error: updateError } = await supabase
-            .from('reservasi')
-            .update({
-                status: 'pembayaran_gagal',
-                verified_at: new Date().toISOString(),
-                verified_by: currentKaryawanReservasi.nama_karyawan,
-                catatan: reservasi.catatan ? `${reservasi.catatan}\n\nAlasan penolakan: ${reason}` : `Alasan penolakan: ${reason}`
-            })
-            .eq('id', reservasiId);
-        
-        if (updateError) throw updateError;
-        
-        // Kirim WhatsApp notifications
-        await sendPaymentRejectNotifications(reservasi, reason);
-        
-        showToast('❌ Pembayaran ditolak. Notifikasi telah dikirim.', 'success');
-        
-        // Reload data
-        await loadReservasiData();
-        
-    } catch (error) {
-        console.error('Error rejecting payment:', error);
-        showToast(`❌ Gagal menolak pembayaran: ${error.message}`, 'error');
-    }
-}
-
-// ============================================
-// SEND PAYMENT SUCCESS NOTIFICATIONS
-// ============================================
-
-async function sendPaymentSuccessNotifications(reservasi) {
-    try {
-        // Dapatkan nomor WA barberman
-        const { data: barberData } = await supabase
-            .from('karyawan')
-            .select('nomor_wa')
-            .eq('nama_karyawan', reservasi.barberman)
-            .single();
-        
-        // Dapatkan group WA outlet
-        const { data: outletData } = await supabase
-            .from('outlet')
-            .select('group_wa')
-            .eq('outlet', reservasi.outlet)
-            .single();
-        
-        const kodeReservasi = reservasi.kode_reservasi || 'BRB-' + Date.now();
-        
-        // ========== PESAN UNTUK CUSTOMER ==========
-        const customerMessage = `*✅ PEMBAYARAN BERHASIL DIVERIFIKASI!*
-
-Halo *${reservasi.nama_customer}*,
-
-Pembayaran Anda telah berhasil diverifikasi. Reservasi Anda sekarang *ACTIVE*!
-
-📋 *Kode Reservasi:* ${kodeReservasi}
-📅 *Tanggal:* ${reservasi.tanggal} (${reservasi.hari})
-🕐 *Jam:* ${reservasi.jam}
-✂️ *Layanan:* ${reservasi.layanan}
-💇 *Barberman:* ${reservasi.barberman}
-📍 *Outlet:* ${reservasi.outlet}
-💰 *Total:* Rp ${(reservasi.harga || 0).toLocaleString()}
-
-*⚠️ PENTING:*
-• Pastikan Anda standby 5 menit SEBELUM waktu reservasi
-• Jika lewat 15 menit belum hadir, reservasi akan otomatis dibatalkan
-• Bawa bukti pembayaran saat datang
-
-Terima kasih telah mempercayakan gaya rambut Anda kepada Babeh Barbershop! ✨
-
-_*Babeh Barbershop - Right Man On The Right Place*_`;
-
-        // ========== PESAN UNTUK BARBERMAN ==========
-        const barbermanMessage = `*📢 PEMBAYARAN RESERVASI BERHASIL DIVERIFIKASI!*
-
-Halo *${reservasi.barberman}*,
-
-Pembayaran customer telah diverifikasi. Reservasi sekarang *ACTIVE*:
-
-📋 *Kode:* ${kodeReservasi}
-👤 *Customer:* ${reservasi.nama_customer}
-📱 *WA Customer:* ${reservasi.no_wa_customer}
-📅 *Tanggal:* ${reservasi.tanggal} (${reservasi.hari})
-🕐 *Jam:* ${reservasi.jam}
-✂️ *Layanan:* ${reservasi.layanan}
-📍 *Outlet:* ${reservasi.outlet}
-💰 *Total:* Rp ${(reservasi.harga || 0).toLocaleString()}
-
-*⚠️ CATATAN UNTUK BARBERMAN:*
-• Pastikan Anda standby 5 menit SEBELUM waktu reservasi
-• Siapkan alat dan bahan yang diperlukan
-• Jika customer tidak hadir 15 menit, hubungi admin
-
-Terima kasih! 🙌`;
-
-        // ========== PESAN UNTUK GROUP WA ==========
-        const groupMessage = `*📢 PEMBAYARAN RESERVASI BERHASIL DIVERIFIKASI!*
-
-Reservasi sekarang *ACTIVE*:
-
-📋 *Kode:* ${kodeReservasi}
-👤 *Customer:* ${reservasi.nama_customer}
-📱 *WA Customer:* ${reservasi.no_wa_customer}
-💇 *Barberman:* ${reservasi.barberman}
-📅 *Tanggal:* ${reservasi.tanggal} (${reservasi.hari})
-🕐 *Jam:* ${reservasi.jam}
-✂️ *Layanan:* ${reservasi.layanan}
-📍 *Outlet:* ${reservasi.outlet}
-💰 *Total:* Rp ${(reservasi.harga || 0).toLocaleString()}
-
-Mohon koordinasi untuk persiapan. Terima kasih! 🙌`;
-
-        // Kirim ke Customer
-        if (reservasi.no_wa_customer) {
-            await sendWhatsAppNotification(reservasi.no_wa_customer, customerMessage);
-        }
-        
-        // Kirim ke Barberman
-        if (barberData?.nomor_wa) {
-            await sendWhatsAppNotification(barberData.nomor_wa, barbermanMessage);
-        }
-        
-        // Kirim ke Group WA
-        if (outletData?.group_wa) {
-            await sendWhatsAppNotification(outletData.group_wa, groupMessage);
-        }
-        
-        console.log('✅ Semua WhatsApp notifications terkirim!');
-        
-    } catch (error) {
-        console.error('❌ Error sending notifications:', error);
-        // Jangan throw error, biarkan proses utama tetap berjalan
-    }
-}
-
-// ============================================
-// SEND PAYMENT REJECT NOTIFICATIONS
-// ============================================
-
-async function sendPaymentRejectNotifications(reservasi, reason) {
-    try {
-        // Dapatkan group WA outlet
-        const { data: outletData } = await supabase
-            .from('outlet')
-            .select('group_wa')
-            .eq('outlet', reservasi.outlet)
-            .single();
-        
-        const kodeReservasi = reservasi.kode_reservasi || 'BRB-' + Date.now();
-        
-        // ========== PESAN UNTUK CUSTOMER ==========
-        const customerMessage = `*❌ PEMBAYARAN GAGAL DIVERIFIKASI!*
-
-Halo *${reservasi.nama_customer}*,
-
-Mohon maaf, pembayaran Anda tidak dapat diverifikasi.
-
-📋 *Kode Reservasi:* ${kodeReservasi}
-📅 *Tanggal:* ${reservasi.tanggal} (${reservasi.hari})
-🕐 *Jam:* ${reservasi.jam}
-✂️ *Layanan:* ${reservasi.layanan}
-💇 *Barberman:* ${reservasi.barberman}
-📍 *Outlet:* ${reservasi.outlet}
-💰 *Total:* Rp ${(reservasi.harga || 0).toLocaleString()}
-
-*📌 Alasan Penolakan:*
-${reason}
-
-Silakan hubungi admin untuk informasi lebih lanjut atau lakukan reservasi ulang.
-
-Terima kasih atas perhatiannya. 🙏
-
-_*Babeh Barbershop - Right Man On The Right Place*_`;
-
-        // ========== PESAN UNTUK GROUP WA ==========
-        const groupMessage = `*❌ PEMBAYARAN RESERVASI GAGAL DIVERIFIKASI!*
-
-Reservasi ditolak:
-
-📋 *Kode:* ${kodeReservasi}
-👤 *Customer:* ${reservasi.nama_customer}
-📱 *WA Customer:* ${reservasi.no_wa_customer}
-💇 *Barberman:* ${reservasi.barberman}
-📅 *Tanggal:* ${reservasi.tanggal} (${reservasi.hari})
-🕐 *Jam:* ${reservasi.jam}
-✂️ *Layanan:* ${reservasi.layanan}
-📍 *Outlet:* ${reservasi.outlet}
-💰 *Total:* Rp ${(reservasi.harga || 0).toLocaleString()}
-
-*📌 Alasan Penolakan:*
-${reason}
-
-Terima kasih. 🙌`;
-
-        // Kirim ke Customer
-        if (reservasi.no_wa_customer) {
-            await sendWhatsAppNotification(reservasi.no_wa_customer, customerMessage);
-        }
-        
-        // Kirim ke Group WA
-        if (outletData?.group_wa) {
-            await sendWhatsAppNotification(outletData.group_wa, groupMessage);
-        }
-        
-        console.log('✅ WhatsApp reject notifications terkirim!');
-        
-    } catch (error) {
-        console.error('❌ Error sending reject notifications:', error);
-        // Jangan throw error, biarkan proses utama tetap berjalan
-    }
-}
-
-// ============================================
-// TOAST NOTIFICATION
-// ============================================
-
-function showToast(message, type = 'info') {
-    const existingToast = document.getElementById('reservasiToast');
-    if (existingToast) {
-        existingToast.remove();
-    }
-    
-    const toast = document.createElement('div');
-    toast.id = 'reservasiToast';
-    toast.className = `toast toast-${type}`;
-    toast.innerHTML = `
-        <div class="toast-content">
-            <i class="fas ${type === 'success' ? 'fa-check-circle' : 
-                           type === 'error' ? 'fa-exclamation-circle' : 
-                           type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'}"></i>
-            <span>${message}</span>
-        </div>
-        <button class="toast-close" onclick="this.parentElement.remove()">
-            <i class="fas fa-times"></i>
-        </button>
-    `;
-    
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.classList.add('show');
-    }, 10);
-    
-    setTimeout(() => {
-        if (toast.parentElement) {
-            toast.classList.remove('show');
-            setTimeout(() => {
-                if (toast.parentElement) {
-                    toast.remove();
-                }
-            }, 300);
-        }
-    }, 5000);
-}
-
-// ============================================
-// TAMBAHKAN CSS UNTUK STYLING
-// ============================================
-
-function addReservasiPageStyles() {
-    const styleId = 'reservasi-page-styles';
-    
-    const existingStyle = document.getElementById(styleId);
-    if (existingStyle) existingStyle.remove();
-    
-    const style = document.createElement('style');
-    style.id = styleId;
-    style.textContent = `
-        /* ===== RESET STYLING ===== */
-        .reservasi-page select {
-            box-sizing: border-box;
-            font-family: inherit;
-            font-size: inherit;
-            color: inherit;
-        }
-        
-        /* ===== STYLING UMUM ===== */
-        .reservasi-page {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f7fa;
-            min-height: 100vh;
-            padding: 20px;
-            color: #333;
-        }
-        
-        /* ===== HEADER / TOP BAR ===== */
-        .reservasi-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-            padding: 15px 20px !important;
-            border-radius: 10px !important;
-            margin-bottom: 20px !important;
-            color: white !important;
-        }
-        
-        .reservasi-header h2 {
-            margin: 0;
-            color: white;
-            font-size: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .reservasi-header .back-btn {
-            background: rgba(255,255,255,0.2) !important;
-            color: white !important;
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-        
-        .reservasi-header .back-btn:hover {
-            background: rgba(255,255,255,0.3);
-            transform: translateX(-3px);
-        }
-        
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .refresh-btn {
-            background: rgba(255,255,255,0.2) !important;
-            color: white !important;
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-        
-        .refresh-btn:hover {
-            background: rgba(255,255,255,0.3);
-            transform: rotate(90deg);
-        }
-        
-        .refresh-btn.loading i {
-            animation: spin 1s linear infinite;
-        }
-        
-        .realtime-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            background: rgba(255,255,255,0.2);
-            color: white;
-        }
-        
-        .realtime-badge.connected {
-            background: rgba(255,255,255,0.3);
-        }
-        
-        .realtime-badge.disconnected {
-            background: rgba(255,255,255,0.2);
-            color: #ffcccc;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        /* ===== INFO HEADER ===== */
-        .reservasi-info-header {
-            background: linear-gradient(135deg, #7c6ff0 0%, #8a5ec7 100%) !important;
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .reservasi-info-header .info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-        
-        .reservasi-info-header .info-row:last-child {
-            margin-bottom: 0;
-        }
-        
-        .reservasi-info-header .info-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-        }
-        
-        /* ===== FILTER SECTION ===== */
-        .filter-section-reservasi {
-            background: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
-        }
-        
-        .filter-section-reservasi .filter-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            align-items: flex-end;
-        }
-        
-        .filter-section-reservasi .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            flex: 1;
-            min-width: 150px;
-        }
-        
-        .filter-section-reservasi .filter-group label {
-            font-weight: 600;
-            font-size: 13px;
-            color: #495057;
-        }
-        
-        .filter-section-reservasi .filter-group label i {
-            color: #667eea;
-        }
-        
-        .reservasi-select {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #ced4da;
-            border-radius: 8px;
-            font-size: 14px;
-            background: white;
-            cursor: pointer;
-        }
-        
-        .reservasi-select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
-        .btn-apply-filter {
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.3s;
-            height: 42px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .btn-apply-filter:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-        
-        /* ===== SECTION HEADER ===== */
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        
-        .section-header h3 {
-            margin: 0;
-            font-size: 1.2rem;
-            color: #2c3e50;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .section-header h3 i {
-            color: #667eea;
-        }
-        
-        .request-stats {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 14px;
-            color: #6c757d;
-            font-weight: 500;
-        }
-        
-        /* ===== PENDING SECTION ===== */
-        .pending-reservasi-section {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
-        }
-        
-        .pending-reservasi-container {
-            min-height: 100px;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #6c757d;
-        }
-        
-        .loading i {
-            font-size: 2rem;
-            margin-bottom: 10px;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #6c757d;
-        }
-        
-        .empty-state i {
-            font-size: 3rem;
-            color: #667eea;
-            margin-bottom: 15px;
-        }
-        
-        .empty-state h4 {
-            margin: 0 0 5px 0;
-            color: #333;
-        }
-        
-        .empty-state p {
-            margin: 0;
-            color: #6c757d;
-        }
-        
-        /* ===== RESERVASI CARD ===== */
-        .reservasi-card {
-            border: 1px solid #e9ecef;
-            border-radius: 10px;
-            padding: 15px 20px;
-            margin-bottom: 15px;
-            background: #fafbfc;
-            transition: all 0.3s;
-        }
-        
-        .reservasi-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            border-color: #667eea;
-        }
-        
-        .reservasi-card-header {
-            margin-bottom: 15px;
-        }
-        
-        .reservasi-info .info-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px 25px;
-            margin-bottom: 8px;
-        }
-        
-        .reservasi-info .info-row:last-child {
-            margin-bottom: 0;
-        }
-        
-        .reservasi-info .info-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 14px;
-            color: #495057;
-        }
-        
-        .reservasi-info .info-item i {
-            color: #667eea;
-            width: 18px;
-            text-align: center;
-        }
-        
-        .reservasi-info .info-item strong {
-            color: #333;
-        }
-        
-        .reservasi-info .info-item code {
-            background: #f1f3f5;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            color: #495057;
-        }
-        
-        /* ===== ACTION BUTTONS ===== */
-        .reservasi-card-actions {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            padding-top: 15px;
-            border-top: 1px solid #e9ecef;
-        }
-        
-        .btn-approve-payment {
-            padding: 10px 24px;
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .btn-approve-payment:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
-        }
-        
-        .btn-reject-payment {
-            padding: 10px 24px;
-            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .btn-reject-payment:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
-        }
-        
-        /* ===== BUTTON REFRESH ROUND ===== */
-        .btn-refresh-history-round {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border: none;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            flex-shrink: 0;
-        }
-        
-        .btn-refresh-history-round:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
-        }
-        
-        .btn-refresh-history-round i {
-            font-size: 14px;
-        }
-        
-        .btn-refresh-history-round.loading i {
-            animation: spin 1s linear infinite;
-        }
-        
-        /* ===== STATUS PILLS ===== */
-        .status-pill {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-            text-transform: capitalize;
-            white-space: nowrap;
-        }
-        
-        .status-pill i {
-            font-size: 10px;
-        }
-        
-        .status-approved {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .status-pending {
-            background-color: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-        
-        .status-rejected {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .status-active {
-            background-color: #cce5ff;
-            color: #004085;
-            border: 1px solid #b8daff;
-        }
-        
-        .status-cell {
-            min-width: 120px;
-        }
-        
-        /* ===== HISTORY SECTION ===== */
-        .history-reservasi-section {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        }
-        
-        .history-table-container {
-            overflow-x: auto;
-        }
-        
-        .table-wrapper {
-            overflow-x: auto;
-        }
-        
-        .history-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-        
-        .history-table th {
-            background: #f8f9fa;
-            padding: 10px 12px;
-            text-align: left;
-            font-weight: 600;
-            color: #495057;
-            border-bottom: 2px solid #dee2e6;
-            white-space: nowrap;
-        }
-        
-        .history-table td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #e9ecef;
-            vertical-align: middle;
-        }
-        
-        .history-table tr:hover td {
-            background: #f8f9fa;
-        }
-        
-        .history-table .empty-message {
-            text-align: center;
-            padding: 30px;
-            color: #6c757d;
-        }
-        
-        .history-table .empty-message i {
-            font-size: 2rem;
-            display: block;
-            margin-bottom: 10px;
-            color: #adb5bd;
-        }
-        
-        .history-table code {
-            background: #f1f3f5;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            color: #495057;
-            white-space: nowrap;
-        }
-        
-        /* ===== FOOTER ===== */
-        .reservasi-footer {
-            margin-top: 20px;
-            padding: 15px;
-            background: white;
-            border-radius: 10px;
-            text-align: center;
-            color: #6c757d;
-            font-size: 14px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        }
-        
-        .reservasi-footer i {
-            margin-right: 8px;
-            color: #667eea;
-        }
-        
-        /* ===== TOAST ===== */
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: white;
-            padding: 15px 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-            z-index: 9999;
-            opacity: 0;
-            transition: all 0.3s ease;
-            max-width: 90%;
-            min-width: 300px;
-        }
-        
-        .toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-        
-        .toast-success {
-            border-left: 4px solid #28a745;
-        }
-        
-        .toast-error {
-            border-left: 4px solid #dc3545;
-        }
-        
-        .toast-warning {
-            border-left: 4px solid #ffc107;
-        }
-        
-        .toast-info {
-            border-left: 4px solid #17a2b8;
-        }
-        
-        .toast-content {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-        }
-        
-        .toast-content i {
-            font-size: 1.2rem;
-        }
-        
-        .toast-success .toast-content i {
-            color: #28a745;
-        }
-        
-        .toast-error .toast-content i {
-            color: #dc3545;
-        }
-        
-        .toast-warning .toast-content i {
-            color: #ffc107;
-        }
-        
-        .toast-info .toast-content i {
-            color: #17a2b8;
-        }
-        
-        .toast-close {
-            background: none;
-            border: none;
-            color: #6c757d;
-            cursor: pointer;
-            font-size: 1rem;
-            padding: 0 5px;
-        }
-        
-        .toast-close:hover {
-            color: #333;
-        }
-        
-        /* ===== RESPONSIVE ===== */
-        @media (max-width: 768px) {
-            .reservasi-page {
-                padding: 10px;
-            }
-            
-            .reservasi-info-header .info-row {
-                flex-direction: column;
-                gap: 8px;
-            }
-            
-            .filter-section-reservasi .filter-row {
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            .filter-section-reservasi .filter-group {
-                width: 100%;
-                min-width: unset;
-            }
-            
-            .btn-apply-filter {
-                width: 100%;
-                justify-content: center;
-            }
-            
-            .reservasi-card-actions {
-                flex-direction: column;
-            }
-            
-            .btn-approve-payment,
-            .btn-reject-payment {
-                width: 100%;
-                justify-content: center;
-            }
-            
-            .history-table {
-                font-size: 12px;
-            }
-            
-            .history-table th,
-            .history-table td {
-                padding: 6px 8px;
-            }
-            
-            .section-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .toast {
-                min-width: unset;
-                width: 90%;
-                bottom: 20px;
-                padding: 12px 18px;
-            }
-            
-            .toast-content {
-                font-size: 13px;
-            }
-            
-            .reservasi-header h2 {
-                font-size: 1.2rem;
-            }
-            
-            .back-btn, .refresh-btn {
-                width: 35px;
-                height: 35px;
             }
         }
     `;
