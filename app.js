@@ -20,7 +20,7 @@ const menuItems = {
         { id: 'kas', title: 'Kas & Setoran', icon: 'fa-cash-register', colorClass: 'menu-kas' },
         { id: 'request', title: 'Request', icon: 'fa-comment-dots', colorClass: 'menu-request' },
         { id: 'stok', title: 'Tambah Stok', icon: 'fa-boxes', colorClass: 'menu-stok' },
-       
+           { id: 'reservasi', title: 'Reservasi', icon: 'fa-calendar-check', colorClass: 'menu-reservasi' },
         { id: 'top', title: 'TOP', icon: 'fa-tools', colorClass: 'menu-top' }
     ],
     barberman: [
@@ -31,6 +31,7 @@ const menuItems = {
         { id: 'libur', title: 'Libur & Izin', icon: 'fa-calendar-day', colorClass: 'menu-libur' },
         { id: 'absensi', title: 'Absensi', icon: 'fa-fingerprint', colorClass: 'menu-absensi' },
         { id: 'top', title: 'TOP', icon: 'fa-tools', colorClass: 'menu-top' },
+        { id: 'reservasi', title: 'Reservasi', icon: 'fa-calendar-check', colorClass: 'menu-reservasi' },
         { id: 'sertifikasi', title: 'Sertifikasi', icon: 'fa-certificate', colorClass: 'menu-sertifikasi' }
     ],
     owner: [
@@ -44,6 +45,7 @@ const menuItems = {
         { id: 'request', title: 'Request', icon: 'fa-comment-dots', colorClass: 'menu-request' },
         { id: 'stok', title: 'Tambah Stok', icon: 'fa-boxes', colorClass: 'menu-stok' },
         { id: 'top', title: 'TOP', icon: 'fa-tools', colorClass: 'menu-top' },
+        { id: 'reservasi', title: 'Reservasi', icon: 'fa-calendar-check', colorClass: 'menu-reservasi' },
         { id: 'sertifikasi', title: 'Sertifikasi', icon: 'fa-certificate', colorClass: 'menu-sertifikasi' }
     ]
 };
@@ -470,6 +472,9 @@ function handleMenuClick(menuId) {
             break;
         case 'libur':
              showLiburPage(); // <-- TAMBAHKAN INI
+            break;
+        case 'reservasi':  // <-- TAMBAHKAN INI
+            showReservasiPage();
             break;
        case 'top':
             showTOPPage(); // <-- INI SUDAH BENAR
