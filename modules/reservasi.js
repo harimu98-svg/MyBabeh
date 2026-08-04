@@ -538,6 +538,42 @@ function displayPendingReservasi(reservasiList) {
             minute: '2-digit'
         });
         
+        // ============ CEK ROLE UNTUK TAMPILKAN TOMBOL ============
+        const showActions = isOwnerReservasi || isKasirReservasi;
+        
+        // ============ STATUS LABEL ============
+        let statusLabel = '';
+        let statusClass = '';
+        switch(reservasi.status) {
+            case 'menunggu_verifikasi':
+                statusLabel = '⏳ Menunggu Verifikasi';
+                statusClass = 'status-pending';
+                break;
+            case 'pembayaran_berhasil':
+                statusLabel = '✅ Pembayaran Berhasil';
+                statusClass = 'status-approved';
+                break;
+            case 'pembayaran_gagal':
+                statusLabel = '❌ Pembayaran Gagal';
+                statusClass = 'status-rejected';
+                break;
+            case 'active':
+                statusLabel = '✅ Active';
+                statusClass = 'status-active';
+                break;
+            case 'completed':
+                statusLabel = '✅ Completed';
+                statusClass = 'status-approved';
+                break;
+            case 'cancelled':
+                statusLabel = '❌ Cancelled';
+                statusClass = 'status-rejected';
+                break;
+            default:
+                statusLabel = reservasi.status || '-';
+                statusClass = 'status-pending';
+        }
+        
         html += `
         <div class="reservasi-card-compact" data-reservasi-id="${reservasi.id}">
             <div class="reservasi-grid-compact">
@@ -581,12 +617,20 @@ function displayPendingReservasi(reservasiList) {
                     <span class="field-label">Total:</span>
                     <span class="field-value" style="color: #28a745; font-weight: 700;">Rp ${(reservasi.harga || 0).toLocaleString()}</span>
                 </div>
+                <!-- ============ TAMBAHKAN STATUS ============ -->
+                <div class="reservasi-field">
+                    <span class="field-label">Status:</span>
+                    <span class="field-value"><span class="status-pill ${statusClass}">${statusLabel}</span></span>
+                </div>
                 ${reservasi.catatan ? `
                 <div class="reservasi-field" style="grid-column: 1 / -1;">
                     <span class="field-label">Catatan:</span>
                     <span class="field-value">${reservasi.catatan}</span>
                 </div>
                 ` : ''}
+                
+                <!-- ============ TOMBOL HANYA UNTUK OWNER & KASIR ============ -->
+                ${showActions ? `
                 <div class="reservasi-actions" style="grid-column: 1 / -1; display: flex; gap: 10px; justify-content: center; padding-top: 10px; border-top: 1px solid #e9ecef; margin-top: 5px;">
                     <button class="btn-approve-payment" onclick="approvePayment('${reservasi.id}')">
                         <i class="fas fa-check"></i> Pembayaran Diterima
@@ -595,6 +639,13 @@ function displayPendingReservasi(reservasiList) {
                         <i class="fas fa-times"></i> Pembayaran Tidak Diterima
                     </button>
                 </div>
+                ` : `
+                <div class="reservasi-actions" style="grid-column: 1 / -1; display: flex; gap: 10px; justify-content: center; padding-top: 10px; border-top: 1px solid #e9ecef; margin-top: 5px;">
+                    <span style="color: #6c757d; font-size: 13px; font-style: italic;">
+                        <i class="fas fa-info-circle"></i> Menunggu verifikasi oleh Owner/Kasir
+                    </span>
+                </div>
+                `}
             </div>
         </div>
         `;
@@ -602,7 +653,6 @@ function displayPendingReservasi(reservasiList) {
     
     pendingGrid.innerHTML = html;
 }
-
 // ============================================
 // DISPLAY HISTORY RESERVASI
 // ============================================
