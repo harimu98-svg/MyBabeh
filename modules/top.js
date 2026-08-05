@@ -107,17 +107,17 @@ function createTOPPage() {
     topPage.innerHTML = `
         <!-- Header dengan inline styling - UKURAN DIKECILKAN & RATA TENGAH -->
         <header style="
-            background: rgba(255, 255, 255, 0.95);
-            padding: 10px 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            gap: 15px;
-        ">
+    background: linear-gradient(135deg, #dc3545 0%, #c0392b 100%);
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    gap: 15px;
+">
             <button class="back-btn" id="backToMainFromTOP" style="
                 background: #667eea;
                 color: white;
