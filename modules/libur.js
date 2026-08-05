@@ -381,6 +381,7 @@ function createLiburPage() {
     `;
     
     document.body.appendChild(liburPage);
+    
      // ===== TAMBAHKAN CSS INI DI SINI =====
     const styleId = 'libur-info-styles';
     const existingStyle = document.getElementById(styleId);
@@ -418,14 +419,6 @@ function createLiburPage() {
     document.head.appendChild(style);
     // ===== AKHIR TAMBAHAN CSS =====
     
-    // Setup event listeners
-    setupLiburPageEvents();
-    
-    // Untuk kasir/barberman: setup form events
-    if (isKasir || isBarberman) {
-        setupLiburFormEvents();
-    }
-}
     // Setup event listeners
     setupLiburPageEvents();
     
