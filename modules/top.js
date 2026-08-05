@@ -108,7 +108,7 @@ function createTOPPage() {
     
         <!-- Header dengan inline styling - UKURAN DIKECILKAN & RATA TENGAH -->
     <header style="
-    background: rgba(102, 126, 234, 0.85);
+    background: linear-gradient(135deg, #00CED1, #20B2AA);
     padding: 10px 15px;
     display: flex;
     align-items: center;
