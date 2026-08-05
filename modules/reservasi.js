@@ -9,6 +9,7 @@ let isKasirReservasi = false;
 let isBarbermanReservasi = false;
 let reservasiData = [];
 let reservasiHistoryData = [];
+let realtimeSubscriptionReservasi = null;
 
 // ============================================
 // HELPER FUNCTIONS - WA CONFIG
@@ -203,9 +204,8 @@ function createReservasiPage() {
                     <select id="filterStatusReservasi" class="reservasi-select">
                         <option value="all">Semua Status</option>
                         <option value="menunggu_verifikasi">Menunggu Verifikasi</option>
-                        <option value="pembayaran_berhasil">Pembayaran Berhasil</option>
-                        <option value="pembayaran_gagal">Pembayaran Gagal</option>
                         <option value="active">Active</option>
+                        <option value="pembayaran_gagal">Pembayaran Gagal</option>
                         <option value="completed">Completed</option>
                         <option value="cancelled">Cancelled</option>
                     </select>
@@ -270,6 +270,7 @@ function createReservasiPage() {
                                 <th width="120px">Status</th>
                                 <th width="120px">Verifikasi Oleh</th>
                                 <th width="100px">Tgl Verifikasi</th>
+                                <th width="150px">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="historyBodyReservasi">
@@ -353,8 +354,6 @@ function setupReservasiPageEvents() {
 // ============================================
 // SETUP REALTIME SUBSCRIPTION
 // ============================================
-
-let realtimeSubscriptionReservasi = null;
 
 function setupRealtimeSubscriptionReservasi() {
     try {
@@ -502,11 +501,6 @@ async function loadReservasiData() {
     }
 }
 
-// ========== MODUL RESERVASI ==========
-// ========================================
-
-// ... (kode sebelumnya tetap sama sampai displayPendingReservasi)
-
 // ============================================
 // DISPLAY PENDING RESERVASI - COMPACT VERSION
 // ============================================
@@ -538,10 +532,10 @@ function displayPendingReservasi(reservasiList) {
             minute: '2-digit'
         });
         
-        // ============ CEK ROLE UNTUK TAMPILKAN TOMBOL ============
+        // CEK ROLE UNTUK TAMPILKAN TOMBOL
         const showActions = isOwnerReservasi || isKasirReservasi;
         
-        // ============ STATUS LABEL ============
+        // STATUS LABEL
         let statusLabel = '';
         let statusClass = '';
         switch(reservasi.status) {
@@ -549,17 +543,13 @@ function displayPendingReservasi(reservasiList) {
                 statusLabel = '⏳ Menunggu Verifikasi';
                 statusClass = 'status-pending';
                 break;
-            case 'pembayaran_berhasil':
-                statusLabel = '✅ Pembayaran Berhasil';
-                statusClass = 'status-approved';
+            case 'active':
+                statusLabel = '✅ Active';
+                statusClass = 'status-active';
                 break;
             case 'pembayaran_gagal':
                 statusLabel = '❌ Pembayaran Gagal';
                 statusClass = 'status-rejected';
-                break;
-            case 'active':
-                statusLabel = '✅ Active';
-                statusClass = 'status-active';
                 break;
             case 'completed':
                 statusLabel = '✅ Completed';
@@ -617,7 +607,6 @@ function displayPendingReservasi(reservasiList) {
                     <span class="field-label">Total:</span>
                     <span class="field-value" style="color: #28a745; font-weight: 700;">Rp ${(reservasi.harga || 0).toLocaleString()}</span>
                 </div>
-                <!-- ============ TAMBAHKAN STATUS ============ -->
                 <div class="reservasi-field">
                     <span class="field-label">Status:</span>
                     <span class="field-value"><span class="status-pill ${statusClass}">${statusLabel}</span></span>
@@ -629,7 +618,7 @@ function displayPendingReservasi(reservasiList) {
                 </div>
                 ` : ''}
                 
-                <!-- ============ TOMBOL HANYA UNTUK OWNER & KASIR ============ -->
+                <!-- TOMBOL HANYA UNTUK OWNER & KASIR -->
                 ${showActions ? `
                 <div class="reservasi-actions" style="grid-column: 1 / -1; display: flex; gap: 10px; justify-content: center; padding-top: 10px; border-top: 1px solid #e9ecef; margin-top: 5px;">
                     <button class="btn-approve-payment" onclick="approvePayment('${reservasi.id}')">
@@ -653,6 +642,7 @@ function displayPendingReservasi(reservasiList) {
     
     pendingGrid.innerHTML = html;
 }
+
 // ============================================
 // DISPLAY HISTORY RESERVASI
 // ============================================
@@ -668,7 +658,7 @@ function displayHistoryReservasi(reservasiList) {
     if (!reservasiList || reservasiList.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="12" class="empty-message">
+                <td colspan="13" class="empty-message">
                     <i class="fas fa-history"></i>
                     Tidak ada history reservasi
                 </td>
@@ -678,31 +668,26 @@ function displayHistoryReservasi(reservasiList) {
         return;
     }
     
-    // Batasi maksimal 15 baris
+    // CEK ROLE UNTUK TAMPILKAN TOMBOL
+    const showActions = isOwnerReservasi || isKasirReservasi;
+    
     const displayReservasi = reservasiList.slice(0, 15);
     
     displayReservasi.forEach(reservasi => {
         const createdDate = new Date(reservasi.created_at);
-        const verifiedDate = reservasi.verified_at ? new Date(reservasi.verified_at) : null;
+        const verifiedDate = reservasi.updated_at ? new Date(reservasi.updated_at) : null;
         
-        // Status dengan icon
         let statusHTML = '';
-        if (reservasi.status === 'pembayaran_berhasil') {
+        if (reservasi.status === 'active') {
             statusHTML = `
-                <span class="status-pill status-approved">
-                    <i class="fas fa-check-circle"></i> Pembayaran Berhasil
+                <span class="status-pill status-active">
+                    <i class="fas fa-check-circle"></i> Active
                 </span>
             `;
         } else if (reservasi.status === 'pembayaran_gagal') {
             statusHTML = `
                 <span class="status-pill status-rejected">
                     <i class="fas fa-times-circle"></i> Pembayaran Gagal
-                </span>
-            `;
-        } else if (reservasi.status === 'active') {
-            statusHTML = `
-                <span class="status-pill status-active">
-                    <i class="fas fa-check-circle"></i> Active
                 </span>
             `;
         } else if (reservasi.status === 'completed') {
@@ -739,6 +724,20 @@ function displayHistoryReservasi(reservasiList) {
             <td class="status-cell">${statusHTML}</td>
             <td>${reservasi.verified_by || '-'}</td>
             <td>${verifiedDate ? verifiedDate.toLocaleDateString('id-ID') : '-'}</td>
+            <td>
+                ${showActions && (reservasi.status === 'active') ? `
+                <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                    <button class="btn-completed" onclick="updateReservasiStatus('${reservasi.id}', 'completed')" 
+                            style="background: #28a745; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;">
+                        <i class="fas fa-check"></i> Completed
+                    </button>
+                    <button class="btn-cancelled" onclick="updateReservasiStatus('${reservasi.id}', 'cancelled')" 
+                            style="background: #dc3545; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;">
+                        <i class="fas fa-times"></i> Cancelled
+                    </button>
+                </div>
+                ` : '-'}
+            </td>
         `;
         tbody.appendChild(row);
     });
@@ -752,7 +751,7 @@ function displayHistoryReservasi(reservasiList) {
 
 async function approvePayment(reservasiId) {
     try {
-        if (!confirm('✅ Konfirmasi pembayaran diterima untuk reservasi ini?\n\nStatus akan diubah menjadi "Pembayaran Berhasil" dan notifikasi akan dikirim ke customer, barberman, dan group WA.')) {
+        if (!confirm('✅ Konfirmasi pembayaran diterima untuk reservasi ini?\n\nStatus akan diubah menjadi "ACTIVE" dan notifikasi akan dikirim ke Customer, Barberman, dan Group WA.')) {
             return;
         }
         
@@ -765,22 +764,20 @@ async function approvePayment(reservasiId) {
         
         if (fetchError) throw fetchError;
         
-        // Update status reservasi
+        // Update status menjadi "active"
         const { error: updateError } = await supabase
             .from('reservasi')
             .update({
-                status: 'pembayaran_berhasil',
-                verified_at: new Date().toISOString(),
-                verified_by: currentKaryawanReservasi.nama_karyawan
+                status: 'active'
             })
             .eq('id', reservasiId);
         
         if (updateError) throw updateError;
         
-        // Kirim WhatsApp notifications
+        // Kirim WhatsApp notifications (ke Customer, Barberman, Group)
         await sendPaymentSuccessNotifications(reservasi);
         
-        showToast('✅ Pembayaran berhasil diverifikasi! Notifikasi telah dikirim.', 'success');
+        showToast('✅ Pembayaran berhasil diverifikasi! Reservasi sekarang ACTIVE.', 'success');
         
         // Reload data
         await loadReservasiData();
@@ -805,7 +802,7 @@ async function rejectPayment(reservasiId) {
             return;
         }
         
-        if (!confirm(`❌ Konfirmasi pembayaran TIDAK diterima untuk reservasi ini?\n\nAlasan: ${reason}\n\nStatus akan diubah menjadi "Pembayaran Gagal" dan notifikasi akan dikirim.`)) {
+        if (!confirm(`❌ Konfirmasi pembayaran TIDAK diterima untuk reservasi ini?\n\nAlasan: ${reason}\n\nStatus akan diubah menjadi "Pembayaran Gagal" dan notifikasi akan dikirim ke Customer dan Group WA.`)) {
             return;
         }
         
@@ -818,23 +815,21 @@ async function rejectPayment(reservasiId) {
         
         if (fetchError) throw fetchError;
         
-        // Update status reservasi
+        // Update status menjadi "pembayaran_gagal"
         const { error: updateError } = await supabase
             .from('reservasi')
             .update({
                 status: 'pembayaran_gagal',
-                verified_at: new Date().toISOString(),
-                verified_by: currentKaryawanReservasi.nama_karyawan,
                 catatan: reservasi.catatan ? `${reservasi.catatan}\n\nAlasan penolakan: ${reason}` : `Alasan penolakan: ${reason}`
             })
             .eq('id', reservasiId);
         
         if (updateError) throw updateError;
         
-        // Kirim WhatsApp notifications
+        // Kirim WhatsApp notifications (ke Customer dan Group saja)
         await sendPaymentRejectNotifications(reservasi, reason);
         
-        showToast('❌ Pembayaran ditolak. Notifikasi telah dikirim.', 'success');
+        showToast('❌ Pembayaran ditolak. Notifikasi telah dikirim ke Customer dan Group WA.', 'success');
         
         // Reload data
         await loadReservasiData();
@@ -842,6 +837,36 @@ async function rejectPayment(reservasiId) {
     } catch (error) {
         console.error('Error rejecting payment:', error);
         showToast(`❌ Gagal menolak pembayaran: ${error.message}`, 'error');
+    }
+}
+
+// ============================================
+// UPDATE RESERVASI STATUS (Completed / Cancelled)
+// ============================================
+
+async function updateReservasiStatus(reservasiId, newStatus) {
+    try {
+        const statusLabel = newStatus === 'completed' ? 'Completed' : 'Cancelled';
+        
+        if (!confirm(`❓ Konfirmasi ubah status reservasi menjadi "${statusLabel}"?`)) {
+            return;
+        }
+        
+        const { error: updateError } = await supabase
+            .from('reservasi')
+            .update({
+                status: newStatus
+            })
+            .eq('id', reservasiId);
+        
+        if (updateError) throw updateError;
+        
+        showToast(`✅ Status reservasi berhasil diubah menjadi ${statusLabel}`, 'success');
+        await loadReservasiData();
+        
+    } catch (error) {
+        console.error('Error updating reservation status:', error);
+        showToast(`❌ Gagal mengubah status: ${error.message}`, 'error');
     }
 }
 
@@ -946,11 +971,10 @@ Mohon koordinasi untuk persiapan. Terima kasih! 🙌`;
             await sendWhatsAppNotification(outletData.group_wa, groupMessage);
         }
         
-        console.log('✅ Semua WhatsApp notifications terkirim!');
+        console.log('✅ Semua WhatsApp notifications terkirim ke Customer, Barberman, dan Group WA!');
         
     } catch (error) {
         console.error('❌ Error sending notifications:', error);
-        // Jangan throw error, biarkan proses utama tetap berjalan
     }
 }
 
@@ -1018,16 +1042,15 @@ Terima kasih. 🙌`;
             await sendWhatsAppNotification(reservasi.no_wa_customer, customerMessage);
         }
         
-        // Kirim ke Group WA
+        // Kirim ke Group WA (TIDAK ke Barberman)
         if (outletData?.group_wa) {
             await sendWhatsAppNotification(outletData.group_wa, groupMessage);
         }
         
-        console.log('✅ WhatsApp reject notifications terkirim!');
+        console.log('✅ WhatsApp reject notifications terkirim ke Customer dan Group WA!');
         
     } catch (error) {
         console.error('❌ Error sending reject notifications:', error);
-        // Jangan throw error, biarkan proses utama tetap berjalan
     }
 }
 
@@ -1075,7 +1098,7 @@ function showToast(message, type = 'info') {
 }
 
 // ============================================
-// TAMBAHKAN CSS UNTUK STYLING - UPDATED
+// TAMBAHKAN CSS UNTUK STYLING
 // ============================================
 
 function addReservasiPageStyles() {
@@ -1225,7 +1248,7 @@ function addReservasiPageStyles() {
             font-size: 14px;
         }
         
-        /* ===== FILTER SECTION - RATA TENGAH ===== */
+        /* ===== FILTER SECTION ===== */
         .filter-section-reservasi {
             background: white;
             padding: 15px 20px;
@@ -1473,6 +1496,38 @@ function addReservasiPageStyles() {
             box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
         }
         
+        .btn-completed {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        
+        .btn-completed:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+        
+        .btn-cancelled {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        
+        .btn-cancelled:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+        
         /* ===== BUTTON REFRESH ROUND ===== */
         .btn-refresh-history-round {
             width: 36px;
@@ -1504,7 +1559,7 @@ function addReservasiPageStyles() {
         
         /* ===== STATUS PILLS ===== */
         .status-pill {
-            padding: 6px 12px;
+            padding: 4px 10px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
@@ -1754,16 +1809,6 @@ function addReservasiPageStyles() {
                 gap: 4px 10px;
             }
             
-            .reservasi-card-actions {
-                flex-direction: column;
-            }
-            
-            .btn-approve-payment,
-            .btn-reject-payment {
-                width: 100%;
-                justify-content: center;
-            }
-            
             .history-table {
                 font-size: 12px;
             }
@@ -1839,6 +1884,7 @@ window.showReservasiPage = showReservasiPage;
 window.approvePayment = approvePayment;
 window.rejectPayment = rejectPayment;
 window.loadReservasiData = loadReservasiData;
+window.updateReservasiStatus = updateReservasiStatus;
 
 console.log('📁 Modul Reservasi siap digunakan!');
 
