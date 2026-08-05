@@ -96,35 +96,35 @@ function createLiburPage() {
             </div>
         </header>
         
-        <!-- Info Header -->
-        <div class="libur-info-header">
-            <div class="info-row">
-                <div class="info-item">
-                    <i class="fas fa-calendar-day"></i>
-                    <span id="currentDateLibur">${new Date().toLocaleDateString('id-ID', { 
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                    })}</span>
-                </div>
-                <div class="info-item">
-                    <i class="fas fa-user"></i>
-                    <span id="userNameLibur">${currentKaryawanLibur?.nama_karyawan || '-'}</span>
-                </div>
-            </div>
-            <div class="info-row">
-                <div class="info-item">
-                    <i class="fas fa-briefcase"></i>
-                    <span id="userPositionLibur">${currentKaryawanLibur?.posisi || '-'}</span>
-                </div>
-                <div class="info-item">
-                    <i class="fas fa-store"></i>
-                    <span id="userOutletLibur">${currentUserOutletLibur || '-'}</span>
-                </div>
-            </div>
+       <!-- Info Header - Style seperti clockin -->
+<div class="libur-info-header">
+    <div class="info-row">
+        <div class="info-item">
+            <i class="fas fa-calendar-day"></i>
+            <span id="currentDateLibur">${new Date().toLocaleDateString('id-ID', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            })}</span>
         </div>
-        
+        <div class="info-item">
+            <i class="fas fa-user"></i>
+            <span id="userNameLibur">${currentKaryawanLibur?.nama_karyawan || '-'}</span>
+        </div>
+    </div>
+    <div class="info-row">
+        <div class="info-item">
+            <i class="fas fa-tag"></i>
+            <span id="userPositionLibur">${currentKaryawanLibur?.posisi || '-'}</span>
+        </div>
+        <div class="info-item">
+            <i class="fas fa-store"></i>
+            <span id="userOutletLibur">${currentUserOutletLibur || '-'}</span>
+        </div>
+    </div>
+</div>
+
         <!-- Untuk KASIR/BARBERMAN: Form Ajukan Libur/Izin -->
         ${isKasir || isBarberman ? `
         <div class="kasir-libur-section">
