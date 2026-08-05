@@ -296,7 +296,7 @@ function createLiburPage() {
                             <option value="today">Hari Ini</option>
                             <option value="week">7 Hari Terakhir</option>
                             <option value="month">Bulan Ini</option>
-                            <option value="all">Semua</option>
+                            <option value="all" selected>Semua</option>
                         </select>
                     </div>
                     <button class="btn-apply-filter" onclick="loadLiburRequestsForOwner()">
