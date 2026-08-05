@@ -381,7 +381,51 @@ function createLiburPage() {
     `;
     
     document.body.appendChild(liburPage);
+     // ===== TAMBAHKAN CSS INI DI SINI =====
+    const styleId = 'libur-info-styles';
+    const existingStyle = document.getElementById(styleId);
+    if (existingStyle) existingStyle.remove();
     
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+        /* Info Header - Style seperti clockin */
+        .libur-info-header {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe) !important;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .libur-info-header .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .libur-info-header .info-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .libur-info-header .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+    `;
+    document.head.appendChild(style);
+    // ===== AKHIR TAMBAHAN CSS =====
+    
+    // Setup event listeners
+    setupLiburPageEvents();
+    
+    // Untuk kasir/barberman: setup form events
+    if (isKasir || isBarberman) {
+        setupLiburFormEvents();
+    }
+}
     // Setup event listeners
     setupLiburPageEvents();
     
