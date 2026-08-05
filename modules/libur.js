@@ -562,7 +562,7 @@ async function submitLiburRequest() {
         
          // ⭐ TAMBAHKAN DI SINI (setelah insert ke database, sebelum showToast)
         // Kirim notifikasi ke owner
-        await sendNotificationToOwner({
+        await sendLiburOwnerWA({
             karyawan: currentKaryawanLibur.nama_karyawan,
             outlet: currentUserOutletLibur,
             jenis: jenisLibur,
@@ -1025,8 +1025,8 @@ async function approveLiburRequest(liburId) {
         }
         
         // WhatsApp notifications
-        await sendWhatsAppNotification(liburData, 'approved', reviewNotes);
-        await sendGroupWhatsAppNotification(liburData);
+        await sendLiburWA(liburData, 'approved', reviewNotes);
+        await sendLiburGroupWA(liburData);
         
         showToast('✅ Libur berhasil disetujui!', 'success');
         
@@ -1290,7 +1290,7 @@ async function rejectLiburRequest(liburId) {
         if (updateError) throw updateError;
         
         // Kirim notifikasi WhatsApp
-        await sendWhatsAppNotification(liburData, 'rejected', reviewNotes);
+        await sendLiburWA(liburData, 'rejected', reviewNotes);
         
         showToast('❌ Libur berhasil ditolak!', 'success');
         
@@ -1577,7 +1577,7 @@ async function simpleLiburAbsen(liburData) {
     }
 }
 // [15] Fungsi untuk kirim notifikasi WhatsApp ke karyawan
-async function sendWhatsAppNotification(liburData, action, reviewNotes = '') {
+async function sendLiburWA(liburData, action, reviewNotes = '') {
     try {
         const WA_API_URL = 'https://waha-yetv8qi4e3zk.anakit.sumopod.my.id/api/sendText';
         const WA_API_KEY = 'sfcoGbpdLDkGZhKw2rx8sbb14vf4d8V6';
@@ -1649,7 +1649,7 @@ if (action === 'approved') {
 }
 
 // [16] Fungsi untuk kirim ke group WhatsApp (ambil dari tabel outlet)
-async function sendGroupWhatsAppNotification(liburData) {
+async function sendLiburGroupWA(liburData) {
     try {
         const WA_API_URL = 'https://waha-yetv8qi4e3zk.anakit.sumopod.my.id/api/sendText';
         const WA_API_KEY = 'sfcoGbpdLDkGZhKw2rx8sbb14vf4d8V6';
@@ -1715,7 +1715,7 @@ async function sendGroupWhatsAppNotification(liburData) {
 const OWNER_WA_NUMBER = '0811159429'; // Ganti dengan nomor owner
 
 // ⭐ TAMBAHKAN: Fungsi Notifikasi ke Owner
-async function sendNotificationToOwner(liburData) {
+async function sendLiburOwnerWA(liburData) {
     try {
         const WA_API_URL = 'https://waha-yetv8qi4e3zk.anakit.sumopod.my.id/api/sendText';
         const WA_API_KEY = 'sfcoGbpdLDkGZhKw2rx8sbb14vf4d8V6';
@@ -2260,7 +2260,7 @@ window.sendLiburReminder = sendLiburReminder;
 window.approveLiburRequest = approveLiburRequest;
 window.rejectLiburRequest = rejectLiburRequest;
 window.loadKasirLiburHistory = loadKasirLiburHistory;
-window.sendNotificationToOwner = sendNotificationToOwner;
+window.sendLiburOwnerWA = sendLiburOwnerWA;
 
 
 // ========== END OF FILE ==========
