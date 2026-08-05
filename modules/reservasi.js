@@ -202,7 +202,7 @@ function createReservasiPage() {
                 <div class="filter-group">
                     <label for="filterStatusReservasi"><i class="fas fa-filter"></i> Status:</label>
                     <select id="filterStatusReservasi" class="reservasi-select">
-                        <option value="all">Semua Status</option>
+                        <option value="all" selected>Semua Status</option>
                         <option value="menunggu_verifikasi">Menunggu Verifikasi</option>
                         <option value="active">Active</option>
                         <option value="pembayaran_gagal">Pembayaran Gagal</option>
@@ -216,7 +216,7 @@ function createReservasiPage() {
                         <option value="today">Hari Ini</option>
                         <option value="week">7 Hari Terakhir</option>
                         <option value="month">Bulan Ini</option>
-                        <option value="all">Semua</option>
+                        <option value="all" selected>Semua</option>
                     </select>
                 </div>
                 <button class="btn-apply-filter" id="applyFilterReservasi">
@@ -910,7 +910,6 @@ Pembayaran Anda telah berhasil diverifikasi. Reservasi Anda sekarang *ACTIVE*!
 *⚠️ PENTING:*
 • Pastikan Anda standby 5 menit SEBELUM waktu reservasi
 • Jika lewat 15 menit belum hadir, reservasi akan otomatis dibatalkan
-• Bawa bukti pembayaran saat datang
 
 Terima kasih telah mempercayakan gaya rambut Anda kepada Babeh Barbershop! ✨
 
@@ -1008,7 +1007,7 @@ Mohon maaf, pembayaran Anda tidak dapat diverifikasi.
 📍 *Outlet:* ${reservasi.outlet}
 💰 *Total:* Rp ${(reservasi.harga || 0).toLocaleString()}
 
-*📌 Alasan Penolakan:*
+*📌 Keterangan :*
 ${reason}
 
 Silakan hubungi admin untuk informasi lebih lanjut atau lakukan reservasi ulang.
