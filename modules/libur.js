@@ -560,6 +560,18 @@ async function submitLiburRequest() {
         
         if (error) throw error;
         
+         // ⭐ TAMBAHKAN DI SINI (setelah insert ke database, sebelum showToast)
+        // Kirim notifikasi ke owner
+        await sendNotificationToOwner({
+            karyawan: currentKaryawanLibur.nama_karyawan,
+            outlet: currentUserOutletLibur,
+            jenis: jenisLibur,
+            tanggal_mulai: tanggalMulaiDB,
+            tanggal_selesai: tanggalSelesaiDB,
+            durasi: durasi,
+            alasan: alasan
+        });
+     
         // Success
         showToast('✅ Permohonan libur berhasil diajukan!', 'success');
         
@@ -1698,6 +1710,67 @@ async function sendGroupWhatsAppNotification(liburData) {
     }
 }
 
+
+// ⭐ TAMBAHKAN: Konfigurasi Nomor WA Owner (HARDCODED)
+const OWNER_WA_NUMBER = '0811159429'; // Ganti dengan nomor owner
+
+// ⭐ TAMBAHKAN: Fungsi Notifikasi ke Owner
+async function sendNotificationToOwner(liburData) {
+    try {
+        const WA_API_URL = 'https://waha-yetv8qi4e3zk.anakit.sumopod.my.id/api/sendText';
+        const WA_API_KEY = 'sfcoGbpdLDkGZhKw2rx8sbb14vf4d8V6';
+        
+        // Format nomor WhatsApp
+        let chatId = OWNER_WA_NUMBER;
+        chatId = chatId.replace(/^0/, '62').replace(/^\+62/, '62');
+        if (!chatId.includes('@c.us')) {
+            chatId += '@c.us';
+        }
+        
+        // Parse tanggal
+        const startDate = new Date(liburData.tanggal_mulai);
+        const endDate = new Date(liburData.tanggal_selesai);
+        
+        // Buat pesan notifikasi
+        const message = `📢 *PERMOHONAN LIBUR BARU*\n\n` +
+                       `👤 *Karyawan*: ${liburData.karyawan}\n` +
+                       `📍 *Outlet*: ${liburData.outlet}\n` +
+                       `📋 *Jenis*: ${liburData.jenis}\n` +
+                       `📅 *Tanggal*: ${formatDateToDisplay(startDate)} - ${formatDateToDisplay(endDate)}\n` +
+                       `⏱️ *Durasi*: ${liburData.durasi} hari\n` +
+                       `📝 *Alasan*: ${liburData.alasan}\n\n` +
+                       `🔄 Silakan cek aplikasi untuk approve/reject permohonan ini.\n\n` +
+                       `_Dikirim otomatis dari sistem_`;
+        
+        console.log(`📤 Mengirim notifikasi ke owner (${OWNER_WA_NUMBER})...`);
+        
+        // Kirim via API
+        const response = await fetch(WA_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Api-Key': WA_API_KEY
+            },
+            body: JSON.stringify({
+                session: 'Session1',
+                chatId: chatId,
+                text: message
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        console.log(`✅ Notifikasi terkirim ke owner (${OWNER_WA_NUMBER})`);
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Gagal kirim notifikasi ke owner:', error);
+        return false;
+    }
+}
 // [17] Fungsi untuk generate kalender - DIPERBAIKI untuk include hari pertama
 function generateKalender() {
     const kalenderGrid = document.getElementById('kalenderGrid');
@@ -2187,5 +2260,7 @@ window.sendLiburReminder = sendLiburReminder;
 window.approveLiburRequest = approveLiburRequest;
 window.rejectLiburRequest = rejectLiburRequest;
 window.loadKasirLiburHistory = loadKasirLiburHistory;
+window.sendNotificationToOwner = sendNotificationToOwner;
+
 
 // ========== END OF FILE ==========
