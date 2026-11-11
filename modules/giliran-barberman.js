@@ -1,16 +1,22 @@
 // ========== MODUL URUTAN BARBERMAN ==========
 // Self-contained: HTML, CSS (scoped), JS logic
-// Semua class CSS pakai prefix "gb-" agar tidak menimpa style existing
+// Class prefix "gb-" agar tidak menimpa style existing.
 //
-// Aturan urutan (dari atas ke bawah):
-//   [1] Hadir (clockin = waktu, clockout = null) → urut clockin asc, dapat nomor 1,2,3,...
-//   [2] Istirahat (manual toggle oleh Kasir/Owner) → tanpa nomor ("-")
-//   [3] Libur / Izin (clockin = 'Libur'/'Izin') → tanpa nomor ("-")
+// Sumber data:
+//   - absen (nama, clockin, clockout, outlet, tanggal, status_istirahat)
+//     * status_kehadiran TIDAK disentuh (dipakai UOP/gaji/absensi)
+//     * status_istirahat: NULL=normal, 'Istirahat'=sedang istirahat
+//   - karyawan (nama_karyawan, posisi, photo_url, role, status, outlet)
+//   - transaksi_detail (realtime) — untuk turun urutan
+//
+// Aturan urutan:
+//   [1] Hadir  (clockin=waktu, clockout=null, status_istirahat=NULL) → nomor 1,2,3,...
+//   [2] Istirahat (clockin=waktu, clockout=null, status_istirahat='Istirahat') → nomor "-"
+//   [3] Libur / Izin (clockin='Libur'/'Izin') → nomor "-"
 //   clockin kosong → tidak tampil
-//   clockout = waktu → HAPUS dari list
+//   clockout=waktu → hapus dari list
 //
-// Transaksi baru (item_group Jasa/Tarif Hari Raya/Tarif Lebaran) → barber turun
-// ke bawah grup Hadir (di atas Istirahat/Libur/Izin), nomor re-number otomatis.
+// Transaksi baru (item_group Jasa/Tarif Hari Raya/Tarif Lebaran) → turun ke bawah grup Hadir.
 // Dedup by order_no.
 
 const GILIRAN_JASA_GROUPS = ['Jasa', 'Tarif Hari Raya', 'Tarif Lebaran'];
@@ -18,7 +24,6 @@ const GILIRAN_STYLE_ID = 'giliran-barberman-styles';
 
 const giliranState = {
     barberList: [],
-    breakSet: new Set(),
     processedOrderNos: new Set(),
     realtimeChannel: null,
     pollingTimer: null,
@@ -55,11 +60,8 @@ function injectGiliranStyles() {
     color: #2c3e50;
 }
 
-.gb-section-title i {
-    color: #007bff;
-}
+.gb-section-title i { color: #007bff; }
 
-/* Grid: 1 card per baris (vertikal) */
 .gb-grid {
     display: flex;
     flex-direction: column;
@@ -82,7 +84,6 @@ function injectGiliranStyles() {
     opacity: 0.6;
 }
 
-/* Card: full width, layout horizontal (foto | info | nomor) */
 .gb-card {
     display: flex;
     align-items: center;
@@ -133,10 +134,7 @@ function injectGiliranStyles() {
     object-fit: cover;
 }
 
-.gb-info {
-    flex: 1;
-    min-width: 0;
-}
+.gb-info { flex: 1; min-width: 0; }
 
 .gb-name {
     font-weight: 600;
@@ -171,7 +169,6 @@ function injectGiliranStyles() {
 .gb-badge.gb-status-libur { background: #e2e3e5; color: #383d41; }
 .gb-badge.gb-status-izin { background: #e2d9f3; color: #4a2c8a; }
 
-/* Nomor urut di kanan card */
 .gb-nomor {
     flex-shrink: 0;
     width: 36px;
@@ -192,25 +189,11 @@ function injectGiliranStyles() {
     box-shadow: none;
 }
 
-/* Mobile */
 @media (max-width: 480px) {
-    .gb-grid {
-        gap: 6px;
-    }
-    .gb-card {
-        padding: 8px 10px;
-        gap: 10px;
-    }
-    .gb-photo {
-        width: 40px;
-        height: 40px;
-        font-size: 1.4rem;
-    }
-    .gb-nomor {
-        width: 32px;
-        height: 32px;
-        font-size: 0.9rem;
-    }
+    .gb-grid { gap: 6px; }
+    .gb-card { padding: 8px 10px; gap: 10px; }
+    .gb-photo { width: 40px; height: 40px; font-size: 1.4rem; }
+    .gb-nomor { width: 32px; height: 32px; font-size: 0.9rem; }
     .gb-name { font-size: 0.82rem; }
     .gb-posisi { font-size: 0.7rem; }
     .gb-badge { font-size: 0.64rem; }
@@ -224,13 +207,11 @@ function injectGiliranStyles() {
 function ensureGiliranSection() {
     let section = document.getElementById('giliranSection');
     if (section) {
-        // Kalau section sudah ada (dari index.html), update judul & icon agar konsisten
         const title = section.querySelector('.gb-section-title, .section-title');
         if (title) {
             title.innerHTML = `<i class="fas fa-list-ol"></i> Urutan Barberman`;
             title.className = 'gb-section-title';
         }
-        // Pastikan grid pakai class gb-grid
         const grid = section.querySelector('#giliranGrid');
         if (grid) grid.className = 'gb-grid';
         return section;
@@ -238,7 +219,7 @@ function ensureGiliranSection() {
 
     const main = document.querySelector('.main-content');
     if (!main) {
-        console.warn('[Giliran] .main-content not found, tidak bisa inject section');
+        console.warn('[Giliran] .main-content not found');
         return null;
     }
 
@@ -300,40 +281,42 @@ async function fetchAndRenderGiliran() {
         const today = getGiliranTodayStr();
         const outlet = giliranState.outlet;
 
-        const { data: absenData, error: absenErr } = await supabase
-            .from('absen')
-            .select('nama, clockin, clockout, outlet, tanggal')
-            .eq('outlet', outlet)
-            .eq('tanggal', today);
+        const [absenRes, karyawanRes] = await Promise.all([
+            supabase
+                .from('absen')
+                .select('nama, clockin, clockout, outlet, tanggal, status_istirahat')
+                .eq('outlet', outlet)
+                .eq('tanggal', today),
+            supabase
+                .from('karyawan')
+                .select('nama_karyawan, posisi, photo_url')
+                .eq('outlet', outlet)
+                .eq('role', 'barberman')
+                .eq('status', 'active')
+        ]);
 
-        if (absenErr) throw absenErr;
+        if (absenRes.error) throw absenRes.error;
+        if (karyawanRes.error) throw karyawanRes.error;
 
-        const { data: karyawanBarber, error: karErr } = await supabase
-            .from('karyawan')
-            .select('nama_karyawan, posisi, photo_url')
-            .eq('outlet', outlet)
-            .eq('role', 'barberman')
-            .eq('status', 'active');
-
-        if (karErr) throw karErr;
+        const absenData = absenRes.data || [];
+        const karyawanBarber = karyawanRes.data || [];
 
         const karyawanMap = new Map();
-        (karyawanBarber || []).forEach(k => karyawanMap.set(k.nama_karyawan, k));
+        karyawanBarber.forEach(k => karyawanMap.set(k.nama_karyawan, k));
 
         const hadirList = [];
         const liburIzinList = [];
 
-        (absenData || []).forEach(absen => {
+        absenData.forEach(absen => {
             const karyawan = karyawanMap.get(absen.nama);
             if (!karyawan) return;
 
             const clockinRaw = (absen.clockin || '').toString().trim();
             const clockoutRaw = (absen.clockout || '').toString().trim();
+            const statusIstirahat = (absen.status_istirahat || '').toString().trim();
 
-            // Belum clockin → tidak tampil
             if (!clockinRaw) return;
 
-            // Libur / Izin
             if (clockinRaw === 'Libur' || clockinRaw === 'Izin') {
                 liburIzinList.push({
                     nama: absen.nama,
@@ -346,11 +329,10 @@ async function fetchAndRenderGiliran() {
                 return;
             }
 
-            // Sudah clockout → hapus dari list
             if (clockoutRaw) return;
 
-            // Hadir / Istirahat
-            const isIstirahat = giliranState.breakSet.has(absen.nama);
+            // Cek status_istirahat (kolom baru)
+            const isIstirahat = statusIstirahat === 'Istirahat';
             hadirList.push({
                 nama: absen.nama,
                 posisi: karyawan.posisi || '-',
@@ -370,10 +352,11 @@ async function fetchAndRenderGiliran() {
         giliranState.barberList = finalList;
 
         giliranState.lastAbsenSnapshot.clear();
-        (absenData || []).forEach(a => {
+        absenData.forEach(a => {
             giliranState.lastAbsenSnapshot.set(a.nama, {
                 clockin: a.clockin,
-                clockout: a.clockout
+                clockout: a.clockout,
+                status_istirahat: a.status_istirahat
             });
         });
 
@@ -449,17 +432,16 @@ function renderGiliranError(message) {
     `;
 }
 
-// Warna badge nomor urut — siklus 8 warna
 function getNomorColorStyle(nomor) {
     const colors = [
-        { bg: '#28a745', color: '#fff' }, // 1 - hijau
-        { bg: '#007bff', color: '#fff' }, // 2 - biru
-        { bg: '#6f42c1', color: '#fff' }, // 3 - ungu
-        { bg: '#fd7e14', color: '#fff' }, // 4 - oranye
-        { bg: '#dc3545', color: '#fff' }, // 5 - merah
-        { bg: '#e83e8c', color: '#fff' }, // 6 - pink
-        { bg: '#20c997', color: '#fff' }, // 7 - teal
-        { bg: '#795548', color: '#fff' }  // 8 - coklat
+        { bg: '#28a745', color: '#fff' },
+        { bg: '#007bff', color: '#fff' },
+        { bg: '#6f42c1', color: '#fff' },
+        { bg: '#fd7e14', color: '#fff' },
+        { bg: '#dc3545', color: '#fff' },
+        { bg: '#e83e8c', color: '#fff' },
+        { bg: '#20c997', color: '#fff' },
+        { bg: '#795548', color: '#fff' }
     ];
     const c = colors[(nomor - 1) % colors.length];
     return `background:${c.bg};color:${c.color};`;
@@ -481,13 +463,11 @@ function renderGiliranCards() {
         return;
     }
 
-    // FLIP: capture posisi lama
     const oldPositions = new Map();
     grid.querySelectorAll('.gb-card').forEach(el => {
         oldPositions.set(el.dataset.nama, el.getBoundingClientRect());
     });
 
-    // Hitung nomor urut: hanya untuk status 'Hadir'
     let nomorUrut = 0;
     const listWithNumber = list.map(barber => {
         if (barber.status === 'Hadir') {
@@ -505,7 +485,6 @@ function renderGiliranCards() {
         });
     });
 
-    // FLIP: play animation
     grid.querySelectorAll('.gb-card').forEach(el => {
         const nama = el.dataset.nama;
         const oldRect = oldPositions.get(nama);
@@ -543,7 +522,6 @@ function renderCardHTML(barber) {
     const canClick = giliranState.isOwnerOrKasir &&
         ['Hadir', 'Istirahat'].includes(barber.status);
 
-    // Nomor urut: hanya untuk Hadir
     let nomorHTML;
     if (barber.nomor !== null && barber.nomor !== undefined) {
         const style = getNomorColorStyle(barber.nomor);
@@ -588,7 +566,7 @@ function getGiliranStatusIcon(status) {
     }[status] || 'fa-check-circle';
 }
 
-// ========== INTERAKSI ==========
+// ========== INTERAKSI: TOGGLE ISTIRAHAT (UPDATE KOLOM BARU) ==========
 
 async function onBarberCardClick(nama, status) {
     if (!giliranState.isOwnerOrKasir) return;
@@ -596,28 +574,62 @@ async function onBarberCardClick(nama, status) {
 
     const isBreak = status === 'Hadir';
     const message = isBreak
-        ? `Set ${nama} ke status Istirahat?\n\nBarberman akan turun ke urutan bawah dan tidak diperhitungkan sampai kembali Hadir.`
+        ? `Set ${nama} ke status Istirahat?\n\nBarberman akan turun ke urutan bawah dan tidak diperhitungkan sampai kembali Hadir.\n\n(Semua device akan melihat perubahan ini)`
         : `Set ${nama} kembali ke status Hadir?\n\nBarberman akan diperhitungkan kembali saat ada transaksi baru.`;
 
     if (!confirm(message)) return;
 
-    if (isBreak) giliranState.breakSet.add(nama);
-    else giliranState.breakSet.delete(nama);
+    try {
+        const today = getGiliranTodayStr();
+        const outlet = giliranState.outlet;
+        const newValue = isBreak ? 'Istirahat' : null;
 
-    await fetchAndRenderGiliran();
+        // UPDATE kolom status_istirahat di tabel absen
+        // status_kehadiran TIDAK disentuh (aman untuk UOP/gaji/absensi)
+        const { error } = await supabase
+            .from('absen')
+            .update({ status_istirahat: newValue })
+            .eq('outlet', outlet)
+            .eq('tanggal', today)
+            .eq('nama', nama);
+
+        if (error) throw error;
+
+        console.log(`[Giliran] ${nama} → ${isBreak ? 'Istirahat' : 'Hadir'} (kolom status_istirahat updated)`);
+
+        // Re-fetch & render
+        await fetchAndRenderGiliran();
+
+    } catch (err) {
+        console.error('[Giliran] onBarberCardClick error:', err);
+        alert('Gagal mengubah status: ' + err.message + '\n\nPastikan kolom "status_istirahat" sudah ditambahkan ke tabel "absen".');
+    }
 }
 
 // ========== REALTIME ==========
 
 function setupGiliranRealtime() {
     try {
-        const channelName = `giliran-transaksi-${giliranState.outlet}-${Date.now()}`;
+        const channelName = `giliran-${giliranState.outlet}-${Date.now()}`;
         giliranState.realtimeChannel = supabase
             .channel(channelName)
             .on(
                 'postgres_changes',
                 { event: 'INSERT', schema: 'public', table: 'transaksi_detail' },
                 (payload) => handleTransaksiBaruGiliran(payload)
+            )
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'absen' },
+                (payload) => {
+                    // Ada update absen (misal status_istirahat diubah device lain) → re-fetch
+                    const row = payload.new;
+                    if (!row) return;
+                    if (row.outlet !== giliranState.outlet) return;
+                    if (row.tanggal !== getGiliranTodayStr()) return;
+                    console.log('[Giliran] Absen berubah, re-fetch...');
+                    fetchAndRenderGiliran();
+                }
             )
             .subscribe((status) => {
                 giliranState.realtimeConnected = status === 'SUBSCRIBED';
@@ -652,7 +664,6 @@ function handleTransaksiBaruGiliran(payload) {
 
         giliranState.barberList.splice(idx, 1);
 
-        // Cari posisi terakhir grup Hadir (di atas Istirahat/Libur/Izin)
         let lastHadirIdx = -1;
         for (let i = 0; i < giliranState.barberList.length; i++) {
             if (giliranState.barberList[i].status === 'Hadir') lastHadirIdx = i;
@@ -662,7 +673,7 @@ function handleTransaksiBaruGiliran(payload) {
         giliranState.barberList.splice(lastHadirIdx + 1, 0, barber);
         renderGiliranCards();
 
-        console.log(`[Giliran] ${serveBy} turun ke bawah grup Hadir karena transaksi ${orderNo}`);
+        console.log(`[Giliran] ${serveBy} turun ke bawah grup Hadir (order ${orderNo})`);
     } catch (err) {
         console.error('[Giliran] handleTransaksiBaruGiliran error:', err);
     }
