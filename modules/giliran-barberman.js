@@ -136,7 +136,7 @@ function injectGiliranStyles() {
     cursor: default;
     position: relative;
     overflow: hidden;
-    width: 66.6667%;
+    width: 75%;
     max-width: 480px;
     box-sizing: border-box;
 }
