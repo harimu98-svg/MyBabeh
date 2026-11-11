@@ -1,6 +1,17 @@
-// ========== MODUL GILIRAN BARBERMAN ==========
+// ========== MODUL URUTAN BARBERMAN ==========
 // Self-contained: HTML, CSS (scoped), JS logic
 // Semua class CSS pakai prefix "gb-" agar tidak menimpa style existing
+//
+// Aturan urutan (dari atas ke bawah):
+//   [1] Hadir (clockin = waktu, clockout = null) → urut clockin asc, dapat nomor 1,2,3,...
+//   [2] Istirahat (manual toggle oleh Kasir/Owner) → tanpa nomor ("-")
+//   [3] Libur / Izin (clockin = 'Libur'/'Izin') → tanpa nomor ("-")
+//   clockin kosong → tidak tampil
+//   clockout = waktu → HAPUS dari list
+//
+// Transaksi baru (item_group Jasa/Tarif Hari Raya/Tarif Lebaran) → barber turun
+// ke bawah grup Hadir (di atas Istirahat/Libur/Izin), nomor re-number otomatis.
+// Dedup by order_no.
 
 const GILIRAN_JASA_GROUPS = ['Jasa', 'Tarif Hari Raya', 'Tarif Lebaran'];
 const GILIRAN_STYLE_ID = 'giliran-barberman-styles';
@@ -20,14 +31,13 @@ const giliranState = {
 // ========== INJECT CSS (SCOPED) ==========
 
 function injectGiliranStyles() {
-    // Hapus style lama jika ada (anti-dobel saat reload)
     const existing = document.getElementById(GILIRAN_STYLE_ID);
     if (existing) existing.remove();
 
     const style = document.createElement('style');
     style.id = GILIRAN_STYLE_ID;
     style.textContent = `
-/* ========== GILIRAN BARBERMAN (scoped: prefix gb-) ========== */
+/* ========== URUTAN BARBERMAN (scoped: prefix gb-) ========== */
 .gb-section {
     padding: 15px;
     background: #fff;
@@ -45,15 +55,19 @@ function injectGiliranStyles() {
     color: #2c3e50;
 }
 
+.gb-section-title i {
+    color: #007bff;
+}
+
+/* Grid: 1 card per baris (vertikal) */
 .gb-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .gb-loading,
 .gb-empty {
-    grid-column: 1 / -1;
     text-align: center;
     padding: 24px 12px;
     color: #889;
@@ -68,11 +82,12 @@ function injectGiliranStyles() {
     opacity: 0.6;
 }
 
+/* Card: full width, layout horizontal (foto | info | nomor) */
 .gb-card {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px;
+    gap: 12px;
+    padding: 10px 12px;
     background: #fff;
     border: 1px solid #e6e9ee;
     border-radius: 10px;
@@ -83,6 +98,8 @@ function injectGiliranStyles() {
     cursor: default;
     position: relative;
     overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .gb-card.gb-clickable { cursor: pointer; }
@@ -116,11 +133,14 @@ function injectGiliranStyles() {
     object-fit: cover;
 }
 
-.gb-info { flex: 1; min-width: 0; }
+.gb-info {
+    flex: 1;
+    min-width: 0;
+}
 
 .gb-name {
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.88rem;
     color: #2c3e50;
     white-space: nowrap;
     overflow: hidden;
@@ -151,28 +171,71 @@ function injectGiliranStyles() {
 .gb-badge.gb-status-libur { background: #e2e3e5; color: #383d41; }
 .gb-badge.gb-status-izin { background: #e2d9f3; color: #4a2c8a; }
 
+/* Nomor urut di kanan card */
+.gb-nomor {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.12);
+}
+
+.gb-nomor.gb-nomor-none {
+    background: #eef1f6;
+    color: #889;
+    font-weight: 500;
+    box-shadow: none;
+}
+
+/* Mobile */
 @media (max-width: 480px) {
     .gb-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 8px;
+        gap: 6px;
     }
-    .gb-card { padding: 8px; gap: 8px; }
-    .gb-photo { width: 38px; height: 38px; font-size: 1.4rem; }
-    .gb-name { font-size: 0.78rem; }
-    .gb-posisi { font-size: 0.68rem; }
+    .gb-card {
+        padding: 8px 10px;
+        gap: 10px;
+    }
+    .gb-photo {
+        width: 40px;
+        height: 40px;
+        font-size: 1.4rem;
+    }
+    .gb-nomor {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+    .gb-name { font-size: 0.82rem; }
+    .gb-posisi { font-size: 0.7rem; }
+    .gb-badge { font-size: 0.64rem; }
 }
     `;
     document.head.appendChild(style);
 }
 
-// ========== RENDER SECTION (HTML skeleton) ==========
+// ========== ENSURE SECTION ==========
 
 function ensureGiliranSection() {
-    // Cek apakah section sudah ada di HTML (kalau user tambahkan manual)
     let section = document.getElementById('giliranSection');
-    if (section) return section;
+    if (section) {
+        // Kalau section sudah ada (dari index.html), update judul & icon agar konsisten
+        const title = section.querySelector('.gb-section-title, .section-title');
+        if (title) {
+            title.innerHTML = `<i class="fas fa-list-ol"></i> Urutan Barberman`;
+            title.className = 'gb-section-title';
+        }
+        // Pastikan grid pakai class gb-grid
+        const grid = section.querySelector('#giliranGrid');
+        if (grid) grid.className = 'gb-grid';
+        return section;
+    }
 
-    // Kalau tidak ada, buat baru & inject sebelum <main class="main-content">
     const main = document.querySelector('.main-content');
     if (!main) {
         console.warn('[Giliran] .main-content not found, tidak bisa inject section');
@@ -184,12 +247,12 @@ function ensureGiliranSection() {
     section.className = 'gb-section';
     section.innerHTML = `
         <h2 class="gb-section-title">
-            <i class="fas fa-users"></i> Giliran Barberman
+            <i class="fas fa-list-ol"></i> Urutan Barberman
         </h2>
         <div class="gb-grid" id="giliranGrid">
             <div class="gb-loading">
                 <i class="fas fa-spinner fa-spin"></i>
-                <span>Memuat giliran barberman...</span>
+                <span>Memuat urutan barberman...</span>
             </div>
         </div>
     `;
@@ -267,7 +330,7 @@ async function fetchAndRenderGiliran() {
             const clockinRaw = (absen.clockin || '').toString().trim();
             const clockoutRaw = (absen.clockout || '').toString().trim();
 
-            // Belum clockin
+            // Belum clockin → tidak tampil
             if (!clockinRaw) return;
 
             // Libur / Izin
@@ -369,7 +432,7 @@ function renderGiliranSkeleton() {
     grid.innerHTML = `
         <div class="gb-loading">
             <i class="fas fa-spinner fa-spin"></i>
-            <span>Memuat giliran barberman...</span>
+            <span>Memuat urutan barberman...</span>
         </div>
     `;
 }
@@ -380,10 +443,26 @@ function renderGiliranError(message) {
     grid.innerHTML = `
         <div class="gb-empty">
             <i class="fas fa-exclamation-triangle"></i>
-            <p>Gagal memuat giliran</p>
+            <p>Gagal memuat urutan</p>
             <small>${message || ''}</small>
         </div>
     `;
+}
+
+// Warna badge nomor urut — siklus 8 warna
+function getNomorColorStyle(nomor) {
+    const colors = [
+        { bg: '#28a745', color: '#fff' }, // 1 - hijau
+        { bg: '#007bff', color: '#fff' }, // 2 - biru
+        { bg: '#6f42c1', color: '#fff' }, // 3 - ungu
+        { bg: '#fd7e14', color: '#fff' }, // 4 - oranye
+        { bg: '#dc3545', color: '#fff' }, // 5 - merah
+        { bg: '#e83e8c', color: '#fff' }, // 6 - pink
+        { bg: '#20c997', color: '#fff' }, // 7 - teal
+        { bg: '#795548', color: '#fff' }  // 8 - coklat
+    ];
+    const c = colors[(nomor - 1) % colors.length];
+    return `background:${c.bg};color:${c.color};`;
 }
 
 function renderGiliranCards() {
@@ -402,12 +481,23 @@ function renderGiliranCards() {
         return;
     }
 
+    // FLIP: capture posisi lama
     const oldPositions = new Map();
     grid.querySelectorAll('.gb-card').forEach(el => {
         oldPositions.set(el.dataset.nama, el.getBoundingClientRect());
     });
 
-    grid.innerHTML = list.map(barber => renderCardHTML(barber)).join('');
+    // Hitung nomor urut: hanya untuk status 'Hadir'
+    let nomorUrut = 0;
+    const listWithNumber = list.map(barber => {
+        if (barber.status === 'Hadir') {
+            nomorUrut += 1;
+            return { ...barber, nomor: nomorUrut };
+        }
+        return { ...barber, nomor: null };
+    });
+
+    grid.innerHTML = listWithNumber.map(barber => renderCardHTML(barber)).join('');
 
     grid.querySelectorAll('.gb-card').forEach(el => {
         el.addEventListener('click', () => {
@@ -415,6 +505,7 @@ function renderGiliranCards() {
         });
     });
 
+    // FLIP: play animation
     grid.querySelectorAll('.gb-card').forEach(el => {
         const nama = el.dataset.nama;
         const oldRect = oldPositions.get(nama);
@@ -452,6 +543,15 @@ function renderCardHTML(barber) {
     const canClick = giliranState.isOwnerOrKasir &&
         ['Hadir', 'Istirahat'].includes(barber.status);
 
+    // Nomor urut: hanya untuk Hadir
+    let nomorHTML;
+    if (barber.nomor !== null && barber.nomor !== undefined) {
+        const style = getNomorColorStyle(barber.nomor);
+        nomorHTML = `<div class="gb-nomor" style="${style}">${barber.nomor}</div>`;
+    } else {
+        nomorHTML = `<div class="gb-nomor gb-nomor-none">-</div>`;
+    }
+
     return `
         <div class="gb-card gb-${statusClass} ${canClick ? 'gb-clickable' : ''}"
              data-nama="${barber.nama}"
@@ -465,6 +565,7 @@ function renderCardHTML(barber) {
                     <i class="fas ${statusIcon}"></i> ${barber.status}
                 </div>
             </div>
+            ${nomorHTML}
         </div>
     `;
 }
