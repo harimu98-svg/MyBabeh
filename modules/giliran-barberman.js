@@ -124,7 +124,8 @@ function injectGiliranStyles() {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 10px 12px;background: rgba(156, 39, 176, 0.15); /* ungu muda transparan 15% */
+    padding: 10px 12px;
+    background: #fff;
     border: 1px solid #e6e9ee;
     border-radius: 10px;
     transition: transform 0.9s cubic-bezier(0.22, 1.2, 0.36, 1),
@@ -139,7 +140,26 @@ function injectGiliranStyles() {
     max-width: 480px;
     box-sizing: border-box;
 }
-
+/* Status-based background (ungu transparan untuk Izin, dst) */
+.gb-card.gb-status-hadir {
+    background: rgba(40, 167, 69, 0.06);
+    border-left: 4px solid #28a745;
+}
+.gb-card.gb-status-istirahat {
+    background: rgba(255, 152, 0, 0.10);
+    border-left: 4px solid #ff9800;
+    opacity: 0.85;
+}
+.gb-card.gb-status-libur {
+    background: rgba(108, 117, 125, 0.08);
+    border-left: 4px solid #6c757d;
+    opacity: 0.75;
+}
+.gb-card.gb-status-izin {
+    background: rgba(111, 66, 193, 0.10);   /* ← ungu transparan */
+    border-left: 4px solid #6f42c1;
+    opacity: 0.75;
+}
 .gb-card.gb-highlight-turun {
     background: #fff8e1 !important;
     border-color: #ff9800 !important;
