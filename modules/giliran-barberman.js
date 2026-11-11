@@ -99,8 +99,10 @@ function injectGiliranStyles() {
     cursor: default;
     position: relative;
     overflow: hidden;
-    width: 100%;
     box-sizing: border-box;
+    width: 75%;     
+    max-width: 480px;      /* batas maksimum (opsional) */
+    margin: 0 auto;        /* center horizontal */
 }
 
 .gb-card.gb-clickable { cursor: pointer; }
