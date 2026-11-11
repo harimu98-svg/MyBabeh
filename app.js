@@ -186,6 +186,11 @@ async function handleLogin() {
 // Fungsi untuk handle logout
 async function handleLogout() {
     try {
+        // Cleanup giliran listeners (realtime channel + polling)
+        if (typeof cleanupGiliranListeners === 'function') {
+            cleanupGiliranListeners();
+        }
+
         await supabase.auth.signOut();
         showLoginScreen();
         clearForm();
@@ -274,6 +279,12 @@ async function loadUserData(user) {
     // 3. Tampilkan data di UI
     updateProfile(karyawanData);
     loadMenu(karyawanData.role);
+
+
+    // Load giliran barberman
+if (typeof loadGiliranBarberman === 'function') {
+    loadGiliranBarberman();
+}
     
     // 4. Jika owner, setup announcement bar
     if (karyawanData.role === 'owner') {
