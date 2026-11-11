@@ -2,48 +2,55 @@
 // Self-contained: HTML, CSS (scoped), JS logic
 // Class prefix "gb-" agar tidak menimpa style existing.
 //
+// Arsitektur: DB DULU → render
+//   1. Query absen + karyawan + transaksi (paralel)
+//   2. Re-kalkulasi urutan dari scratch (simulasi transaksi)
+//   3. Persist urutan_giliran ke DB (await, kalau beda)
+//   4. Baru render berdasarkan hasil kalkulasi
+//
 // Sumber data:
-//   - absen (nama, clockin, clockout, outlet, tanggal, status_istirahat, urutan_giliran)
-//     * status_kehadiran TIDAK disentuh
-//     * status_istirahat: NULL=normal, 'Istirahat'=sedang istirahat
-//     * urutan_giliran: NULL=belum ada urutan (ikut clockin), int=dipaksa urutan ini
-//   - karyawan (nama_karyawan, posisi, photo_url, role, status, outlet)
-//   - transaksi_detail (realtime) — untuk turun urutan
+//   - absen: nama, clockin, clockout, status_istirahat, urutan_giliran
+//   - karyawan: nama_karyawan, posisi, photo_url, role, status
+//   - transaksi_detail: order_no, order_time, serve_by (item_group Jasa, status completed)
 //
-// Aturan urutan:
-//   [1] Hadir dengan urutan_giliran (sort by urutan asc)
-//   [2] Hadir tanpa urutan_giliran (sort by clockin asc) → di bawah grup hadir
-//   [3] Istirahat (sort by urutan lama atau clockin)
-//   [4] Libur / Izin
-//   clockin kosong → tidak tampil
-//   clockout=waktu → hapus dari list
+// Pemicu fetch:
+//   1. Realtime transaksi_detail INSERT → debounce 300ms
+//   2. Realtime absen INSERT/UPDATE → debounce 300ms
+//   3. Realtime reconnect → fetch 100ms
+//   4. Visibility change (tab aktif) → fetch 100ms
+//   5. Polling 120s (connected) / 30s (disconnected) — skip kalau tab background / baru fetch
 //
-// Transaksi baru (item_group Jasa/Tarif Hari Raya/Tarif Lebaran) → turun ke bawah grup Hadir.
-// Setelah turun, persist urutan 1..N ke kolom urutan_giliran (semua barber Hadir).
-// Dedup by order_no.
+// Optimasi egress:
+//   - Query transaksi minimal (3 kolom)
+//   - Polling 120s saat connected
+//   - Skip fetch saat tab background
+//   - Skip polling kalau baru fetch (<60s)
 
 const GILIRAN_JASA_GROUPS = ['Jasa', 'Tarif Hari Raya', 'Tarif Lebaran'];
 const GILIRAN_STYLE_ID = 'giliran-barberman-styles';
 
 const giliranState = {
     barberList: [],
-    processedOrderNos: new Set(),
     realtimeChannel: null,
     pollingTimer: null,
     realtimeConnected: false,
+    tabActive: true,
     outlet: null,
     isOwnerOrKasir: false,
     currentUserName: null,
     currentUserRole: null,
-    lastAbsenSnapshot: new Map(),
     lastTopBarber: null,
+    lastFetchTime: 0,
+    // Highlight
+    highlightNama: null,
+    highlightNaik: null,
+    highlightTimer: null,
+    // Audio
     audioUnlocked: false,
-    audioEl: null,
-    // Untuk highlight animasi
-    highlightNama: null,        // nama barber yang baru turun
-    highlightAll: false,        // highlight semua card (saat urutan berubah)
-    highlightTimer: null
+    audioEl: null
 };
+
+let _fetchDebounceTimer = null;
 
 // ========== INJECT CSS (SCOPED) ==========
 
@@ -54,7 +61,6 @@ function injectGiliranStyles() {
     const style = document.createElement('style');
     style.id = GILIRAN_STYLE_ID;
     style.textContent = `
-/* ========== URUTAN BARBERMAN (scoped: prefix gb-) ========== */
 .gb-section {
     padding: 15px;
     background: #fff;
@@ -62,14 +68,12 @@ function injectGiliranStyles() {
     margin-bottom: 20px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
-
 .gb-header-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 12px;
 }
-
 .gb-section-title {
     display: flex;
     align-items: center;
@@ -78,9 +82,7 @@ function injectGiliranStyles() {
     font-size: 1.1rem;
     color: #2c3e50;
 }
-
 .gb-section-title i { color: #007bff; }
-
 .gb-sound-toggle {
     background: #eef1f6;
     border: none;
@@ -95,31 +97,23 @@ function injectGiliranStyles() {
     align-items: center;
     justify-content: center;
 }
-
 .gb-sound-toggle:hover { background: #dde3ec; }
-.gb-sound-toggle.gb-sound-on {
-    background: #d4edda;
-    color: #155724;
-}
+.gb-sound-toggle.gb-sound-on { background: #d4edda; color: #155724; }
 
 .gb-grid {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    align-items: center;     /* center card 2/3 */
+    align-items: center;
 }
-
-.gb-loading,
-.gb-empty {
+.gb-loading, .gb-empty {
     text-align: center;
     padding: 24px 12px;
     color: #889;
     font-size: 0.9rem;
     width: 100%;
 }
-
-.gb-loading i,
-.gb-empty i {
+.gb-loading i, .gb-empty i {
     font-size: 1.8rem;
     margin-bottom: 8px;
     display: block;
@@ -134,7 +128,6 @@ function injectGiliranStyles() {
     background: #fff;
     border: 1px solid #e6e9ee;
     border-radius: 10px;
-    /* Animasi lebih lambat: 0.9s ease-out dengan sedikit overshoot */
     transition: transform 0.9s cubic-bezier(0.22, 1.2, 0.36, 1),
                 box-shadow 0.3s ease,
                 border-color 0.3s ease,
@@ -143,44 +136,36 @@ function injectGiliranStyles() {
     cursor: default;
     position: relative;
     overflow: hidden;
-    width: 66.6667%;         /* 2/3 lebar */
-    max-width: 480px;        /* batas max di desktop */
+    width: 66.6667%;
+    max-width: 480px;
     box-sizing: border-box;
 }
 
-/* Highlight: card yang baru turun */
 .gb-card.gb-highlight-turun {
     background: #fff8e1 !important;
     border-color: #ff9800 !important;
     box-shadow: 0 0 0 2px #ff9800, 0 4px 16px rgba(255,152,0,0.35) !important;
     animation: gbPulseTurun 2s ease-out;
 }
-
 @keyframes gbPulseTurun {
     0%   { box-shadow: 0 0 0 2px #ff9800, 0 0 0 0 rgba(255,152,0,0.6); }
     50%  { box-shadow: 0 0 0 2px #ff9800, 0 0 0 8px rgba(255,152,0,0); }
     100% { box-shadow: 0 0 0 2px #ff9800, 0 0 0 0 rgba(255,152,0,0); }
 }
-
-/* Highlight: card yang posisinya bergeser (karena barber lain turun) */
 .gb-card.gb-highlight-geser {
     background: #f0f9f4 !important;
     animation: gbPulseGeser 1.4s ease-out;
 }
-
 @keyframes gbPulseGeser {
     0%   { background: #d4edda; }
     100% { background: #ffffff; }
 }
-
-/* Highlight: card yang baru naik ke posisi 1 */
 .gb-card.gb-highlight-naik {
     background: #e7f3ff !important;
     border-color: #007bff !important;
     box-shadow: 0 0 0 2px #007bff, 0 4px 16px rgba(0,123,255,0.3) !important;
     animation: gbPulseNaik 2s ease-out;
 }
-
 @keyframes gbPulseNaik {
     0%   { box-shadow: 0 0 0 2px #007bff, 0 0 0 0 rgba(0,123,255,0.6); }
     50%  { box-shadow: 0 0 0 2px #007bff, 0 0 0 8px rgba(0,123,255,0); }
@@ -192,7 +177,6 @@ function injectGiliranStyles() {
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     border-color: #c0c8d4;
 }
-
 .gb-card.gb-status-hadir { border-left: 4px solid #28a745; }
 .gb-card.gb-status-istirahat { border-left: 4px solid #ff9800; opacity: 0.85; }
 .gb-card.gb-status-libur { border-left: 4px solid #6c757d; opacity: 0.75; }
@@ -211,15 +195,8 @@ function injectGiliranStyles() {
     font-size: 1.6rem;
     color: #889;
 }
-
-.gb-photo img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
+.gb-photo img { width: 100%; height: 100%; object-fit: cover; }
 .gb-info { flex: 1; min-width: 0; }
-
 .gb-name {
     font-weight: 600;
     font-size: 0.88rem;
@@ -228,7 +205,6 @@ function injectGiliranStyles() {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-
 .gb-posisi {
     font-size: 0.72rem;
     color: #889;
@@ -237,7 +213,6 @@ function injectGiliranStyles() {
     text-overflow: ellipsis;
     margin-bottom: 4px;
 }
-
 .gb-badge {
     display: inline-flex;
     align-items: center;
@@ -247,7 +222,6 @@ function injectGiliranStyles() {
     font-size: 0.68rem;
     font-weight: 600;
 }
-
 .gb-badge.gb-status-hadir { background: #d4edda; color: #155724; }
 .gb-badge.gb-status-istirahat { background: #fff3cd; color: #856404; }
 .gb-badge.gb-status-libur { background: #e2e3e5; color: #383d41; }
@@ -265,7 +239,6 @@ function injectGiliranStyles() {
     font-size: 1rem;
     box-shadow: 0 2px 4px rgba(0,0,0,0.12);
 }
-
 .gb-nomor.gb-nomor-none {
     background: #eef1f6;
     color: #889;
@@ -273,7 +246,6 @@ function injectGiliranStyles() {
     box-shadow: none;
 }
 
-/* Toast notifikasi */
 .gb-toast {
     position: fixed;
     top: 20px;
@@ -291,26 +263,10 @@ function injectGiliranStyles() {
     animation: gbToastIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     max-width: 90vw;
 }
-
-.gb-toast.gb-toast-hide {
-    animation: gbToastOut 0.3s ease forwards;
-}
-
-.gb-toast-icon {
-    font-size: 1.5rem;
-    animation: gbToastRing 0.6s ease 0.2s;
-}
-
-.gb-toast-text strong {
-    display: block;
-    font-size: 0.9rem;
-    margin-bottom: 2px;
-}
-.gb-toast-text div {
-    font-size: 0.8rem;
-    opacity: 0.9;
-}
-
+.gb-toast.gb-toast-hide { animation: gbToastOut 0.3s ease forwards; }
+.gb-toast-icon { font-size: 1.5rem; animation: gbToastRing 0.6s ease 0.2s; }
+.gb-toast-text strong { display: block; font-size: 0.9rem; margin-bottom: 2px; }
+.gb-toast-text div { font-size: 0.8rem; opacity: 0.9; }
 @keyframes gbToastIn {
     from { transform: translate(-50%, -120%); opacity: 0; }
     to   { transform: translate(-50%, 0);     opacity: 1; }
@@ -327,13 +283,12 @@ function injectGiliranStyles() {
     80% { transform: rotate(-10deg); }
 }
 
-/* Mobile */
 @media (max-width: 480px) {
     .gb-grid { gap: 6px; }
     .gb-card {
         padding: 8px 10px;
         gap: 10px;
-        width: 100%;          /* full width di mobile */
+        width: 100%;
         max-width: none;
     }
     .gb-photo { width: 40px; height: 40px; font-size: 1.4rem; }
@@ -354,10 +309,8 @@ function injectGiliranStyles() {
 function ensureGiliranSection() {
     let section = document.getElementById('giliranSection');
     if (section) {
-        // Update header dengan tombol sound
         let header = section.querySelector('.gb-header-row');
         if (!header) {
-            // Kalau header lama ada, replace
             const oldTitle = section.querySelector('.gb-section-title, .section-title');
             if (oldTitle) {
                 const newHeader = document.createElement('div');
@@ -407,15 +360,13 @@ function ensureGiliranSection() {
     return section;
 }
 
-// ========== AUDIO NOTIFICATION ==========
+// ========== AUDIO ==========
 
 function setupAudioNotification() {
     const btn = document.getElementById('gbSoundToggle');
     if (!btn) return;
 
-    // Cek localStorage
-    const saved = localStorage.getItem('gb_audio_unlocked') === '1';
-    if (saved) {
+    if (localStorage.getItem('gb_audio_unlocked') === '1') {
         giliranState.audioUnlocked = true;
         btn.innerHTML = '<i class="fas fa-volume-up"></i>';
         btn.classList.add('gb-sound-on');
@@ -442,10 +393,8 @@ function setupAudioNotification() {
 
             if (navigator.vibrate) navigator.vibrate(200);
             playNotificationSound();
-
         } catch (err) {
             console.error('[Giliran] Unlock audio gagal:', err);
-            // Fallback: pakai Web Audio API beep
             playBeepFallback();
             giliranState.audioUnlocked = true;
             localStorage.setItem('gb_audio_unlocked', '1');
@@ -456,21 +405,13 @@ function setupAudioNotification() {
 }
 
 function playNotificationSound() {
-    if (navigator.vibrate) {
-        navigator.vibrate([300, 150, 300, 150, 300]);
-    }
-
+    if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]);
     if (giliranState.audioUnlocked) {
         if (giliranState.audioEl) {
             try {
                 giliranState.audioEl.currentTime = 0;
-                giliranState.audioEl.play().catch(err => {
-                    console.warn('[Giliran] Gagal play audio:', err.message);
-                    playBeepFallback();
-                });
-            } catch (e) {
-                playBeepFallback();
-            }
+                giliranState.audioEl.play().catch(() => playBeepFallback());
+            } catch (e) { playBeepFallback(); }
         } else {
             playBeepFallback();
         }
@@ -490,9 +431,7 @@ function playBeepFallback() {
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
         osc.start();
         osc.stop(ctx.currentTime + 0.5);
-    } catch (e) {
-        console.warn('[Giliran] Beep fallback error:', e);
-    }
+    } catch (e) { console.warn('[Giliran] Beep fallback error:', e); }
 }
 
 function showGiliranToast(namaBarber, isMe) {
@@ -503,16 +442,13 @@ function showGiliranToast(namaBarber, isMe) {
     toast.id = 'gbToast';
     toast.className = 'gb-toast';
     toast.innerHTML = `
-        <div class="gb-toast-icon">
-            <i class="fas fa-bell"></i>
-        </div>
+        <div class="gb-toast-icon"><i class="fas fa-bell"></i></div>
         <div class="gb-toast-text">
             <strong>${isMe ? 'Giliran Anda!' : 'Giliran Berikutnya'}</strong>
             <div>${namaBarber} sekarang di urutan 1</div>
         </div>
     `;
     document.body.appendChild(toast);
-
     setTimeout(() => {
         toast.classList.add('gb-toast-hide');
         setTimeout(() => toast.remove(), 300);
@@ -526,7 +462,6 @@ async function loadGiliranBarberman() {
         injectGiliranStyles();
         if (!ensureGiliranSection()) return;
         setupAudioNotification();
-
         cleanupGiliranListeners();
 
         const { data: { user } } = await supabase.auth.getUser();
@@ -546,6 +481,9 @@ async function loadGiliranBarberman() {
         giliranState.currentUserName = namaKaryawan;
         giliranState.currentUserRole = karyawanData.role;
 
+        // Setup visibility change
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
         renderGiliranSkeleton();
         await fetchAndRenderGiliran();
 
@@ -557,10 +495,16 @@ async function loadGiliranBarberman() {
     }
 }
 
-// ========== FETCH & MERGE ==========
+function handleVisibilityChange() {
+    giliranState.tabActive = document.visibilityState === 'visible';
+    if (giliranState.tabActive) {
+        // Tab aktif lagi → fetch instan
+        scheduleFetchAndRender(100);
+    }
+}
 
-// Debounce fetch, agar 5 event realtime beruntun → 1x fetch
-let _fetchDebounceTimer = null;
+// ========== FETCH & RE-KALKULASI ==========
+
 function scheduleFetchAndRender(delay = 300) {
     if (_fetchDebounceTimer) clearTimeout(_fetchDebounceTimer);
     _fetchDebounceTimer = setTimeout(() => {
@@ -572,9 +516,13 @@ function scheduleFetchAndRender(delay = 300) {
 async function fetchAndRenderGiliran() {
     try {
         const today = getGiliranTodayStr();
+        const todayDB = getGiliranTodayDBStr();
         const outlet = giliranState.outlet;
 
-        const [absenRes, karyawanRes] = await Promise.all([
+        giliranState.lastFetchTime = Date.now();
+
+        // Query paralel: absen + karyawan + transaksi (minimal)
+        const [absenRes, karyawanRes, transaksiRes] = await Promise.all([
             supabase
                 .from('absen')
                 .select('nama, clockin, clockout, outlet, tanggal, status_istirahat, urutan_giliran')
@@ -585,111 +533,53 @@ async function fetchAndRenderGiliran() {
                 .select('nama_karyawan, posisi, photo_url')
                 .eq('outlet', outlet)
                 .eq('role', 'barberman')
-                .eq('status', 'active')
+                .eq('status', 'active'),
+            // Optimasi: hanya 3 kolom yang perlu
+            supabase
+                .from('transaksi_detail')
+                .select('order_no, order_time, serve_by')
+                .eq('outlet', outlet)
+                .eq('order_date', todayDB)
+                .eq('status', 'completed')
+                .in('item_group', GILIRAN_JASA_GROUPS)
         ]);
 
         if (absenRes.error) throw absenRes.error;
         if (karyawanRes.error) throw karyawanRes.error;
+        if (transaksiRes.error) {
+            console.warn('[Giliran] Query transaksi error:', transaksiRes.error.message);
+        }
 
         const absenData = absenRes.data || [];
         const karyawanBarber = karyawanRes.data || [];
+        const transaksiData = transaksiRes.data || [];
 
         const karyawanMap = new Map();
         karyawanBarber.forEach(k => karyawanMap.set(k.nama_karyawan, k));
 
-        const hadirList = [];
-        const liburIzinList = [];
+        // Re-kalkulasi urutan + persist ke DB
+        const result = await recalculateAndPersistUrutan(absenData, karyawanMap, transaksiData);
 
-        absenData.forEach(absen => {
-            const karyawan = karyawanMap.get(absen.nama);
-            if (!karyawan) return;
+        const finalList = [
+            ...result.hadirList,
+            ...result.istirahatList,
+            ...result.liburIzinList
+        ];
 
-            const clockinRaw = (absen.clockin || '').toString().trim();
-            const clockoutRaw = (absen.clockout || '').toString().trim();
-            const statusIstirahat = (absen.status_istirahat || '').toString().trim();
-            const urutanDB = absen.urutan_giliran;
-
-            if (!clockinRaw) return;
-
-            if (clockinRaw === 'Libur' || clockinRaw === 'Izin') {
-                liburIzinList.push({
-                    nama: absen.nama,
-                    posisi: karyawan.posisi || '-',
-                    photo_url: karyawan.photo_url || null,
-                    clockin: clockinRaw,
-                    clockout: clockoutRaw,
-                    status: clockinRaw,
-                    urutan_giliran: null
-                });
-                return;
-            }
-
-            if (clockoutRaw) return;
-
-            const isIstirahat = statusIstirahat === 'Istirahat';
-            hadirList.push({
-                nama: absen.nama,
-                posisi: karyawan.posisi || '-',
-                photo_url: karyawan.photo_url || null,
-                clockin: clockinRaw,
-                clockout: null,
-                status: isIstirahat ? 'Istirahat' : 'Hadir',
-                urutan_giliran: urutanDB
-            });
-        });
-
-        // Pisahkan Hadir: dengan urutan vs tanpa urutan
-        const hadirOnly = hadirList.filter(b => b.status === 'Hadir');
-        const istirahatOnly = hadirList.filter(b => b.status === 'Istirahat');
-
-        const hadirDenganUrutan = hadirOnly.filter(b => 
-            b.urutan_giliran !== null && b.urutan_giliran !== undefined
-        );
-        const hadirTanpaUrutan = hadirOnly.filter(b => 
-            b.urutan_giliran === null || b.urutan_giliran === undefined
-        );
-
-        hadirDenganUrutan.sort((a, b) => a.urutan_giliran - b.urutan_giliran);
-        hadirTanpaUrutan.sort((a, b) => (a.clockin || '').localeCompare(b.clockin || ''));
-
-        const finalHadir = [...hadirDenganUrutan, ...hadirTanpaUrutan];
-
-        istirahatOnly.sort((a, b) => {
-            const ua = a.urutan_giliran ?? 9999;
-            const ub = b.urutan_giliran ?? 9999;
-            if (ua !== ub) return ua - ub;
-            return (a.clockin || '').localeCompare(b.clockin || '');
-        });
-
-        const finalList = [...finalHadir, ...istirahatOnly, ...liburIzinList];
-
-        // ===== DETEKSI PERUBAHAN URUTAN UNTUK HIGHLIGHT =====
+        // Deteksi highlight
         const prevList = giliranState.barberList || [];
         const prevOrder = new Map();
         prevList.forEach((b, i) => prevOrder.set(b.nama, i));
 
-        // Cari barber yang turun/naik posisi
-        let highlightNama = null;
-        if (prevList.length > 0) {
-            // Cari yang posisinya paling banyak turun (kandidat "yang baru turun")
-            let maxDrop = 0;
-            let droppedBarber = null;
-            finalList.forEach((b, newIdx) => {
-                const oldIdx = prevOrder.get(b.nama);
-                if (oldIdx !== undefined && oldIdx < newIdx) {
-                    const drop = newIdx - oldIdx;
-                    if (drop > maxDrop) {
-                        maxDrop = drop;
-                        droppedBarber = b.nama;
-                    }
-                }
-            });
-            if (droppedBarber && maxDrop > 0) {
-                highlightNama = droppedBarber;
+        const droppedBarbers = [];
+        finalList.forEach((b, newIdx) => {
+            const oldIdx = prevOrder.get(b.nama);
+            if (oldIdx !== undefined && oldIdx < newIdx) {
+                droppedBarbers.push(b.nama);
             }
-        }
+        });
 
-        // Deteksi barber baru di posisi 1
+        // Deteksi barber naik ke posisi 1
         const newTopBarber = finalList[0]?.status === 'Hadir' ? finalList[0].nama : null;
         const oldTopBarber = giliranState.lastTopBarber;
         let highlightNaik = null;
@@ -703,21 +593,10 @@ async function fetchAndRenderGiliran() {
             }
         }
 
-        // Simpan highlight state
-        giliranState.highlightNama = highlightNama;
+        giliranState.highlightNama = droppedBarbers[0] || null;
         giliranState.highlightNaik = highlightNaik;
         giliranState.lastTopBarber = newTopBarber;
         giliranState.barberList = finalList;
-
-        giliranState.lastAbsenSnapshot.clear();
-        absenData.forEach(a => {
-            giliranState.lastAbsenSnapshot.set(a.nama, {
-                clockin: a.clockin,
-                clockout: a.clockout,
-                status_istirahat: a.status_istirahat,
-                urutan_giliran: a.urutan_giliran
-            });
-        });
 
         renderGiliranCards();
 
@@ -725,6 +604,123 @@ async function fetchAndRenderGiliran() {
         console.error('[Giliran] fetchAndRenderGiliran error:', err);
         renderGiliranError(err.message);
     }
+}
+
+// Hitung ulang urutan dari scratch + persist ke DB
+async function recalculateAndPersistUrutan(absenData, karyawanMap, transaksiData) {
+    const today = getGiliranTodayStr();
+    const outlet = giliranState.outlet;
+
+    const hadirList = [];
+    const istirahatList = [];
+    const liburIzinList = [];
+
+    absenData.forEach(absen => {
+        const karyawan = karyawanMap.get(absen.nama);
+        if (!karyawan) return;
+
+        const clockinRaw = (absen.clockin || '').trim();
+        const clockoutRaw = (absen.clockout || '').trim();
+        const statusIstirahat = (absen.status_istirahat || '').trim();
+
+        if (!clockinRaw) return;
+
+        if (clockinRaw === 'Libur' || clockinRaw === 'Izin') {
+            liburIzinList.push({
+                nama: absen.nama,
+                posisi: karyawan.posisi || '-',
+                photo_url: karyawan.photo_url || null,
+                clockin: clockinRaw,
+                status: clockinRaw
+            });
+            return;
+        }
+
+        if (clockoutRaw) return;
+
+        const item = {
+            nama: absen.nama,
+            posisi: karyawan.posisi || '-',
+            photo_url: karyawan.photo_url || null,
+            clockin: clockinRaw
+        };
+
+        if (statusIstirahat === 'Istirahat') {
+            istirahatList.push({ ...item, status: 'Istirahat' });
+        } else {
+            hadirList.push({ ...item, status: 'Hadir' });
+        }
+    });
+
+    // Sort Hadir by clockin ASC (urutan awal)
+    hadirList.sort((a, b) => (a.clockin || '').localeCompare(b.clockin || ''));
+
+    // Dedup transaksi per order_no, ambil order_time terkecil
+    const orderMap = new Map();
+    (transaksiData || []).forEach(t => {
+        if (!t.order_no || !t.serve_by) return;
+        const existing = orderMap.get(t.order_no);
+        if (!existing || (t.order_time < existing.order_time)) {
+            orderMap.set(t.order_no, {
+                order_no: t.order_no,
+                order_time: t.order_time,
+                serve_by: t.serve_by
+            });
+        }
+    });
+
+    // Sort transaksi by order_time ASC
+    const sortedTx = Array.from(orderMap.values())
+        .sort((a, b) => (a.order_time || '').localeCompare(b.order_time || ''));
+
+    // Simulasi: pindahkan serve_by ke bawah grup Hadir
+    const workingHadir = [...hadirList];
+    sortedTx.forEach(tx => {
+        const idx = workingHadir.findIndex(b => b.nama === tx.serve_by);
+        if (idx === -1) return;
+        const barber = workingHadir.splice(idx, 1)[0];
+        workingHadir.push(barber);
+    });
+
+    // Assign urutan 1..N
+    const urutanMap = new Map();
+    workingHadir.forEach((b, i) => urutanMap.set(b.nama, i + 1));
+
+    // Bandingkan dengan DB, update yang beda
+    const updates = [];
+    absenData.forEach(absen => {
+        if (!karyawanMap.has(absen.nama)) return;
+        const newUrutan = urutanMap.get(absen.nama) ?? null;
+        const oldUrutan = absen.urutan_giliran ?? null;
+        if (newUrutan !== oldUrutan) {
+            updates.push({ nama: absen.nama, urutan_giliran: newUrutan });
+        }
+    });
+
+    if (updates.length > 0) {
+        console.log('[Giliran] Persist urutan:', updates.map(u => `${u.nama}=${u.urutan_giliran ?? 'NULL'}`).join(', '));
+        const results = await Promise.all(
+            updates.map(u =>
+                supabase
+                    .from('absen')
+                    .update({ urutan_giliran: u.urutan_giliran })
+                    .eq('outlet', outlet)
+                    .eq('tanggal', today)
+                    .eq('nama', u.nama)
+            )
+        );
+        const failed = results.filter(r => r.error);
+        if (failed.length > 0) {
+            console.warn('[Giliran] Sebagian update gagal:', failed);
+        }
+    }
+
+    return {
+        hadirList: workingHadir,
+        istirahatList,
+        liburIzinList,
+        hasChanges: updates.length > 0
+    };
 }
 
 // ========== RENDER ==========
@@ -783,13 +779,11 @@ function renderGiliranCards() {
         return;
     }
 
-    // Capture posisi lama (FLIP)
     const oldPositions = new Map();
     grid.querySelectorAll('.gb-card').forEach(el => {
         oldPositions.set(el.dataset.nama, el.getBoundingClientRect());
     });
 
-    // Hitung nomor urut
     let nomorUrut = 0;
     const listWithNumber = list.map(barber => {
         if (barber.status === 'Hadir') {
@@ -801,7 +795,6 @@ function renderGiliranCards() {
 
     grid.innerHTML = listWithNumber.map(barber => renderCardHTML(barber)).join('');
 
-    // Attach click
     grid.querySelectorAll('.gb-card').forEach(el => {
         el.addEventListener('click', () => {
             onBarberCardClick(el.dataset.nama, el.dataset.status);
@@ -813,7 +806,6 @@ function renderGiliranCards() {
         const nama = el.dataset.nama;
         const oldRect = oldPositions.get(nama);
         if (!oldRect) {
-            // Card baru: fade-in + scale
             el.style.opacity = '0';
             el.style.transform = 'scale(0.9)';
             requestAnimationFrame(() => {
@@ -828,21 +820,16 @@ function renderGiliranCards() {
         const dy = oldRect.top - newRect.top;
         if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
 
-        // Invert
         el.style.transform = `translate(${dx}px, ${dy}px)`;
         el.style.transition = 'none';
-
-        // Play (lebih lambat: 0.9s)
         requestAnimationFrame(() => {
             el.style.transition = 'transform 0.9s cubic-bezier(0.22, 1.2, 0.36, 1)';
             el.style.transform = 'translate(0, 0)';
         });
     });
 
-    // Terapkan highlight setelah render
     applyHighlights(grid);
 
-    // Reset highlight setelah 2.5 detik
     if (giliranState.highlightTimer) clearTimeout(giliranState.highlightTimer);
     giliranState.highlightTimer = setTimeout(() => {
         giliranState.highlightNama = null;
@@ -863,7 +850,6 @@ function applyHighlights(grid) {
         } else if (naikNama && nama === naikNama) {
             el.classList.add('gb-highlight-naik');
         } else if (turunNama || naikNama) {
-            // Card lain yang posisinya bergeser → highlight halus
             el.classList.add('gb-highlight-geser');
         }
     });
@@ -931,7 +917,7 @@ async function onBarberCardClick(nama, status) {
 
     const isBreak = status === 'Hadir';
     const message = isBreak
-        ? `Set ${nama} ke status Istirahat?\n\nBarberman akan turun ke urutan bawah dan tidak diperhitungkan sampai kembali Hadir.`
+        ? `Set ${nama} ke status Istirahat?\n\nBarberman akan turun ke urutan bawah dan tidak diperhitungkan sampai kembali Hadir.\n\n(Semua device akan melihat perubahan ini)`
         : `Set ${nama} kembali ke status Hadir?\n\nBarberman akan diperhitungkan kembali saat ada transaksi baru.`;
 
     if (!confirm(message)) return;
@@ -943,55 +929,19 @@ async function onBarberCardClick(nama, status) {
 
         const { error } = await supabase
             .from('absen')
-            .update({
-                status_istirahat: newValue,
-                urutan_giliran: null
-            })
+            .update({ status_istirahat: newValue })
             .eq('outlet', outlet)
             .eq('tanggal', today)
             .eq('nama', nama);
 
         if (error) throw error;
 
+        // Fetch ulang (re-kalkulasi + persist + render)
         await fetchAndRenderGiliran();
-        await persistUrutanKeDB();
-
-        console.log(`[Giliran] ${nama} → ${isBreak ? 'Istirahat' : 'Hadir'}`);
 
     } catch (err) {
         console.error('[Giliran] onBarberCardClick error:', err);
         alert('Gagal mengubah status: ' + err.message);
-    }
-}
-
-// ========== PERSIST URUTAN ==========
-
-async function persistUrutanKeDB() {
-    try {
-        const today = getGiliranTodayStr();
-        const outlet = giliranState.outlet;
-
-        const hadirList = giliranState.barberList.filter(b => b.status === 'Hadir');
-        if (hadirList.length === 0) return;
-
-        const updates = hadirList.map((barber, index) =>
-            supabase
-                .from('absen')
-                .update({ urutan_giliran: index + 1 })
-                .eq('outlet', outlet)
-                .eq('tanggal', today)
-                .eq('nama', barber.nama)
-        );
-
-        const results = await Promise.all(updates);
-        const failed = results.filter(r => r.error);
-        if (failed.length > 0) {
-            console.warn('[Giliran] Sebagian update urutan gagal:', failed);
-        } else {
-            console.log('[Giliran] Urutan tersimpan:', hadirList.map((b, i) => `${i + 1}.${b.nama}`).join(', '));
-        }
-    } catch (err) {
-        console.error('[Giliran] persistUrutanKeDB error:', err);
     }
 }
 
@@ -1021,27 +971,12 @@ function setupGiliranRealtime() {
                 const wasConnected = giliranState.realtimeConnected;
                 giliranState.realtimeConnected = status === 'SUBSCRIBED';
                 console.log('[Giliran] Realtime status:', status);
-
-                // Reconnect → refresh untuk tangkap yang terlewat
                 if (status === 'SUBSCRIBED' && !wasConnected) {
                     scheduleFetchAndRender(100);
                 }
             });
     } catch (err) {
         console.error('[Giliran] setupGiliranRealtime error:', err);
-    }
-}
-
-function handleAbsenChange(payload) {
-    try {
-        const row = payload.new;
-        if (!row) return;
-        if (row.outlet !== giliranState.outlet) return;
-        if (row.tanggal !== getGiliranTodayStr()) return;
-        // Debounce: kalau 5 event beruntun, cukup 1x fetch
-        scheduleFetchAndRender(300);
-    } catch (err) {
-        console.error('[Giliran] handleAbsenChange error:', err);
     }
 }
 
@@ -1052,60 +987,57 @@ function handleTransaksiBaruGiliran(payload) {
         if (row.outlet !== giliranState.outlet) return;
         if ((row.status || '').toLowerCase() !== 'completed') return;
         if (!GILIRAN_JASA_GROUPS.includes(row.item_group)) return;
+        if (!row.order_no || !row.serve_by) return;
 
-        const orderNo = row.order_no;
-        if (!orderNo) return;
-        if (giliranState.processedOrderNos.has(orderNo)) return;
-        giliranState.processedOrderNos.add(orderNo);
-
-        const serveBy = row.serve_by;
-        if (!serveBy) return;
-
-        const idx = giliranState.barberList.findIndex(b => b.nama === serveBy);
-        if (idx === -1) return;
-
-        const barber = giliranState.barberList[idx];
-        if (barber.status !== 'Hadir') return;
-
-        // 1. Pindah di memory (untuk animasi smooth)
-        giliranState.barberList.splice(idx, 1);
-
-        let lastHadirIdx = -1;
-        for (let i = 0; i < giliranState.barberList.length; i++) {
-            if (giliranState.barberList[i].status === 'Hadir') lastHadirIdx = i;
-            else break;
-        }
-        giliranState.barberList.splice(lastHadirIdx + 1, 0, barber);
-
-        // Set highlight
-        giliranState.highlightNama = serveBy;
-
-        renderGiliranCards();
-
-        console.log(`[Giliran] ${serveBy} turun ke bawah grup Hadir (order ${orderNo})`);
-
-        // 2. Persist urutan ke DB (async)
-        persistUrutanKeDB();
-
+        // Trigger fetch (debounce 300ms)
+        // Fetch akan query transaksi & re-kalkulasi dari scratch
+        console.log('[Giliran] Transaksi baru terdeteksi, refresh...');
+        scheduleFetchAndRender(300);
     } catch (err) {
         console.error('[Giliran] handleTransaksiBaruGiliran error:', err);
     }
 }
 
-// ========== POLLING ==========
+function handleAbsenChange(payload) {
+    try {
+        const row = payload.new;
+        if (!row) return;
+        if (row.outlet !== giliranState.outlet) return;
+        if (row.tanggal !== getGiliranTodayStr()) return;
+        scheduleFetchAndRender(300);
+    } catch (err) {
+        console.error('[Giliran] handleAbsenChange error:', err);
+    }
+}
+
+// ========== POLLING (dengan optimasi) ==========
 
 function setupGiliranPolling() {
     const tick = async () => {
         try {
+            // Skip kalau tab background
+            if (!giliranState.tabActive) {
+                giliranState.pollingTimer = setTimeout(tick, 60000);
+                return;
+            }
+
+            // Skip kalau baru fetch <60 detik lalu
+            if (Date.now() - giliranState.lastFetchTime < 60000) {
+                const interval = giliranState.realtimeConnected ? 120000 : 30000;
+                giliranState.pollingTimer = setTimeout(tick, interval);
+                return;
+            }
+
             await fetchAndRenderGiliran();
         } catch (err) {
             console.error('[Giliran] polling error:', err);
         }
+
         if (giliranState.pollingTimer) clearTimeout(giliranState.pollingTimer);
-        const interval = giliranState.realtimeConnected ? 60000 : 30000;
+        const interval = giliranState.realtimeConnected ? 120000 : 30000;
         giliranState.pollingTimer = setTimeout(tick, interval);
     };
-    giliranState.pollingTimer = setTimeout(tick, 60000);
+    giliranState.pollingTimer = setTimeout(tick, 120000);
 }
 
 // ========== CLEANUP ==========
@@ -1127,6 +1059,7 @@ function cleanupGiliranListeners() {
         clearTimeout(_fetchDebounceTimer);
         _fetchDebounceTimer = null;
     }
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
     giliranState.realtimeConnected = false;
 }
 
@@ -1138,6 +1071,14 @@ function getGiliranTodayStr() {
     const m = String(now.getMonth() + 1).padStart(2, '0');
     const y = now.getFullYear();
     return `${d}/${m}/${y}`;
+}
+
+function getGiliranTodayDBStr() {
+    const now = new Date();
+    const d = String(now.getDate()).padStart(2, '0');
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const y = now.getFullYear();
+    return `${y}-${m}-${d}`;
 }
 
 window.loadGiliranBarberman = loadGiliranBarberman;
