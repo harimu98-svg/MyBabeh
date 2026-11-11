@@ -124,8 +124,7 @@ function injectGiliranStyles() {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 10px 12px;
-    background: #fff;
+    padding: 10px 12px;background: rgba(156, 39, 176, 0.15); /* ungu muda transparan 15% */
     border: 1px solid #e6e9ee;
     border-radius: 10px;
     transition: transform 0.9s cubic-bezier(0.22, 1.2, 0.36, 1),
