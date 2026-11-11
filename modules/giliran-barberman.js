@@ -140,25 +140,24 @@ function injectGiliranStyles() {
     max-width: 480px;
     box-sizing: border-box;
 }
-/* Status-based background (ungu transparan untuk Izin, dst) */
 .gb-card.gb-status-hadir {
-    background: rgba(40, 167, 69, 0.06);
+    background: rgba(40, 167, 69, 0.20);   /* 20% - lebih jelas */
     border-left: 4px solid #28a745;
 }
 .gb-card.gb-status-istirahat {
-    background: rgba(255, 152, 0, 0.10);
+    background: rgba(255, 152, 0, 0.25);   /* 25% */
     border-left: 4px solid #ff9800;
-    opacity: 0.85;
+    /* hapus opacity: 0.85 */
 }
 .gb-card.gb-status-libur {
-    background: rgba(108, 117, 125, 0.08);
+    background: rgba(108, 117, 125, 0.20); /* 20% */
     border-left: 4px solid #6c757d;
-    opacity: 0.75;
+    /* hapus opacity: 0.75 */
 }
 .gb-card.gb-status-izin {
-    background: rgba(111, 66, 193, 0.10);   /* ← ungu transparan */
+    background: rgba(111, 66, 193, 0.25);  /* 25% ungu */
     border-left: 4px solid #6f42c1;
-    opacity: 0.75;
+    /* hapus opacity: 0.75 */
 }
 .gb-card.gb-highlight-turun {
     background: #fff8e1 !important;
