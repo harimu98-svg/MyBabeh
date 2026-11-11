@@ -288,7 +288,7 @@ function injectGiliranStyles() {
     .gb-card {
         padding: 8px 10px;
         gap: 10px;
-        width: 100%;
+        width: 75%;
         max-width: none;
     }
     .gb-photo { width: 40px; height: 40px; font-size: 1.4rem; }
